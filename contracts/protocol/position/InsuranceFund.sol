@@ -4,7 +4,7 @@ pragma solidity 0.8.0;
 * @notice This cointract keep money
 */
 import {IAmm} from "../../interfaces/IAmm.sol";
-import { IERC20 } from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 import {IInsuranceFund} from "../../interfaces/IInsuranceFund.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
 
@@ -14,6 +14,7 @@ contract InsuranceFund is IInsuranceFund {
     mapping(address => bool) private quoteTokenMap;
     IAmm[] private amms;
     IERC20[] public quoteTokens;
+    IERC20 public posiToken;
 
 
 
@@ -37,6 +38,26 @@ contract InsuranceFund is IInsuranceFund {
         }
     }
 
+    /**
+    * @notice withdraw token to caller
+    * @param _amount the amount of quoteToken caller want to withdraw
+    */
+    function withdraw(IERC20 _quoteToken, uint256 calldata _amount) external override {
+        require(beneficiary == _msgSender(), "caller is not beneficiary");
+        require(isQuoteTokenExisted(_quoteToken), "Asset is not supported");
+
+        uint256 memory quoteBalance = balanceOf(_quoteToken);
+        if (_amount.toUint() > quoteBalance.toUint()) {
+            uint256 memory insufficientAmount = _amount.sub(quoteBalance);
+            swapEnoughQuoteAmount(_quoteToken, insufficientAmount);
+            quoteBalance = balanceOf(_quoteToken);
+        }
+        require(quoteBalance.toUint() >= _amount.toUint(), "Fund not enough");
+
+        _transfer(_quoteToken, _msgSender(), _amount);
+
+        emit Withdrawn(_msgSender(), _amount.toUint());
+    }
 
 
     //
@@ -59,13 +80,13 @@ contract InsuranceFund is IInsuranceFund {
         // insertion sort
         for (uint256 i = 0; i < getQuoteTokenLength(); i++) {
             IERC20 currentToken = quoteTokens[i];
-            uint256 memory currentPerpValue =
-            exchange.getInputPrice(currentToken, perpToken, balanceOf(currentToken));
+            uint256 memory currentPosiValue =
+            exchange.getInputPrice(currentToken, posiToken, balanceOf(currentToken));
 
             for (uint256 j = i; j > 0; j--) {
-                uint256 memory subsetPerpValue =
-                exchange.getInputPrice(tokens[j - 1], perpToken, balanceOf(tokens[j - 1]));
-                if (currentPerpValue.toUint() > subsetPerpValue.toUint()) {
+                uint256 memory subsetPosiValue =
+                exchange.getInputPrice(tokens[j - 1], posiToken, balanceOf(tokens[j - 1]));
+                if (currentPosiValue.toUint() > subsetPosiValue.toUint()) {
                     tokens[j] = tokens[j - 1];
                     tokens[j - 1] = currentToken;
                 }
@@ -87,8 +108,6 @@ contract InsuranceFund is IInsuranceFund {
     function balanceOf(IERC20 _quoteToken) internal view returns (Decimal.decimal memory) {
         return _balanceOf(_quoteToken, address(this));
     }
-
-
 
 
 }

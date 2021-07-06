@@ -4,7 +4,7 @@ pragma solidity 0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-interface IAmm {
+interface IAmm  is IERC20{
     /**
      * @notice asset direction, used in getInputPrice, getOutputPrice, swapInput and swapOutput
      * @param ADD_TO_AMM add asset to Amm
@@ -18,4 +18,5 @@ interface IAmm {
 
     function queryOrder() external;
 
+    function getTotalPositionSize() external view returns (uint256 memory);
 }

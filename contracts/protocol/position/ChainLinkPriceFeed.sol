@@ -3,8 +3,9 @@ pragma solidity 0.8.0;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
 import {IChainLinkPriceFeed}  from "../../interfaces/IChainLinkPriceFeed.sol";
-import {SafeMath} from "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {BlockContext} from "../libraries/helpers/BlockContext.sol";
+import {Errors} from "../libraries/helpers/Errors.sol";
 
 contract ChainLinkPriceFeed is IChainLinkPriceFeed, BlockContext {
     using SafeMath for uint256;
@@ -102,7 +103,7 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed, BlockContext {
     function getTwapPrice(bytes32 _priceFeedKey, uint256 _interval) external view override returns (uint256) {
         AggregatorV3Interface aggregator = getAggregator(_priceFeedKey);
         requireNonEmptyAddress(address(aggregator));
-        require(_interval != 0, "interval can't be 0");
+        require(_interval != 0, Errors.VL_INVALID_AMOUNT);
 
         // 3 different timestamps, `previous`, `current`, `target`
         // `base` = now - _interval
@@ -178,7 +179,7 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed, BlockContext {
         requireNonEmptyAddress(address(aggregator));
 
         (uint80 round, , , ,) = aggregator.latestRoundData();
-        require(round > 0 && round >= _numOfRoundBack, "Not enough history");
+        require(round > 0 && round >= _numOfRoundBack, Errors.VL_NOT_ENOUGH_HISTORY);
         (, int256 previousPrice, , uint256 previousTimestamp,) =
         aggregator.getRoundData(round - uint80(_numOfRoundBack));
         requirePositivePrice(previousPrice);
@@ -234,15 +235,15 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed, BlockContext {
     //
 
     function requireNonEmptyAddress(address _address) internal pure {
-        require(_address != address(0), "empty address");
+        require(_address != address(0), Errors.VL_EMPTY_ADDRESS);
     }
 
     function requireEnoughHistory(uint80 _round) internal pure {
-        require(_round > 0, "Not enough history");
+        require(_round > 0, Errors.VL_NOT_ENOUGH_HISTORY);
     }
 
     function requirePositivePrice(int256 _price) internal pure {
         // a negative price should be reverted to prevent an extremely large/small premiumFraction
-        require(_price > 0, "Negative price");
+        require(_price > 0, Errors.VL_NEGATIVE_PRICE);
     }
 }
