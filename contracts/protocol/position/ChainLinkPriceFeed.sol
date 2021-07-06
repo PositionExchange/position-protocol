@@ -3,7 +3,7 @@ pragma solidity 0.8.0;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
 import {IChainLinkPriceFeed}  from "../../interfaces/IChainLinkPriceFeed.sol";
-import {SafeMath} from "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {BlockContext} from "../libraries/helpers/BlockContext.sol";
 
 contract ChainLinkPriceFeed is IChainLinkPriceFeed, BlockContext {

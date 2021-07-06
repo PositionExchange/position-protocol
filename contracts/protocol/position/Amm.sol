@@ -5,7 +5,7 @@ pragma solidity 0.8.0;
 * Function for Amm in here
 */
 import {BlockContext} from "../libraries/helpers/BlockContext.sol";
-import {SafeMath} from "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {IAmm} from "../../interfaces/IAmm.sol";
 import {IChainLinkPriceFeed} from "../../interfaces/IChainLinkPriceFeed.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
