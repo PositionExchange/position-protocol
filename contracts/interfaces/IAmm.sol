@@ -18,4 +18,5 @@ interface IAmm  is IERC20{
 
     function queryOrder() external;
 
+    function getTotalPositionSize() external view returns (uint256 memory);
 }

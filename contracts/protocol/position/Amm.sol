@@ -9,14 +9,22 @@ import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {IAmm} from "../../interfaces/IAmm.sol";
 import {IChainLinkPriceFeed} from "../../interfaces/IChainLinkPriceFeed.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
-
+import {Calc} from "../libraries/math/Calc.sol";
+import "./PositionHouse.sol";
 
 contract Amm is IAmm, BlockContext {
     using SafeMath for uint256;
+    using Calc for uint256;
 
     // variable
     uint256 public spotPriceTwapInterval;
     uint256 fundingRate;
+    uint256 tradeLimitRatio;
+    uint256 baseReserve;
+    uint256 quoteReserve;
+    // update during every swap and used when shutting amm down. it's trader's total base asset size
+    uint256 public totalPositionSize;
+    IChainLinkPriceFeed public priceFeed;
 
     // constants liquidity = baseReserve * quoteReserve
 
@@ -27,8 +35,7 @@ contract Amm is IAmm, BlockContext {
     bytes32 public priceFeedKey;
 
 
-    // enum
-    enum Side {BUY, SELL}
+
 
     // Struct
     struct LimitOrder {
@@ -65,11 +72,6 @@ contract Amm is IAmm, BlockContext {
         bool unlocked;
     }
 
-
-
-
-
-
     /**
     * @notice event in amm
     * List event in amm
@@ -87,7 +89,7 @@ contract Amm is IAmm, BlockContext {
         _;
     }
     modifier onlyCounterParty() {
-        require(counterParty == _msgSender(), "caller is not counterParty");
+        require(counterParty == _msgSender(), Errors.A_AMM_CALLER_IS_NOT_COUNTER_PARTY);
         _;
     }
 
@@ -123,17 +125,88 @@ contract Amm is IAmm, BlockContext {
             Errors.VL_INVALID_AMOUNT
         );
 
-
-        priceFeedKey = _priceFeed;
+        spotPriceTwapInterval = 1 hours;
+        setQuoteReserve(_quoteAssetReserve);
+        setBaseReserve(_baseAssetReserve);
+        priceFeedKey = _priceFeedKey;
+        priceFeed = _priceFeed;
     }
 
+    function swapInput(
+        Dir _dirOfQuote,
+        uint256 _quoteAssetAmount,
+        uint256 _baseAssetAmountLimit,
+        bool _canOverFluctuationLimit
+    ) external override returns (uint256 memory) {
+        if (_quoteAssetAmount == 0) {
+            return 0;
+        }
+        if (_dirOfQuote == Dir.REMOVE_FROM_AMM) {
+            require(
+                quoteReserve.mul(tradeLimitRatio) >= _quoteAssetAmount,
+                "over trading limit"
+            );
+        }
 
+        uint256 baseAssetAmount = getInputPrice(_dirOfQuote, _quoteAssetAmount);
+        //TODO base asset amount limit
+
+        updateReserve(_dirOfQuote, _quoteAssetAmount, baseAssetAmount, _canOverFluctuationLimit);
+        emit SwapInput(_dirOfQuote, _quoteAssetAmount, baseAssetAmount);
+        return baseAssetAmount;
+    }
+
+    function swapOutput(
+        Dir _dirOfBase,
+        uint256 _baseAssetAmount,
+        uint256 _quoteAssetAmountLimit
+    ) external override returns (uint256 memory) {
+        if (_baseAssetAmount == 0){
+            return 0;
+        }
+        if (_dirOfBase == Dir.REMOVE_FROM_AMM){
+            require(
+                baseReserve.mul(tradeLimitRatio) >= _baseAssetAmount,
+                "over trading limit"
+            );
+        }
+
+        uint256 quoteAssetAmount = getOutputPrice(_dirOfBase, _baseAssetAmount);
+        //TODO quote asset amount limit
+
+        updateReserve(_dirOfBase, quoteAssetAmount, _baseAssetAmount, true);
+        emit SwapOutput(_dirOfBase, quoteAssetAmount, _baseAssetAmount);
+        return quoteAssetAmount;
+    }
+
+    function updateReserve(
+        Dir _dirOfQuote,
+        uint256 _quoteAssetAmount,
+        uint256 _baseAssetAmount,
+        bool _canOverFluctuationLimit
+    ) internal {
+        //Check if it is over fluctuationLimitRatio
+        checkIsOverBlockFluctuationLimit(_dirOfQuote, _quoteAssetAmount, _baseAssetAmount);
+
+        if (_dirOfQuote == Dir.ADD_TO_AMM) {
+            quoteReserve = quoteReserve.add(_quoteAssetAmount);
+            baseReserve = baseReserve.sub(_baseAssetAmount);
+            //TODO maybe have to update more variant
+        } else {
+            quoteReserve = quoteReserve.sub(_quoteAssetAmount);
+            baseReserve = baseReserve.add(_baseAssetAmount);
+            //TODO maybe have to update more variant
+        }
+    }
+
+    function getReserve() external view returns (uint256 memory, uint256 memory){
+        return (quoteReserve, baseReserve);
+    }
     // @notice get balance of trader
     // return balance in wei
     function getBalance(address _trader) public view returns (uint256) {
         return balances[_trader];
     }
-
 
     function transfer(address sender, address receiver, uint amountAssetQuote) public {
         require(amount <= balances[sender], 'not enough money');
@@ -142,131 +215,39 @@ contract Amm is IAmm, BlockContext {
         emit Sent(sender, receiver, amount);
     }
 
-    function openMarketOrder() public {
-
-
+    function getTotalPositionSize() external view override returns (uint256 memory) {
+        return totalPositionSize;
     }
-
-    function openLimitOrder(address _trader, Side side, uint256 _orderPrice, uint256 _limitPrice, uint256 _amountAssetQuote) public {
-
-        // TODO require for openLimitOrder
-
-
-        // size to trade
-        uint256 remainSize = _amountAssetQuote.div(_orderPrice);
-        // calc (get) currentPrice of amm
-        uint256 currentPrice = calcCurrentPrice();
-
-        while (remainSize != 0) {
-            if (currentPrice < _orderPrice && side == 0) {
-                // tradableSize can trade for trader
-                uint256 tradableSize = calcTradableSize(_side, _orderPrice, _limitPrice, remainSize);
-                // TODO open partial
-                //
-                openPosition(tradableSize);
-                // update remainSize
-                remainSize = remainSize.sub(tradableSize);
-
-
-            } else if (currentPrice > _orderPrice && side == 1) {
-                uint256 tradableSize = calcTradableSize(_side, _orderPrice, _limitPrice, remainSize);
-                openPosition(tradableSize);
-                remainSize = remainSize.sub(tradableSize);
-            }
-        }
-    }
-
-
-    function openStopLimit(address _trader, Side side, uint256 _orderPrice, uint256 _limitPrice, uint256 _stopPrice, uint256 _amountAssetQuote){
-
-
-        // TODO require for openStopLimit
-
-
-        while (_stopPrice != currentPrice) {
-            currentPrice = calcCurrentPrice();
-
-        }
-
-        uint256 currentPrice = calcCurrentPrice();
-        uint256 remainSize = _amountAssetQuote.div(_orderPrice);
-
-
-        while (remainSize != 0) {
-            if (currentPrice < _orderPrice) {
-                // tradableSize can trade for trader
-                uint256 tradableSize = calcTradableSize(currentPrice, _orderPrice, _amountAssetQuote);
-                // TODO open partial
-                //
-
-                // update remainSize
-                remainSize = remainSize.sub(tradableSize);
-            }
-        }
-
-    }
-
-    function queryOrder() {
-
-    }
-
-
-    function setOpen(){
-
-
-    }
-
-
-    // Mostly done calc formula limit order
-    function calcTradableSize(uint256 _side, uint256 _orderPrice, uint256 _limitPrice, uint256 _remainSize) public returns (uint256) {
-        //
-        uint256 _currentPrice = calcCurrentPrice();
-        uint256 amountQuoteReserve = getQuoteReserve();
-        uint256 amountBaseReserve = getBaseReserve();
-        uint256 amountQuoteReserves = getQuoteReserves();
-        uint256 amountBaseReserves = getBaseReserves();
-        uint256 priceAfterTrade = _orderPrice.pow(2).div(_currentPrice);
-        if (priceAfterTrade.sub(_currentPrice).abs() > _limitPrice.sub(_currentPrice).abs()) {
-            priceAfterTrade = _limitPrice;
-        }
-        // const liquidity = amountQuoteReserve * amountBaseReserve
-
-        uint256 amountQuoteReserveAfter = priceAfterTrade.sqrt().sub(_currentPrice.sqrt()).mul(liquidity.sqrt()).add(amountQuoteReserve);
-
-        uint256 amountBaseReserveAfter = liquidity.div(amountQuoteReserveAfter);
-
-        uint256 tradableSize = amountBaseReserve.sub(amountBaseReserveAfter).abs();
-
-        if (_remainSize < tradableSize && _side == 0) {
-            amountBaseReserveAfter = amountBaseReserve.sub(_remainSize);
-            amountQuoteReserveAfter = amountQuoteReserve.add(_orderPrice.mul(_remainSize));
-            setQuoteReserve(amountQuoteReserveAfter);
-            setBaseReserve(amountBaseReserveAfter);
-
-            return _remainSize;
-        } else if (_remainSize < tradable && _side == 1) {
-            amountBaseReserveAfter = amountBaseReserve.add(_remainSize);
-            amountQuoteReserveAfter = amountQuoteReserve.sub(_orderPrice.mul(_remainSize));
-            setQuoteReserve(amountQuoteReserveAfter);
-            setBaseReserve(amountBaseReserveAfter);
-
-            return _remainSize;
-        }
-
-        setQuoteReserve(amountQuoteReserveAfter);
-        setBaseReserve(amountBaseReserveAfter);
-
-        return tradableSize;
-
-    }
-
 
     function settleFunding() external onlyOpen onlyCounterParty returns (uint256 memory){
 
-        require(_blockTimestamp >= nextFundingTime, "settle to soon");
+        require(_blockTimestamp >= nextFundingTime, Errors.A_AMM_SETTLE_TO_SOON);
+        // premium = twapMarketPrice - twapIndexPrice
+        // timeFraction = fundingPeriod(1 hour) / 1 day
+        // premiumFraction = premium * timeFraction
+        uint256 memory underlyingPrice = getUnderlyingTwapPrice(spotPriceTwapInterval);
+        uint256 memory premium = getTwapPrice(spotPriceTwapInterval).sub(underlyingPrice);
+        uint256 memory premiumFraction = premium.mulScalar(fundingPeriod).div(int256(1 days));
 
-        return 0;
+        // update funding rate = premiumFraction / twapIndexPrice
+        updateFundingRate(premiumFraction, underlyingPrice);
 
+        // in order to prevent multiple funding settlement during very short time after network congestion
+        uint256 minNextValidFundingTime = _blockTimestamp().add(fundingBufferPeriod);
+
+        // floor((nextFundingTime + fundingPeriod) / 3600) * 3600
+        uint256 nextFundingTimeOnHourStart = nextFundingTime.add(fundingPeriod).div(1 hours).mul(1 hours);
+
+        // max(nextFundingTimeOnHourStart, minNextValidFundingTime)
+        nextFundingTime = nextFundingTimeOnHourStart > minNextValidFundingTime
+        ? nextFundingTimeOnHourStart
+        : minNextValidFundingTime;
+
+        // DEPRECATED only for backward compatibility before we upgrade PositionHouse
+        // reset funding related states
+        baseAssetDeltaThisFundingPeriod = 0;
+
+        return premiumFraction;
     }
 
     /**
@@ -276,6 +257,5 @@ contract Amm is IAmm, BlockContext {
     function getUnderlyingTwapPrice(uint256 _intervalInSeconds) public view returns (uint256 memory) {
         return priceFeed.getTwapPrice(priceFeedKey, _intervalInSeconds);
     }
-
 
 }
