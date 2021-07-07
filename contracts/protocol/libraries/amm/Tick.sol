@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity 0.8.0;
 
-import './LowGasSafeMath.sol';
-import './SafeCast.sol';
-
-import './TickMath.sol';
-import './LiquidityMath.sol';
+//import './LowGasSafeMath.sol';
+//import './SafeCast.sol';
+//
+//import './TickMath.sol';
+//import './LiquidityMath.sol';
+import "../math/LowGasSafeMath.sol";
+import "../math/SafeCast.sol";
 
 /// @title Tick
 /// @notice Contains functions for managing tick processes and relevant calculations
@@ -57,42 +59,42 @@ library Tick {
     /// @param feeGrowthGlobal1X128 The all-time global fee growth, per unit of liquidity, in token1
     /// @return feeGrowthInside0X128 The all-time fee growth in token0, per unit of liquidity, inside the position's tick boundaries
     /// @return feeGrowthInside1X128 The all-time fee growth in token1, per unit of liquidity, inside the position's tick boundaries
-    function getFeeGrowthInside(
-        mapping(int24 => Tick.Info) storage self,
-        int24 tickLower,
-        int24 tickUpper,
-        int24 tickCurrent,
-        uint256 feeGrowthGlobal0X128,
-        uint256 feeGrowthGlobal1X128
-    ) internal view returns (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) {
-        Info storage lower = self[tickLower];
-        Info storage upper = self[tickUpper];
-
-        // calculate fee growth below
-        uint256 feeGrowthBelow0X128;
-        uint256 feeGrowthBelow1X128;
-        if (tickCurrent >= tickLower) {
-            feeGrowthBelow0X128 = lower.feeGrowthOutside0X128;
-            feeGrowthBelow1X128 = lower.feeGrowthOutside1X128;
-        } else {
-            feeGrowthBelow0X128 = feeGrowthGlobal0X128 - lower.feeGrowthOutside0X128;
-            feeGrowthBelow1X128 = feeGrowthGlobal1X128 - lower.feeGrowthOutside1X128;
-        }
-
-        // calculate fee growth above
-        uint256 feeGrowthAbove0X128;
-        uint256 feeGrowthAbove1X128;
-        if (tickCurrent < tickUpper) {
-            feeGrowthAbove0X128 = upper.feeGrowthOutside0X128;
-            feeGrowthAbove1X128 = upper.feeGrowthOutside1X128;
-        } else {
-            feeGrowthAbove0X128 = feeGrowthGlobal0X128 - upper.feeGrowthOutside0X128;
-            feeGrowthAbove1X128 = feeGrowthGlobal1X128 - upper.feeGrowthOutside1X128;
-        }
-
-        feeGrowthInside0X128 = feeGrowthGlobal0X128 - feeGrowthBelow0X128 - feeGrowthAbove0X128;
-        feeGrowthInside1X128 = feeGrowthGlobal1X128 - feeGrowthBelow1X128 - feeGrowthAbove1X128;
-    }
+//    function getFeeGrowthInside(
+//        mapping(int24 => Tick.Info) storage self,
+//        int24 tickLower,
+//        int24 tickUpper,
+//        int24 tickCurrent,
+//        uint256 feeGrowthGlobal0X128,
+//        uint256 feeGrowthGlobal1X128
+//    ) internal view returns (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) {
+//        Info storage lower = self[tickLower];
+//        Info storage upper = self[tickUpper];
+//
+//        // calculate fee growth below
+//        uint256 feeGrowthBelow0X128;
+//        uint256 feeGrowthBelow1X128;
+//        if (tickCurrent >= tickLower) {
+//            feeGrowthBelow0X128 = lower.feeGrowthOutside0X128;
+//            feeGrowthBelow1X128 = lower.feeGrowthOutside1X128;
+//        } else {
+//            feeGrowthBelow0X128 = feeGrowthGlobal0X128 - lower.feeGrowthOutside0X128;
+//            feeGrowthBelow1X128 = feeGrowthGlobal1X128 - lower.feeGrowthOutside1X128;
+//        }
+//
+//        // calculate fee growth above
+//        uint256 feeGrowthAbove0X128;
+//        uint256 feeGrowthAbove1X128;
+//        if (tickCurrent < tickUpper) {
+//            feeGrowthAbove0X128 = upper.feeGrowthOutside0X128;
+//            feeGrowthAbove1X128 = upper.feeGrowthOutside1X128;
+//        } else {
+//            feeGrowthAbove0X128 = feeGrowthGlobal0X128 - upper.feeGrowthOutside0X128;
+//            feeGrowthAbove1X128 = feeGrowthGlobal1X128 - upper.feeGrowthOutside1X128;
+//        }
+//
+//        feeGrowthInside0X128 = feeGrowthGlobal0X128 - feeGrowthBelow0X128 - feeGrowthAbove0X128;
+//        feeGrowthInside1X128 = feeGrowthGlobal1X128 - feeGrowthBelow1X128 - feeGrowthAbove1X128;
+//    }
 
     /// @notice Updates a tick and returns true if the tick was flipped from initialized to uninitialized, or vice versa
     /// @param self The mapping containing all tick information for initialized ticks

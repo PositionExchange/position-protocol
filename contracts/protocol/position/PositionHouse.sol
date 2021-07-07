@@ -13,7 +13,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 */
 
 //import {AMM} from
-contract PositionHouse is IPositionHouse, BlockContext,  {
+contract PositionHouse is IPositionHouse, BlockContext {
     using SafeMath for uint256;
     using Calc for uint256;
 
@@ -83,7 +83,8 @@ contract PositionHouse is IPositionHouse, BlockContext,  {
         uint256 _amountAssetBase,
         uint16 _leverage,
         uint256 _limitPrice,
-        uint256 _stopPrice
+        uint256 _stopPrice,
+        uint256 _
     ) public {
 
         // TODO require something here
@@ -98,7 +99,7 @@ contract PositionHouse is IPositionHouse, BlockContext,  {
 
         //TODO open position
         if (_typeOrder == TypeOrder.MARKET) {
-            _amm.openMarketOrder();
+            openMarketOrder();
 
         } else if (_typeOrder == TypeOrder.LIMIT) {
 
@@ -106,7 +107,7 @@ contract PositionHouse is IPositionHouse, BlockContext,  {
                 _limitPrice != 0,
                 Errors.VL_INVALID_AMOUNT
             );
-            _amm.openLimitOrder();
+            openLimitOrder(_side, _);
 
         } else if (_typeOrder == TypeOrder.STOP_LIMIT) {
             // TODO open stop limit
@@ -116,6 +117,7 @@ contract PositionHouse is IPositionHouse, BlockContext,  {
                 _stopPrice != 0,
                 Errors.VL_INVALID_AMOUNT
             );
+            openStopLimit();
         }
 
 
@@ -127,7 +129,7 @@ contract PositionHouse is IPositionHouse, BlockContext,  {
 
     }
 
-    function openLimitOrder(address _trader, Side side, uint256 _orderPrice, uint256 _limitPrice, uint256 _amountAssetQuote) public {
+    function openLimitOrder(Side _side, uint256 _orderPrice, uint256 _limitPrice, uint256 _amountAssetQuote) public {
 
         // TODO require for openLimitOrder
 
@@ -138,7 +140,7 @@ contract PositionHouse is IPositionHouse, BlockContext,  {
         uint256 currentPrice = calcCurrentPrice();
 
         while (remainSize != 0) {
-            if (currentPrice < _orderPrice && side == 0) {
+            if (currentPrice < _orderPrice && _side == Side.BUY) {
                 // tradableSize can trade for trader
                 uint256 tradableSize = calcTradableSize(_side, _orderPrice, _limitPrice, remainSize);
                 // TODO open partial
@@ -148,7 +150,7 @@ contract PositionHouse is IPositionHouse, BlockContext,  {
                 remainSize = remainSize.sub(tradableSize);
 
 
-            } else if (currentPrice > _orderPrice && side == 1) {
+            } else if (currentPrice > _orderPrice && _side == Side.SELL) {
                 uint256 tradableSize = calcTradableSize(_side, _orderPrice, _limitPrice, remainSize);
                 openPosition(tradableSize);
                 remainSize = remainSize.sub(tradableSize);
@@ -157,7 +159,7 @@ contract PositionHouse is IPositionHouse, BlockContext,  {
     }
 
 
-    function openStopLimit(address _trader, Side side, uint256 _orderPrice, uint256 _limitPrice, uint256 _stopPrice, uint256 _amountAssetQuote){
+    function openStopLimit(Side _side, uint256 _orderPrice, uint256 _limitPrice, uint256 _stopPrice, uint256 _amountAssetQuote){
 
 
         // TODO require for openStopLimit
@@ -185,7 +187,7 @@ contract PositionHouse is IPositionHouse, BlockContext,  {
     function calcTradableSize(Side _side, uint256 _orderPrice, uint256 _limitPrice, uint256 _remainSize) private returns (uint256) {
 
 
-        // TODO calcCurrentPrice()
+        // TODO calcCurrentPrice
         uint256 _currentPrice = calcCurrentPrice();
         uint256 amountQuoteReserve = getQuoteReserve();
         uint256 amountBaseReserve = getBaseReserve();
@@ -223,7 +225,6 @@ contract PositionHouse is IPositionHouse, BlockContext,  {
 
 
     }
-
 
 
     function removeMargin(Amm _amm, uint256 _amountRemoved){
