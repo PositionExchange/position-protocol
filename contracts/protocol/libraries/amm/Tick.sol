@@ -23,8 +23,8 @@ library Tick {
         int128 liquidityNet;
         // fee growth per unit of liquidity on the _other_ side of this tick (relative to the current tick)
         // only has relative meaning, not absolute — the value depends on when the tick is initialized
-        uint256 feeGrowthOutside0X128;
-        uint256 feeGrowthOutside1X128;
+//        uint256 feeGrowthOutside0X128;
+//        uint256 feeGrowthOutside1X128;
         // the cumulative tick value on the other side of the tick
         int56 tickCumulativeOutside;
         // the seconds per unit of liquidity on the _other_ side of this tick (relative to the current tick)
@@ -133,8 +133,8 @@ library Tick {
         if (liquidityGrossBefore == 0) {
             // by convention, we assume that all growth before a tick was initialized happened _below_ the tick
             if (tick <= tickCurrent) {
-                info.feeGrowthOutside0X128 = feeGrowthGlobal0X128;
-                info.feeGrowthOutside1X128 = feeGrowthGlobal1X128;
+//                info.feeGrowthOutside0X128 = feeGrowthGlobal0X128;
+//                info.feeGrowthOutside1X128 = feeGrowthGlobal1X128;
                 info.secondsPerLiquidityOutsideX128 = secondsPerLiquidityCumulativeX128;
                 info.tickCumulativeOutside = tickCumulative;
                 info.secondsOutside = time;
@@ -168,15 +168,15 @@ library Tick {
     function cross(
         mapping(int24 => Tick.Info) storage self,
         int24 tick,
-        uint256 feeGrowthGlobal0X128,
-        uint256 feeGrowthGlobal1X128,
+//        uint256 feeGrowthGlobal0X128,
+//        uint256 feeGrowthGlobal1X128,
         uint160 secondsPerLiquidityCumulativeX128,
         int56 tickCumulative,
         uint32 time
     ) internal returns (int128 liquidityNet) {
         Tick.Info storage info = self[tick];
-        info.feeGrowthOutside0X128 = feeGrowthGlobal0X128 - info.feeGrowthOutside0X128;
-        info.feeGrowthOutside1X128 = feeGrowthGlobal1X128 - info.feeGrowthOutside1X128;
+//        info.feeGrowthOutside0X128 = feeGrowthGlobal0X128 - info.feeGrowthOutside0X128;
+//        info.feeGrowthOutside1X128 = feeGrowthGlobal1X128 - info.feeGrowthOutside1X128;
         info.secondsPerLiquidityOutsideX128 = secondsPerLiquidityCumulativeX128 - info.secondsPerLiquidityOutsideX128;
         info.tickCumulativeOutside = tickCumulative - info.tickCumulativeOutside;
         info.secondsOutside = time - info.secondsOutside;
