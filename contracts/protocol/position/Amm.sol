@@ -139,6 +139,20 @@ contract Amm is IAmm, BlockContext {
 
             Errors.VL_INVALID_AMOUNT
         );
+
+        // initialize tick
+        int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
+        slot0 = Slot0({
+        sqrtPriceX96 : sqrtPriceX96,
+        tick : tick,
+        observationIndex : 0,
+        observationCardinality : cardinality,
+        observationCardinalityNext : cardinalityNext,
+        feeProtocol : 0,
+        unlocked : true
+        });
+
+
         spotPriceTwapInterval = 1 hours;
         setQuoteReserve(_quoteAssetReserve);
         setBaseReserve(_baseAssetReserve);
@@ -253,11 +267,12 @@ contract Amm is IAmm, BlockContext {
     /// @param tick the current tick, passed to avoid sloads
     function _updatePosition(
         address owner,
+    //        int24 tickLower,
         int24 tick,
         int128 liquidityDelta,
-        int24 tick
+        int24 currentTick
     ) private returns (PositionLimit.Info storage position) {
-        position = positions.get(owner, tickLower, tickUpper);
+        position = positions.get(owner, tickLower, tick);
 
         uint256 _feeGrowthGlobal0X128 = feeGrowthGlobal0X128;
         // SLOAD for gas optimization
@@ -279,21 +294,35 @@ contract Amm is IAmm, BlockContext {
                 slot0.observationCardinality
             );
 
-            flippedLower = ticks.update(
-                tickLower,
+            //            flippedLower = ticks.update(
+            //                tickLower,
+            //                currentTick,
+            //                liquidityDelta,
+            //                _feeGrowthGlobal0X128,
+            //                _feeGrowthGlobal1X128,
+            //                secondsPerLiquidityCumulativeX128,
+            //                tickCumulative,
+            //                time,
+            //                false,
+            //                maxLiquidityPerTick
+            //            );
+            //            flippedUpper = ticks.update(
+            //                tickUpper,
+            //                currentTick,
+            //                liquidityDelta,
+            //                _feeGrowthGlobal0X128,
+            //                _feeGrowthGlobal1X128,
+            //                secondsPerLiquidityCumulativeX128,
+            //                tickCumulative,
+            //                time,
+            //                true,
+            //                maxLiquidityPerTick
+            //            );
+
+
+            flipped = ticks.update(
                 tick,
-                liquidityDelta,
-                _feeGrowthGlobal0X128,
-                _feeGrowthGlobal1X128,
-                secondsPerLiquidityCumulativeX128,
-                tickCumulative,
-                time,
-                false,
-                maxLiquidityPerTick
-            );
-            flippedUpper = ticks.update(
-                tickUpper,
-                tick,
+                currentTick,
                 liquidityDelta,
                 _feeGrowthGlobal0X128,
                 _feeGrowthGlobal1X128,
@@ -311,11 +340,12 @@ contract Amm is IAmm, BlockContext {
                 tickBitmap.flipTick(tickUpper, tickSpacing);
             }
         }
-
-        (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) =
-        ticks.getFeeGrowthInside(tickLower, tickUpper, tick, _feeGrowthGlobal0X128, _feeGrowthGlobal1X128);
+//
+//        (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) =
+//        ticks.getFeeGrowthInside(tickLower, tickUpper, tick, _feeGrowthGlobal0X128, _feeGrowthGlobal1X128);
 
         position.update(liquidityDelta, feeGrowthInside0X128, feeGrowthInside1X128);
+        position.update(liquidityDelta);
 
         // clear any tick data that is no longer needed
         if (liquidityDelta < 0) {
