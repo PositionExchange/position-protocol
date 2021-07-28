@@ -1,6 +1,7 @@
 {
   "name": "hardhat-project",
   "devDependencies": {
+    "@endemolshinegroup/git-author-check": "^1.0.1",
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@types/chai": "^4.2.19",
@@ -11,12 +12,14 @@
     "ethers": "^5.4.1",
     "hardhat": "^2.4.1",
     "hardhat-deploy": "^0.8.9",
+    "husky": "^7.0.1",
     "mocha": "^9.0.1",
     "ts-node": "^10.0.0",
     "typescript": "^4.3.4"
   },
   "dependencies": {
-    "@chainlink/contracts": "^0.2.0",
-    "@openzeppelin/contracts": "^4.2.0"
+    "@chainlink/contracts": "^0.2.1",
+    "@openzeppelin/contracts": "^4.2.0",
+    "@openzeppelin/contracts-ethereum-package": "^3.0.0"
   }
 }

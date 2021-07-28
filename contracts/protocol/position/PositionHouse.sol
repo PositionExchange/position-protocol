@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: agpl-3.0
-pragma solidity 0.8.0;
+pragma solidity =0.8.0;
 
 import {Amm} from "./Amm.sol";
 import {IAmm} from "../../interfaces/IAmm.sol";
@@ -8,8 +8,7 @@ import {BlockContext} from "../libraries/helpers/BlockContext.sol";
 import {IPositionHouse} from "../../interfaces/IPositionHouse.sol";
 import {IInsuranceFund} from  "../../interfaces/IInsuranceFund.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../../interfaces/IAmm.sol";
-import "../../interfaces/IAmm.sol";
+//import "../../interfaces/a.sol";
 
 /**
 * @notice This contract is main of Position
@@ -24,7 +23,6 @@ contract PositionHouse is IPositionHouse, BlockContext {
     // @notice enum
 
     enum TypeOrder  {MARKET, LIMIT, STOP_LIMIT}
-
 
 
 
@@ -119,20 +117,6 @@ contract PositionHouse is IPositionHouse, BlockContext {
     // event position house
     event MarginChanged(address indexed sender, address indexed amm, int256 amount, int256 fundingPayment);
 
-    function addMargin(IAmm _amm, uint256 calldata _addedMargin) external whenNotPaused() nonReentrant() {
-        // check condition
-        requireAmm(_amm, true);
-        requireNonZeroInput(_addedMargin);
-        // update margin part in personal position
-        address trader = _msgSender();
-        Position memory position = adjustPositionForLiquidityChanged(_amm, trader);
-        position.margin = position.margin.addD(_addedMargin);
-        setPosition(_amm, trader, position);
-        // transfer token from trader
-        _transferFrom(_amm.quoteAsset(), trader, address(this), _addedMargin);
-        emit MarginChanged(trader, address(_amm), int256(_addedMargin.toUint()), 0);
-    }
-
 
     function openPosition(
         Amm _amm,
@@ -214,9 +198,6 @@ contract PositionHouse is IPositionHouse, BlockContext {
         //        int tick = _limitAmountPriceBase;
 
 
-        // check is new position
-        //        bool isNewPosition = position == 0 ? true : false;
-
 
         _amm.openLimit(
             _amountAssetQuote,
@@ -228,8 +209,8 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
 
         ammMap[address(_amm)].positionMap[_trader].push(Position({
-        index : nextIndex,
-        tick : _tick})
+            index : nextIndex,
+            tick : _tick})
         );
 
 
@@ -240,7 +221,7 @@ contract PositionHouse is IPositionHouse, BlockContext {
     }
 
 
-    function openStopLimit(Side _side, uint256 _orderPrice, uint256 _limitPrice, uint256 _stopPrice, uint256 _amountAssetQuote){
+    function openStopLimit(Side _side, uint256 _orderPrice, uint256 _limitPrice, uint256 _stopPrice, uint256 _amountAssetQuote) public {
 
 
         // TODO require for openStopLimit
@@ -265,50 +246,71 @@ contract PositionHouse is IPositionHouse, BlockContext {
     }
 
     // Mostly done calc formula limit order
-    function calcTradableSize(Side _side, uint256 _orderPrice, uint256 _limitPrice, uint256 _remainSize) private returns (uint256) {
+//    function calcTradableSize(Side _side, uint256 _orderPrice, uint256 _limitPrice, uint256 _remainSize) private returns (uint256) {
+//
+//
+//        // TODO calcCurrentPrice
+//        uint256 _currentPrice = calcCurrentPrice();
+//        uint256 amountQuoteReserve = getQuoteReserve();
+//        uint256 amountBaseReserve = getBaseReserve();
+//
+//        uint256 priceAfterTrade = _orderPrice.pow(2).div(_currentPrice);
+//        if (priceAfterTrade.sub(_currentPrice).abs() > _limitPrice.sub(_currentPrice).abs()) {
+//            priceAfterTrade = _limitPrice;
+//        }
+//
+//        uint256 amountQuoteReserveAfter = priceAfterTrade.sqrt().sub(_currentPrice.sqrt()).mul(liquidity.sqrt()).add(amountQuoteReserve);
+//
+//        uint256 amountBaseReserveAfter = liquidity.div(amountQuoteReserveAfter);
+//
+//        uint256 tradableSize = amountBaseReserve.sub(amountBaseReserveAfter).abs();
+//
+//        if (_remainSize < tradableSize && _side == Side.BUY) {
+//            amountBaseReserveAfter = amountBaseReserve.sub(_remainSize);
+//            amountQuoteReserveAfter = amountQuoteReserve.add(_orderPrice.mul(_remainSize));
+//            setQuoteReserve(amountQuoteReserveAfter);
+//            setBaseReserve(amountBaseReserveAfter);
+//            return _remainSize;
+//        } else if (_remainSize < tradableSize && _side == Side.SELL) {
+//            amountBaseReserveAfter = amountBaseReserve.add(_remainSize);
+//            amountQuoteReserveAfter = amountQuoteReserve.sub(_orderPrice.mul(_remainSize));
+//            setQuoteReserve(amountQuoteReserveAfter);
+//            setBaseReserve(amountBaseReserveAfter);
+//            return _remainSize;
+//        }
+//        setQuoteReserve(amountQuoteReserveAfter);
+//        setBaseReserve(amountBaseReserveAfter);
+//        return tradableSize;
+//    }
+
+    function clearPosition() public{
 
 
-        // TODO calcCurrentPrice
-        uint256 _currentPrice = calcCurrentPrice();
-        uint256 amountQuoteReserve = getQuoteReserve();
-        uint256 amountBaseReserve = getBaseReserve();
-
-        uint256 priceAfterTrade = _orderPrice.pow(2).div(_currentPrice);
-        if (priceAfterTrade.sub(_currentPrice).abs() > _limitPrice.sub(_currentPrice).abs()) {
-            priceAfterTrade = _limitPrice;
-        }
-
-        uint256 amountQuoteReserveAfter = priceAfterTrade.sqrt().sub(_currentPrice.sqrt()).mul(liquidity.sqrt()).add(amountQuoteReserve);
-
-        uint256 amountBaseReserveAfter = liquidity.div(amountQuoteReserveAfter);
-
-        uint256 tradableSize = amountBaseReserve.sub(amountBaseReserveAfter).abs();
-
-        if (_remainSize < tradableSize && _side == Side.BUY) {
-            amountBaseReserveAfter = amountBaseReserve.sub(_remainSize);
-            amountQuoteReserveAfter = amountQuoteReserve.add(_orderPrice.mul(_remainSize));
-            setQuoteReserve(amountQuoteReserveAfter);
-            setBaseReserve(amountBaseReserveAfter);
-            return _remainSize;
-        } else if (_remainSize < tradableSize && _side == Side.SELL) {
-            amountBaseReserveAfter = amountBaseReserve.add(_remainSize);
-            amountQuoteReserveAfter = amountQuoteReserve.sub(_orderPrice.mul(_remainSize));
-            setQuoteReserve(amountQuoteReserveAfter);
-            setBaseReserve(amountBaseReserveAfter);
-            return _remainSize;
-        }
-        setQuoteReserve(amountQuoteReserveAfter);
-        setBaseReserve(amountBaseReserveAfter);
-        return tradableSize;
     }
 
-    function clearPosition(){
 
+    function addMargin(IAmm _amm, uint256 index, uint256 tick, uint256 calldata _addedMargin) external whenNotPaused() nonReentrant() {
+        // check condition
+        requireAmm(_amm, true);
+        requireNonZeroInput(_addedMargin);
+        // update margin part in personal position
+        address trader = msg.sender;
 
+        _amm.addMargin(index, tick, _addedMargin);
+        emit MarginChanged(trader, address(_amm), int256(_addedMargin.toUint()), 0);
     }
 
     // TODO modify function
-    function removeMargin(Amm _amm, uint256 _amountRemoved){
+    function removeMargin(Amm _amm, uint256 _amountRemoved) public{
+        // check condition
+        requireAmm(_amm, true);
+        requireNonZeroInput(_addedMargin);
+
+        address trader = msg.sender;
+
+        _amm.removeMargin(index, tick, _amountRemoved);
+        emit MarginChanged(trader, address(_amm), int256(_addedMargin.toUint()), 0);
+
 
     }
 
@@ -337,7 +339,7 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
 
     // TODO modify function
-    function payFunding(IAmm _amm) {
+    function payFunding(IAmm _amm) public {
         requireAmm(_amm, true);
         uint256 memory premiumFraction = _amm.settleFunding();
         ammMap[address(_amm)].cumulativePremiumFractions.push(
@@ -400,7 +402,23 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
 
 
-        delete ammMap[_amm].positionMap[_trader];
+        //        ammMap[_amm].positionMap[_trader]
+
+        Position[] memory templePosition;
+
+        for (i = 0; i < ammMap[_amm].positionMap[_trader].length; i++) {
+            uint256 tickOrder = ammMap[_amm].positionMap[_trader][i].tick;
+            uint256 indexOrder = ammMap[_amm].positionMap[_trader][i].index;
+
+            if (_amm.getIsWaitingOrder(tickOrder, indexOrder) == true){
+                templePosition.push(Position(indexOrder, tickOrder));
+
+            }
+
+        }
+
+
+        ammMap[_amm].positionMap[_trader] = templePosition;
 
 
         // TODO emit event
@@ -415,9 +433,6 @@ contract PositionHouse is IPositionHouse, BlockContext {
         bool flag = true;
 
 
-        //        require()
-
-
         _amm.cancelOrder(index, tick);
 
 
@@ -425,7 +440,7 @@ contract PositionHouse is IPositionHouse, BlockContext {
     }
 
 
-    function getPosition(IAmm _amm, address _trader) public view returns (Position memory positionsOpened, Position memory positionOrder) {
+    function getPosition(IAmm _amm, address _trader) public view returns (Position memory positionsOpened, Position memory positionOrder)  {
 
         // TODO require getPosition
 
@@ -437,7 +452,6 @@ contract PositionHouse is IPositionHouse, BlockContext {
             uint256 index = positions[i].index;
 
         }
-
 
     }
 
@@ -454,24 +468,25 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
 
     // TODO modify function
-    function setWhitelist(address _address, bool isWhitelist) onlyOwner {
+    function setWhitelist(address _address, bool isWhitelist) public onlyOwner {
         whitelist[_address] = isWhitelist;
     }
 
 
     // TODO modify function
-    function setBlacklist(address _address, bool isBlacklist) onlyOwner {
+    function setBlacklist(address _address, bool isBlacklist) public onlyOwner {
 
         whitelist[_address] = isWhitelist;
 
     }
 
-    function getWhitelist(address _address)  returns (bool) {
+    function getWhitelist(address _address) public returns (bool) {
 
         return whitelist[_address];
+        tickOrder[tick].order[index].margin.add(amountAdded);
     }
 
-    function getBlacklist(address _address) returns (bool) {
+    function getBlacklist(address _address) public returns (bool) {
         return blacklist[_address];
     }
 

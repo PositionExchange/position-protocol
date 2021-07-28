@@ -4,7 +4,7 @@ pragma solidity 0.8.0;
 * @notice This cointract keep money
 */
 import {IAmm} from "../../interfaces/IAmm.sol";
-import {IERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IInsuranceFund} from "../../interfaces/IInsuranceFund.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
 

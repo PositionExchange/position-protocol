@@ -3,7 +3,7 @@ pragma solidity 0.8.0;
 
 import './LowGasSafeMath.sol';
 import './SafeCast.sol';
-
+import './Calc.sol';
 import './FullMath.sol';
 import './UnsafeMath.sol';
 import './FixedPoint96.sol';
@@ -223,5 +223,28 @@ library SqrtPriceMath {
             liquidity < 0
                 ? -getAmount1Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(-liquidity), false).toInt256()
                 : getAmount1Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(liquidity), true).toInt256();
+    }
+
+    // TODO detail function
+    function getAmountToTargetPrice(
+        uint256 targetPrice,
+        uint256 currentPrice,
+        uint256 liquidity
+    ) internal pure returns (uint256 amountCalculated) {
+        amountCalculated = sqrt(targetPrice).sub(sqrt(currentPrice)).mul(liquidity).abs();
+    }
+
+    // TODO detail function
+    function getNextPriceFromInput(
+        uint256 currentPrice,
+        uint256 amount,
+        bool sideBuy,
+        uint256 liquidity
+    ) internal pure returns (uint256 nextPrice) {
+        if (sideBuy) {
+            nextPrice = pow(sqrt(currentPrice).add(amount.div(liquidity)), 2);
+        } else {
+            nextPrice = pow(sqrt(currentPrice).sub(amount.div(liquidity)), 2);
+        }
     }
 }
