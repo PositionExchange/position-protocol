@@ -88,6 +88,9 @@ interface IAmm is IERC20 {
         // amount of base
         uint256 amountAssetBase;
 
+        // margin of position
+        uint256 margin;
+
         Status status;
     }
 
@@ -123,6 +126,12 @@ interface IAmm is IERC20 {
 
     function queryOrder() external;
 
+    function getIsWaitingOrder(uint256 tick, uint256 index) external view returns(bool memory);
+
+
+    function addMargin(uint256 index, uint256 tick, uint256 _addedMargin) external;
+
+    function removeMargin(uint256 index, uint256 tick, uint256 _removedMargin) external;
 
     function cancelOrder(uint256 index, uint256 tick) external;
 
