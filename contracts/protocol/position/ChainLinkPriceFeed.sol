@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity 0.8.0;
 
-//import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {IChainLinkPriceFeed}  from "../../interfaces/IChainLinkPriceFeed.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {BlockContext} from "../libraries/helpers/BlockContext.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
+import {PerpFiOwnableUpgrade} from "../libraries/helpers/PerpFiOwnableUpgrade.sol";
 
-contract ChainLinkPriceFeed is IChainLinkPriceFeed, BlockContext {
+contract ChainLinkPriceFeed is IChainLinkPriceFeed, PerpFiOwnableUpgrade, BlockContext {
     using SafeMath for uint256;
 
     uint256 private constant TOKEN_DIGIT = 10 ** 18;
@@ -33,6 +33,10 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed, BlockContext {
     //
     // FUNCTIONS
     //
+//    function initialize() public {
+//        __Ownable_init();
+//    }
+
     function initialize() public initializer {
         __Ownable_init();
     }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity 0.8.0;
 
-import "../protocol/position/Amm.sol";
+import {IAmm} from "./a.sol";
 
 
 interface IPositionHouse {
@@ -9,7 +9,6 @@ interface IPositionHouse {
 
     event CancelOrder(
         address amm,
-        address trader,
         uint256 index,
         uint256 tick
     );
@@ -33,9 +32,9 @@ interface IPositionHouse {
 //    );
 
 
-    function addMargin(Amm _amm, uint256 _addedMargin) external;
-
-    function removeMargin(Amm _amm, uint256 removedMargin) external;
+//    function addMargin(IAmm _amm, uint256 _addedMargin) public;
+//
+//    function removeMargin(IAmm _amm, uint256 removedMargin) public;
 
 }
 

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity 0.8.0;
 
+import  {SqrtPriceMath} from "./PriceMath.sol";
 /// @title Computes the amount to swap within ticks
 library ComputeAmountMath {
     /*
@@ -29,9 +30,9 @@ library ComputeAmountMath {
     {
         // Side
         bool sideBuy = currentPrice >= targetPrice;
-
+        uint256 amountCalculated;
         if (sideBuy) {
-            uint256 amountCalculated = SqrtPriceMath.getAmountToTargetPrice(targetPrice, currentPrice, liquidity);
+            amountCalculated = SqrtPriceMath.getAmountToTargetPrice(targetPrice, currentPrice, liquidity);
             if (amountRemaining >= amountCalculated) nextPrice = targetPrice;
             else
             // function calculate the next price after swap an specific amount

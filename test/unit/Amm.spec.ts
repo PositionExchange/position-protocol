@@ -36,8 +36,10 @@ describe('Test Amm', () => {
 
 
 
-        // contractAmm.initialize(
-        // );
+        contractAmm.initialize(
+
+
+        );
 
         return {
             contractAmm,
