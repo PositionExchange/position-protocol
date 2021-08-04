@@ -8,10 +8,10 @@ library Calc {
     using SafeMath for uint256;
 
     function abs(uint256 x) internal pure returns (uint256) {
-        return x >= 0 ? x : - x;
+        return x >= 0 ? x : uint256(0).sub(x);
     }
 
-    function sqrt(uint256  x) internal pure returns (uint256) {
+    function sqrt(uint256 x) internal pure returns (uint256) {
         uint256 epsilon = 10000000000;
         uint256 result;
         while (abs(result.mul(result) - x) >= epsilon) {
@@ -21,7 +21,7 @@ library Calc {
     }
 
     function pow(uint256 x, uint16 times) internal pure returns (uint256) {
-        uint256  res = x;
+        uint256 res = x;
         for (uint i = 1; i < times; i ++) {
             res = res.mul(x);
         }

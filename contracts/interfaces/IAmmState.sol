@@ -9,25 +9,18 @@ interface IAmmState {
     /// price is the current price of the amm calculated by (reserveAmountQuote/reserveAmountBase)
     /// tick is the current tick of the amm, according to the last tick transition that was run
     /// unlocked whether the pool is currently locked to reentrancy
-    function ammState()
-        external
-        view
-        returns (
-            uint256 price,
-            uint256 tick,
-            bool unlocked
+    function ammState() external view returns (
+        uint256 price,
+        uint256 tick,
+        bool unlocked
     );
 
     /// contain variables that describe information about liquidity of amm
-    function liquidityDetail()
-        external
-        view
-        returns (
-            uint256 liquidity,
-            uint256 baseReserveAmount,
-            uint256 quoteReserveAmount
+    function liquidityDetail() external view returns (
+        uint256 liquidity,
+        uint256 baseReserveAmount,
+        uint256 quoteReserveAmount
     );
-
 
 
 }

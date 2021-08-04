@@ -5,9 +5,9 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAmm} from "./a.sol";
 
 interface IInsuranceFund {
-    function withdraw(IERC20 _quoteToken, uint256  _amount) external;
-
-    function isExistedAmm(IAmm _amm) external view returns (bool);
-
-    function getAllAmms() external view returns (IAmm[] memory);
+//    function withdraw(IERC20 _quoteToken, uint256  _amount) external;
+//
+//    function isExistedAmm(IAmm _amm) external view returns (bool);
+//
+//    function getAllAmms() external view returns (IAmm[] memory);
 }

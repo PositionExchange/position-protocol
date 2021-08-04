@@ -48,8 +48,8 @@ library Tick {
     function tickSpacingToMaxLiquidityPerTick(int256 tickSpacing) internal pure returns (uint256) {
         int256 minTick = (TickMath.MIN_TICK / tickSpacing) * tickSpacing;
         int256 maxTick = (TickMath.MAX_TICK / tickSpacing) * tickSpacing;
-        uint256 numTicks = uint24((maxTick - minTick) / tickSpacing) + 1;
-        return type(uint128).max / numTicks;
+        uint256 numTicks = uint256((maxTick - minTick) / tickSpacing) + 1;
+        return type(uint256).max / numTicks;
     }
     /*
         @notice Retrieves fee growth data
@@ -116,21 +116,21 @@ library Tick {
     **/
     function update(
         mapping(int256 => Tick.Info) storage self,
-        int24 tick,
-        int24 tickCurrent,
+        int256 tick,
+        int256 tickCurrent,
         int128 liquidityDelta,
         uint256 feeGrowthGlobal0X128,
         uint256 feeGrowthGlobal1X128,
-        uint160 secondsPerLiquidityCumulativeX128,
-        int56 tickCumulative,
-        uint32 time,
+        uint256 secondsPerLiquidityCumulativeX128,
+        int256 tickCumulative,
+        uint256 time,
         bool upper,
         uint256 maxLiquidity
     ) internal returns (bool flipped) {
         Tick.Info storage info = self[tick];
 
-        uint128 liquidityGrossBefore = info.liquidityGross;
-        uint128 liquidityGrossAfter = LiquidityMath.addDelta(liquidityGrossBefore, liquidityDelta);
+        uint256 liquidityGrossBefore = info.liquidityGross;
+        uint256 liquidityGrossAfter = LiquidityMath.addDelta(liquidityGrossBefore, liquidityDelta);
 
         require(liquidityGrossAfter <= maxLiquidity, 'LO');
 
@@ -152,14 +152,14 @@ library Tick {
 
         // when the lower (upper) tick is crossed left to right (right to left), liquidity must be added (removed)
         info.liquidityNet = upper
-        ? int256(info.liquidityNet).sub(liquidityDelta).toInt128()
-        : int256(info.liquidityNet).add(liquidityDelta).toInt128();
+        ? int256(info.liquidityNet).sub(liquidityDelta)
+        : int256(info.liquidityNet).add(liquidityDelta);
     }
 
     /// @notice Clears tick data
     /// @param self The mapping containing all initialized tick information for initialized ticks
     /// @param tick The tick that will be cleared
-    function clear(mapping(int24 => Tick.Info) storage self, int24 tick) internal {
+    function clear(mapping(int256 => Tick.Info) storage self, int256 tick) internal {
         delete self[tick];
     }
 
@@ -174,14 +174,14 @@ library Tick {
     @return liquidityNet The amount of liquidity added (subtracted) when tick is crossed from left to right (right to left)
     **/
     function cross(
-        mapping(int24 => Tick.Info) storage self,
-        int24 tick,
+        mapping(int256 => Tick.Info) storage self,
+        int256 tick,
     //        uint256 feeGrowthGlobal0X128,
     //        uint256 feeGrowthGlobal1X128,
-        uint160 secondsPerLiquidityCumulativeX128,
-        int56 tickCumulative,
-        uint32 time
-    ) internal returns (int128 liquidityNet) {
+        uint256 secondsPerLiquidityCumulativeX128,
+        int256 tickCumulative,
+        uint256 time
+    ) internal returns (int256 liquidityNet) {
         Tick.Info storage info = self[tick];
         //        info.feeGrowthOutside0X128 = feeGrowthGlobal0X128 - info.feeGrowthOutside0X128;
         //        info.feeGrowthOutside1X128 = feeGrowthGlobal1X128 - info.feeGrowthOutside1X128;

@@ -5,7 +5,7 @@ pragma solidity 0.8.0;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 //import "../protocol/position/PositionHouse.sol";
 
-abstract contract IAmm {
+interface IAmm {
 
 
     enum Status  {OPENING, CLOSED, CANCEL, PARTIAL_FILLED}
@@ -52,14 +52,17 @@ abstract contract IAmm {
         uint256 amount1Min;
         uint256 deadline;
     }
+
     struct AmmState {
         uint256 price;
         int256 tick;
         bool unlocked;
     }
-
     /// IAmmState
-    AmmState public  ammState;
+    //    AmmState public ammState;
+
+
+
 
 
     /// @notice Increases the amount of liquidity in a position, with tokens paid by the `msg.sender`
@@ -72,14 +75,14 @@ abstract contract IAmm {
     /// @return liquidity The new liquidity amount as a result of the increase
     /// @return amount0 The amount of token0 to acheive resulting liquidity
     /// @return amount1 The amount of token1 to acheive resulting liquidity
-    function increaseLiquidity(IncreaseLiquidityParams calldata params)
-    external
-    payable
-    returns (
-        uint128 liquidity,
-        uint256 amount0,
-        uint256 amount1
-    );
+    //    function increaseLiquidity(IncreaseLiquidityParams calldata params)
+    //    external
+    //    payable
+    //    returns (
+    //        uint128 liquidity,
+    //        uint256 amount0,
+    //        uint256 amount1
+    //    );
 
     struct DecreaseLiquidityParams {
         uint256 tokenId;
@@ -89,15 +92,15 @@ abstract contract IAmm {
         uint256 deadline;
     }
 
-    mapping(address => PositionOpenMarket) positionMarketMap;
+    //    mapping(address => PositionOpenMarket) positionMarketMap;
 
     // tickID => Tick
-    mapping(int16 => Tick) tickOrder;
+    //    mapping(int256 => Tick) tickOrder;
 
 
     struct Tick {
-        int256 liquidity;
-        int256 filledLiquidity;
+        uint256 liquidity;
+        uint256 filledLiquidity;
         uint256 filledIndex;
         uint256 currentIndex;
         // indexID => Order trader
@@ -126,9 +129,53 @@ abstract contract IAmm {
         // if PARTIAL FILLED: orderLiquidityRemain < amountLiquidity
         // if FILLED: orderLiquidityRemain = 0;
         uint256 orderLiquidityRemain;
-
         Status status;
     }
+
+
+    struct Position {
+        uint256 index;
+        int256 tick;
+    }
+
+    struct LiquidityDetail {
+        uint256 liquidity;
+        uint256 baseReserveAmount;
+        uint256 quoteReserveAmount;
+    }
+
+
+    struct OpenMarketState {
+        // the quote amount remaining to be swap
+        uint256 quoteRemainingAmount;
+        // the quote amount already swapped
+        uint256 quoteCalculatedAmount;
+        // the base amount remaining to be swap
+        uint256 baseRemainingAmount;
+        // the base amount already swapped
+        uint256 baseCalculatedAmount;
+        // current price
+        uint256 price;
+        // current tick
+        int256 tick;
+    }
+
+    struct StepComputations {
+        // the price at the beginning of the step
+        uint256 priceStart;
+        // the next tick to swap to from the current tick in the swap direction
+        int256 tickNext;
+        // whether tickNext is initialized or not
+        bool initialized;
+        // price for the next tick (1/0)
+        uint256 priceNext;
+        // how much is being swapped in in this step
+        uint256 quoteCalculatedAmount;
+        // how much is being swapped out
+        uint256 baseCalculatedAmount;
+    }
+
+
 
 
 
@@ -147,17 +194,16 @@ abstract contract IAmm {
 
     enum Dir {ADD_TO_AMM, REMOVE_FROM_AMM}
 
-    //    function addLiquidity() external;
 
-    //    function removeLiquidity() external;
 
-    function openLimit(uint256 amountAssetBase,
-        uint256 amountAssetQuote,
-        uint256 limitAmountPriceBase,
-        Side side,
-        int24 tick,
-        uint8 leverage) external;
-
+    function openLimit(
+        uint256 _amountAssetBase,
+        uint256 _amountAssetQuote,
+        uint256 _limitPrice,
+        Side _side,
+        int256 _tick,
+        uint256 _leverage) external returns (uint256);
+    //
     function openMarket(
         Side side,
         uint256 quoteAmount,
@@ -165,18 +211,30 @@ abstract contract IAmm {
         uint256 margin,
         address _trader
     ) external;
+    //
+    //
+    //
+    //
+    //    function addMargin(uint256 index, uint256 tick, uint256 _addedMargin) external;
+    //
+    function removeMargin(uint256 index, int256 tick, uint256 _removedMargin) external;
+    //
+    function cancelOrder(uint256 _index, int256 _tick) external;
+    //
+    //
+//    function getIsWaitingOrder(int256 _tick, uint256 _index) external view returns (bool);
 
-    //    function queryOrder() external;
+    function getIsOrderExecuted(int256 _tick, uint256 _index) external view returns (bool);
 
-    function getIsWaitingOrder(uint256 tick, uint256 index) external view returns (bool isWaiting);
+    function getTotalPositionSize() external view returns (uint256);
 
+    function getCurrentTick() external returns (int256);
 
-    function addMargin(uint256 index, uint256 tick, uint256 _addedMargin) external;
+    function settleFunding() external view returns (uint256);
 
-    function removeMargin(uint256 index, uint256 tick, uint256 _removedMargin) external;
+    function quoteAsset() external view returns (IERC20);
 
-    function cancelOrder(uint256 index, uint256 tick) external;
+    function addPositionMap(address _trader, int256 tick, uint256 index) external;
 
-
-    function getTotalPositionSize() external view returns (uint256 total);
+    function closePosition(address _trader) external;
 }
