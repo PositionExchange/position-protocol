@@ -28,7 +28,7 @@ contract ContextUpgradeSafe is Initializable {
     }
 
 
-    function _msgSender() internal view virtual returns (address payable) {
+    function _msgSender() internal  view virtual returns (address ) {
         return msg.sender;
     }
 

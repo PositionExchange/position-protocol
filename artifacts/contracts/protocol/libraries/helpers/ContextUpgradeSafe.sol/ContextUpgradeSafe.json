@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "ContextUpgradeSafe",
+  "sourceName": "contracts/protocol/libraries/helpers/ContextUpgradeSafe.sol",
+  "abi": [],
+  "bytecode": "0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe6080604052600080fdfea26469706673582212205df6cb4e5b37cb891776f1f37159bba91e37c85c7e65b032ea6aa616445313bd64736f6c63430008000033",
+  "deployedBytecode": "0x6080604052600080fdfea26469706673582212205df6cb4e5b37cb891776f1f37159bba91e37c85c7e65b032ea6aa616445313bd64736f6c63430008000033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

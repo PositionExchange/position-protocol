@@ -6,20 +6,22 @@ pragma solidity 0.8.0;
 */
 import {BlockContext} from "../libraries/helpers/BlockContext.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAmm} from "../../interfaces/a.sol";
 import {IChainLinkPriceFeed} from "../../interfaces/IChainLinkPriceFeed.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
 import {Calc} from "../libraries/math/Calc.sol";
 import {SqrtPriceMath} from "../libraries/math/PriceMath.sol";
 import {TickMath} from "../libraries/math/TickMath.sol";
+import {TickBitmap} from "../libraries/math/TickBitmap.sol";
 import {ComputeAmountMath} from "../libraries/math/ComputeAmountMath.sol";
 import "./PositionHouse.sol";
 import "../libraries/amm/PositionLimit.sol";
 import "../libraries/amm/Tick.sol";
 import "./PositionHouse.sol";
-import "../../interfaces/IAmmState.sol";
+//import "../../interfaces/IAmmState.sol";
 
-contract Amm is IAmm, IAmmState, BlockContext {
+contract Amm is IAmm, BlockContext {
     using SafeMath for uint256;
     using Calc for uint256;
 
@@ -28,45 +30,27 @@ contract Amm is IAmm, IAmmState, BlockContext {
     uint256 public fundingPeriod;
     uint256 public fundingBufferPeriod;
     uint256 fundingRate;
-    uint256 tradeLimitRatio;
     // update during every swap and used when shutting amm down. it's trader's total base asset size
-    uint256 public totalPositionSize;
-    IChainLinkPriceFeed public priceFeed;
-
-
+//    IChainLinkPriceFeed public priceFeed;
+    IERC20 public override quoteAsset;
     /// list of all tick index
     //    mapping(uint256 => Tick.Info) public override ticks;
     /// bitmap of all tick, show initialized ticks
-    mapping(int16 => uint256) public override tickBitmap;
-    ///
-    //    mapping(bytes32 => PositionLimit.Info) public override positions;
-
-    mapping(address => uint) public balances;
-
-
-    struct LiquidityDetail {
-        uint256 liquidity;
-        uint256 baseReserveAmount;
-        uint256 quoteReserveAmount;
-    }
-
+    mapping(int256 => uint256) public tickBitmap;
 
     /// IAmmState
-    LiquidityDetail public override liquidityDetail;
-
-    bool public override open;
+    LiquidityDetail public  liquidityDetail;
+//    bool public open;
     uint256 public nextFundingTime;
     bytes32 public priceFeedKey;
+    AmmState public ammState;
+    mapping(address => PositionOpenMarket) positionMarketMap;
 
-
-    struct ModifyPositionParams {
-        // the address that owns the position
-        address trader;
-        // tick
-        int24 tick;
-        // any change in liquidity
-        int128 liquidityDelta;
-    }
+    // tickID => Tick
+    mapping(int256 => Tick) tickOrder;
+    uint256[] cumulativePremiumFractions;
+    // address _trader => Position
+    mapping(address => Position[]) positionMap;
 
     /**
     * @notice event in amm
@@ -74,18 +58,18 @@ contract Amm is IAmm, IAmmState, BlockContext {
     */
     event SwapInput(Dir dir, uint256 quoteAssetAmount, uint256 baseAssetAmount);
     event SwapOutput(Dir dir, uint256 quoteAssetAmount, uint256 baseAssetAmount);
-    event FundingRateUpdated(int256 rate, uint256 underlyingPrice);
-    event CancelOrder(uint256 tick, uint256 index);
+    event FundingRateUpdated(uint256 rate, uint256 underlyingPrice);
+    event CancelOrder(int256 tick, uint256 index);
 
-    event OpenLimitOrder(uint256 tick, uint256 index);
-    event OpenMarketOrder(uint256 tick, uint256 index);
+    event OpenLimitOrder(int256 tick, uint256 index);
+    event OpenMarketOrder(int256 tick, uint256 index);
 
     /**
      * @notice MODIFIER
     */
 
     modifier onlyOpen() {
-        require(open, Errors.A_AMM_IS_OPEN);
+        require(true, Errors.A_AMM_IS_OPEN);
         _;
     }
     //    modifier onlyCounterParty() {
@@ -105,15 +89,16 @@ contract Amm is IAmm, IAmmState, BlockContext {
         address _quoteAsset,
         uint256 _fluctuationLimitRatio,
         uint256 _tollRatio,
-        uint256 _spreadRatio) public {
+        uint256 _spreadRatio
+    ) public {
+
         require(
             _quoteAssetReserve != 0 &&
             _tradeLimitRatio != 0 &&
             _baseAssetReserve != 0 &&
             _fundingPeriod != 0 &&
             address(_priceFeed) != address(0) &&
-            _quoteAsset != address(0),
-
+            _quoteAsset != address(0) &&
             sqrtStartPrice != 0,
 
             Errors.VL_INVALID_AMOUNT
@@ -121,17 +106,20 @@ contract Amm is IAmm, IAmmState, BlockContext {
 
         spotPriceTwapInterval = 1 hours;
         // initialize tick
-        int24 tick = TickMath.getTickAtSqrtRatio(sqrtStartPrice);
+        int256 tick = TickMath.getTickAtPrice(sqrtStartPrice);
         ammState = AmmState({
-        sqrtPriceX96 : sqrtStartPrice,
+        price : sqrtStartPrice,
         tick : tick,
         unlocked : true
         });
 
+        quoteAsset = IERC20(_quoteAsset);
+
+
         spotPriceTwapInterval = 1 hours;
     }
 
-    function getLiquidityDetail() internal pure returns (uint256 liquidity, uint256 quoteReserveAmount, uint256 baseReserveAmount) {
+    function getLiquidityDetail() internal view returns (uint256 liquidity, uint256 quoteReserveAmount, uint256 baseReserveAmount) {
         liquidity = liquidityDetail.liquidity;
         quoteReserveAmount = liquidityDetail.quoteReserveAmount;
         baseReserveAmount = liquidityDetail.baseReserveAmount;
@@ -142,18 +130,15 @@ contract Amm is IAmm, IAmmState, BlockContext {
         liquidityDetail.baseReserveAmount = baseReserveAmount;
         liquidityDetail.liquidity = quoteReserveAmount.mul(baseReserveAmount);
     }
-
-
     // margin =_amountAssetQuote / _leverage
     //
     function openLimit(
         uint256 _amountAssetBase,
         uint256 _amountAssetQuote,
-        uint256 _margin,
-        uint256 _limitAmountPriceBase,
+        uint256 _limitPrice,
         Side _side,
-        int24 _tick,
-        uint8 _leverage) public returns (uint256 nextIndex){
+        int256 _tick,
+        uint256 _leverage) external override returns (uint256){
 
         // TODO require openLimit
         require(_amountAssetBase != 0 &&
@@ -174,44 +159,20 @@ contract Amm is IAmm, IAmmState, BlockContext {
         leverage : _leverage,
         amountAssetQuote : _amountAssetQuote,
         amountAssetBase : _amountAssetBase,
-        status : Status.OPENING,
-        margin : _amountAssetQuote.div(_leverage)
+        limitPrice : _limitPrice,
+
+        //TODO edit orderLiquidityRemain
+        orderLiquidityRemain : _amountAssetQuote,
+        margin : _amountAssetQuote.div(_leverage),
+        status : Status.OPENING
         });
 
         emit  OpenLimitOrder(_tick, nextIndex);
+        return nextIndex;
+//        return 0;
 
     }
 
-
-    struct OpenMarketState {
-        // the quote amount remaining to be swap
-        uint256 quoteRemainingAmount;
-        // the quote amount already swapped
-        uint256 quoteCalculatedAmount;
-        // the base amount remaining to be swap
-        uint256 baseRemainingAmount;
-        // the base amount already swapped
-        uint256 baseCalculatedAmount;
-        // current price
-        uint256 price;
-        // current tick
-        uint256 tick;
-    }
-
-    struct StepComputations {
-        // the price at the beginning of the step
-        uint256 priceStart;
-        // the next tick to swap to from the current tick in the swap direction
-        uint256 tickNext;
-        // whether tickNext is initialized or not
-        bool initialized;
-        // price for the next tick (1/0)
-        uint256 priceNext;
-        // how much is being swapped in in this step
-        uint256 quoteCalculatedAmount;
-        // how much is being swapped out
-        uint256 baseCalculatedAmount;
-    }
 
     function openMarket(
         Side side,
@@ -219,14 +180,14 @@ contract Amm is IAmm, IAmmState, BlockContext {
         uint256 leverage,
         uint256 margin,
         address _trader
-
-    ) external {
+    ) external override {
         require(quoteAmount != 0, 'Invalid amount');
+
         AmmState memory ammStateStart = ammState;
 
         require(ammStateStart.unlocked, 'Amm is locked');
 
-
+        ammState.unlocked = false;
         bool sideBuy = side == Side.BUY ? true : false;
         (uint256 liquidity, uint256 quoteReserveAmount, uint256 baseReserveAmount) = getLiquidityDetail();
 
@@ -242,9 +203,8 @@ contract Amm is IAmm, IAmmState, BlockContext {
         while (state.quoteRemainingAmount != 0) {
             StepComputations memory step;
             step.priceStart = state.price;
-            // TODO create function nextInitializedTick in tickBitmap
-            // nextInitializedTick param are currentTick, boolean lte
-            (step.tickNext, step.initialized) = tickBitmap.nextInitializedTick(
+            (step.tickNext, step.initialized) = TickBitmap.nextInitializedTickWithinOneWord(
+                tickBitmap,
                 state.tick,
             // true if buy, false if sell
                 sideBuy
@@ -252,15 +212,13 @@ contract Amm is IAmm, IAmmState, BlockContext {
             // TODO update function getPriceAtTick in TickMath library
             // get price for the next tick
             step.priceNext = TickMath.getPriceAtTick(step.tickNext);
+            // TODO check function mostSignificantBit
             // TODO check if current tick is fulfill
             // if not try to fill all of the remaining amount then calculate next step
-            // TODO refactor function computeSwapStep to return amountIn and amountOut
-            // compute values to swap to the target tick or point where input/output amount is exhausted
+            // compute values to swap to the target tick or point where quote remaining amount is exhausted
             (state.price, step.quoteCalculatedAmount, step.baseCalculatedAmount) = ComputeAmountMath.computeSwapStep(
                 step.priceStart,
-            // TODO update target price param
                 step.priceNext,
-            // TODO update liquidity param
                 liquidityDetail.liquidity,
                 state.quoteRemainingAmount
             );
@@ -305,57 +263,65 @@ contract Amm is IAmm, IAmmState, BlockContext {
 
                             }
                         }
+                        state.quoteCalculatedAmount = state.quoteCalculatedAmount.add(state.quoteRemainingAmount);
+                        state.baseCalculatedAmount = state.baseCalculatedAmount.add(state.baseRemainingAmount);
+                        (state.quoteRemainingAmount, state.baseRemainingAmount) = (0, 0);
 
-                        tickOrder[step.tickNext] = filledIndex;
+                        tickOrder[step.tickNext].filledIndex = filledIndex;
 
 
                     } else {
-                        tickOrder[step.tickNext].filledLiquidity.add(remainingLiquidity);
+                        tickOrder[step.tickNext].filledLiquidity.add(unfilledLiquidity);
                         tickOrder[step.tickNext].filledIndex = tickOrder[step.tickNext].currentIndex;
+                        // TODO calculate remaining amount after fulfill this tick's liquidity
+                        state.tick = step.tickNext;
+                        TickBitmap.flipTick(tickBitmap, state.tick);
                     }
                 }
-                else {
-
-
-                }
-                // tick is not initialized
-            } else {
-                // TODO check function in tickBitmap to
+            } else if (state.price < step.priceNext) {
+                state.tick = TickMath.getTickAtPrice(state.price);
             }
         }
-
-        //TODO open position market
-        PositionOpenMarket memory position = positionMarketMap[_trader];
-
-        if ((position.side == Side.BUY && sideBuy == true)
-            || ([position.side == Side.SELL] && side == false)) {
-
-            //TODO increment position
-            // same side
-            positionMarketMap[_trader].margin.add(margin);
-            positionMarketMap[_trader].amountAssetQuote.add(quoteAmount);
-
-
-        } else {
-            // TODO decrement position
-            if (margin > positionMarketMap[_trader].margin) {
-                // open reserve position
-                if (position.side = Side.BUY) {
-                    positionMarketMap[_trader].side = Side.SELL;
-
-                } else {
-                    positionMarketMap[_trader].side = Side.SELL;
-                }
-
-            }
-            positionMarketMap[_trader].margin.sub(margin);
-            positionMarketMap[_trader].amountAssetQuote.add(quoteAmount);
-        }
-
-
+//
+//        if (state.tick != ammStateStart.tick) {
+//            (ammState.tick, ammState.price) = (
+//            state.tick,
+//            state.price
+//            );
+//        }
+//        updateReserve(state.quoteCalculatedAmount, state.baseCalculatedAmount);
+//
+//        //TODO open position market
+//        PositionOpenMarket memory position = positionMarketMap[_trader];
+//
+//        // TODO position.side == side
+//        if (position.side == side) {
+//
+//            //TODO increment position
+//            // same side
+//            positionMarketMap[_trader].margin.add(margin);
+//            positionMarketMap[_trader].amountAssetQuote.add(quoteAmount);
+//
+//
+//        } else {
+//            // TODO decrement position
+//            if (margin > positionMarketMap[_trader].margin) {
+//                // open reserve position
+//                if (position.side == Side.BUY) {
+//                    positionMarketMap[_trader].side = Side.SELL;
+//
+//                } else {
+//                    positionMarketMap[_trader].side = Side.SELL;
+//                }
+//
+//            }
+//            positionMarketMap[_trader].margin.sub(margin);
+//            positionMarketMap[_trader].amountAssetQuote.add(quoteAmount);
+//        }
+//        ammState.unlocked = true;
     }
 
-    function cancelOrder(uint _index, uint _tick) public {
+    function cancelOrder(uint _index, int256 _tick) external override {
         require(_index > tickOrder[_tick].filledIndex, 'Require not filled open yet');
 
         // sub liquidity when cancel order
@@ -365,7 +331,39 @@ contract Amm is IAmm, IAmmState, BlockContext {
         emit CancelOrder(_tick, _index);
     }
 
-    function addMargin(uint256 index, uint256 tick, uint256 _amountAdded) public {
+
+    function addPositionMap(address _trader, int256 tick, uint256 index) external override {
+        positionMap[_trader].push(Position({
+        index : index,
+        tick : tick})
+        );
+    }
+
+    function closePosition(address _trader) external override {
+
+        // TODO require close position
+
+
+        // TODO close position
+        // calc PnL, transfer money
+        //
+
+
+//        Position[] memory templePosition;
+
+        for (uint256 i = 0; i < positionMap[_trader].length; i++) {
+            int256 tickOrder = positionMap[_trader][i].tick;
+            uint256 indexOrder = positionMap[_trader][i].index;
+
+            if (getIsWaitingOrder(tickOrder, indexOrder) == true) {
+//                templePosition.push(Position(indexOrder, tickOrder));
+            }
+        }
+
+//        positionMap[_trader] = templePosition;
+    }
+
+    function addMargin(uint256 index, int256 tick, uint256 _amountAdded) public {
         require(
             _amountAdded != 0,
             Errors.VL_INVALID_AMOUNT
@@ -375,7 +373,7 @@ contract Amm is IAmm, IAmmState, BlockContext {
 
     }
 
-    function removeMargin(uint256 index, uint256 tick, uint256 _amountRemoved) public {
+    function removeMargin(uint256 index, int256 tick, uint256 _amountRemoved) external override {
         require(
             _amountRemoved != 0,
             Errors.VL_INVALID_AMOUNT
@@ -389,7 +387,7 @@ contract Amm is IAmm, IAmmState, BlockContext {
         uint256 _quoteAssetAmount,
         uint256 _baseAssetAmountLimit,
         bool _canOverFluctuationLimit
-    ) external override returns (uint256) {
+    ) external returns (uint256) {
         //        if (_quoteAssetAmount == 0) {
         //            return 0;
         //        }
@@ -434,10 +432,8 @@ contract Amm is IAmm, IAmmState, BlockContext {
     }
 
     function updateReserve(
-        Dir _dirOfQuote,
         uint256 _quoteAssetAmount,
-        uint256 _baseAssetAmount,
-        bool _canOverFluctuationLimit
+        uint256 _baseAssetAmount
     ) internal {
         //Check if it is over fluctuationLimitRatio
         //        checkIsOverBlockFluctuationLimit(_dirOfQuote, _quoteAssetAmount, _baseAssetAmount);
@@ -458,59 +454,79 @@ contract Amm is IAmm, IAmmState, BlockContext {
         uint256 _underlyingPrice
     ) private {
         fundingRate = _premiumFraction.div(_underlyingPrice);
-        emit FundingRateUpdated(fundingRate.toInt(), _underlyingPrice.toUint());
+        emit FundingRateUpdated(fundingRate, _underlyingPrice);
     }
 
-    function getIsWaitingOrder(uint256 _tick, uint256 _index) public view returns (bool){
+    function getIsWaitingOrder(int256 _tick, uint256 _index) public view returns (bool)
+    {
 
-        return tickOrder[_tick].order[_index].status == Status.OPENING && tickOrder[_tick].filledIndex < _index;
+        //        return tickOrder[_tick].order[_index].status == Status.OPENING && tickOrder[_tick].filledIndex < _index;
+        return true;
+    }
+
+    function getIsOrderExecuted(int256 _tick, uint256 _index) external view override returns (bool) {
+
+        if (_index > tickOrder[_tick].filledIndex) {
+            return false;
+        }
+        return true;
     }
 
     function getReserve() external view returns (uint256, uint256){
-        //        return (quoteReserve, baseReserve);
+        //        return (quoteReserve, baseReserve);getIsWaitingOrder
+        return (0, 0);
     }
 
-    function getTotalPositionSize() public view override returns (uint256) {
+    function getTotalPositionSize() external view override returns (uint256) {
+
         //        return totalPositionSize;
+        return 0;
     }
 
-    function settleFunding() public onlyOpen returns (uint256){
+    function getCurrentTick() external override returns (int256) {
+        return ammState.tick;
+    }
 
-        require(_blockTimestamp >= nextFundingTime, Errors.A_AMM_SETTLE_TO_SOON);
-        // premium = twapMarketPrice - twapIndexPrice
-        // timeFraction = fundingPeriod(1 hour) / 1 day
-        // premiumFraction = premium * timeFraction
-        uint256 underlyingPrice = getUnderlyingTwapPrice(spotPriceTwapInterval);
-        uint256 premium = getTwapPrice(spotPriceTwapInterval).sub(underlyingPrice);
-        uint256 premiumFraction = premium.mul(fundingPeriod).div(int256(1 days));
+    function settleFunding() external view override returns (uint256){
+//
+//        require(_blockTimestamp() >= nextFundingTime, Errors.A_AMM_SETTLE_TO_SOON);
+//        // premium = twapMarketPrice - twapIndexPrice
+//        // timeFraction = fundingPeriod(1 hour) / 1 day
+//        // premiumFraction = premium * timeFraction
+//        uint256 underlyingPrice = getUnderlyingTwapPrice(spotPriceTwapInterval);
+//        uint256 premium = getTwapPrice(spotPriceTwapInterval).sub(underlyingPrice);
+//        uint256 premiumFraction = premium.mul(fundingPeriod).div(uint256(1 days));
+//
+//        // update funding rate = premiumFraction / twapIndexPrice
+//        //        updateFundingRate(premiumFraction, underlyingPrice);
+//
+//        // in order to prevent multiple funding settlement during very short time after network congestion
+//        uint256 minNextValidFundingTime = _blockTimestamp().add(fundingBufferPeriod);
+//
+//        // floor((nextFundingTime + fundingPeriod) / 3600) * 3600
+//        uint256 nextFundingTimeOnHourStart = nextFundingTime.add(fundingPeriod).div(1 hours).mul(1 hours);
+//
+//        // max(nextFundingTimeOnHourStart, minNextValidFundingTime)
+//        //        nextFundingTime = nextFundingTimeOnHourStart > minNextValidFundingTime
+//        //        ? nextFundingTimeOnHourStart
+//        //        : minNextValidFundingTime;
+//
+//        // DEPRECATED only for backward compatibility before we upgrade PositionHouse
+//        // reset funding related states
+//        uint256 baseAssetDeltaThisFundingPeriod = 0;
+//
+//        return premiumFraction;
 
-        // update funding rate = premiumFraction / twapIndexPrice
-        updateFundingRate(premiumFraction, underlyingPrice);
-
-        // in order to prevent multiple funding settlement during very short time after network congestion
-        uint256 minNextValidFundingTime = _blockTimestamp().add(fundingBufferPeriod);
-
-        // floor((nextFundingTime + fundingPeriod) / 3600) * 3600
-        uint256 nextFundingTimeOnHourStart = nextFundingTime.add(fundingPeriod).div(1 hours).mul(1 hours);
-
-        // max(nextFundingTimeOnHourStart, minNextValidFundingTime)
-        nextFundingTime = nextFundingTimeOnHourStart > minNextValidFundingTime
-        ? nextFundingTimeOnHourStart
-        : minNextValidFundingTime;
-
-        // DEPRECATED only for backward compatibility before we upgrade PositionHouse
-        // reset funding related states
-        uint256 baseAssetDeltaThisFundingPeriod = 0;
-
-        return premiumFraction;
+        return 0;
     }
 
     /**
      * @notice get underlying price provided by oracle
      * @return underlying price
      */
-    function getUnderlyingPrice() public view override returns (uint256) {
+    function getUnderlyingPrice() public view returns (uint256) {
         //        return Decimal.decimal(priceFeed.getPrice(priceFeedKey));
+        return 0;
     }
 
     /**
@@ -519,14 +535,16 @@ contract Amm is IAmm, IAmmState, BlockContext {
      */
     function getUnderlyingTwapPrice(uint256 _intervalInSeconds) public view returns (uint256) {
         //        return Decimal.decimal(priceFeed.getTwapPrice(priceFeedKey, _intervalInSeconds));
+        return 0;
     }
 
     /**
      * @notice get spot price based on current quote/base asset reserve.
      * @return spot price
      */
-    function getSpotPrice() public view override returns (uint256) {
+    function getSpotPrice() public view returns (uint256) {
         //        return quoteAssetReserve.divD(baseAssetReserve);
+        return 0;
     }
 
     /**
@@ -534,6 +552,7 @@ contract Amm is IAmm, IAmmState, BlockContext {
      */
     function getTwapPrice(uint256 _intervalInSeconds) public view returns (uint256) {
         //        return implGetReserveTwapPrice(_intervalInSeconds);
+        return 0;
     }
 
 }

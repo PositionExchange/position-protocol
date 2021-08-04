@@ -1,0 +1,149 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IChainLinkPriceFeed",
+  "sourceName": "contracts/interfaces/IChainLinkPriceFeed.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_priceFeedKey",
+          "type": "bytes32"
+        }
+      ],
+      "name": "getLatestTimestamp",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_priceFeedKey",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_numOfRoundBack",
+          "type": "uint256"
+        }
+      ],
+      "name": "getPreviousPrice",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_priceFeedKey",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_numOfRoundBack",
+          "type": "uint256"
+        }
+      ],
+      "name": "getPreviousTimestamp",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_priceFeedKey",
+          "type": "bytes32"
+        }
+      ],
+      "name": "getPrice",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_priceFeedKey",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_interval",
+          "type": "uint256"
+        }
+      ],
+      "name": "getTwapPrice",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_priceFeedKey",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_price",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_timestamp",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_roundId",
+          "type": "uint256"
+        }
+      ],
+      "name": "setLatestData",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

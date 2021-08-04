@@ -1,0 +1,1200 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/interfaces/a.sol": {
+      "lastModificationDate": 1628052698667,
+      "contentHash": "63cb058796fd0308154022a583f49f83",
+      "sourceName": "contracts/interfaces/a.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol"
+      ],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "IAmm"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol": {
+      "lastModificationDate": 1627365766311,
+      "contentHash": "0eac3e1a83ee62326ca007811285b274",
+      "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IERC20"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/position/InsuranceFund.sol": {
+      "lastModificationDate": 1627573792382,
+      "contentHash": "cf61ff8e09a6cec25e8d99ebe5214e9b",
+      "sourceName": "contracts/protocol/position/InsuranceFund.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../../interfaces/a.sol",
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "../../interfaces/IInsuranceFund.sol",
+        "../libraries/helpers/Errors.sol",
+        "../libraries/helpers/PerpFiOwnableUpgrade.sol"
+      ],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "InsuranceFund"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/interfaces/IInsuranceFund.sol": {
+      "lastModificationDate": 1627699816317,
+      "contentHash": "f960ae83e6774542613911df74e03eb1",
+      "sourceName": "contracts/interfaces/IInsuranceFund.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "./a.sol"
+      ],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "IInsuranceFund"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/helpers/Errors.sol": {
+      "lastModificationDate": 1625756385263,
+      "contentHash": "becfc6aeca721b42e268b670a64096bb",
+      "sourceName": "contracts/protocol/libraries/helpers/Errors.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "Errors"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/helpers/PerpFiOwnableUpgrade.sol": {
+      "lastModificationDate": 1627572406421,
+      "contentHash": "28097b4ad58f285e672a4aaf584654a9",
+      "sourceName": "contracts/protocol/libraries/helpers/PerpFiOwnableUpgrade.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./ContextUpgradeSafe.sol"
+      ],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "PerpFiOwnableUpgrade"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/helpers/ContextUpgradeSafe.sol": {
+      "lastModificationDate": 1627700191842,
+      "contentHash": "b96ab02a114dd37bddae593e472b47af",
+      "sourceName": "contracts/protocol/libraries/helpers/ContextUpgradeSafe.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./Initializable.sol"
+      ],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "ContextUpgradeSafe"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/helpers/Initializable.sol": {
+      "lastModificationDate": 1627572199857,
+      "contentHash": "09ec0d79b8c0aa385946286160801321",
+      "sourceName": "contracts/protocol/libraries/helpers/Initializable.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "Initializable"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/position/ChainLinkPriceFeed.sol": {
+      "lastModificationDate": 1627572373526,
+      "contentHash": "3d2f0bcf18b8868540970a4a7b38156f",
+      "sourceName": "contracts/protocol/position/ChainLinkPriceFeed.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol",
+        "../../interfaces/IChainLinkPriceFeed.sol",
+        "@openzeppelin/contracts/utils/math/SafeMath.sol",
+        "../libraries/helpers/BlockContext.sol",
+        "../libraries/helpers/Errors.sol",
+        "../libraries/helpers/PerpFiOwnableUpgrade.sol"
+      ],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "ChainLinkPriceFeed"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/node_modules/@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol": {
+      "lastModificationDate": 1627445654154,
+      "contentHash": "b9be3f7aa79153708acdc3be6bd1cb35",
+      "sourceName": "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "AggregatorV3Interface"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/interfaces/IChainLinkPriceFeed.sol": {
+      "lastModificationDate": 1625756385262,
+      "contentHash": "a658d3703e64cb262083d80c94d5389e",
+      "sourceName": "contracts/interfaces/IChainLinkPriceFeed.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "IChainLinkPriceFeed"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/node_modules/@openzeppelin/contracts/utils/math/SafeMath.sol": {
+      "lastModificationDate": 1627365766315,
+      "contentHash": "5365090efc586b728719e562ebfed0d6",
+      "sourceName": "@openzeppelin/contracts/utils/math/SafeMath.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "SafeMath"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/helpers/BlockContext.sol": {
+      "lastModificationDate": 1625497335370,
+      "contentHash": "230dd6009cfd8ab5c2165429c301d0e8",
+      "sourceName": "contracts/protocol/libraries/helpers/BlockContext.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "BlockContext"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/position/PositionHouse.sol": {
+      "lastModificationDate": 1628052716170,
+      "contentHash": "b649fe90efa65567751c485643bd28bd",
+      "sourceName": "contracts/protocol/position/PositionHouse.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../../interfaces/a.sol",
+        "../libraries/helpers/Errors.sol",
+        "../libraries/math/Calc.sol",
+        "../libraries/helpers/BlockContext.sol",
+        "../../interfaces/IPositionHouse.sol",
+        "../../interfaces/IInsuranceFund.sol",
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "@openzeppelin/contracts/utils/math/SafeMath.sol"
+      ],
+      "versionPragmas": [
+        "=0.8.0"
+      ],
+      "artifacts": [
+        "PositionHouse"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/math/Calc.sol": {
+      "lastModificationDate": 1627698549706,
+      "contentHash": "176fbfbc38b9aa12e97cc539a4474214",
+      "sourceName": "contracts/protocol/libraries/math/Calc.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/utils/math/SafeMath.sol"
+      ],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "Calc"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/interfaces/IPositionHouse.sol": {
+      "lastModificationDate": 1628042925794,
+      "contentHash": "3768b45221695837c5a32ec33b8c0784",
+      "sourceName": "contracts/interfaces/IPositionHouse.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./a.sol"
+      ],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "IPositionHouse"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/position/Amm.sol": {
+      "lastModificationDate": 1628052862644,
+      "contentHash": "0a86374811120027f71007668e411745",
+      "sourceName": "contracts/protocol/position/Amm.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../libraries/helpers/BlockContext.sol",
+        "@openzeppelin/contracts/utils/math/SafeMath.sol",
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "../../interfaces/a.sol",
+        "../../interfaces/IChainLinkPriceFeed.sol",
+        "../libraries/helpers/Errors.sol",
+        "../libraries/math/Calc.sol",
+        "../libraries/math/PriceMath.sol",
+        "../libraries/math/TickMath.sol",
+        "../libraries/math/TickBitmap.sol",
+        "../libraries/math/ComputeAmountMath.sol",
+        "./PositionHouse.sol",
+        "../libraries/amm/PositionLimit.sol",
+        "../libraries/amm/Tick.sol",
+        "./PositionHouse.sol"
+      ],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "Amm"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/math/PriceMath.sol": {
+      "lastModificationDate": 1627618612533,
+      "contentHash": "8fffeef5fe9778a0014f1dd1208165ef",
+      "sourceName": "contracts/protocol/libraries/math/PriceMath.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./LowGasSafeMath.sol",
+        "./SafeCast.sol",
+        "./Calc.sol",
+        "./FullMath.sol",
+        "./UnsafeMath.sol",
+        "./FixedPoint96.sol",
+        "@openzeppelin/contracts/utils/math/SafeMath.sol"
+      ],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "SqrtPriceMath"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/math/TickMath.sol": {
+      "lastModificationDate": 1627874435735,
+      "contentHash": "6fcaf06c624d62d1d15c3c3eaccd16bc",
+      "sourceName": "contracts/protocol/libraries/math/TickMath.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "TickMath"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/math/TickBitmap.sol": {
+      "lastModificationDate": 1627873225924,
+      "contentHash": "926c1fbd3ab52359564f7f57a7535c13",
+      "sourceName": "contracts/protocol/libraries/math/TickBitmap.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./BitMath.sol"
+      ],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "TickBitmap"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/math/ComputeAmountMath.sol": {
+      "lastModificationDate": 1627875712827,
+      "contentHash": "7897dc091c287356fd54a3a1a18c41fb",
+      "sourceName": "contracts/protocol/libraries/math/ComputeAmountMath.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./PriceMath.sol"
+      ],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "ComputeAmountMath"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/amm/PositionLimit.sol": {
+      "lastModificationDate": 1627459779584,
+      "contentHash": "b4de0a09994b179fb3a9d08488461dbd",
+      "sourceName": "contracts/protocol/libraries/amm/PositionLimit.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../math/FullMath.sol",
+        "../math/FixedPoint128.sol",
+        "../math/LiquidityMath.sol"
+      ],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "PositionLimit"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/amm/Tick.sol": {
+      "lastModificationDate": 1628052890722,
+      "contentHash": "44a144e046e4b560a2447996b5884ff9",
+      "sourceName": "contracts/protocol/libraries/amm/Tick.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../math/TickMath.sol",
+        "../math/LiquidityMath.sol",
+        "../math/LowGasSafeMath.sol",
+        "../math/SafeCast.sol"
+      ],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "Tick"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/math/LowGasSafeMath.sol": {
+      "lastModificationDate": 1625756385263,
+      "contentHash": "0e625084a9fdd875882f220f0b9ef896",
+      "sourceName": "contracts/protocol/libraries/math/LowGasSafeMath.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "LowGasSafeMath"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/math/SafeCast.sol": {
+      "lastModificationDate": 1625756385263,
+      "contentHash": "76b8ce7023f3edad18f476ed32f90115",
+      "sourceName": "contracts/protocol/libraries/math/SafeCast.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "SafeCast"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/math/FullMath.sol": {
+      "lastModificationDate": 1627698623608,
+      "contentHash": "5c1e4219e4c1daeca0222054a011e934",
+      "sourceName": "contracts/protocol/libraries/math/FullMath.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/utils/math/SafeMath.sol"
+      ],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "FullMath"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/math/UnsafeMath.sol": {
+      "lastModificationDate": 1625756385264,
+      "contentHash": "a81f4af508414430e2d35919051389ba",
+      "sourceName": "contracts/protocol/libraries/math/UnsafeMath.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "UnsafeMath"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/math/FixedPoint96.sol": {
+      "lastModificationDate": 1627441742831,
+      "contentHash": "9a6fbd7a69bd78eb138dec24eceace5f",
+      "sourceName": "contracts/protocol/libraries/math/FixedPoint96.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "FixedPoint96"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/math/BitMath.sol": {
+      "lastModificationDate": 1625497335371,
+      "contentHash": "a076a7aa45579aa215d6ebee4462b9fc",
+      "sourceName": "contracts/protocol/libraries/math/BitMath.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "BitMath"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/math/FixedPoint128.sol": {
+      "lastModificationDate": 1625756385263,
+      "contentHash": "4d461dde7fcf891de8ad4057234c002e",
+      "sourceName": "contracts/protocol/libraries/math/FixedPoint128.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "FixedPoint128"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/protocol/libraries/math/LiquidityMath.sol": {
+      "lastModificationDate": 1627698549709,
+      "contentHash": "b9cbc971ebdab14d773f890fbd9879d7",
+      "sourceName": "contracts/protocol/libraries/math/LiquidityMath.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/utils/math/SafeMath.sol",
+        "./Calc.sol"
+      ],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "LiquidityMath"
+      ]
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/interfaces/IAmm.sol": {
+      "lastModificationDate": 1627460855983,
+      "contentHash": "d41d8cd98f00b204e9800998ecf8427e",
+      "sourceName": "contracts/interfaces/IAmm.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [],
+      "artifacts": []
+    },
+    "/Users/ndtrung/work/block_chain/position-protocol/contracts/interfaces/IAmmState.sol": {
+      "lastModificationDate": 1627704721589,
+      "contentHash": "6e68a1a5169154adc81931228e456cac",
+      "sourceName": "contracts/interfaces/IAmmState.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "0.8.0"
+      ],
+      "artifacts": [
+        "IAmmState"
+      ]
+    }
+  }
+}

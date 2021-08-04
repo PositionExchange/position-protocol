@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity =0.8.0;
 
-import {Amm} from "./Amm.sol";
+//import {Amm} from "./Amm.sol";
 import {IAmm} from "../../interfaces/a.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
 import {Calc} from "../libraries/math/Calc.sol";
@@ -14,101 +14,37 @@ import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /**
 * @notice This contract is main of Position
-* Manage positions with action like: openPostion, closePosition,... 
+* Manage positions with action like: openPostion, closePosition,...
 */
 
 contract PositionHouse is IPositionHouse, BlockContext {
     using SafeMath for uint256;
     using Calc for uint256;
 
-    // @notice enum
 
-    enum TypeOrder  {MARKET, LIMIT, STOP_LIMIT}
-
-
-
-    /// @notice This struct is used for avoiding stack too deep error when passing too many var between functions
-    struct PositionResp {
-        Position position;
-        // the quote asset amount trader will send if open position, will receive if close
-        uint256 exchangedQuoteAssetAmount;
-        // if realizedPnl + realizedFundingPayment + margin is negative, it's the abs value of it
-        uint256 badDebt;
-        // the base asset amount trader will receive if open position, will send if close
-        int256 exchangedPositionSize;
-        // funding payment incurred during this position response
-        int256 fundingPayment;
-        // realizedPnl = unrealizedPnl * closedRatio
-        int256 realizedPnl;
-        // positive = trader transfer margin to vault, negative = trader receive margin from vault
-        // it's 0 when internalReducePosition, its addedMargin when internalIncreasePosition
-        // it's min(0, oldPosition + realizedFundingPayment + realizedPnl) when internalClosePosition
-        uint256 marginToVault;
-        // unrealized pnl after open position
-        int256 unrealizedPnlAfter;
-    }
-
-    //Mapping
-    struct AmmMap {
-        mapping(address => Position[]) positionMap;
-    }
-
-
-    struct Position {
-        uint256 index;
-        uint256 tick;
-    }
-
-    struct AddLiquidityLimitParams {
-        address token0;
-        address token1;
-        uint24 fee;
-        address recipient;
-        //        int24 tickLower;
-        //        int24 tickUpper;
-        int24 tick;
-        uint256 amount0Desired;
-        uint256 amount1Desired;
-        uint256 amount0Min;
-        uint256 amount1Min;
-    }
-
-
-    struct StopLimitOrderParams {
-        IAmm _amm;
-        uint256 _amount;
-        uint256 _limitPrice;
-        uint256 _stopPrice;
-        IAmm.Side _side;
-        int24 _tick;
-        uint8 _leverage;
-    }
-
-    mapping(address => AmmMap) internal ammMap;
     // contract dependencies
     IInsuranceFund public insuranceFund;
     mapping(address => bool) whitelist;
     mapping(address => bool) blacklist;
     //    address[] whitelist;
 
-
-
-
-
-
-
     // event position house
-    event MarginChanged(address indexed sender, address indexed amm, int256 amount, int256 fundingPayment);
+    event MarginChanged(address indexed sender, address indexed amm, uint256 amount, int256 fundingPayment);
 
 
     function openPosition(
-        Amm _amm,
+        IAmm _amm,
         IAmm.Side _side,
         uint256 _amountAssetQuote,
         uint256 _amountAssetBase,
         uint16 _leverage,
         uint256 _margin
     ) public {
+
+        //address : amm
+        // LONG or SHORT
+        //
+
 
         // TODO require something here
         require(
@@ -163,19 +99,18 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
     }
 
-    function openLimitOrder(IAmm _amm,
+    function openLimitOrder(
+        IAmm _amm,
         uint256 _amountAssetBase,
         uint256 _amountAssetQuote,
-        uint256 _limitAmountPriceBase,
+        uint256 _limitPrice,
         IAmm.Side _side,
-        int24 _tick,
-        uint8 _leverage) public {
+        int256 _tick,
+        uint256 _leverage) public {
 
 
         // TODO require for openLimitOrder
-
-
-        uint256 _currentTick = _amm.ammState.tick;
+        int256 _currentTick = _amm.getCurrentTick();
         if (_side == IAmm.Side.BUY) {
             require(_tick < _currentTick, "Your ordered price is higher than current price");
         } else {
@@ -196,19 +131,23 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
 
 
-        (uint256 nextIndex) = _amm.openLimit(
+        uint256 nextIndex = _amm.openLimit(
+            _amountAssetBase,
             _amountAssetQuote,
-            _limitAmountPriceBase,
+            _limitPrice,
             _side,
             _tick,
             _leverage
         );
 
 
-        ammMap[address(_amm)].positionMap[_trader].push(Position({
-        index : nextIndex,
-        tick : _tick})
-        );
+        //        _amm.positionMap[_trader].push(Position({
+        //        index : nextIndex,
+        //        tick : _tick})
+        //        );
+        //
+
+        _amm.addPositionMap(_trader, _tick, nextIndex);
 
 
         // TODO Save position
@@ -287,19 +226,19 @@ contract PositionHouse is IPositionHouse, BlockContext {
     }
 
 
-    function addMargin(IAmm _amm, uint256 index, uint256 tick, uint256 _addedMargin) public override {
+    function addMargin(IAmm _amm, uint256 index, int256 tick, uint256 _addedMargin) public {
         // check condition
         requireAmm(_amm, true);
         requireNonZeroInput(_addedMargin);
         // update margin part in personal position
         address trader = msg.sender;
 
-        _amm.addMargin(index, tick, _addedMargin);
-        emit MarginChanged(trader, address(_amm), int256(_addedMargin.toUint()), 0);
+        //        _amm.addMargin(index, tick, _addedMargin);
+        emit MarginChanged(trader, address(_amm), _addedMargin, 0);
     }
 
     // TODO modify function
-    function removeMargin(Amm _amm, uint256, uint256 index, uint256 tick, uint256 _amountRemoved) public override {
+    function removeMargin(IAmm _amm, uint256, uint256 index, int256 tick, uint256 _amountRemoved) public {
         // check condition
         requireAmm(_amm, true);
         requireNonZeroInput(_amountRemoved);
@@ -340,9 +279,9 @@ contract PositionHouse is IPositionHouse, BlockContext {
     function payFunding(IAmm _amm) public {
         requireAmm(_amm, true);
         uint256 premiumFraction = _amm.settleFunding();
-        ammMap[address(_amm)].cumulativePremiumFractions.push(
-            premiumFraction.add(getLatestCumulativePremiumFraction(_amm))
-        );
+        //        address(_amm).cumulativePremiumFractions.push(
+        //            premiumFraction.add(getLatestCumulativePremiumFraction(_amm))
+        //        );
 
 
         // funding payment = premium fraction * position
@@ -354,11 +293,11 @@ contract PositionHouse is IPositionHouse, BlockContext {
         uint256 ammFundingPaymentProfit = premiumFraction.mul(totalTraderPositionSize);
 
         IERC20 quoteAsset = _amm.quoteAsset();
-        if (ammFundingPaymentProfit.toInt() < 0) {
-            insuranceFund.withdraw(quoteAsset, ammFundingPaymentProfit.abs());
-        } else {
-            transferToInsuranceFund(quoteAsset, ammFundingPaymentProfit.abs());
-        }
+        //        if (ammFundingPaymentProfit.toInt() < 0) {
+        //            insuranceFund.withdraw(quoteAsset, ammFundingPaymentProfit.abs());
+        //        } else {
+        //            transferToInsuranceFund(quoteAsset, ammFundingPaymentProfit.abs());
+        //        }
 
     }
 
@@ -400,23 +339,24 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
 
 
+        _amm.closePosition(_trader);
         //        ammMap[_amm].positionMap[_trader]
-
-        Position[] memory templePosition;
-
-        for (uint256 i = 0; i < ammMap[_amm].positionMap[_trader].length; i++) {
-            uint256 tickOrder = ammMap[_amm].positionMap[_trader][i].tick;
-            uint256 indexOrder = ammMap[_amm].positionMap[_trader][i].index;
-
-            if (_amm.getIsWaitingOrder(tickOrder, indexOrder) == true) {
-                templePosition.push(Position(indexOrder, tickOrder));
-
-            }
-
-        }
-
-
-        ammMap[_amm].positionMap[_trader] = templePosition;
+        //
+        //        Position[] memory templePosition;
+        //
+        //        for (uint256 i = 0; i < address(_amm).positionMap[_trader].length; i++) {
+        //            int256 tickOrder = address(_amm).positionMap[_trader][i].tick;
+        //            uint256 indexOrder = address(_amm).positionMap[_trader][i].index;
+        //
+        //            if (_amm.getIsWaitingOrder(tickOrder, indexOrder) == true) {
+        //                //                templePosition.push(Position(indexOrder, tickOrder));
+        //
+        //            }
+        //
+        //        }
+        //
+        //
+        //        address(_amm).positionMap[_trader] = templePosition;
 
 
         // TODO emit event
@@ -424,32 +364,32 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
     }
 
-    function cancelOrder(IAmm _amm, uint256 index, uint256 tick) public {
+    function cancelOrder(IAmm _amm, uint256 index, int256 tick) public {
 
         // TODO require close order AMM
-        require(index > _amm.tickerOrder.filledIndex, "Your order has executed");
-        bool flag = true;
+        require(_amm.getIsOrderExecuted(tick, index) != true, "Your order has executed");
+        //        bool flag = true;
 
 
         _amm.cancelOrder(index, tick);
 
 
-        emit CancelOrder(_amm, index, tick);
+        emit CancelOrder(address(_amm), index, tick);
     }
 
 
-    function getPosition(IAmm _amm, address _trader) public view returns (Position memory positionsOpened, Position memory positionOrder)  {
+    function getPosition(IAmm _amm, address _trader) public view returns (IAmm.Position memory positionsOpened, IAmm.Position memory positionOrder)  {
 
         // TODO require getPosition
 
 
-        Position[] memory positions = ammMap[_amm].positionMap[_trader];
-
-        for (uint256 i = 0; i < positions.length; i.add(1)) {
-            uint256 tick = positions[i].tick;
-            uint256 index = positions[i].index;
-
-        }
+//        Position[] memory positions = address(_amm).positionMap[_trader];
+//
+//        for (uint256 i = 0; i < positions.length; i.add(1)) {
+//            int256 tick = positions[i].tick;
+//            uint256 index = positions[i].index;
+//
+//        }
 
     }
 
@@ -460,8 +400,8 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
 
     // TODO modify function
-    function getUnadjustedPosition(IAmm _amm, address _trader) public view returns (Position memory position) {
-        position = ammMap[address(_amm)].positionMap[_trader];
+    function getUnadjustedPosition(IAmm _amm, address _trader) public view returns (IAmm.Position memory position) {
+//        position = address(_amm).positionMap[_trader][0];
     }
 
 
@@ -490,7 +430,7 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
     function requireNonZeroInput(uint256 _decimal) private pure {
         //!0: input is 0
-        require(_decimal.toUint() != 0, Errors.VL_INVALID_AMOUNT);
+        require(_decimal != 0, Errors.VL_INVALID_AMOUNT);
     }
 
 
@@ -503,10 +443,10 @@ contract PositionHouse is IPositionHouse, BlockContext {
     * @return latest cumulative premium fraction in 18 digits
     */
     function getLatestCumulativePremiumFraction(IAmm _amm) public view returns (uint256) {
-        uint256 len = ammMap[address(_amm)].cumulativePremiumFractions.length;
-        if (len > 0) {
-            return ammMap[address(_amm)].cumulativePremiumFractions[len - 1];
-        }
+//        uint256 len = address(_amm).cumulativePremiumFractions.length;
+//        if (len > 0) {
+//            return address(_amm).cumulativePremiumFractions[len - 1];
+//        }
         return 0;
     }
 
@@ -517,8 +457,8 @@ contract PositionHouse is IPositionHouse, BlockContext {
         //405: amm not found
         //505: amm was closed
         //506: amm is open
-        require(insuranceFund.isExistedAmm(_amm), "405");
-        require(_open == _amm.open(), _open ? "505" : "506");
+        //        require(insuranceFund.isExistedAmm(_amm), "405");
+        //        require(_open == _amm.open(), _open ? "505" : "506");
     }
 
 

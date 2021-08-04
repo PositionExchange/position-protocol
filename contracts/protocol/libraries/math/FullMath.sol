@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity 0.8.0;
 
+import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+
+
 /// @title Contains 512-bit math functions
 /// @notice Facilitates multiplication and division that can have overflow of an intermediate value without any loss of precision
 /// @dev Handles "phantom overflow" i.e., allows multiplication and division where an intermediate value overflows 256 bits
 library FullMath {
+    using SafeMath for uint256;
+
     /// @notice Calculates floor(a×b÷denominator) with full precision. Throws if result overflows a uint256 or denominator == 0
     /// @param a The multiplicand
     /// @param b The multiplier
@@ -21,8 +26,10 @@ library FullMath {
         // then use the Chinese Remainder Theorem to reconstruct
         // the 512 bit result. The result is stored in two 256
         // variables such that product = prod1 * 2**256 + prod0
-        uint256 prod0; // Least significant 256 bits of the product
-        uint256 prod1; // Most significant 256 bits of the product
+        uint256 prod0;
+        // Least significant 256 bits of the product
+        uint256 prod1;
+        // Most significant 256 bits of the product
         assembly {
             let mm := mulmod(a, b, not(0))
             prod0 := mul(a, b)
@@ -61,7 +68,7 @@ library FullMath {
         // Factor powers of two out of denominator
         // Compute largest power of two divisor of denominator.
         // Always >= 1.
-        uint256 twos = -denominator & denominator;
+        uint256 twos = uint256(0).sub(denominator) & denominator;
         // Divide denominator by power of two
         assembly {
             denominator := div(denominator, twos)
@@ -88,12 +95,18 @@ library FullMath {
         // Now use Newton-Raphson iteration to improve the precision.
         // Thanks to Hensel's lifting lemma, this also works in modular
         // arithmetic, doubling the correct bits in each step.
-        inv *= 2 - denominator * inv; // inverse mod 2**8
-        inv *= 2 - denominator * inv; // inverse mod 2**16
-        inv *= 2 - denominator * inv; // inverse mod 2**32
-        inv *= 2 - denominator * inv; // inverse mod 2**64
-        inv *= 2 - denominator * inv; // inverse mod 2**128
-        inv *= 2 - denominator * inv; // inverse mod 2**256
+        inv *= 2 - denominator * inv;
+        // inverse mod 2**8
+        inv *= 2 - denominator * inv;
+        // inverse mod 2**16
+        inv *= 2 - denominator * inv;
+        // inverse mod 2**32
+        inv *= 2 - denominator * inv;
+        // inverse mod 2**64
+        inv *= 2 - denominator * inv;
+        // inverse mod 2**128
+        inv *= 2 - denominator * inv;
+        // inverse mod 2**256
 
         // Because the division is now exact we can divide by multiplying
         // with the modular inverse of denominator. This will give us the
