@@ -282,43 +282,43 @@ contract Amm is IAmm, BlockContext {
                 state.tick = TickMath.getTickAtPrice(state.price);
             }
         }
-//
-//        if (state.tick != ammStateStart.tick) {
-//            (ammState.tick, ammState.price) = (
-//            state.tick,
-//            state.price
-//            );
-//        }
-//        updateReserve(state.quoteCalculatedAmount, state.baseCalculatedAmount);
-//
-//        //TODO open position market
-//        PositionOpenMarket memory position = positionMarketMap[_trader];
-//
-//        // TODO position.side == side
-//        if (position.side == side) {
-//
-//            //TODO increment position
-//            // same side
-//            positionMarketMap[_trader].margin.add(margin);
-//            positionMarketMap[_trader].amountAssetQuote.add(quoteAmount);
-//
-//
-//        } else {
-//            // TODO decrement position
-//            if (margin > positionMarketMap[_trader].margin) {
-//                // open reserve position
-//                if (position.side == Side.BUY) {
-//                    positionMarketMap[_trader].side = Side.SELL;
-//
-//                } else {
-//                    positionMarketMap[_trader].side = Side.SELL;
-//                }
-//
-//            }
-//            positionMarketMap[_trader].margin.sub(margin);
-//            positionMarketMap[_trader].amountAssetQuote.add(quoteAmount);
-//        }
-//        ammState.unlocked = true;
+
+        if (state.tick != ammStateStart.tick) {
+            (ammState.tick, ammState.price) = (
+            state.tick,
+            state.price
+            );
+        }
+        updateReserve(state.quoteCalculatedAmount, state.baseCalculatedAmount);
+
+        //TODO open position market
+        PositionOpenMarket memory position = positionMarketMap[_trader];
+
+        // TODO position.side == side
+        if (position.side == side) {
+
+            //TODO increment position
+            // same side
+            positionMarketMap[_trader].margin.add(margin);
+            positionMarketMap[_trader].amountAssetQuote.add(quoteAmount);
+
+
+        } else {
+            // TODO decrement position
+            if (margin > positionMarketMap[_trader].margin) {
+                // open reserve position
+                if (position.side == Side.BUY) {
+                    positionMarketMap[_trader].side = Side.SELL;
+
+                } else {
+                    positionMarketMap[_trader].side = Side.SELL;
+                }
+
+            }
+            positionMarketMap[_trader].margin.sub(margin);
+            positionMarketMap[_trader].amountAssetQuote.add(quoteAmount);
+        }
+        ammState.unlocked = true;
     }
 
     function cancelOrder(uint _index, int256 _tick) external override {
