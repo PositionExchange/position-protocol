@@ -1,0 +1,52 @@
+{
+  "name": "position-protocol",
+  "description": "Core position exchange protocol",
+  "license": "agpl-3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "version": "1.0.0",
+  "homepage": "https://position.exchange/",
+  "keywords": [
+    "position",
+    "position-exchange",
+    "POSI"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PositionExchange/position-protocol"
+  },
+  "devDependencies": {
+    "@endemolshinegroup/git-author-check": "^1.0.1",
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "@typechain/hardhat": "^2.3.0",
+    "@typechain/truffle-v5": "^5.0.0",
+    "@types/chai": "^4.2.19",
+    "@types/mocha": "^8.2.2",
+    "@types/node": "^15.12.4",
+    "chai": "^4.3.4",
+    "ethereum-waffle": "^3.4.0",
+    "ethers": "^5.4.1",
+    "hardhat": "^2.4.1",
+    "hardhat-deploy": "^0.8.9",
+    "husky": "^7.0.1",
+    "mocha": "^9.0.1",
+    "ts-generator": "^0.1.1",
+    "ts-node": "^10.0.0",
+    "typechain": "^5.1.2",
+    "typescript": "^4.3.4"
+  },
+  "dependencies": {
+    "@chainlink/contracts": "^0.2.1",
+    "@openzeppelin/contracts": "^4.2.0",
+    "@openzeppelin/contracts-ethereum-package": "^3.0.0",
+    "ethereumjs-util": "^7.1.0",
+    "mocha-chai-jest-snapshot": "^1.1.2",
+    "semaphore": "^1.1.0"
+  },
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test"
+  }
+}
