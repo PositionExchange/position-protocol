@@ -3,14 +3,13 @@ pragma solidity 0.8.0;
 
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../protocol/libraries/helpers/Errors.sol";
 //import "../protocol/position/PositionHouse.sol";
 
 interface IAmm {
 
-
     enum Status  {OPENING, CLOSED, CANCEL, PARTIAL_FILLED}
     enum Side  {BUY, SELL}
-
     struct PositionOpenMarket {
         // Type order BUY or SELL
         Side side;
@@ -63,7 +62,6 @@ interface IAmm {
 
 
 
-
     /// @notice Increases the amount of liquidity in a position, with tokens paid by the `msg.sender`
     /// @param params tokenId The ID of the token for which liquidity is being increased,
     /// amount0Desired The desired amount of token0 to be spent,
@@ -97,7 +95,7 @@ interface IAmm {
     //    mapping(int256 => Tick) tickOrder;
 
 
-    struct Tick {
+    struct TickOrder {
         uint256 liquidity;
         uint256 filledLiquidity;
         uint256 filledIndex;
@@ -175,6 +173,15 @@ interface IAmm {
     }
 
 
+    struct ParamsOpenMarket {
+        Side side;
+        uint256 quoteAmount;
+        uint256 leverage;
+        uint256 margin;
+        address _trader;
+    }
+
+
 
 
 
@@ -203,13 +210,7 @@ interface IAmm {
         int256 _tick,
         uint256 _leverage) external returns (uint256);
     //
-    function openMarket(
-        Side side,
-        uint256 quoteAmount,
-        uint256 leverage,
-        uint256 margin,
-        address _trader
-    ) external;
+    function openMarket(ParamsOpenMarket memory paramsOpenMarket) external;
     //
     //
     //
@@ -221,7 +222,7 @@ interface IAmm {
     function cancelOrder(uint256 _index, int256 _tick) external;
     //
     //
-//    function getIsWaitingOrder(int256 _tick, uint256 _index) external view returns (bool);
+    //    function getIsWaitingOrder(int256 _tick, uint256 _index) external view returns (bool);
 
     function getIsOrderExecuted(int256 _tick, uint256 _index) external view returns (bool);
 
@@ -236,4 +237,10 @@ interface IAmm {
     function addPositionMap(address _trader, int256 tick, uint256 index) external;
 
     function closePosition(address _trader) external;
+
+    // For test
+    function queryPositions(address _trader) external view returns (Position[] memory position);
+
+    function getOrder(address _trader, int256 tick, uint256 index) external view returns (Order memory order);
+
 }

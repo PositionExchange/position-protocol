@@ -32,6 +32,17 @@ contract PositionHouse is IPositionHouse, BlockContext {
     event MarginChanged(address indexed sender, address indexed amm, uint256 amount, int256 fundingPayment);
 
 
+    function queryOrder(IAmm amm) public view returns (IAmm.Position[] memory positions){
+        address trader = msg.sender;
+        positions = amm.queryPositions(trader);
+    }
+
+    function getOrder(IAmm amm, int256 tick, uint256 index) public view returns (IAmm.Order memory order){
+
+        order = amm.getOrder(msg.sender, tick, index);
+        //        return 0;
+    }
+
     function openPosition(
         IAmm _amm,
         IAmm.Side _side,
@@ -41,18 +52,12 @@ contract PositionHouse is IPositionHouse, BlockContext {
         uint256 _margin
     ) public {
 
-        //address : amm
-        // LONG or SHORT
-        //
-
-
         // TODO require something here
         require(
             _amountAssetBase != 0 &&
             _amountAssetQuote != 0,
             Errors.VL_INVALID_AMOUNT
         );
-
         address trader = msg.sender;
 
 
@@ -65,15 +70,12 @@ contract PositionHouse is IPositionHouse, BlockContext {
         //        uint256 leverage,
         //        uint256 margin,
         //        address _trader
-        _amm.openMarket(
-            _side,
-            _amountAssetQuote,
-            _leverage,
-            _margin,
-            msg.sender
-
-
-        );
+        _amm.openMarket(IAmm.ParamsOpenMarket(
+                _side,
+                _amountAssetQuote,
+                _leverage,
+                _margin,
+                msg.sender));
 
 
         //        //TODO open market position
@@ -379,13 +381,13 @@ contract PositionHouse is IPositionHouse, BlockContext {
         // TODO require getPosition
 
 
-//        Position[] memory positions = address(_amm).positionMap[_trader];
-//
-//        for (uint256 i = 0; i < positions.length; i.add(1)) {
-//            int256 tick = positions[i].tick;
-//            uint256 index = positions[i].index;
-//
-//        }
+        //        Position[] memory positions = address(_amm).positionMap[_trader];
+        //
+        //        for (uint256 i = 0; i < positions.length; i.add(1)) {
+        //            int256 tick = positions[i].tick;
+        //            uint256 index = positions[i].index;
+        //
+        //        }
 
     }
 
@@ -397,7 +399,7 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
     // TODO modify function
     function getUnadjustedPosition(IAmm _amm, address _trader) public view returns (IAmm.Position memory position) {
-//        position = address(_amm).positionMap[_trader][0];
+        //        position = address(_amm).positionMap[_trader][0];
     }
 
 
@@ -439,10 +441,10 @@ contract PositionHouse is IPositionHouse, BlockContext {
     * @return latest cumulative premium fraction in 18 digits
     */
     function getLatestCumulativePremiumFraction(IAmm _amm) public view returns (uint256) {
-//        uint256 len = address(_amm).cumulativePremiumFractions.length;
-//        if (len > 0) {
-//            return address(_amm).cumulativePremiumFractions[len - 1];
-//        }
+        //        uint256 len = address(_amm).cumulativePremiumFractions.length;
+        //        if (len > 0) {
+        //            return address(_amm).cumulativePremiumFractions[len - 1];
+        //        }
         return 0;
     }
 
