@@ -33,7 +33,6 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
 
     function queryOrder(IAmm amm) public view returns (IAmm.Position[] memory positions){
-
         address trader = msg.sender;
         positions = amm.queryPositions(trader);
     }
@@ -54,11 +53,6 @@ contract PositionHouse is IPositionHouse, BlockContext {
         uint256 _margin
     ) public {
 
-        //address : amm
-        // LONG or SHORT
-        //
-
-
         // TODO require something here
         require(
             _amountAssetBase != 0 &&
@@ -78,15 +72,12 @@ contract PositionHouse is IPositionHouse, BlockContext {
         //        uint256 leverage,
         //        uint256 margin,
         //        address _trader
-        _amm.openMarket(
-            _side,
-            _amountAssetQuote,
-            _leverage,
-            _margin,
-            msg.sender
-
-
-        );
+        _amm.openMarket(IAmm.ParamsOpenMarket(
+                _side,
+                _amountAssetQuote,
+                _leverage,
+                _margin,
+                msg.sender));
 
 
         //        //TODO open market position
