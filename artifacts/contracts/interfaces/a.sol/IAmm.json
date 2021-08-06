@@ -95,6 +95,77 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_trader",
+          "type": "address"
+        },
+        {
+          "internalType": "int256",
+          "name": "tick",
+          "type": "int256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "index",
+          "type": "uint256"
+        }
+      ],
+      "name": "getOrder",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "enum IAmm.Side",
+              "name": "side",
+              "type": "uint8"
+            },
+            {
+              "internalType": "uint256",
+              "name": "leverage",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "limitPrice",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountAssetQuote",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountAssetBase",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "margin",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "orderLiquidityRemain",
+              "type": "uint256"
+            },
+            {
+              "internalType": "enum IAmm.Status",
+              "name": "status",
+              "type": "uint8"
+            }
+          ],
+          "internalType": "struct IAmm.Order",
+          "name": "order",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "getTotalPositionSize",
       "outputs": [
@@ -182,6 +253,37 @@
       "name": "openMarket",
       "outputs": [],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_trader",
+          "type": "address"
+        }
+      ],
+      "name": "queryPositions",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "index",
+              "type": "uint256"
+            },
+            {
+              "internalType": "int256",
+              "name": "tick",
+              "type": "int256"
+            }
+          ],
+          "internalType": "struct IAmm.Position[]",
+          "name": "position",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {

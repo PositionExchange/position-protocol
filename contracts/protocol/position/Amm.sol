@@ -20,6 +20,7 @@ import "../libraries/amm/PositionLimit.sol";
 import "../libraries/amm/Tick.sol";
 import "./PositionHouse.sol";
 //import "../../interfaces/IAmmState.sol";
+import "hardhat/console.sol";
 
 contract Amm is IAmm, BlockContext {
     using SafeMath for uint256;
@@ -31,7 +32,7 @@ contract Amm is IAmm, BlockContext {
     uint256 public fundingBufferPeriod;
     uint256 fundingRate;
     // update during every swap and used when shutting amm down. it's trader's total base asset size
-//    IChainLinkPriceFeed public priceFeed;
+    //    IChainLinkPriceFeed public priceFeed;
     IERC20 public override quoteAsset;
     /// list of all tick index
     //    mapping(uint256 => Tick.Info) public override ticks;
@@ -40,14 +41,14 @@ contract Amm is IAmm, BlockContext {
 
     /// IAmmState
     LiquidityDetail public  liquidityDetail;
-//    bool public open;
+    //    bool public open;
     uint256 public nextFundingTime;
     bytes32 public priceFeedKey;
     AmmState public ammState;
     mapping(address => PositionOpenMarket) positionMarketMap;
 
     // tickID => Tick
-    mapping(int256 => Tick) tickOrder;
+    mapping(int256 => TickOrder) tickOrder;
     uint256[] cumulativePremiumFractions;
     // address _trader => Position
     mapping(address => Position[]) positionMap;
@@ -76,29 +77,44 @@ contract Amm is IAmm, BlockContext {
     //        require(counterParty == _msgSender(), Errors.A_AMM_CALLER_IS_NOT_COUNTER_PARTY);
     //        _;
     //    }
+    function testTickInitialize() public view returns (int256){
+        return ammState.tick;
+
+    }
+
+    function queryPositions(address _trader) external override view returns (Position[] memory positions){
+        positions = positionMap[_trader];
+
+    }
+
+    function getOrder(address _trader, int256 tick, uint256 index ) external override view returns (Order memory order){
+        order = tickOrder[tick].order[index];
+    }
+
+
 
     function initialize(
-        uint256 startPrice,
         uint256 _quoteAssetReserve,
         uint256 _baseAssetReserve,
-        uint256 _tradeLimitRatio,
-        uint256 _fundingPeriod,
-        IChainLinkPriceFeed _priceFeed,
-        uint256 sqrtStartPrice,
-        bytes32 _priceFeedKey,
-        address _quoteAsset,
-        uint256 _fluctuationLimitRatio,
-        uint256 _tollRatio,
-        uint256 _spreadRatio
+    //        uint256 _tradeLimitRatio,
+    //        uint256 _fundingPeriod,
+    //        IChainLinkPriceFeed _priceFeed,
+    //        bytes32 _priceFeedKey,
+    //        address _quoteAsset,
+    //        uint256 _fluctuationLimitRatio,
+    //        uint256 _tollRatio,
+    //        uint256 _spreadRatio,
+        uint256 sqrtStartPrice
+
     ) public {
 
         require(
             _quoteAssetReserve != 0 &&
-            _tradeLimitRatio != 0 &&
             _baseAssetReserve != 0 &&
-            _fundingPeriod != 0 &&
-            address(_priceFeed) != address(0) &&
-            _quoteAsset != address(0) &&
+            //            _tradeLimitRatio != 0 &&
+            //            _fundingPeriod != 0 &&
+            //            address(_priceFeed) != address(0) &&
+            //            _quoteAsset != address(0) &&
             sqrtStartPrice != 0,
 
             Errors.VL_INVALID_AMOUNT
@@ -107,16 +123,24 @@ contract Amm is IAmm, BlockContext {
         spotPriceTwapInterval = 1 hours;
         // initialize tick
         int256 tick = TickMath.getTickAtPrice(sqrtStartPrice);
+
+        //        console.log("Start tick %s", tick);
+        console.log("Sender balance is %s tokens");
+
+
         ammState = AmmState({
         price : sqrtStartPrice,
         tick : tick,
         unlocked : true
         });
 
-        quoteAsset = IERC20(_quoteAsset);
 
-
-        spotPriceTwapInterval = 1 hours;
+        //        console.log("hello");
+        //
+        //        quoteAsset = IERC20(_quoteAsset);
+        //
+        //
+        //        spotPriceTwapInterval = 1 hours;
     }
 
     function getLiquidityDetail() internal view returns (uint256 liquidity, uint256 quoteReserveAmount, uint256 baseReserveAmount) {
@@ -169,7 +193,7 @@ contract Amm is IAmm, BlockContext {
 
         emit  OpenLimitOrder(_tick, nextIndex);
         return nextIndex;
-//        return 0;
+        //        return 0;
 
     }
 
@@ -282,43 +306,43 @@ contract Amm is IAmm, BlockContext {
                 state.tick = TickMath.getTickAtPrice(state.price);
             }
         }
-//
-//        if (state.tick != ammStateStart.tick) {
-//            (ammState.tick, ammState.price) = (
-//            state.tick,
-//            state.price
-//            );
-//        }
-//        updateReserve(state.quoteCalculatedAmount, state.baseCalculatedAmount);
-//
-//        //TODO open position market
-//        PositionOpenMarket memory position = positionMarketMap[_trader];
-//
-//        // TODO position.side == side
-//        if (position.side == side) {
-//
-//            //TODO increment position
-//            // same side
-//            positionMarketMap[_trader].margin.add(margin);
-//            positionMarketMap[_trader].amountAssetQuote.add(quoteAmount);
-//
-//
-//        } else {
-//            // TODO decrement position
-//            if (margin > positionMarketMap[_trader].margin) {
-//                // open reserve position
-//                if (position.side == Side.BUY) {
-//                    positionMarketMap[_trader].side = Side.SELL;
-//
-//                } else {
-//                    positionMarketMap[_trader].side = Side.SELL;
-//                }
-//
-//            }
-//            positionMarketMap[_trader].margin.sub(margin);
-//            positionMarketMap[_trader].amountAssetQuote.add(quoteAmount);
-//        }
-//        ammState.unlocked = true;
+        //
+        //        if (state.tick != ammStateStart.tick) {
+        //            (ammState.tick, ammState.price) = (
+        //            state.tick,
+        //            state.price
+        //            );
+        //        }
+        //        updateReserve(state.quoteCalculatedAmount, state.baseCalculatedAmount);
+        //
+        //        //TODO open position market
+        //        PositionOpenMarket memory position = positionMarketMap[_trader];
+        //
+        //        // TODO position.side == side
+        //        if (position.side == side) {
+        //
+        //            //TODO increment position
+        //            // same side
+        //            positionMarketMap[_trader].margin.add(margin);
+        //            positionMarketMap[_trader].amountAssetQuote.add(quoteAmount);
+        //
+        //
+        //        } else {
+        //            // TODO decrement position
+        //            if (margin > positionMarketMap[_trader].margin) {
+        //                // open reserve position
+        //                if (position.side == Side.BUY) {
+        //                    positionMarketMap[_trader].side = Side.SELL;
+        //
+        //                } else {
+        //                    positionMarketMap[_trader].side = Side.SELL;
+        //                }
+        //
+        //            }
+        //            positionMarketMap[_trader].margin.sub(margin);
+        //            positionMarketMap[_trader].amountAssetQuote.add(quoteAmount);
+        //        }
+        //        ammState.unlocked = true;
     }
 
     function cancelOrder(uint _index, int256 _tick) external override {
@@ -349,18 +373,18 @@ contract Amm is IAmm, BlockContext {
         //
 
 
-//        Position[] memory templePosition;
+        //        Position[] memory templePosition;
 
         for (uint256 i = 0; i < positionMap[_trader].length; i++) {
             int256 tickOrder = positionMap[_trader][i].tick;
             uint256 indexOrder = positionMap[_trader][i].index;
 
             if (getIsWaitingOrder(tickOrder, indexOrder) == true) {
-//                templePosition.push(Position(indexOrder, tickOrder));
+                //                templePosition.push(Position(indexOrder, tickOrder));
             }
         }
 
-//        positionMap[_trader] = templePosition;
+        //        positionMap[_trader] = templePosition;
     }
 
     function addMargin(uint256 index, int256 tick, uint256 _amountAdded) public {
@@ -488,34 +512,34 @@ contract Amm is IAmm, BlockContext {
     }
 
     function settleFunding() external view override returns (uint256){
-//
-//        require(_blockTimestamp() >= nextFundingTime, Errors.A_AMM_SETTLE_TO_SOON);
-//        // premium = twapMarketPrice - twapIndexPrice
-//        // timeFraction = fundingPeriod(1 hour) / 1 day
-//        // premiumFraction = premium * timeFraction
-//        uint256 underlyingPrice = getUnderlyingTwapPrice(spotPriceTwapInterval);
-//        uint256 premium = getTwapPrice(spotPriceTwapInterval).sub(underlyingPrice);
-//        uint256 premiumFraction = premium.mul(fundingPeriod).div(uint256(1 days));
-//
-//        // update funding rate = premiumFraction / twapIndexPrice
-//        //        updateFundingRate(premiumFraction, underlyingPrice);
-//
-//        // in order to prevent multiple funding settlement during very short time after network congestion
-//        uint256 minNextValidFundingTime = _blockTimestamp().add(fundingBufferPeriod);
-//
-//        // floor((nextFundingTime + fundingPeriod) / 3600) * 3600
-//        uint256 nextFundingTimeOnHourStart = nextFundingTime.add(fundingPeriod).div(1 hours).mul(1 hours);
-//
-//        // max(nextFundingTimeOnHourStart, minNextValidFundingTime)
-//        //        nextFundingTime = nextFundingTimeOnHourStart > minNextValidFundingTime
-//        //        ? nextFundingTimeOnHourStart
-//        //        : minNextValidFundingTime;
-//
-//        // DEPRECATED only for backward compatibility before we upgrade PositionHouse
-//        // reset funding related states
-//        uint256 baseAssetDeltaThisFundingPeriod = 0;
-//
-//        return premiumFraction;
+        //
+        //        require(_blockTimestamp() >= nextFundingTime, Errors.A_AMM_SETTLE_TO_SOON);
+        //        // premium = twapMarketPrice - twapIndexPrice
+        //        // timeFraction = fundingPeriod(1 hour) / 1 day
+        //        // premiumFraction = premium * timeFraction
+        //        uint256 underlyingPrice = getUnderlyingTwapPrice(spotPriceTwapInterval);
+        //        uint256 premium = getTwapPrice(spotPriceTwapInterval).sub(underlyingPrice);
+        //        uint256 premiumFraction = premium.mul(fundingPeriod).div(uint256(1 days));
+        //
+        //        // update funding rate = premiumFraction / twapIndexPrice
+        //        //        updateFundingRate(premiumFraction, underlyingPrice);
+        //
+        //        // in order to prevent multiple funding settlement during very short time after network congestion
+        //        uint256 minNextValidFundingTime = _blockTimestamp().add(fundingBufferPeriod);
+        //
+        //        // floor((nextFundingTime + fundingPeriod) / 3600) * 3600
+        //        uint256 nextFundingTimeOnHourStart = nextFundingTime.add(fundingPeriod).div(1 hours).mul(1 hours);
+        //
+        //        // max(nextFundingTimeOnHourStart, minNextValidFundingTime)
+        //        //        nextFundingTime = nextFundingTimeOnHourStart > minNextValidFundingTime
+        //        //        ? nextFundingTimeOnHourStart
+        //        //        : minNextValidFundingTime;
+        //
+        //        // DEPRECATED only for backward compatibility before we upgrade PositionHouse
+        //        // reset funding related states
+        //        uint256 baseAssetDeltaThisFundingPeriod = 0;
+        //
+        //        return premiumFraction;
 
         return 0;
     }

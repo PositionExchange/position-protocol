@@ -3,6 +3,7 @@ pragma solidity 0.8.0;
 
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../protocol/libraries/helpers/Errors.sol";
 //import "../protocol/position/PositionHouse.sol";
 
 interface IAmm {
@@ -98,7 +99,7 @@ interface IAmm {
     //    mapping(int256 => Tick) tickOrder;
 
 
-    struct Tick {
+    struct TickOrder {
         uint256 liquidity;
         uint256 filledLiquidity;
         uint256 filledIndex;
@@ -222,7 +223,7 @@ interface IAmm {
     function cancelOrder(uint256 _index, int256 _tick) external;
     //
     //
-//    function getIsWaitingOrder(int256 _tick, uint256 _index) external view returns (bool);
+    //    function getIsWaitingOrder(int256 _tick, uint256 _index) external view returns (bool);
 
     function getIsOrderExecuted(int256 _tick, uint256 _index) external view returns (bool);
 
@@ -237,4 +238,10 @@ interface IAmm {
     function addPositionMap(address _trader, int256 tick, uint256 index) external;
 
     function closePosition(address _trader) external;
+
+    // For test
+    function queryPositions(address _trader) external view returns ( Position[] memory position);
+
+    function getOrder(address _trader, int256 tick, uint256 index ) external view returns (Order memory order);
+
 }
