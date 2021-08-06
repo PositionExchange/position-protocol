@@ -238,7 +238,7 @@ contract PositionHouse is IPositionHouse, BlockContext {
     }
 
     // TODO modify function
-    function removeMargin(IAmm _amm, uint256, uint256 index, int256 tick, uint256 _amountRemoved) public {
+    function removeMargin(IAmm _amm, uint256 index, int256 tick, uint256 _amountRemoved) public {
         // check condition
         requireAmm(_amm, true);
         requireNonZeroInput(_amountRemoved);
@@ -247,11 +247,7 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
         _amm.removeMargin(index, tick, _amountRemoved);
         //        emit MarginChanged(trader, address(_amm), int256(_amountRemoved.toUint()), 0);
-
-
     }
-
-
 
     // TODO modify function
     function withdraw(
