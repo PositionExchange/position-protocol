@@ -476,7 +476,6 @@ contract Amm is IAmm, BlockContext {
 
     function getIsWaitingOrder(int256 _tick, uint256 _index) public view returns (bool)
     {
-
         //        return tickOrder[_tick].order[_index].status == Status.OPENING && tickOrder[_tick].filledIndex < _index;
         return true;
     }
@@ -533,7 +532,6 @@ contract Amm is IAmm, BlockContext {
         //        uint256 baseAssetDeltaThisFundingPeriod = 0;
         //
         //        return premiumFraction;
-
         return 0;
     }
 

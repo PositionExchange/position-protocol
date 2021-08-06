@@ -120,3 +120,4 @@ dist
 .DS_Store
 artifacts
 cache
+typeChain

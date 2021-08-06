@@ -43,7 +43,6 @@ contract PositionHouse is IPositionHouse, BlockContext {
         //        return 0;
     }
 
-
     function openPosition(
         IAmm _amm,
         IAmm.Side _side,
@@ -59,7 +58,6 @@ contract PositionHouse is IPositionHouse, BlockContext {
             _amountAssetQuote != 0,
             Errors.VL_INVALID_AMOUNT
         );
-
         address trader = msg.sender;
 
 

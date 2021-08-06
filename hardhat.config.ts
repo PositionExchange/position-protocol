@@ -1,4 +1,7 @@
 import "@nomiclabs/hardhat-waffle";
+import '@nomiclabs/hardhat-ethers';
+import '@nomiclabs/hardhat-etherscan';
+import "@typechain/hardhat";
 import {task} from "hardhat/config";
 
 // This is a sample Hardhat task. To learn how to create your own go to
@@ -33,5 +36,9 @@ module.exports = {
             }
         ]
     },
+    typechain: {
+        outDir: "typeChain",
+        target: "ethers-v5",
+    }
 };
 
