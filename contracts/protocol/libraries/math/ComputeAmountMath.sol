@@ -36,7 +36,7 @@ library ComputeAmountMath {
             if (amountRemaining >= amountCalculated) nextPrice = targetPrice;
             else
             // function calculate the next price after swap an specific amount
-                nextPrice = SqrtPriceMath.getNextPriceFromInput(
+                nextPrice = PriceMath.getNextPriceFromInput(
                     currentPrice,
                     liquidity,
                     sideBuy,
@@ -47,7 +47,7 @@ library ComputeAmountMath {
             if (amountRemaining >= amountCalculated) nextPrice = targetPrice;
             else
             // function calculate the next price after swap an specific amount
-                nextPrice = SqrtPriceMath.getNextPriceFromInput(
+                nextPrice = PriceMath.getNextPriceFromInput(
                     currentPrice,
                     liquidity,
                     !sideBuy,

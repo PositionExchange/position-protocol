@@ -11,7 +11,6 @@ import {IAmm} from "../../interfaces/a.sol";
 import {IChainLinkPriceFeed} from "../../interfaces/IChainLinkPriceFeed.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
 import {Calc} from "../libraries/math/Calc.sol";
-import {SqrtPriceMath} from "../libraries/math/PriceMath.sol";
 import {TickMath} from "../libraries/math/TickMath.sol";
 import {TickBitmap} from "../libraries/math/TickBitmap.sol";
 import {ComputeAmountMath} from "../libraries/math/ComputeAmountMath.sol";
@@ -48,7 +47,7 @@ contract Amm is IAmm, BlockContext {
     mapping(address => PositionOpenMarket) positionMarketMap;
 
     // tickID => Tick
-    mapping(int256 => Tick) tickOrder;
+    mapping(int256 => TickOrder) tickOrder;
     uint256[] cumulativePremiumFractions;
     // address _trader => Position
     mapping(address => Position[]) positionMap;
@@ -132,7 +131,7 @@ contract Amm is IAmm, BlockContext {
         unlocked : true
         });
 
-        quoteAsset = IERC20(_quoteAsset);
+//        quoteAsset = IERC20(_quoteAsset);
 
         //        console.log("hello");
         //
@@ -313,7 +312,7 @@ contract Amm is IAmm, BlockContext {
                     state.price
                     );
                 }
-                updateReserve(state.quoteCalculatedAmount, state.baseCalculatedAmount);
+                updateReserve(state.quoteCalculatedAmount, state.baseCalculatedAmount, true);
 
                 //TODO open position market
                 PositionOpenMarket memory position = positionMarketMap[paramsOpenMarket._trader];
@@ -406,8 +405,8 @@ contract Amm is IAmm, BlockContext {
         tickOrder[tick].order[index].margin.sub(_amountRemoved);
     }
 
-    function getPnL(address owner, uint256 index, int256 tick) public {
-        requireAmm(_amm, true);
+    function getPnL(address owner, uint256 index, int256 tick) public view returns(uint256) {
+//        requireAmm(_amm, true);
 
 
         return 0;
