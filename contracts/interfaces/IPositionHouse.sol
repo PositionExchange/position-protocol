@@ -17,10 +17,8 @@ interface IPositionHouse {
     event OpenLimitOrder(
         address amm,
         address trader,
-        address amountBase,
-        address amountQoute,
-        address tick,
-        address index
+        int256  tick,
+        uint256 index
 
     );
     // @notice enum

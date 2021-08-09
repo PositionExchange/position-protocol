@@ -11,7 +11,7 @@ import {IAmm} from "../../interfaces/a.sol";
 import {IChainLinkPriceFeed} from "../../interfaces/IChainLinkPriceFeed.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
 import {Calc} from "../libraries/math/Calc.sol";
-import {SqrtPriceMath} from "../libraries/math/PriceMath.sol";
+import {PriceMath} from "../libraries/math/PriceMath.sol";
 import {TickMath} from "../libraries/math/TickMath.sol";
 import {TickBitmap} from "../libraries/math/TickBitmap.sol";
 import {ComputeAmountMath} from "../libraries/math/ComputeAmountMath.sol";
@@ -87,7 +87,7 @@ contract Amm is IAmm, BlockContext {
 
     }
 
-    function getOrder(address _trader, int256 tick, uint256 index ) external override view returns (Order memory order){
+    function getOrder(address _trader, int256 tick, uint256 index) external override view returns (Order memory order){
         order = tickOrder[tick].order[index];
     }
 
@@ -157,6 +157,7 @@ contract Amm is IAmm, BlockContext {
         uint256 _amountAssetBase,
         uint256 _amountAssetQuote,
         uint256 _limitPrice,
+        uint256 _margin,
         Side _side,
         int256 _tick,
         uint256 _leverage) external override returns (uint256){
@@ -168,10 +169,16 @@ contract Amm is IAmm, BlockContext {
 
         // TODO calc liquidity added
 
-        uint256 liquidityAdded = _amountAssetQuote;
+        uint256 liquidityAdded = _amountAssetQuote.mul(_amountAssetBase);
+        console.log("liquidityAdded %s", liquidityAdded);
+
+        //        console.log("tick  %s", _tick);
 
 
-        tickOrder[_tick].liquidity.add(liquidityAdded);
+        tickOrder[_tick].liquidity = tickOrder[_tick].liquidity.add(liquidityAdded);
+
+
+        console.log("abc %s", tickOrder[_tick].liquidity);
 
         uint256 nextIndex = tickOrder[_tick].currentIndex.add(1);
 
@@ -181,10 +188,11 @@ contract Amm is IAmm, BlockContext {
         amountAssetQuote : _amountAssetQuote,
         amountAssetBase : _amountAssetBase,
         limitPrice : _limitPrice,
+        amountLiquidity : liquidityAdded,
 
         //TODO edit orderLiquidityRemain
         orderLiquidityRemain : _amountAssetQuote,
-        margin : _amountAssetQuote.div(_leverage),
+        margin : _margin,
         status : Status.OPENING
         });
 
@@ -254,25 +262,25 @@ contract Amm is IAmm, BlockContext {
                     uint256 unfilledLiquidity = tickOrder[step.tickNext].liquidity.sub(tickOrder[step.tickNext].filledLiquidity);
                     uint256 remainingLiquidity = state.quoteRemainingAmount.mul(state.baseRemainingAmount);
                     if (remainingLiquidity < unfilledLiquidity) {
-                        tickOrder[step.tickNext].filledLiquidity.add(remainingLiquidity);
+                        tickOrder[step.tickNext].filledLiquidity = tickOrder[step.tickNext].filledLiquidity.add(remainingLiquidity);
 
                         uint256 filledIndex = tickOrder[step.tickNext].filledIndex;
-                        tickOrder[step.tickNext].filledLiquidity.add(remainingLiquidity);
+                        tickOrder[step.tickNext].filledLiquidity = tickOrder[step.tickNext].filledLiquidity.add(remainingLiquidity);
 
                         while (remainingLiquidity != 0) {
                             if (tickOrder[step.tickNext].order[filledIndex].status == Status.PARTIAL_FILLED) {
                                 remainingLiquidity.sub(tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain);
                                 //                                tickOrder[step.tickNext].order[filledIndex].status = Status.OPENING;
                                 //                                tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain = 0;
-                                filledIndex.add(1);
+                                filledIndex = filledIndex.add(1);
 
                             } else if (tickOrder[step.tickNext].order[filledIndex].status == Status.OPENING) {
                                 if (remainingLiquidity > tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain) {
-                                    remainingLiquidity.sub(tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain);
-                                    filledIndex.add(1);
+                                    remainingLiquidity = remainingLiquidity.sub(tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain);
+                                    filledIndex = filledIndex.add(1);
 
                                 } else {
-                                    tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain.sub(remainingLiquidity);
+                                    tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain = tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain.sub(remainingLiquidity);
                                     tickOrder[step.tickNext].order[filledIndex].status = Status.PARTIAL_FILLED;
                                     remainingLiquidity = 0;
 
@@ -288,7 +296,7 @@ contract Amm is IAmm, BlockContext {
 
 
                     } else {
-                        tickOrder[step.tickNext].filledLiquidity.add(unfilledLiquidity);
+                        tickOrder[step.tickNext].filledLiquidity = tickOrder[step.tickNext].filledLiquidity.add(unfilledLiquidity);
                         tickOrder[step.tickNext].filledIndex = tickOrder[step.tickNext].currentIndex;
                         // TODO calculate remaining amount after fulfill this tick's liquidity
                         state.tick = step.tickNext;
@@ -300,50 +308,62 @@ contract Amm is IAmm, BlockContext {
             }
         }
 
-                if (state.tick != ammStateStart.tick) {
-                    (ammState.tick, ammState.price) = (
-                    state.tick,
-                    state.price
-                    );
-                }
-                updateReserve(state.quoteCalculatedAmount, state.baseCalculatedAmount);
+        if (state.tick != ammStateStart.tick) {
+            (ammState.tick, ammState.price) = (
+            state.tick,
+            state.price
+            );
+        }
+        updateReserve(state.quoteCalculatedAmount, state.baseCalculatedAmount);
 
-                //TODO open position market
-                PositionOpenMarket memory position = positionMarketMap[paramsOpenMarket._trader];
+        //TODO open position market
+        PositionOpenMarket memory position = positionMarketMap[paramsOpenMarket._trader];
 
-                // TODO position.side == side
-                if (position.side == paramsOpenMarket.side) {
+        // TODO position.side == side
+        if (position.side == paramsOpenMarket.side) {
 
-                    //TODO increment position
-                    // same side
-                    positionMarketMap[paramsOpenMarket._trader].margin.add(paramsOpenMarket.margin);
-                    positionMarketMap[paramsOpenMarket._trader].amountAssetQuote.add(paramsOpenMarket.quoteAmount);
+            //TODO increment position
+            // same side
+            positionMarketMap[paramsOpenMarket._trader].margin = positionMarketMap[paramsOpenMarket._trader].margin.add(paramsOpenMarket.margin);
+            positionMarketMap[paramsOpenMarket._trader].amountAssetQuote = positionMarketMap[paramsOpenMarket._trader].amountAssetQuote.add(paramsOpenMarket.quoteAmount);
+            positionMarketMap[paramsOpenMarket._trader].amountAssetBase = positionMarketMap[paramsOpenMarket._trader].amountAssetBase.add(paramsOpenMarket.baseAmount);
 
+
+        } else {
+            // TODO decrement position
+            if (paramsOpenMarket.margin > positionMarketMap[paramsOpenMarket._trader].margin) {
+                // open reserve position
+                if (position.side == Side.BUY) {
+                    positionMarketMap[paramsOpenMarket._trader].side = Side.SELL;
 
                 } else {
-                    // TODO decrement position
-                    if (paramsOpenMarket.margin > positionMarketMap[paramsOpenMarket._trader].margin) {
-                        // open reserve position
-                        if (position.side == Side.BUY) {
-                            positionMarketMap[paramsOpenMarket._trader].side = Side.SELL;
-
-                        } else {
-                            positionMarketMap[paramsOpenMarket._trader].side = Side.SELL;
-                        }
-
-                    }
-                    positionMarketMap[paramsOpenMarket._trader].margin.sub(paramsOpenMarket.margin);
-                    positionMarketMap[paramsOpenMarket._trader].amountAssetQuote.add(paramsOpenMarket.quoteAmount);
+                    positionMarketMap[paramsOpenMarket._trader].side = Side.SELL;
                 }
-                ammState.unlocked = true;
+
+            }
+            positionMarketMap[paramsOpenMarket._trader].margin = positionMarketMap[paramsOpenMarket._trader].margin.sub(paramsOpenMarket.margin);
+            positionMarketMap[paramsOpenMarket._trader].amountAssetQuote = positionMarketMap[paramsOpenMarket._trader].amountAssetQuote.add(paramsOpenMarket.quoteAmount);
+            positionMarketMap[paramsOpenMarket._trader].amountAssetBase = positionMarketMap[paramsOpenMarket._trader].amountAssetBase.add(paramsOpenMarket.baseAmount);
+        }
+        ammState.unlocked = true;
     }
 
-    function cancelOrder(uint _index, int256 _tick) external override {
+    function cancelOrder(address _trader, uint256 _index, int256 _tick) external override {
         require(_index > tickOrder[_tick].filledIndex, 'Require not filled open yet');
 
-        // sub liquidity when cancel order
-        tickOrder[_tick].liquidity -= tickOrder[_tick].order[_index].amountAssetQuote;
+
+        tickOrder[_tick].liquidity = tickOrder[_tick].liquidity.sub(tickOrder[_tick].order[_index].amountLiquidity);
         tickOrder[_tick].order[_index].status = Status.CANCEL;
+
+        for (uint256 i = 0; i < positionMap[_trader].length; i++) {
+
+            if (positionMap[_trader][i].index == _index) {
+                positionMap[_trader][i] = positionMap[_trader][positionMap[_trader].length - 1];
+                positionMap[_trader].pop();
+
+            }
+        }
+
 
         emit CancelOrder(_tick, _index);
     }
@@ -386,7 +406,7 @@ contract Amm is IAmm, BlockContext {
             Errors.VL_INVALID_AMOUNT
         );
         // TODO addMargin, cal position
-        tickOrder[tick].order[index].margin.add(_amountAdded);
+        tickOrder[tick].order[index].margin = tickOrder[tick].order[index].margin.add(_amountAdded);
 
     }
 
@@ -396,7 +416,7 @@ contract Amm is IAmm, BlockContext {
             Errors.VL_INVALID_AMOUNT
         );
         // TODO removeMargin, calc
-        tickOrder[tick].order[index].margin.sub(_amountRemoved);
+        tickOrder[tick].order[index].margin = tickOrder[tick].order[index].margin.sub(_amountRemoved);
     }
 
     function swapInput(
@@ -499,7 +519,7 @@ contract Amm is IAmm, BlockContext {
         return 0;
     }
 
-    function getCurrentTick() external override returns (int256) {
+    function getCurrentTick() external view override returns (int256) {
         return ammState.tick;
     }
 

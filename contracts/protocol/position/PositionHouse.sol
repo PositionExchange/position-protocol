@@ -48,8 +48,7 @@ contract PositionHouse is IPositionHouse, BlockContext {
         IAmm.Side _side,
         uint256 _amountAssetQuote,
         uint256 _amountAssetBase,
-        uint16 _leverage,
-        uint256 _margin
+        uint16 _leverage
     ) public {
 
         // TODO require something here
@@ -59,6 +58,8 @@ contract PositionHouse is IPositionHouse, BlockContext {
             Errors.VL_INVALID_AMOUNT
         );
         address trader = msg.sender;
+
+        uint256 _margin = _amountAssetQuote.div(_leverage);
 
 
         // TODO open market: calc liquidity filled.
@@ -73,30 +74,10 @@ contract PositionHouse is IPositionHouse, BlockContext {
         _amm.openMarket(IAmm.ParamsOpenMarket(
                 _side,
                 _amountAssetQuote,
+                _amountAssetBase,
                 _leverage,
                 _margin,
                 msg.sender));
-
-
-        //        //TODO open market position
-        //        int256 positionSize = getUnadjustedPosition(params._amm, _trader).size.toInt();
-        //
-        //        bool isNewPosition = positionSize.size == 0 ? true : false;
-        //
-        //        if (isNewPosition) {
-        //
-        //
-        //            // TODO increment position
-        //
-        //
-        //        } else {
-        //            // TODO openreverse
-        //
-        //        }
-        // TODO handle open success, update position
-        {
-
-        }
 
 
     }
@@ -121,33 +102,17 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
         address _trader = msg.sender;
 
-
-        // TODO get old position of _trader
-        // positionSize > 0 => LONG
-        // positionSize < 0 => SHORT
-        //        int256 positionSize = getUnadjustedPosition(params._amm, _trader).size.toInt();
-
-
-        // TODO calc tick
-        //        int tick = _limitAmountPriceBase;
-
-
+        uint256 _margin = _amountAssetQuote.div(_leverage);
 
         uint256 nextIndex = _amm.openLimit(
             _amountAssetBase,
             _amountAssetQuote,
             _limitPrice,
+            _margin,
             _side,
             _tick,
             _leverage
         );
-
-
-        //        _amm.positionMap[_trader].push(Position({
-        //        index : nextIndex,
-        //        tick : _tick})
-        //        );
-        //
 
         _amm.addPositionMap(_trader, _tick, nextIndex);
 
@@ -155,6 +120,7 @@ contract PositionHouse is IPositionHouse, BlockContext {
         // TODO Save position
 
         // TODO emit event
+        emit OpenLimitOrder(address(_amm), _trader, _tick, nextIndex);
 
     }
 
@@ -372,8 +338,9 @@ contract PositionHouse is IPositionHouse, BlockContext {
         require(_amm.getIsOrderExecuted(tick, index) != true, "Your order has executed");
         //        bool flag = true;
 
+        address _trader = msg.sender;
 
-        _amm.cancelOrder(index, tick);
+        _amm.cancelOrder(_trader, index, tick);
 
 
         emit CancelOrder(address(_amm), index, tick);

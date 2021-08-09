@@ -12,7 +12,7 @@ import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /// @title Functions based on Q64.96 sqrt price and liquidity
 /// @notice Contains the math that uses square root of price as a Q64.96 and liquidity to compute deltas
-library SqrtPriceMath {
+library PriceMath {
 //    using LowGasSafeMath for uint256;
     using SafeMath for uint256;
     using SafeCast for uint256;
