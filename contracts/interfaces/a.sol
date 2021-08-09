@@ -15,16 +15,12 @@ interface IAmm {
         Side side;
         // leverage 0x -> 20x
         uint256 leverage;
-        // limit price
-        uint256 limitPrice;
         // amount of quote
         uint256 amountAssetQuote;
         // amount of base
         uint256 amountAssetBase;
         // margin of position
         uint256 margin;
-
-
     }
 
     /**
@@ -118,6 +114,9 @@ interface IAmm {
         // amount of base
         uint256 amountAssetBase;
 
+
+        uint256 amountLiquidity;
+
         // margin of position
         uint256 margin;
 
@@ -176,6 +175,7 @@ interface IAmm {
     struct ParamsOpenMarket {
         Side side;
         uint256 quoteAmount;
+        uint256 baseAmount;
         uint256 leverage;
         uint256 margin;
         address _trader;
@@ -206,6 +206,7 @@ interface IAmm {
         uint256 _amountAssetBase,
         uint256 _amountAssetQuote,
         uint256 _limitPrice,
+        uint256 _margin,
         Side _side,
         int256 _tick,
         uint256 _leverage) external returns (uint256);
@@ -219,7 +220,7 @@ interface IAmm {
     //
     function removeMargin(uint256 index, int256 tick, uint256 _removedMargin) external;
     //
-    function cancelOrder(uint256 _index, int256 _tick) external;
+    function cancelOrder(address _trader,uint256 _index, int256 _tick) external;
     //
     //
     //    function getIsWaitingOrder(int256 _tick, uint256 _index) external view returns (bool);
@@ -228,7 +229,7 @@ interface IAmm {
 
     function getTotalPositionSize() external view returns (uint256);
 
-    function getCurrentTick() external returns (int256);
+    function getCurrentTick() external view returns (int256);
 
     function settleFunding() external view returns (uint256);
 

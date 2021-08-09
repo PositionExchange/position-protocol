@@ -59,9 +59,47 @@ describe('Test Amm', () => {
             contractPositionHouse,
 
         }
-
-
     }
+
+
+    it('should open limit correct and cancel with 1 account', async () => {
+
+        const setupData = await setup();
+
+        await setupData.contractPositionHouse.connect(account0).openLimitOrder(
+            setupData.addressAmm,
+            toWei(10),
+            toWei(990),
+            toWei(99),
+            1,
+            45953,
+            toWei(1)
+        );
+        const positions1 = await setupData.contractPositionHouse.connect(account0).queryOrder(
+            setupData.addressAmm
+        );
+
+        // expect length position
+        expect(((positions1 as unknown) as Array<any>).length).to.equal(1);
+
+
+        const tick1 = positions1[0].tick.toString();
+        const index1 = positions1[0].index.toString();
+
+        console.log(index1)
+
+        await setupData.contractPositionHouse.connect(account0)
+            .cancelOrder(setupData.addressAmm, index1, tick1)
+
+        const positions2 = await setupData.contractPositionHouse.connect(account0).queryOrder(
+            setupData.addressAmm
+        );
+
+        // expect length position
+        expect(((positions2 as unknown) as Array<any>).length).to.equal(0);
+
+
+    });
 
     it('should open limit correct amount number with 1 account', async () => {
 
@@ -229,7 +267,6 @@ describe('Test Amm', () => {
         const order3 = await setupData.contractPositionHouse.connect(account0)
             .getOrder(setupData.addressAmm, tick3, index3)
         expect(fromWeiWithString(order3.leverage.toString())).to.equal("2");
-
 
 
     });
