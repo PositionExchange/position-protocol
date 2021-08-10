@@ -298,7 +298,7 @@ contract Amm is IAmm, BlockContext {
 
 
                     } else {
-                        tickOrder[step.tickNext].filledLiquidity.add(unfilledLiquidity);
+                        tickOrder[step.tickNext].filledLiquidity = tickOrder[step.tickNext].filledLiquidity.add(unfilledLiquidity);
                         tickOrder[step.tickNext].filledIndex = tickOrder[step.tickNext].currentIndex;
                         state.quoteCalculatedAmount = state.quoteCalculatedAmount.add(Calc.sqrt(unfilledLiquidity.mul(state.price)));
                         state.quoteRemainingAmount = state.quoteRemainingAmount.sub(Calc.sqrt(unfilledLiquidity.mul(state.price)));
@@ -406,7 +406,7 @@ contract Amm is IAmm, BlockContext {
         //        positionMap[_trader] = templePosition;
     }
 
-    function addMargin(address owner, uint256 index, int256 tick, uint256 _amountAdded) public {
+    function addMargin(uint256 index, int256 tick, uint256 _amountAdded) public {
         require(
             _amountAdded != 0,
             Errors.VL_INVALID_AMOUNT
