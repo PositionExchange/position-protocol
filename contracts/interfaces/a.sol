@@ -19,7 +19,6 @@ interface IAmm {
         uint256 amountAssetQuote;
         // amount of base
         uint256 amountAssetBase;
-
         // margin of position
         uint256 margin;
     }
