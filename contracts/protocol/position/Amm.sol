@@ -92,6 +92,7 @@ contract Amm is IAmm, BlockContext {
     }
 
     function initialize(
+        uint256 startPrice,
         uint256 _quoteAssetReserve,
         uint256 _baseAssetReserve,
     //        uint256 _tradeLimitRatio,
@@ -253,6 +254,7 @@ contract Amm is IAmm, BlockContext {
             state.baseRemainingAmount = state.baseRemainingAmount.sub(step.baseCalculatedAmount);
             state.baseCalculatedAmount = state.baseCalculatedAmount.add(step.baseCalculatedAmount);
 
+            updateReserve(step.quoteCalculatedAmount, step.baseCalculatedAmount, sideBuy);
 
             // shift tick if we reached the next tick's price
             if (state.price == step.priceNext) {
@@ -298,6 +300,10 @@ contract Amm is IAmm, BlockContext {
                     } else {
                         tickOrder[step.tickNext].filledLiquidity = tickOrder[step.tickNext].filledLiquidity.add(unfilledLiquidity);
                         tickOrder[step.tickNext].filledIndex = tickOrder[step.tickNext].currentIndex;
+                        state.quoteCalculatedAmount = state.quoteCalculatedAmount.add(Calc.sqrt(unfilledLiquidity.mul(state.price)));
+                        state.quoteRemainingAmount = state.quoteRemainingAmount.sub(Calc.sqrt(unfilledLiquidity.mul(state.price)));
+                        state.baseRemainingAmount = state.baseRemainingAmount.sub(Calc.sqrt(unfilledLiquidity.div(state.price)));
+                        state.baseCalculatedAmount = state.baseCalculatedAmount.add(Calc.sqrt(unfilledLiquidity.div(state.price)));
                         // TODO calculate remaining amount after fulfill this tick's liquidity
                         state.tick = step.tickNext;
                         TickBitmap.flipTick(tickBitmap, state.tick);
@@ -308,13 +314,13 @@ contract Amm is IAmm, BlockContext {
             }
         }
 
-        if (state.tick != ammStateStart.tick) {
-            (ammState.tick, ammState.price) = (
-            state.tick,
-            state.price
-            );
-        }
-        updateReserve(state.quoteCalculatedAmount, state.baseCalculatedAmount);
+                if (state.tick != ammStateStart.tick) {
+                    (ammState.tick, ammState.price) = (
+                    state.tick,
+                    state.price
+                    );
+                }
+                updateReserve(state.quoteCalculatedAmount, state.baseCalculatedAmount, true);
 
         //TODO open position market
         PositionOpenMarket memory position = positionMarketMap[paramsOpenMarket._trader];
@@ -438,50 +444,8 @@ contract Amm is IAmm, BlockContext {
         tickOrder[tick].order[index].margin = tickOrder[tick].order[index].margin.sub(_amountRemoved);
     }
 
-    function swapInput(
-        Dir _dirOfQuote,
-        uint256 _quoteAssetAmount,
-        uint256 _baseAssetAmountLimit,
-        bool _canOverFluctuationLimit
-    ) external returns (uint256) {
-        //        if (_quoteAssetAmount == 0) {
-        //            return 0;
-        //        }
-        //        if (_dirOfQuote == Dir.REMOVE_FROM_AMM) {
-        //            require(
-        //                quoteReserve.mul(tradeLimitRatio) >= _quoteAssetAmount,
-        //                "over trading limit"
-        //            );
-        //        }
-        //        uint256 baseAssetAmount = getInputPrice(_dirOfQuote, _quoteAssetAmount);
-        //        //TODO base asset amount limit
-        //
-        //        updateReserve(_dirOfQuote, _quoteAssetAmount, baseAssetAmount, _canOverFluctuationLimit);
-        //        emit SwapInput(_dirOfQuote, _quoteAssetAmount, baseAssetAmount);
-        //        return baseAssetAmount;
-    }
-
-    function swapOutput(
-        Dir _dirOfBase,
-        uint256 _baseAssetAmount,
-        uint256 _quoteAssetAmountLimit
-    ) external returns (uint256) {
-        //        if (_baseAssetAmount == 0) {
-        //            return 0;
-        //        }
-        //        if (_dirOfBase == Dir.REMOVE_FROM_AMM) {
-        //            require(
-        //                baseReserve.mul(tradeLimitRatio) >= _baseAssetAmount,
-        //                "over trading limit"
-        //            );
-        //        }
-        //
-        //        uint256 quoteAssetAmount = getOutputPrice(_dirOfBase, _baseAssetAmount);
-        //        //TODO quote asset amount limit
-        //
-        //        updateReserve(_dirOfBase, quoteAssetAmount, _baseAssetAmount, true);
-        //        emit SwapOutput(_dirOfBase, quoteAssetAmount, _baseAssetAmount);
-        //        return quoteAssetAmount;
+    function getPnL(address owner, uint256 index, int256 tick) public view returns(uint256) {
+//        requireAmm(_amm, true);
 
 
         return 0;
@@ -489,20 +453,17 @@ contract Amm is IAmm, BlockContext {
 
     function updateReserve(
         uint256 _quoteAssetAmount,
-        uint256 _baseAssetAmount
+        uint256 _baseAssetAmount,
+        bool sideBuy
     ) internal {
-        //Check if it is over fluctuationLimitRatio
-        //        checkIsOverBlockFluctuationLimit(_dirOfQuote, _quoteAssetAmount, _baseAssetAmount);
-        //
-        //        if (_dirOfQuote == Dir.ADD_TO_AMM) {
-        //            liquidityDetail.quoteReserveAmount = liquidityDetail.quoteReserveAmount.add(_quoteAssetAmount);
-        //            liquidityDetail.baseReserveAmount = liquidityDetail.baseReserveAmount.sub(_baseAssetAmount);
-        //            //TODO maybe have to update more variant
-        //        } else {
-        //            liquidityDetail.quoteReserveAmount = liquidityDetail.quoteReserveAmount.sub(_quoteAssetAmount);
-        //            liquidityDetail.baseReserveAmount = liquidityDetail.baseReserveAmount.add(_baseAssetAmount);
-        //            //TODO maybe have to update more variant
-        //        }
+        if (sideBuy == true) {
+            liquidityDetail.quoteReserveAmount = liquidityDetail.quoteReserveAmount.add(_quoteAssetAmount);
+            liquidityDetail.baseReserveAmount = liquidityDetail.baseReserveAmount.sub(_baseAssetAmount);
+        } else {
+            liquidityDetail.quoteReserveAmount = liquidityDetail.quoteReserveAmount.sub(_quoteAssetAmount);
+            liquidityDetail.baseReserveAmount = liquidityDetail.baseReserveAmount.add(_baseAssetAmount);
+        }
+        liquidityDetail.liquidity = liquidityDetail.quoteReserveAmount.mul(liquidityDetail.baseReserveAmount);
     }
 
     function updateFundingRate(
@@ -573,6 +534,55 @@ contract Amm is IAmm, BlockContext {
         //        return premiumFraction;
         return 0;
     }
+
+//    function swapInput(
+//        Dir _dirOfQuote,
+//        uint256 _quoteAssetAmount,
+//        uint256 _baseAssetAmountLimit,
+//        bool _canOverFluctuationLimit
+//    ) external returns (uint256) {
+//        //        if (_quoteAssetAmount == 0) {
+//        //            return 0;
+//        //        }
+//        //        if (_dirOfQuote == Dir.REMOVE_FROM_AMM) {
+//        //            require(
+//        //                quoteReserve.mul(tradeLimitRatio) >= _quoteAssetAmount,
+//        //                "over trading limit"
+//        //            );
+//        //        }
+//        //        uint256 baseAssetAmount = getInputPrice(_dirOfQuote, _quoteAssetAmount);
+//        //        //TODO base asset amount limit
+//        //
+//        //        updateReserve(_dirOfQuote, _quoteAssetAmount, baseAssetAmount, _canOverFluctuationLimit);
+//        //        emit SwapInput(_dirOfQuote, _quoteAssetAmount, baseAssetAmount);
+//        //        return baseAssetAmount;
+//    }
+//
+//    function swapOutput(
+//        Dir _dirOfBase,
+//        uint256 _baseAssetAmount,
+//        uint256 _quoteAssetAmountLimit
+//    ) external returns (uint256) {
+//        //        if (_baseAssetAmount == 0) {
+//        //            return 0;
+//        //        }
+//        //        if (_dirOfBase == Dir.REMOVE_FROM_AMM) {
+//        //            require(
+//        //                baseReserve.mul(tradeLimitRatio) >= _baseAssetAmount,
+//        //                "over trading limit"
+//        //            );
+//        //        }
+//        //
+//        //        uint256 quoteAssetAmount = getOutputPrice(_dirOfBase, _baseAssetAmount);
+//        //        //TODO quote asset amount limit
+//        //
+//        //        updateReserve(_dirOfBase, quoteAssetAmount, _baseAssetAmount, true);
+//        //        emit SwapOutput(_dirOfBase, quoteAssetAmount, _baseAssetAmount);
+//        //        return quoteAssetAmount;
+//
+//
+//        return 0;
+//    }
 
     /**
      * @notice get underlying price provided by oracle
