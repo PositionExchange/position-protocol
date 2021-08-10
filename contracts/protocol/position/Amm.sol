@@ -369,6 +369,25 @@ contract Amm is IAmm, BlockContext {
     }
 
 
+    function cancelAllOrder(address _trader) external override {
+
+        for (uint256 i = 0; i < positionMap[_trader].length; i++) {
+
+            if (positionMap[_trader][i].index < tickOrder[positionMap[_trader][i].tick].filledIndex) {
+
+                int256 _tick = positionMap[_trader][i].tick;
+                uint256 _index = positionMap[_trader][i].index;
+                tickOrder[_tick].liquidity = tickOrder[_tick].liquidity.sub(tickOrder[_tick].order[_index].amountLiquidity);
+                tickOrder[_tick].order[_index].status = Status.CANCEL;
+
+                positionMap[_trader][i] = positionMap[_trader][positionMap[_trader].length - 1];
+                positionMap[_trader].pop();
+
+            }
+        }
+
+    }
+
     function addPositionMap(address _trader, int256 tick, uint256 index) external override {
         positionMap[_trader].push(Position({
         index : index,

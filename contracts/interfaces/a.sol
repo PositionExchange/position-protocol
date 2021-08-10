@@ -222,7 +222,12 @@ interface IAmm {
     function removeMargin(uint256 index, int256 tick, uint256 _removedMargin) external;
     //
     function cancelOrder(address _trader,uint256 _index, int256 _tick) external;
+
+
+    function cancelAllOrder(address _trader) external;
+
     //
+
     //
     //    function getIsWaitingOrder(int256 _tick, uint256 _index) external view returns (bool);
 

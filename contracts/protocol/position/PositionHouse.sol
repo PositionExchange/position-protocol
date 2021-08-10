@@ -115,8 +115,6 @@ contract PositionHouse is IPositionHouse, BlockContext {
         );
 
         _amm.addPositionMap(_trader, _tick, nextIndex);
-
-
         // TODO Save position
 
         // TODO emit event
@@ -332,6 +330,10 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
     }
 
+
+    /*
+    cancel one limit order in waiting filled
+    **/
     function cancelOrder(IAmm _amm, uint256 index, int256 tick) public {
 
         // TODO require close order AMM
@@ -344,6 +346,19 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
 
         emit CancelOrder(address(_amm), index, tick);
+    }
+
+
+    /*
+    cancel all limit order in waiting filled
+    **/
+    function cancelAllOrder(IAmm _amm) public {
+
+        address _trader = msg.sender;
+
+        _amm.cancelAllOrder(_trader);
+
+
     }
 
 
