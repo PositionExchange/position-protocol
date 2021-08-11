@@ -2,7 +2,7 @@
 pragma solidity 0.8.0;
 
 import {PriceMath} from '../protocol/libraries/math/PriceMath.sol';
-
+import {Calc} from '../protocol/libraries/math/Calc.sol';
 
 contract PriceMathTest {
 
@@ -32,6 +32,18 @@ contract PriceMathTest {
             sideBuy,
             liquidity);
 
+    }
+
+    function sqrt(uint256 x) external pure returns(uint256 result){
+        result = Calc.sqrt(x);
+    }
+
+    function abs(int256 x) external pure returns(uint256 result){
+        result = Calc.abs(x);
+    }
+
+    function pow(uint256 x, uint16 times) external pure returns(uint256 result){
+        result = Calc.pow(x,times);
     }
 
 }

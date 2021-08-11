@@ -25,7 +25,7 @@ library PriceMath {
         uint256 liquidity
     ) internal pure returns (uint256 amountCalculated) {
         require(targetPrice >= 0 && currentPrice >= 0, "Price can not be lower or equal zero");
-        amountCalculated = (uint256(Calc.sqrt(targetPrice).sub(Calc.sqrt(currentPrice)).mul(liquidity).abs()));
+        amountCalculated = (uint256(Calc.abs(int256(Calc.sqrt(targetPrice).sub(Calc.sqrt(currentPrice)).mul(liquidity)))));
     }
 
     // TODO detail function
