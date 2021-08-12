@@ -7,17 +7,17 @@ library Calc {
 
     using SafeMath for uint256;
 
-    function abs(uint256 x) internal pure returns (uint256) {
-        return x >= 0 ? x : uint256(0).sub(x);
+    function abs(int256 x) internal pure returns (uint256) {
+        return x >= 0 ? uint256(x) : uint256(-x);
     }
 
     function sqrt(uint256 x) internal pure returns (uint256) {
-        uint256 epsilon = 10000000000;
-        uint256 result;
-        while (abs(result.mul(result) - x) >= epsilon) {
-            result = (x.div(result).sub(result).div(2)).add(result);
+        uint256 epsilon = 10000000000000;
+        int256 result = 10000000000000;
+        while (abs(int256(result*result - int256(x))) >= epsilon) {
+            result = (int256(x) / result - result) / 2 + result;
         }
-        return result;
+        return uint256(result);
     }
 
     function pow(uint256 x, uint16 times) internal pure returns (uint256) {

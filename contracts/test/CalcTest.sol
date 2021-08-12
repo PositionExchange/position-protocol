@@ -6,7 +6,7 @@ import {Calc} from '../protocol/libraries/math/Calc.sol';
 contract CalcTest {
 
 
-    function abs(uint256 x) internal pure returns (uint256) {
+    function abs(int256 x) internal pure returns (uint256) {
 
         return Calc.abs(x);
     }
