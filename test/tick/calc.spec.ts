@@ -1,30 +1,36 @@
 import { BigNumber } from 'ethers'
 import { ethers } from 'hardhat'
-import { CalcTest } from '../../typeChain';
+// import { CalcTest } from '../../contracts/test/CalcTest.sol';
 import { expect } from "../shared/expect";
 import snapshotGasCost from "../shared/snapshotGasCost";
 import Decimal from 'decimal.js'
+import {toWei} from "../shared/utilities";
 
-// const { expect, use } = require('chai');
-// const { ethers, waffle, web3 } = require("hardhat");
-// const { ContractFactory, utils, BigNumber, Signer } = require('ethers');
-// const { waffleChai } = require('@ethereum-waffle/chai');
-// const { deployMockContract, provider, solidity } = waffle
-// const web3Utils = require('web3-utils')
-//
-// use(solidity)
-// const [deployer, sender2, sender3, sender]
+describe('Calc', () => {
 
-describe('Test Calc', () => {
-    let calc : CalcTest;
 
-    // const [account0, account1, account2] = provider.getWallets();
+    async function setup() {
 
-    before('deploy CalcTest', async () => {
-        const factory = await ethers.getContractFactory('CalcTest')
-        // calc = (await factory.deploy()) as unknown as CalcTest
-    })
+        const TestCalcTest = await ethers.getContractFactory("contracts/test/CalcTest.sol:CalcTest");
 
-    describe('')
+        const contactTestCalcTest = await TestCalcTest.deploy();
+
+
+        return {
+            contactTestCalcTest,
+
+        }
+    }
+
+    it('should sqrt', async  function () {
+        const setUp = await setup();
+
+        const a  = await setUp.contactTestCalcTest.sqrt_new(toWei(100) );
+        console.log(a.toString())
+
+        const b  = await setUp.contactTestCalcTest.sqrt_new(toWei(2));
+        console.log(b.toString())
+
+    });
 
 })

@@ -78,8 +78,6 @@ contract PositionHouse is IPositionHouse, BlockContext {
                 _leverage,
                 _margin,
                 msg.sender));
-
-
     }
 
     function openLimitOrder(
@@ -115,8 +113,6 @@ contract PositionHouse is IPositionHouse, BlockContext {
         );
 
         _amm.addPositionMap(_trader, _tick, nextIndex);
-
-
         // TODO Save position
 
         // TODO emit event
@@ -127,66 +123,8 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
     function openStopLimit(IAmm.Side _side, uint256 _orderPrice, uint256 _limitPrice, uint256 _stopPrice, uint256 _amountAssetQuote) public {
 
-        //
-        //        uint256 currentPrice;
-        //        // TODO require for openStopLimit
-        //        while (_stopPrice != currentPrice) {
-        //            currentPrice = calcCurrentPrice();
-        //        }
-        //
-        //        uint256 currentPrice = calcCurrentPrice();
-        //        uint256 remainSize = _amountAssetQuote.div(_orderPrice);
-        //
-        //
-        //        while (remainSize != 0) {
-        //            if (currentPrice < _orderPrice) {
-        //                // tradableSize can trade for trader
-        //                uint256 tradableSize = calcTradableSize(currentPrice, _orderPrice, _amountAssetQuote);
-        //                // TODO open partial
-        //
-        //                // update remainSize
-        //                remainSize = remainSize.sub(tradableSize);
-        //            }
-        //        }
     }
 
-    // Mostly done calc formula limit order
-    //    function calcTradableSize(Side _side, uint256 _orderPrice, uint256 _limitPrice, uint256 _remainSize) private returns (uint256) {
-    //
-    //
-    //        // TODO calcCurrentPrice
-    //        uint256 _currentPrice = calcCurrentPrice();
-    //        uint256 amountQuoteReserve = getQuoteReserve();
-    //        uint256 amountBaseReserve = getBaseReserve();
-    //
-    //        uint256 priceAfterTrade = _orderPrice.pow(2).div(_currentPrice);
-    //        if (priceAfterTrade.sub(_currentPrice).abs() > _limitPrice.sub(_currentPrice).abs()) {
-    //            priceAfterTrade = _limitPrice;
-    //        }
-    //
-    //        uint256 amountQuoteReserveAfter = priceAfterTrade.sqrt().sub(_currentPrice.sqrt()).mul(liquidity.sqrt()).add(amountQuoteReserve);
-    //
-    //        uint256 amountBaseReserveAfter = liquidity.div(amountQuoteReserveAfter);
-    //
-    //        uint256 tradableSize = amountBaseReserve.sub(amountBaseReserveAfter).abs();
-    //
-    //        if (_remainSize < tradableSize && _side == Side.BUY) {
-    //            amountBaseReserveAfter = amountBaseReserve.sub(_remainSize);
-    //            amountQuoteReserveAfter = amountQuoteReserve.add(_orderPrice.mul(_remainSize));
-    //            setQuoteReserve(amountQuoteReserveAfter);
-    //            setBaseReserve(amountBaseReserveAfter);
-    //            return _remainSize;
-    //        } else if (_remainSize < tradableSize && _side == Side.SELL) {
-    //            amountBaseReserveAfter = amountBaseReserve.add(_remainSize);
-    //            amountQuoteReserveAfter = amountQuoteReserve.sub(_orderPrice.mul(_remainSize));
-    //            setQuoteReserve(amountQuoteReserveAfter);
-    //            setBaseReserve(amountBaseReserveAfter);
-    //            return _remainSize;
-    //        }
-    //        setQuoteReserve(amountQuoteReserveAfter);
-    //        setBaseReserve(amountBaseReserveAfter);
-    //        return tradableSize;
-    //    }
 
     function clearPosition() public {
 
@@ -328,6 +266,10 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
     }
 
+
+    /*
+    cancel one limit order in waiting filled
+    **/
     function cancelOrder(IAmm _amm, uint256 index, int256 tick) public {
 
         // TODO require close order AMM
@@ -340,6 +282,19 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
 
         emit CancelOrder(address(_amm), index, tick);
+    }
+
+
+    /*
+    cancel all limit order in waiting filled
+    **/
+    function cancelAllOrder(IAmm _amm) public {
+
+        address _trader = msg.sender;
+
+        _amm.cancelAllOrder(_trader);
+
+
     }
 
 
