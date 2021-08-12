@@ -4,7 +4,7 @@ pragma solidity 0.8.0;
 import {LiquidityMath} from '../protocol/libraries/math/LiquidityMath.sol';
 
 contract LiquidityMathTest {
-    function addDelta(uint256 x, int256 y) internal pure returns (uint256 z) {
+    function addDelta(uint256 x, int256 y) external pure returns (uint256 z) {
 
         z = LiquidityMath.addDelta(x, y);
     }
@@ -14,7 +14,7 @@ contract LiquidityMathTest {
         bool sideBuy, uint256 liquidity,
         uint256 quoteReserveAmount,
         uint256 baseReserveAmount)
-    internal pure returns (uint256 baseAmount) {
+    external pure returns (uint256 baseAmount) {
 
         baseAmount = LiquidityMath.getBaseAmountByQuote(quoteAmount,
             sideBuy, liquidity,
@@ -28,7 +28,7 @@ contract LiquidityMathTest {
         uint256 liquidity,
         uint256 quoteReserveAmount,
         uint256 baseReserveAmount
-    ) internal pure returns (uint256 quoteAmount) {
+    ) external pure returns (uint256 quoteAmount) {
 
         quoteAmount = LiquidityMath.getQuoteAmountByBase(
             baseAmount,

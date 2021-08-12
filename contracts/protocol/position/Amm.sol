@@ -77,8 +77,16 @@ contract Amm is IAmm, BlockContext {
     //        require(counterParty == _msgSender(), Errors.A_AMM_CALLER_IS_NOT_COUNTER_PARTY);
     //        _;
     //    }
+
+
+    // FUNCTION FOR TEST
     function testTickInitialize() public view returns (int256){
         return ammState.tick;
+
+    }
+
+    function testLiquidityInitialize() public view returns (LiquidityDetail memory){
+        return liquidityDetail;
 
     }
 
@@ -90,11 +98,12 @@ contract Amm is IAmm, BlockContext {
     function getOrder(address _trader, int256 tick, uint256 index) external override view returns (Order memory order){
         order = tickOrder[tick].order[index];
     }
+    // END FUNCTION FOR TEST
 
     function initialize(
         uint256 startPrice,
         uint256 _quoteAssetReserve,
-        uint256 _baseAssetReserve,
+        uint256 _baseAssetReserve
     //        uint256 _tradeLimitRatio,
     //        uint256 _fundingPeriod,
     //        IChainLinkPriceFeed _priceFeed,
@@ -103,7 +112,7 @@ contract Amm is IAmm, BlockContext {
     //        uint256 _fluctuationLimitRatio,
     //        uint256 _tollRatio,
     //        uint256 _spreadRatio,
-        uint256 sqrtStartPrice
+    //    uint256 startPrice
 
     ) public {
 
@@ -114,27 +123,29 @@ contract Amm is IAmm, BlockContext {
             //            _fundingPeriod != 0 &&
             //            address(_priceFeed) != address(0) &&
             //            _quoteAsset != address(0) &&
-            sqrtStartPrice != 0,
+            startPrice != 0,
 
             Errors.VL_INVALID_AMOUNT
         );
 
         spotPriceTwapInterval = 1 hours;
         // initialize tick
-        int256 tick = TickMath.getTickAtPrice(sqrtStartPrice);
+        int256 tick = TickMath.getTickAtPrice(startPrice);
 
         //        console.log("Start tick %s", tick);
         console.log("Sender balance is %s tokens");
 
         ammState = AmmState({
-        price : sqrtStartPrice,
+        price : startPrice,
         tick : tick,
         unlocked : true
         });
 
+        liquidityDetail.baseReserveAmount = _baseAssetReserve;
+        liquidityDetail.quoteReserveAmount = _quoteAssetReserve;
+        liquidityDetail.liquidity = _baseAssetReserve.mul(_quoteAssetReserve);
 
-        //        console.log("hello");
-        //
+
         //        quoteAsset = IERC20(_quoteAsset);
         //
         //
@@ -147,13 +158,22 @@ contract Amm is IAmm, BlockContext {
         baseReserveAmount = liquidityDetail.baseReserveAmount;
     }
 
+    // TODO: add only owner
     function setLiquidityDetail(uint256 quoteReserveAmount, uint256 baseReserveAmount) external {
         liquidityDetail.quoteReserveAmount = quoteReserveAmount;
         liquidityDetail.baseReserveAmount = baseReserveAmount;
         liquidityDetail.liquidity = quoteReserveAmount.mul(baseReserveAmount);
     }
+
+
+    function getPrice() external override view returns (uint256 price) {
+        price = liquidityDetail.quoteReserveAmount.div(liquidityDetail.baseReserveAmount);
+
+    }
     // margin =_amountAssetQuote / _leverage
-    //
+
+
+
     function openLimit(
         uint256 _amountAssetBase,
         uint256 _amountAssetQuote,
@@ -171,15 +191,10 @@ contract Amm is IAmm, BlockContext {
         // TODO calc liquidity added
 
         uint256 liquidityAdded = _amountAssetQuote.mul(_amountAssetBase);
-        console.log("liquidityAdded %s", liquidityAdded);
-
-        //        console.log("tick  %s", _tick);
 
 
         tickOrder[_tick].liquidity = tickOrder[_tick].liquidity.add(liquidityAdded);
 
-
-        console.log("abc %s", tickOrder[_tick].liquidity);
 
         uint256 nextIndex = tickOrder[_tick].currentIndex.add(1);
 
@@ -197,9 +212,7 @@ contract Amm is IAmm, BlockContext {
         status : Status.OPENING
         });
 
-        emit  OpenLimitOrder(_tick, nextIndex);
         return nextIndex;
-        //        return 0;
 
     }
 
@@ -314,13 +327,13 @@ contract Amm is IAmm, BlockContext {
             }
         }
 
-                if (state.tick != ammStateStart.tick) {
-                    (ammState.tick, ammState.price) = (
-                    state.tick,
-                    state.price
-                    );
-                }
-                updateReserve(state.quoteCalculatedAmount, state.baseCalculatedAmount, true);
+        if (state.tick != ammStateStart.tick) {
+            (ammState.tick, ammState.price) = (
+            state.tick,
+            state.price
+            );
+        }
+        updateReserve(state.quoteCalculatedAmount, state.baseCalculatedAmount, true);
 
         //TODO open position market
         PositionOpenMarket memory position = positionMarketMap[paramsOpenMarket._trader];
@@ -444,8 +457,8 @@ contract Amm is IAmm, BlockContext {
         tickOrder[tick].order[index].margin = tickOrder[tick].order[index].margin.sub(_amountRemoved);
     }
 
-    function getPnL(address owner, uint256 index, int256 tick) public view returns(uint256) {
-//        requireAmm(_amm, true);
+    function getPnL(address owner, uint256 index, int256 tick) public view returns (uint256) {
+        //        requireAmm(_amm, true);
 
 
         return 0;
@@ -488,9 +501,11 @@ contract Amm is IAmm, BlockContext {
         return true;
     }
 
-    function getReserve() external view returns (uint256, uint256){
+    function getReserve() external view override returns (uint256 quoteReserveAmount, uint256 baseReserveAmount){
         //        return (quoteReserve, baseReserve);getIsWaitingOrder
-        return (0, 0);
+
+        quoteReserveAmount = liquidityDetail.quoteReserveAmount;
+        baseReserveAmount = liquidityDetail.baseReserveAmount;
     }
 
     function getTotalPositionSize() external view override returns (uint256) {
@@ -535,54 +550,54 @@ contract Amm is IAmm, BlockContext {
         return 0;
     }
 
-//    function swapInput(
-//        Dir _dirOfQuote,
-//        uint256 _quoteAssetAmount,
-//        uint256 _baseAssetAmountLimit,
-//        bool _canOverFluctuationLimit
-//    ) external returns (uint256) {
-//        //        if (_quoteAssetAmount == 0) {
-//        //            return 0;
-//        //        }
-//        //        if (_dirOfQuote == Dir.REMOVE_FROM_AMM) {
-//        //            require(
-//        //                quoteReserve.mul(tradeLimitRatio) >= _quoteAssetAmount,
-//        //                "over trading limit"
-//        //            );
-//        //        }
-//        //        uint256 baseAssetAmount = getInputPrice(_dirOfQuote, _quoteAssetAmount);
-//        //        //TODO base asset amount limit
-//        //
-//        //        updateReserve(_dirOfQuote, _quoteAssetAmount, baseAssetAmount, _canOverFluctuationLimit);
-//        //        emit SwapInput(_dirOfQuote, _quoteAssetAmount, baseAssetAmount);
-//        //        return baseAssetAmount;
-//    }
-//
-//    function swapOutput(
-//        Dir _dirOfBase,
-//        uint256 _baseAssetAmount,
-//        uint256 _quoteAssetAmountLimit
-//    ) external returns (uint256) {
-//        //        if (_baseAssetAmount == 0) {
-//        //            return 0;
-//        //        }
-//        //        if (_dirOfBase == Dir.REMOVE_FROM_AMM) {
-//        //            require(
-//        //                baseReserve.mul(tradeLimitRatio) >= _baseAssetAmount,
-//        //                "over trading limit"
-//        //            );
-//        //        }
-//        //
-//        //        uint256 quoteAssetAmount = getOutputPrice(_dirOfBase, _baseAssetAmount);
-//        //        //TODO quote asset amount limit
-//        //
-//        //        updateReserve(_dirOfBase, quoteAssetAmount, _baseAssetAmount, true);
-//        //        emit SwapOutput(_dirOfBase, quoteAssetAmount, _baseAssetAmount);
-//        //        return quoteAssetAmount;
-//
-//
-//        return 0;
-//    }
+    //    function swapInput(
+    //        Dir _dirOfQuote,
+    //        uint256 _quoteAssetAmount,
+    //        uint256 _baseAssetAmountLimit,
+    //        bool _canOverFluctuationLimit
+    //    ) external returns (uint256) {
+    //        //        if (_quoteAssetAmount == 0) {
+    //        //            return 0;
+    //        //        }
+    //        //        if (_dirOfQuote == Dir.REMOVE_FROM_AMM) {
+    //        //            require(
+    //        //                quoteReserve.mul(tradeLimitRatio) >= _quoteAssetAmount,
+    //        //                "over trading limit"
+    //        //            );
+    //        //        }
+    //        //        uint256 baseAssetAmount = getInputPrice(_dirOfQuote, _quoteAssetAmount);
+    //        //        //TODO base asset amount limit
+    //        //
+    //        //        updateReserve(_dirOfQuote, _quoteAssetAmount, baseAssetAmount, _canOverFluctuationLimit);
+    //        //        emit SwapInput(_dirOfQuote, _quoteAssetAmount, baseAssetAmount);
+    //        //        return baseAssetAmount;
+    //    }
+    //
+    //    function swapOutput(
+    //        Dir _dirOfBase,
+    //        uint256 _baseAssetAmount,
+    //        uint256 _quoteAssetAmountLimit
+    //    ) external returns (uint256) {
+    //        //        if (_baseAssetAmount == 0) {
+    //        //            return 0;
+    //        //        }
+    //        //        if (_dirOfBase == Dir.REMOVE_FROM_AMM) {
+    //        //            require(
+    //        //                baseReserve.mul(tradeLimitRatio) >= _baseAssetAmount,
+    //        //                "over trading limit"
+    //        //            );
+    //        //        }
+    //        //
+    //        //        uint256 quoteAssetAmount = getOutputPrice(_dirOfBase, _baseAssetAmount);
+    //        //        //TODO quote asset amount limit
+    //        //
+    //        //        updateReserve(_dirOfBase, quoteAssetAmount, _baseAssetAmount, true);
+    //        //        emit SwapOutput(_dirOfBase, quoteAssetAmount, _baseAssetAmount);
+    //        //        return quoteAssetAmount;
+    //
+    //
+    //        return 0;
+    //    }
 
     /**
      * @notice get underlying price provided by oracle

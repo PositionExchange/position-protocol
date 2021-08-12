@@ -220,7 +220,7 @@ interface IAmm {
     //
     function removeMargin(uint256 index, int256 tick, uint256 _removedMargin) external;
     //
-    function cancelOrder(address _trader,uint256 _index, int256 _tick) external;
+    function cancelOrder(address _trader, uint256 _index, int256 _tick) external;
 
 
     function cancelAllOrder(address _trader) external;
@@ -243,6 +243,10 @@ interface IAmm {
     function addPositionMap(address _trader, int256 tick, uint256 index) external;
 
     function closePosition(address _trader) external;
+
+    function getPrice() external view returns (uint256 price);
+
+    function getReserve() external view returns (uint256 quoteReserveAmount, uint256 baseReserveAmount);
 
     // For test
     function queryPositions(address _trader) external view returns (Position[] memory position);

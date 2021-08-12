@@ -6,6 +6,8 @@ const {ContractFactory, utils, BigNumber, Signer} = require('ethers');
 const {waffleChai} = require('@ethereum-waffle/chai');
 const {deployMockContract, provider, solidity} = waffle
 const web3Utils = require('web3-utils')
+
+import {toWei, toWeiWithString, fromWeiWithString, fromWei} from "../../shared/utilities";
 // import { default as BigNumber, default as BN } from "bn.js"
 
 
@@ -22,11 +24,6 @@ const BUY = 1, SELL = 0
 // x:  BTC
 // y : USDT
 
-const toWei = (n: number) => web3Utils.toWei(n.toString())
-const fromWei = (n: number) => web3Utils.fromWei(n.toString())
-
-const toWeiWithString = (n: string) => web3Utils.toWei(n)
-const fromWeiWithString = (n: string) => web3Utils.fromWei(n)
 
 describe('Test Amm', () => {
 
@@ -44,10 +41,13 @@ describe('Test Amm', () => {
         const addressAmm = contractAmm.address;
 
         await contractAmm.initialize(
-            // price =100000/ 100 = 100
+            // price =100000/ 100 = 1000
+            //start price
+            toWei(1000),
+            // _quoteAssetReserve
             toWei(100000),
+            // _baseAssetReserve
             toWei(100),
-            toWei(10000)
         );
         const a = await contractAmm.testTickInitialize();
         console.log("Tick initial", a.toString())
@@ -60,7 +60,6 @@ describe('Test Amm', () => {
 
         }
     }
-
 
     it('should open limit correct and cancel with 1 account', async () => {
 
