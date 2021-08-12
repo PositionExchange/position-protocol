@@ -6,21 +6,19 @@ import {Calc} from '../protocol/libraries/math/Calc.sol';
 contract CalcTest {
 
 
-    function abs(int256 x) internal pure returns (uint256) {
+    function abs(int256 x) external pure returns (uint256) {
 
         return Calc.abs(x);
     }
 
-    function sqrt(uint256 x) internal pure returns (uint256) {
+    function sqrt(uint256 x) external pure returns (uint256) {
 
         return Calc.sqrt(x);
 
     }
 
-    function pow(uint256 x, uint16 times) internal pure returns (uint256) {
-
+    function pow(uint256 x, uint16 times) external pure returns (uint256) {
         return Calc.pow(x, times);
-
     }
 
 }

@@ -11,7 +11,7 @@ contract ComputeAmountMathTest {
         uint256 liquidity,
         uint256 amountRemaining
     )
-    internal
+    external
     pure
     returns (
         uint256 nextPrice,
