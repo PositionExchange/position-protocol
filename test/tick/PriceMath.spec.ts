@@ -30,16 +30,5 @@ describe('PriceMath', () => {
             expect(await priceMath.getAmountToTargetPrice('4242640687119284700', '4472135954999579600', '1000000')).to.eq('229495267880294900000000')
         })
 
-        it('sqrt correctly', async () => {
-            expect(await priceMath.sqrt('22260640000000000')).to.eq('149200000')
-        })
-
-        it('pow correctly', async () => {
-            expect(await priceMath.pow('1000000000', '2')).to.eq('1000000000000000000')
-        })
-
-        it('abs correctly', async () => {
-            expect(await priceMath.abs('-1000000000')).to.eq('1000000000')
-        })
     })
 })

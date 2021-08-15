@@ -20,12 +20,19 @@ library Calc {
         return uint256(result);
     }
 
-    function pow(uint256 x, uint16 times) internal pure returns (uint256) {
-        uint256 res = x;
-        for (uint i = 1; i < times; i ++) {
-            res = res.mul(x);
+    function pow(uint256 x, uint256 times) internal pure returns (uint256) {
+        if (times == 0) {
+            return 1;
+        } else if (times == 1) {
+            return x;
+        } else {
+            uint256 res = pow(x, times.div(2));
+            res = res.mul(res);
+            if (times.mod(2) == 1) {
+                res = res.mul(x);
+            }
+            return res;
         }
-        return res;
     }
     /// @notice Calculates the square root of x, rounding down.
     /// @dev Uses the Babylonian method https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method.
@@ -78,57 +85,8 @@ library Calc {
         result = (result + x / result) >> 1; // Seven iterations should be enough
         uint256 roundedDownResult = x / result;
         return result >= roundedDownResult ? roundedDownResult : result;
-    }
+        }
     }
 
-    function sqrtBit(uint256 x) internal pure returns (uint256 result) {
-        if (x == 0) {
-            return 0;
-        }
-
-        // Calculate the square root of the perfect square of a power of two that is the closest to x.
-        uint256 xAux = uint256(x);
-        result = 1;
-        if (xAux >= 0x100000000000000000000000000000000) {
-            xAux >>= 128;
-            result <<= 64;
-        }
-        if (xAux >= 0x10000000000000000) {
-            xAux >>= 64;
-            result <<= 32;
-        }
-        if (xAux >= 0x100000000) {
-            xAux >>= 32;
-            result <<= 16;
-        }
-        if (xAux >= 0x10000) {
-            xAux >>= 16;
-            result <<= 8;
-        }
-        if (xAux >= 0x100) {
-            xAux >>= 8;
-            result <<= 4;
-        }
-        if (xAux >= 0x10) {
-            xAux >>= 4;
-            result <<= 2;
-        }
-        if (xAux >= 0x8) {
-            result <<= 1;
-        }
-
-        // The operations can never overflow because the result is max 2^127 when it enters this block.
-    unchecked {
-        result = (result + x / result) >> 1;
-        result = (result + x / result) >> 1;
-        result = (result + x / result) >> 1;
-        result = (result + x / result) >> 1;
-        result = (result + x / result) >> 1;
-        result = (result + x / result) >> 1;
-        result = (result + x / result) >> 1; // Seven iterations should be enough
-        uint256 roundedDownResult = x / result;
-        return result >= roundedDownResult ? roundedDownResult : result;
-    }
-    }
 
 }
