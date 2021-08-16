@@ -33,7 +33,7 @@ describe('Test Amm Initialize', () => {
         await amm.initialize(
             // price =100000/ 100 = 1000
             //start price
-            toWei(1000),
+            toWei(1.0001),
             // _quoteAssetReserve
             toWei(100000),
             // _baseAssetReserve

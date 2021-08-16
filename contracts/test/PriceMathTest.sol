@@ -25,7 +25,7 @@ contract PriceMathTest {
         uint256 amount,
         bool sideBuy,
         uint256 liquidity
-    ) internal pure returns (uint256 nextPrice) {
+    ) external pure returns (uint256 nextPrice) {
 
         nextPrice = PriceMath.getNextPriceFromInput(currentPrice,
             amount,

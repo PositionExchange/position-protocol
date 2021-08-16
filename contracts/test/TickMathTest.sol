@@ -4,7 +4,7 @@ pragma solidity 0.8.0;
 import '../protocol/libraries/math/TickMath.sol';
 
 contract TickMathTest {
-    function getPriceAtTick(int256 tick) external pure returns (uint256) {
+    function getPriceAtTick(int256 tick) external view returns (uint256) {
         return TickMath.getPriceAtTick(tick);
     }
 
@@ -14,7 +14,7 @@ contract TickMathTest {
         return gasBefore - gasleft();
     }
 
-    function getTickAtPrice(uint256 sqrtPriceX96) external pure returns (int256) {
+    function getTickAtPrice(uint256 sqrtPriceX96) external view returns (int256) {
         return TickMath.getTickAtPrice(sqrtPriceX96);
     }
 
