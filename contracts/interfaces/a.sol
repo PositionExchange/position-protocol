@@ -114,7 +114,6 @@ interface IAmm {
         // amount of base
         uint256 amountAssetBase;
 
-
         uint256 amountLiquidity;
 
         // margin of position
@@ -216,7 +215,7 @@ interface IAmm {
     //
     //
     //
-    //    function addMargin(uint256 index, uint256 tick, uint256 _addedMargin) external;
+    function addMargin(address _trader, uint256 _addedMargin) external;
     //
     function removeMargin(uint256 index, int256 tick, uint256 _removedMargin) external;
     //
@@ -224,8 +223,6 @@ interface IAmm {
 
 
     function cancelAllOrder(address _trader) external;
-
-    //
 
     //
     //    function getIsWaitingOrder(int256 _tick, uint256 _index) external view returns (bool);
@@ -247,6 +244,8 @@ interface IAmm {
     function getPrice() external view returns (uint256 price);
 
     function getReserve() external view returns (uint256 quoteReserveAmount, uint256 baseReserveAmount);
+
+    function getPnL(address _trader) external view returns (int256);
 
     // For test
     function queryPositions(address _trader) external view returns (Position[] memory position);

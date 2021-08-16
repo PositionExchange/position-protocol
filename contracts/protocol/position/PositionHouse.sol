@@ -40,7 +40,6 @@ contract PositionHouse is IPositionHouse, BlockContext {
     function getOrder(IAmm amm, int256 tick, uint256 index) public view returns (IAmm.Order memory order){
 
         order = amm.getOrder(msg.sender, tick, index);
-        //        return 0;
     }
 
     function openPosition(
@@ -297,6 +296,10 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
     }
 
+    function getPrice(IAmm _amm) public view returns(uint256){
+        return _amm.getPrice();
+    }
+
 
     function getPosition(IAmm _amm, address _trader) public view returns (IAmm.Position memory positionsOpened, IAmm.Position memory positionOrder)  {
 
@@ -314,8 +317,6 @@ contract PositionHouse is IPositionHouse, BlockContext {
     }
 
 
-
-    //  function
 
 
 

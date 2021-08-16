@@ -103,12 +103,12 @@ contract Amm is IAmm, BlockContext {
     function initialize(
         uint256 startPrice,
         uint256 _quoteAssetReserve,
-        uint256 _baseAssetReserve
+        uint256 _baseAssetReserve,
+        address _quoteAsset
     //        uint256 _tradeLimitRatio,
     //        uint256 _fundingPeriod,
     //        IChainLinkPriceFeed _priceFeed,
     //        bytes32 _priceFeedKey,
-    //        address _quoteAsset,
     //        uint256 _fluctuationLimitRatio,
     //        uint256 _tollRatio,
     //        uint256 _spreadRatio,
@@ -119,21 +119,28 @@ contract Amm is IAmm, BlockContext {
         require(
             _quoteAssetReserve != 0 &&
             _baseAssetReserve != 0 &&
+            //            address(_priceFeed) != address(0) &&
             //            _tradeLimitRatio != 0 &&
             //            _fundingPeriod != 0 &&
-            //            address(_priceFeed) != address(0) &&
-            //            _quoteAsset != address(0) &&
+
+            _quoteAsset != address(0) &&
             startPrice != 0,
 
             Errors.VL_INVALID_AMOUNT
         );
 
         spotPriceTwapInterval = 1 hours;
+
+
+        liquidityDetail.baseReserveAmount = _baseAssetReserve;
+        liquidityDetail.quoteReserveAmount = _quoteAssetReserve;
+        liquidityDetail.liquidity = _baseAssetReserve.mul(_quoteAssetReserve);
+
+
+        quoteAsset = IERC20(_quoteAsset);
+
         // initialize tick
         int256 tick = TickMath.getTickAtPrice(startPrice);
-
-        //        console.log("Start tick %s", tick);
-        console.log("Sender balance is %s tokens");
 
         ammState = AmmState({
         price : startPrice,
@@ -141,14 +148,6 @@ contract Amm is IAmm, BlockContext {
         unlocked : true
         });
 
-        liquidityDetail.baseReserveAmount = _baseAssetReserve;
-        liquidityDetail.quoteReserveAmount = _quoteAssetReserve;
-        liquidityDetail.liquidity = _baseAssetReserve.mul(_quoteAssetReserve);
-
-
-        //        quoteAsset = IERC20(_quoteAsset);
-        //
-        //
         //        spotPriceTwapInterval = 1 hours;
     }
 
@@ -370,7 +369,6 @@ contract Amm is IAmm, BlockContext {
     function cancelOrder(address _trader, uint256 _index, int256 _tick) external override {
         require(_index > tickOrder[_tick].filledIndex, 'Require not filled open yet');
 
-
         tickOrder[_tick].liquidity = tickOrder[_tick].liquidity.sub(tickOrder[_tick].order[_index].amountLiquidity);
         tickOrder[_tick].order[_index].status = Status.CANCEL;
 
@@ -379,6 +377,7 @@ contract Amm is IAmm, BlockContext {
             if (positionMap[_trader][i].index == _index) {
                 positionMap[_trader][i] = positionMap[_trader][positionMap[_trader].length - 1];
                 positionMap[_trader].pop();
+                break;
 
             }
         }
@@ -424,18 +423,31 @@ contract Amm is IAmm, BlockContext {
         //
 
 
-        //        Position[] memory templePosition;
 
-        for (uint256 i = 0; i < positionMap[_trader].length; i++) {
+        uint256 i = positionMap[_trader].length.sub(1);
+
+        while (i != 0) {
+
             int256 tickOrder = positionMap[_trader][i].tick;
             uint256 indexOrder = positionMap[_trader][i].index;
 
-            if (getIsWaitingOrder(tickOrder, indexOrder) == true) {
-                //                templePosition.push(Position(indexOrder, tickOrder));
-            }
-        }
+            if (getIsWaitingOrder(tickOrder, indexOrder) == false) {
 
-        //        positionMap[_trader] = templePosition;
+                if (i == positionMap[_trader].length - 1) {
+
+                    positionMap[_trader].pop();
+
+                } else {
+                    positionMap[_trader][i] = positionMap[_trader][positionMap[_trader].length - 1];
+                    positionMap[_trader].pop();
+                }
+
+
+            }
+
+            i = i.sub(1);
+
+        }
     }
 
     function addMargin(uint256 index, int256 tick, uint256 _amountAdded) public {
@@ -444,11 +456,12 @@ contract Amm is IAmm, BlockContext {
             Errors.VL_INVALID_AMOUNT
         );
         // TODO addMargin, cal position
+
         tickOrder[tick].order[index].margin = tickOrder[tick].order[index].margin.add(_amountAdded);
 
     }
 
-    function removeMargin(uint256 index, int256 tick, uint256 _amountRemoved) external override {
+    function removeMargin(address _trader, uint256 _amountRemoved) external override {
         require(
             _amountRemoved != 0,
             Errors.VL_INVALID_AMOUNT
@@ -457,8 +470,9 @@ contract Amm is IAmm, BlockContext {
         tickOrder[tick].order[index].margin = tickOrder[tick].order[index].margin.sub(_amountRemoved);
     }
 
-    function getPnL(address owner, uint256 index, int256 tick) public view returns (uint256) {
+    function getPnL(address _trader) external view override returns (int256) {
         //        requireAmm(_amm, true);
+
 
 
         return 0;
@@ -489,8 +503,8 @@ contract Amm is IAmm, BlockContext {
 
     function getIsWaitingOrder(int256 _tick, uint256 _index) public view returns (bool)
     {
-        //        return tickOrder[_tick].order[_index].status == Status.OPENING && tickOrder[_tick].filledIndex < _index;
-        return true;
+        return tickOrder[_tick].order[_index].status == Status.OPENING && tickOrder[_tick].filledIndex < _index;
+        //        return true;
     }
 
     function getIsOrderExecuted(int256 _tick, uint256 _index) external view override returns (bool) {
@@ -502,7 +516,6 @@ contract Amm is IAmm, BlockContext {
     }
 
     function getReserve() external view override returns (uint256 quoteReserveAmount, uint256 baseReserveAmount){
-        //        return (quoteReserve, baseReserve);getIsWaitingOrder
 
         quoteReserveAmount = liquidityDetail.quoteReserveAmount;
         baseReserveAmount = liquidityDetail.baseReserveAmount;
@@ -614,15 +627,6 @@ contract Amm is IAmm, BlockContext {
      */
     function getUnderlyingTwapPrice(uint256 _intervalInSeconds) public view returns (uint256) {
         //        return Decimal.decimal(priceFeed.getTwapPrice(priceFeedKey, _intervalInSeconds));
-        return 0;
-    }
-
-    /**
-     * @notice get spot price based on current quote/base asset reserve.
-     * @return spot price
-     */
-    function getSpotPrice() public view returns (uint256) {
-        //        return quoteAssetReserve.divD(baseAssetReserve);
         return 0;
     }
 

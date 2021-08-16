@@ -66,7 +66,7 @@ library Calc {
         if (xAux >= 0x8) {
             result <<= 1;
         }
-
+        
         // The operations can never overflow because the result is max 2^127 when it enters this block.
     unchecked {
         result = (result + x / result) >> 1;
@@ -77,7 +77,7 @@ library Calc {
         result = (result + x / result) >> 1;
         result = (result + x / result) >> 1; // Seven iterations should be enough
         uint256 roundedDownResult = x / result;
-        return result >= roundedDownResult ? roundedDownResult : result;
+        return result >= roundedDownResult  ? roundedDownResult : result;
     }
     }
 

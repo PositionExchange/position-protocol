@@ -1,34 +1,36 @@
-import { BigNumber } from 'ethers'
-import { ethers } from 'hardhat'
+import {BigNumber} from 'ethers'
+import {ethers} from 'hardhat'
 // import { CalcTest } from '../../contracts/test/CalcTest.sol';
-import { expect } from "../shared/expect";
+import {expect} from "../shared/expect";
 import snapshotGasCost from "../shared/snapshotGasCost";
 import Decimal from 'decimal.js'
 import {toWei} from "../shared/utilities";
 
-describe('Calc', () => {
+import {CalcTest} from "../../typeChain";
+
+describe('Calc test', () => {
+
+    let calc: CalcTest;
 
 
-    async function setup() {
+    beforeEach("setup", async () => {
 
         const TestCalcTest = await ethers.getContractFactory("contracts/test/CalcTest.sol:CalcTest");
 
-        const contactTestCalcTest = await TestCalcTest.deploy();
+        calc = (await TestCalcTest.deploy() as unknown) as CalcTest;
 
 
-        return {
-            contactTestCalcTest,
+    })
 
-        }
-    }
+    it('should sqrt', async function () {
 
-    it('should sqrt', async  function () {
-        const setUp = await setup();
+        const c = toWei(100);
+        console.log(c);
 
-        const a  = await setUp.contactTestCalcTest.sqrt_new(toWei(100) );
+        const a = await calc.sqrt_new(toWei(100));
         console.log(a.toString())
 
-        const b  = await setUp.contactTestCalcTest.sqrt_new(toWei(2));
+        const b = await calc.sqrt_new(toWei(2));
         console.log(b.toString())
 
     });

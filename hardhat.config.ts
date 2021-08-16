@@ -32,8 +32,15 @@ module.exports = {
                 },
             },
             {
-                version: "0.6.0"
+                version: "0.6.0",
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 1000,
+                    },
+                },
             }
+
         ]
     },
     typechain: {

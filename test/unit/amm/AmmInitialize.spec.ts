@@ -38,6 +38,8 @@ describe('Test Amm Initialize', () => {
             toWei(100000),
             // _baseAssetReserve
             toWei(100),
+            //address quote asset
+            '0x55d398326f99059ff775485246999027b3197955'
         );
 
         const liquidityDetail = await amm.testLiquidityInitialize();
