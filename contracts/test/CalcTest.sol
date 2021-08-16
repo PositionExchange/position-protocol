@@ -11,7 +11,7 @@ contract CalcTest {
         return Calc.abs(x);
     }
 
-    function sqrt(uint256 x) internal pure returns (uint256) {
+    function sqrt(uint256 x) external pure returns (uint256) {
 
         return Calc.sqrt(x);
 
@@ -24,7 +24,6 @@ contract CalcTest {
     }
 
     function pow(uint256 x, uint16 times) external pure returns (uint256) {
-
         return Calc.pow(x, times);
 
     }

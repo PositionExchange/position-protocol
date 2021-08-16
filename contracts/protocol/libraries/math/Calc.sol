@@ -20,12 +20,19 @@ library Calc {
         return uint256(result);
     }
 
-    function pow(uint256 x, uint16 times) internal pure returns (uint256) {
-        uint256 res = x;
-        for (uint i = 1; i < times; i ++) {
-            res = res.mul(x);
+    function pow(uint256 x, uint256 times) internal pure returns (uint256) {
+        if (times == 0) {
+            return 1;
+        } else if (times == 1) {
+            return x;
+        } else {
+            uint256 res = pow(x, times.div(2));
+            res = res.mul(res);
+            if (times.mod(2) == 1) {
+                res = res.mul(x);
+            }
+            return res;
         }
-        return res;
     }
     /// @notice Calculates the square root of x, rounding down.
     /// @dev Uses the Babylonian method https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method.
@@ -78,7 +85,8 @@ library Calc {
         result = (result + x / result) >> 1; // Seven iterations should be enough
         uint256 roundedDownResult = x / result;
         return result >= roundedDownResult ? roundedDownResult : result;
+        }
     }
-    }
+
 
 }

@@ -6,6 +6,8 @@ pragma solidity 0.8.0;
 prices between 2**-128 and 2**128
 **/
 import {Calc} from "./Calc.sol";
+import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "hardhat/console.sol";
 
 library TickMath {
     // @dev The minimum tick that may be passed to #getSqrtRatioAtTick computed from log base 1.0001 of 2**-128
@@ -18,6 +20,7 @@ library TickMath {
     // @dev The maximum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MAX_TICK)
     uint256 internal constant MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342;
 
+    using SafeMath for uint256;
     // TODO update function
     /*
     @notice calculates sqrt(1.0001^tick) * 2^96
@@ -26,7 +29,7 @@ library TickMath {
     @return sqrtPriceX96 A Fixed point Q64.96 number representing the sqrt of the ratio of the two assets (token1/token0)
     at the given tick
     **/
-    function getPriceAtTick(int256 tick) internal pure returns (uint256 price) {
+    function getPriceAtTick(int256 tick) internal view returns (uint256 price) {
         uint256 absTick = tick < 0 ? uint256(-int256(tick)) : uint256(int256(tick));
         require(absTick <= uint256(MAX_TICK), 'T');
 
@@ -52,11 +55,10 @@ library TickMath {
         if (absTick & 0x80000 != 0) ratio = (ratio * 0x48a170391f7dc42444e8fa2) >> 128;
 
         if (tick > 0) ratio = type(uint256).max / ratio;
-
         // this divides by 1<<32 rounding up to go from a Q128.128 to a Q128.96.
         // we then downcast because we know the result always fits within 160 bits due to our tick input constraint
         // we round up in the division so getTickAtSqrtRatio of the output price is always consistent
-        price = (uint160((ratio >> 32) + (ratio % (1 << 32) == 0 ? 0 : 1)) * 1000000000000000000) >> 96 ;
+        price = (uint256((ratio >> 32) + (ratio % (1 << 32) == 0 ? 0 : 1)) * 1000000000000000000) >> 96 ;
         price = Calc.pow(price, 2)/1000000000000000000;
     }
     /*
@@ -66,14 +68,13 @@ library TickMath {
     @param sqrtPriceX96 The sqrt ratio for which to compute the tick as a Q64.96
     @return tick The greatest tick for which the ratio is less than or equal to the input ratio
     **/
-    function getTickAtPrice(uint256 sqrtPriceX96) internal pure returns (int256 tick) {
+    function getTickAtPrice(uint256 sqrtPriceX96) internal view returns (int256 tick) {
         // second inequality must be < because the price can never reach the price at the max tick
 
         require(sqrtPriceX96 >= 0 && sqrtPriceX96 < MAX_SQRT_RATIO, 'R');
         sqrtPriceX96 = Calc.sqrt(sqrtPriceX96);
-        sqrtPriceX96 = (sqrtPriceX96 * Calc.pow(2,96));
+        sqrtPriceX96 = (sqrtPriceX96*(Calc.pow(2,96)))/1000000000;
         uint256 ratio = uint256(sqrtPriceX96) << 32;
-
         uint256 r = ratio;
         uint256 msb = 0;
 
@@ -205,12 +206,10 @@ library TickMath {
             let f := shr(128, r)
             log_2 := or(log_2, shl(50, f))
         }
-
         int256 log_sqrt10001 = log_2 * 255738958999603826347141; // 128.128 number
 
         int256 tickLow = int256((log_sqrt10001 - 3402992956809132418596140100660247210) >> 128);
         int256 tickHi = int256((log_sqrt10001 + 291339464771989622907027621153398088495) >> 128);
-
         tick = tickLow == tickHi ? tickLow : getPriceAtTick(tickHi) <= sqrtPriceX96 ? tickHi : tickLow;
     }
 }

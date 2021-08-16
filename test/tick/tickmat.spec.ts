@@ -29,7 +29,7 @@ describe('TickMath', () => {
         })
 
         it('min tick', async () => {
-            expect(await tickMath.getPriceAtTick('46054')).to.eq('99999955936168070000')
+            expect(await tickMath.getPriceAtTick('105971')).to.eq('99999955936168070000')
         })
 
         it('min tick +1', async () => {
@@ -115,7 +115,7 @@ describe('TickMath', () => {
         })
 
         it('ratio of min tick', async () => {
-            expect(await tickMath.getTickAtPrice('18448130884583730000')).to.eq(46054)
+            expect(await tickMath.getTickAtPrice('999000549780071600')).to.eq('105971')
         })
         it('ratio of min tick + 1', async () => {
             expect(await tickMath.getTickAtPrice('4295343490')).to.eq(MIN_TICK + 1)
