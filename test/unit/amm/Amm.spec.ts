@@ -43,7 +43,7 @@ describe('Test Amm', () => {
         await contractAmm.initialize(
             // price =100000/ 100 = 1000
             //start price
-            toWei(1000),
+            toWei(100000/100),
             // _quoteAssetReserve
             toWei(100000),
             // _baseAssetReserve
@@ -63,16 +63,67 @@ describe('Test Amm', () => {
         }
     }
 
-    it('should open limit correct and cancel with 1 account', async () => {
+    it('should open limit short correct and cancel with 1 account', async () => {
 
         const setupData = await setup();
 
         await setupData.contractPositionHouse.connect(account0).openLimitOrder(
+            // Iamm
             setupData.addressAmm,
-            toWei(10),
-            toWei(990),
-            toWei(99),
+            // amount base
+            toWei(0.95),
+            //amount quote
+            toWei(1010),
+            //limit price
+            toWei(1010/0.95),
+            //side
             1,
+            //
+            69693,
+            toWei(1)
+        );
+        const positions1 = await setupData.contractPositionHouse.connect(account0).queryOrder(
+            setupData.addressAmm
+        );
+
+        // expect length position
+        expect(((positions1 as unknown) as Array<any>).length).to.equal(1);
+
+
+        const tick1 = positions1[0].tick.toString();
+        const index1 = positions1[0].index.toString();
+
+        console.log(index1)
+
+        await setupData.contractPositionHouse.connect(account0)
+            .cancelOrder(setupData.addressAmm, index1, tick1)
+
+        const positions2 = await setupData.contractPositionHouse.connect(account0).queryOrder(
+            setupData.addressAmm
+        );
+
+        // expect length position
+        expect(((positions2 as unknown) as Array<any>).length).to.equal(0);
+
+
+    });
+
+    it('should open long limit  correct and cancel with 1 account', async () => {
+
+        const setupData = await setup();
+
+        await setupData.contractPositionHouse.connect(account0).openLimitOrder(
+            // Iamm
+            setupData.addressAmm,
+            // amount base
+            toWei(10),
+            //amount quote
+            toWei(990),
+            //limit price
+            toWei(99),
+            //side
+            0,
+            //
             45953,
             toWei(1)
         );
@@ -102,7 +153,7 @@ describe('Test Amm', () => {
 
     });
 
-    it('should open limit correct amount number with 1 account', async () => {
+    it('should open limit long correct amount number with 1 account', async () => {
 
         const setupData = await setup();
 
@@ -111,7 +162,7 @@ describe('Test Amm', () => {
             toWei(10),
             toWei(990),
             toWei(99),
-            1,
+            0,
             toWei(45953),
             toWei(1)
         );
@@ -185,7 +236,7 @@ describe('Test Amm', () => {
 
     });
 
-    it('should open limit correct with multi people', async () => {
+    it('should open limit long correct with multi people', async () => {
 
         const setupData = await setup();
 
@@ -195,7 +246,7 @@ describe('Test Amm', () => {
             toWei(10),
             toWei(990),
             toWei(99),
-            1,
+            0,
             toWei(45953),
             toWei(1)
         );

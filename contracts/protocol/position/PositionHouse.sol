@@ -148,9 +148,9 @@ contract PositionHouse is IPositionHouse, BlockContext {
         requireAmm(_amm, true);
         requireNonZeroInput(_amountRemoved);
 
-        address trader = msg.sender;
+        address _trader = msg.sender;
 
-        _amm.removeMargin(index, tick, _amountRemoved);
+        _amm.removeMargin(_trader, _amountRemoved);
         //        emit MarginChanged(trader, address(_amm), int256(_amountRemoved.toUint()), 0);
     }
 
@@ -296,7 +296,7 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
     }
 
-    function getPrice(IAmm _amm) public view returns(uint256){
+    function getPrice(IAmm _amm) public view returns (uint256){
         return _amm.getPrice();
     }
 

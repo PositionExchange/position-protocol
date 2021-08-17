@@ -217,7 +217,7 @@ interface IAmm {
     //
     function addMargin(address _trader, uint256 _addedMargin) external;
     //
-    function removeMargin(uint256 index, int256 tick, uint256 _removedMargin) external;
+    function removeMargin(address _trader, uint256 _amountRemoved) external;
     //
     function cancelOrder(address _trader, uint256 _index, int256 _tick) external;
 

@@ -85,8 +85,8 @@ contract Amm is IAmm, BlockContext {
 
     }
 
-    function testLiquidityInitialize() public view returns (LiquidityDetail memory){
-        return liquidityDetail;
+    function testLiquidityInitialize() public view returns (LiquidityDetail memory, AmmState memory){
+        return (liquidityDetail, ammState);
 
     }
 
@@ -228,6 +228,12 @@ contract Amm is IAmm, BlockContext {
         ammState.unlocked = false;
         bool sideBuy = paramsOpenMarket.side == Side.BUY ? true : false;
         (uint256 liquidity, uint256 quoteReserveAmount, uint256 baseReserveAmount) = getLiquidityDetail();
+
+
+        console.log("liquidity %s", liquidity);
+        console.log("quoteReserveAmount %s", quoteReserveAmount);
+        console.log("baseReserveAmount %s", baseReserveAmount);
+
 
         OpenMarketState memory state = OpenMarketState({
         quoteRemainingAmount : paramsOpenMarket.quoteAmount,
@@ -467,7 +473,16 @@ contract Amm is IAmm, BlockContext {
             Errors.VL_INVALID_AMOUNT
         );
         // TODO removeMargin, calc
-        tickOrder[tick].order[index].margin = tickOrder[tick].order[index].margin.sub(_amountRemoved);
+        //        tickOrder[tick].order[index].margin = tickOrder[tick].order[index].margin.sub(_amountRemoved);
+    }
+
+    function addMargin(address _trader, uint256 _amountRemoved) external override {
+        require(
+            _amountRemoved != 0,
+            Errors.VL_INVALID_AMOUNT
+        );
+        // TODO addMargin, calc
+        //        tickOrder[tick].order[index].margin = tickOrder[tick].order[index].margin.sub(_amountRemoved);
     }
 
     function getPnL(address _trader) external view override returns (int256) {

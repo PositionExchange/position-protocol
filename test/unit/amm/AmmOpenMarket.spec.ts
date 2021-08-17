@@ -6,19 +6,33 @@ const {ContractFactory, utils, BigNumber, Signer} = require('ethers');
 const {waffleChai} = require('@ethereum-waffle/chai');
 const {deployMockContract, provider, solidity} = waffle
 const web3Utils = require('web3-utils')
+
+import {toWei, toWeiWithString, fromWeiWithString, fromWei} from "../../shared/utilities";
+import {Amm, PositionHouse} from "../../../typeChain";
 // import { default as BigNumber, default as BN } from "bn.js"
 
-import {PositionHouse} from "../../../typeChain";
-import {Amm} from "../../../typeChain";
-import {toWei, toWeiWithString, fromWeiWithString, fromWei} from "../../shared/utilities";
 
+use(solidity)
 const [deployer, sender2, sender3, sender4] = provider.getWallets()
 
+const bn2String = (bn: any) => fromWei((bn).toString())
 
-describe('Test Amm Initialize', () => {
+function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const BUY = 1, SELL = 0
+// x:  BTC
+// y : USDT
+
+
+describe('Test Amm', () => {
+
+    const [account0, account1, account2] = provider.getWallets();
 
     let positionHouse: PositionHouse;
     let amm: Amm;
+    let addressAmm: string;
 
     beforeEach('setup', async () => {
         const TestPositionHouse = await ethers.getContractFactory("contracts/protocol/position/PositionHouse.sol:PositionHouse");
@@ -26,14 +40,10 @@ describe('Test Amm Initialize', () => {
 
         positionHouse = (await TestPositionHouse.deploy() as unknown) as PositionHouse;
         amm = (await TestAmm.deploy() as unknown) as Amm;
-
-    });
-
-    it('should liquidity correct 1', async function () {
         await amm.initialize(
             // price =100000/ 100 = 1000
             //start price
-            toWei(100000/100),
+            toWei(100000 / 100),
             // _quoteAssetReserve
             toWei(100000),
             // _baseAssetReserve
@@ -41,38 +51,45 @@ describe('Test Amm Initialize', () => {
             //address quote asset
             '0x55d398326f99059ff775485246999027b3197955'
         );
+        const a = await amm.testTickInitialize();
+        console.log("Tick initial", a.toString())
 
-        const liquidityDetail = await amm.testLiquidityInitialize();
 
-        expect(liquidityDetail[0].liquidity.toString()).to.eq(toWei(100*100000))
+        addressAmm = amm.address;
 
-        expect(liquidityDetail[1].tick.toString()).to.eq('69081');
-
-        // console.log();
     });
 
-    it('should liquidity correct 2', async function () {
-        await amm.initialize(
-            // price =100000/ 100 = 1000
-            //start price
-            toWei(10020/190),
-            // _quoteAssetReserve
-            toWei(10020),
-            // _baseAssetReserve
-            toWei(190),
-            //address quote asset
-            '0x55d398326f99059ff775485246999027b3197955'
+
+    it('should open long limit correct and filled with 1 account', async () => {
+
+
+        await positionHouse.connect(account0).openLimitOrder(
+            // Iamm
+            addressAmm,
+            // amount base
+            toWei(0.001),
+            //amount quote
+            toWei(1000),
+            //limit price
+            toWei(999),
+            //side
+            0,
+            //
+            69071,
+            toWei(1)
         );
 
-        const liquidityDetail = await amm.testLiquidityInitialize();
 
-        console.log(liquidityDetail[0].liquidity.toString());
+        await positionHouse.connect(account1).openPosition(
+            addressAmm,
+            1,
+            toWei(10000),
+            toWei(10),
+            10
+        );
 
-        expect(liquidityDetail[0].liquidity.toString()).to.eq(toWei(10020*190))
-
-        expect(liquidityDetail[1].tick.toString()).to.eq('39655');
 
     });
 
 
-});
+})

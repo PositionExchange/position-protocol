@@ -29,7 +29,7 @@ library LiquidityMath {
         uint256 quoteReserveAmount,
         uint256 baseReserveAmount)
     internal pure returns (uint256 baseAmount) {
-        //        (uint256 liquidity, uint256 quoteReserveAmount, uint256 baseReserveAmount) = getLiquidityDetail();
+
         if (sideBuy) {
             baseAmount = baseReserveAmount.sub(liquidity.div(quoteReserveAmount.add(quoteAmount)));
         } else {
