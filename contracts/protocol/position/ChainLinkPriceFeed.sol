@@ -6,9 +6,9 @@ import {IChainLinkPriceFeed}  from "../../interfaces/IChainLinkPriceFeed.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {BlockContext} from "../libraries/helpers/BlockContext.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
-import {PerpFiOwnableUpgrade} from "../libraries/helpers/PerpFiOwnableUpgrade.sol";
+import {PosiFiOwnableUpgrade} from "../libraries/helpers/PosiFiOwnableUpgrade.sol";
 
-contract ChainLinkPriceFeed is IChainLinkPriceFeed, PerpFiOwnableUpgrade, BlockContext {
+contract ChainLinkPriceFeed is IChainLinkPriceFeed, PosiFiOwnableUpgrade, BlockContext {
     using SafeMath for uint256;
 
     uint256 private constant TOKEN_DIGIT = 10 ** 18;

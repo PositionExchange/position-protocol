@@ -9,12 +9,12 @@ import {IInsuranceFund} from "../../interfaces/IInsuranceFund.sol";
 import {IExchangeWrapper} from "../../interfaces/IExchangeWrapper.sol";
 import {IMinter} from "../../interfaces/IMinter.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
-import {PerpFiOwnableUpgrade} from "../libraries/helpers/PerpFiOwnableUpgrade.sol";
+import {PosiFiOwnableUpgrade} from "../libraries/helpers/PosiFiOwnableUpgrade.sol";
 import {Uint256ERC20} from "../libraries/helpers/Uint256ERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 
-contract InsuranceFund is IInsuranceFund, PerpFiOwnableUpgrade, Uint256ERC20 {
+contract InsuranceFund is IInsuranceFund, PosiFiOwnableUpgrade, Uint256ERC20 {
     using SafeMath for uint256;
 
 
