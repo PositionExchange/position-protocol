@@ -192,7 +192,12 @@ contract Amm is IAmm, BlockContext {
         tickOrder[_tick].liquidity = tickOrder[_tick].liquidity.add(liquidityAdded);
 
         // NOTE check if current index has order or not
-        uint256 nextIndex = tickOrder[_tick].currentIndex.add(1);
+        uint256 nextIndex;
+        if (tickOrder[_tick].currentIndex == 0) {
+            nextIndex = tickOrder[_tick].currentIndex;
+        } else {
+            nextIndex = tickOrder[_tick].currentIndex.add(1);
+        }
 
         tickOrder[_tick].order[nextIndex] = Order({
         side : _side,
@@ -294,10 +299,12 @@ contract Amm is IAmm, BlockContext {
                         while (remainingLiquidity != 0) {
                             if (tickOrder[step.tickNext].order[filledIndex].status == Status.PARTIAL_FILLED) {
                                 // TODO check if orderLiquidityRemain > remainingLiquidity
-                                remainingLiquidity.sub(tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain);
-                                //                                tickOrder[step.tickNext].order[filledIndex].status = Status.OPENING;
-                                //                                tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain = 0;
-                                filledIndex = filledIndex.add(1);
+                                if (remainingLiquidity >= tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain) {
+                                    remainingLiquidity.sub(tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain);
+                                    filledIndex = filledIndex.add(1);
+                                } else {
+                                    (tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain).sub(remainingLiquidity);
+                                }
                                 console.log(295);
                             } else if (tickOrder[step.tickNext].order[filledIndex].status == Status.OPENING) {
                                 console.log("remainingLiquidity",remainingLiquidity);
