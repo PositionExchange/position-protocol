@@ -11,14 +11,24 @@ library Calc {
         return x >= 0 ? uint256(x) : uint256(-x);
     }
 
-//    function sqrt(uint256 x) internal pure returns (uint256) {
-//        uint256 epsilon = 10000000000000;
-//        int256 result = 10000000000000;
-//        while (abs(int256(result*result - int256(x))) >= epsilon) {
-//            result = (int256(x) / result - result) / 2 + result;
-//        }
-//        return uint256(result);
-//    }
+    function cmp(uint256 x, uint256 y) internal pure returns (int256) {
+        if (x > y) {
+            return 1;
+        } else if (x < y) {
+            return -1;
+        }
+        return 0;
+    }
+
+
+    function sqrt(uint256 x) internal pure returns (uint256) {
+        uint256 epsilon = 10000000000000;
+        int256 result = 10000000000000;
+        while (abs(int256(result * result - int256(x))) >= epsilon) {
+            result = (int256(x) / result - result) / 2 + result;
+        }
+        return uint256(result);
+    }
 
     function pow(uint256 x, uint256 times) internal pure returns (uint256) {
         if (times == 0) {

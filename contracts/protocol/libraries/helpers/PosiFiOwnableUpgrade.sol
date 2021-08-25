@@ -16,7 +16,7 @@ import {ContextUpgradeSafe} from "./ContextUpgradeSafe.sol";
  * `onlyOwner`, which can be applied to your functions to restrict their use to
  * the owner.
  */
-contract PerpFiOwnableUpgrade is ContextUpgradeSafe {
+contract PosiFiOwnableUpgrade is ContextUpgradeSafe {
     address private _owner;
     address private _candidate;
 
