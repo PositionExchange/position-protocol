@@ -71,20 +71,19 @@ describe('Test Amm', () => {
             //amount quote
             toWei(1000),
             //limit price
-            toWei(999),
+            toWei(950),
             //side
             0,
             //
-            69071,
+            68568,
             toWei(1)
         );
-
 
         await positionHouse.connect(account1).openPosition(
             addressAmm,
             1,
-            toWei(10000),
-            toWei(10),
+            toWei(4000),
+            toWei(40),
             10
         );
 

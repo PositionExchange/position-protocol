@@ -6,14 +6,28 @@ import {Calc} from '../protocol/libraries/math/Calc.sol';
 
 contract PriceMathTest {
 
-    function getAmountToTargetPrice(
+    function getQuoteAmountToTargetPrice(
         uint256 targetPrice,
         uint256 currentPrice,
         uint256 liquidity
-    ) external pure returns (uint256 amountCalculated) {
+    ) external view returns (uint256 amountCalculated) {
 
 
-        amountCalculated = PriceMath.getAmountToTargetPrice(
+        amountCalculated = PriceMath.getQuoteAmountToTargetPrice(
+            targetPrice,
+            currentPrice,
+            liquidity);
+
+    }
+
+    function getBaseAmountToTargetPrice(
+        uint256 targetPrice,
+        uint256 currentPrice,
+        uint256 liquidity
+    ) external view returns (uint256 amountCalculated) {
+
+
+        amountCalculated = PriceMath.getBaseAmountToTargetPrice(
             targetPrice,
             currentPrice,
             liquidity);
@@ -25,25 +39,13 @@ contract PriceMathTest {
         uint256 amount,
         bool sideBuy,
         uint256 liquidity
-    ) external pure returns (uint256 nextPrice) {
+    ) external view returns (uint256 nextPrice) {
 
         nextPrice = PriceMath.getNextPriceFromInput(currentPrice,
             amount,
             sideBuy,
             liquidity);
 
-    }
-
-    function sqrt(uint256 x) external pure returns(uint256 result){
-        result = Calc.sqrt(x);
-    }
-
-    function abs(int256 x) external pure returns(uint256 result){
-        result = Calc.abs(x);
-    }
-
-    function pow(uint256 x, uint16 times) external pure returns(uint256 result){
-        result = Calc.pow(x,times);
     }
 
 }

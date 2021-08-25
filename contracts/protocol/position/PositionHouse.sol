@@ -10,6 +10,7 @@ import {IPositionHouse} from "../../interfaces/IPositionHouse.sol";
 import {IInsuranceFund} from  "../../interfaces/IInsuranceFund.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "hardhat/console.sol";
 //import "../../interfaces/a.sol";
 
 /**
@@ -47,7 +48,7 @@ contract PositionHouse is IPositionHouse, BlockContext {
         IAmm.Side _side,
         uint256 _amountAssetQuote,
         uint256 _amountAssetBase,
-        uint16 _leverage
+        uint256 _leverage
     ) public {
 
         // TODO require something here
@@ -77,6 +78,7 @@ contract PositionHouse is IPositionHouse, BlockContext {
                 _leverage,
                 _margin,
                 msg.sender));
+        console.log("finish open market order");
     }
 
     function openLimitOrder(

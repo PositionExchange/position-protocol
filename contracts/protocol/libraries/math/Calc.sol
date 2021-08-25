@@ -11,14 +11,14 @@ library Calc {
         return x >= 0 ? uint256(x) : uint256(-x);
     }
 
-    function sqrt(uint256 x) internal pure returns (uint256) {
-        uint256 epsilon = 10000000000000;
-        int256 result = 10000000000000;
-        while (abs(int256(result*result - int256(x))) >= epsilon) {
-            result = (int256(x) / result - result) / 2 + result;
-        }
-        return uint256(result);
-    }
+//    function sqrt(uint256 x) internal pure returns (uint256) {
+//        uint256 epsilon = 10000000000000;
+//        int256 result = 10000000000000;
+//        while (abs(int256(result*result - int256(x))) >= epsilon) {
+//            result = (int256(x) / result - result) / 2 + result;
+//        }
+//        return uint256(result);
+//    }
 
     function pow(uint256 x, uint256 times) internal pure returns (uint256) {
         if (times == 0) {
@@ -38,7 +38,7 @@ library Calc {
     /// @dev Uses the Babylonian method https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method.
     /// @param x The uint256 number for which to calculate the square root.
     /// @return result The result as an uint256.
-    function sqrt_new(uint256 x) internal pure returns (uint256 result) {
+    function sqrt(uint256 x) internal pure returns (uint256 result) {
         if (x == 0) {
             return 0;
         }

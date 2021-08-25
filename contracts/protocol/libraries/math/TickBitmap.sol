@@ -2,6 +2,7 @@
 pragma solidity 0.8.0;
 
 import './BitMath.sol';
+import "hardhat/console.sol";
 
 /*
 @title Packed tick initialized state library
@@ -16,7 +17,7 @@ library TickBitmap {
     @return wordPos The key in the mapping containing the word in which the bit is stored
     @return bitPos The bit position in the word where the flag is stored
     **/
-    function position(int256 tick) private pure returns (int256 wordPos, uint256 bitPos) {
+    function position(int256 tick) internal pure returns (int256 wordPos, uint256 bitPos) {
         wordPos = int256(tick >> 8);
         bitPos = uint256(tick % 256);
     }
@@ -51,7 +52,16 @@ library TickBitmap {
         bool lte
     ) internal view returns (int256 next, bool initialized) {
         int256 compressed = tick ;
+        console.log("next initialized tick begining", uint256(tick));
         if (tick < 0 && tick != 0) compressed--; // round towards negative infinity
+        console.log("compressed / 256", uint256(compressed / 256));
+        console.log("compressed % 256", uint256(compressed % 256));
+        console.log(self[int256(compressed / 256)] % 2 == 0);
+        console.log(compressed % 256 == 0);
+        if (compressed % 256 == 0 && self[int256(compressed / 256)] % 2 == 0) {
+            compressed -= 1;
+            console.log("compressed - 1");
+        }
 
         if (lte) {
             (int256 wordPos, uint256 bitPos) = position(compressed);
@@ -70,12 +80,12 @@ library TickBitmap {
             // all the 1s at or to the left of the bitPos
             uint256 mask = ~((1 << bitPos) - 1);
             uint256 masked = self[wordPos] & mask;
-
             // if there are no initialized ticks to the left of the current tick, return leftmost in the word
             initialized = masked != 0;
             next = initialized
             ? (compressed + 1 + int256(BitMath.leastSignificantBit(masked) - bitPos))
             : (compressed + 1 + int256(type(uint256).max - bitPos)) ;
         }
+        console.log("tick next", uint256(next));
     }
 }
