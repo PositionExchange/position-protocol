@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity 0.8.0;
 
-import  {PriceMath} from "./PriceMath.sol";
+import {PriceMath} from "./PriceMath.sol";
+import {Calc} from './Calc.sol';
+import "hardhat/console.sol";
 /// @title Computes the amount to swap within ticks
 library ComputeAmountMath {
     /*
@@ -9,19 +11,19 @@ library ComputeAmountMath {
     @param currentPrice The current price of the pool
     @param targetPrice The price that cannot be exceeded, from which direction of the swap is inferred
     @param liquidity The usable liquidity
-    @param amountRemaining How much input or output amount is remaining to be swapped in/out
+    @param amountQuoteRemaining How much input or output amount is remaining to be swapped in/out
     @return nextPrice The price after swapping the amount in/out, not to exceed the price target
-    @return amountIn The amount to be swapped in, of either token0 or token1, based on the direction of the swap
-    @return amountOut The amount to be received, of either token0 or token1, based on the direction of the swap
+    @return quoteCalculated The quote amount to be swapped in or out, based on the direction of the swap
+    @return baseCalculated The base amount to be swapped in or out, based on the direction of the swap
     **/
     function computeSwapStep(
         uint256 currentPrice,
         uint256 targetPrice,
         uint256 liquidity,
-        uint256 amountRemaining
+        uint256 quoteRemainingAmount
     )
     internal
-    pure
+    view
     returns (
         uint256 nextPrice,
         uint256 quoteCalculatedAmount,
@@ -32,48 +34,58 @@ library ComputeAmountMath {
         bool sideBuy = currentPrice >= targetPrice;
         uint256 amountCalculated;
         if (sideBuy) {
-            amountCalculated = PriceMath.getAmountToTargetPrice(targetPrice, currentPrice, liquidity);
-            if (amountRemaining >= amountCalculated) nextPrice = targetPrice;
+            console.log("start compute swap step");
+            console.log("targetPrice: %s",targetPrice);
+            console.log("currentPrice: %s",currentPrice);
+            console.log("liquidity: %s",liquidity);
+            amountCalculated = PriceMath.getQuoteAmountToTargetPrice(targetPrice, currentPrice, liquidity);
+            console.log("amount quote calculated: %s",amountCalculated);
+            console.log("amount quote remaining: %s",quoteRemainingAmount);
+            console.log("end compute swap step");
+            if (quoteRemainingAmount >= amountCalculated) {
+                nextPrice = targetPrice;
+                console.log("in if");
+            }
+            else {
+                // function calculate the next price after swap an specific amount
+                nextPrice = PriceMath.getNextPriceFromInput(
+                    currentPrice,
+                    quoteRemainingAmount,
+                    !sideBuy,
+                    liquidity
+                );
+                console.log("in else");
+            }
+            console.log("next price", nextPrice);
+        } else {
+            uint256 amountCalculated = PriceMath.getQuoteAmountToTargetPrice(targetPrice, currentPrice, liquidity);
+            if (quoteRemainingAmount >= amountCalculated) nextPrice = targetPrice;
             else
             // function calculate the next price after swap an specific amount
                 nextPrice = PriceMath.getNextPriceFromInput(
                     currentPrice,
                     liquidity,
                     sideBuy,
-                    amountRemaining
-                );
-        } else {
-            uint256 amountCalculated = PriceMath.getAmountToTargetPrice(targetPrice, currentPrice, liquidity);
-            if (amountRemaining >= amountCalculated) nextPrice = targetPrice;
-            else
-            // function calculate the next price after swap an specific amount
-                nextPrice = PriceMath.getNextPriceFromInput(
-                    currentPrice,
-                    liquidity,
-                    !sideBuy,
-                    amountRemaining
+                    quoteRemainingAmount
                 );
         }
-
         bool max = targetPrice == nextPrice;
 
         // get the input/output amounts
         if (sideBuy) {
             quoteCalculatedAmount = max
             ? amountCalculated
-            : amountRemaining;
+            : quoteRemainingAmount;
             baseCalculatedAmount = max
-            ? 0// function calculate base amount
-            : 1;
-            //function calculate base amount
+            ? PriceMath.getBaseAmountToTargetPrice(targetPrice, currentPrice, liquidity)
+            : PriceMath.getBaseAmountToTargetPrice(nextPrice, currentPrice, liquidity);
         } else {
             quoteCalculatedAmount = max
             ? amountCalculated
-            : amountRemaining;
+            : quoteRemainingAmount;
             baseCalculatedAmount = max
-            ? 0// function calculate base amount
-            : 1;
-            //function calculate base amount
+            ? PriceMath.getBaseAmountToTargetPrice(targetPrice, currentPrice, liquidity)
+            : PriceMath.getBaseAmountToTargetPrice(nextPrice, currentPrice, liquidity);
         }
     }
 }

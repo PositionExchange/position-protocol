@@ -12,7 +12,7 @@ contract ComputeAmountMathTest {
         uint256 amountRemaining
     )
     external
-    pure
+    view
     returns (
         uint256 nextPrice,
         uint256 quoteCalculatedAmount,

@@ -17,11 +17,11 @@ contract CalcTest {
 
     }
 
-    function sqrt_new(uint256 x) external pure returns (uint256) {
-
-        return Calc.sqrt_new(x);
-
-    }
+//    function sqrt_new(uint256 x) external pure returns (uint256) {
+//
+//        return Calc.sqrt_new(x);
+//
+//    }
 
     function pow(uint256 x, uint16 times) external pure returns (uint256) {
         return Calc.pow(x, times);

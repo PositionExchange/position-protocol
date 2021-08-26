@@ -31,4 +31,8 @@ contract TickMathTest {
     function MAX_SQRT_RATIO() external pure returns (uint256) {
         return TickMath.MAX_SQRT_RATIO;
     }
+
+    function bitPos(uint8 bitPos) external pure returns (uint256 res){
+        uint256 res = 1 << bitPos;
+    }
 }

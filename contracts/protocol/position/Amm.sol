@@ -31,6 +31,7 @@ contract Amm is IAmm, BlockContext {
     uint256 public fundingPeriod;
     uint256 public fundingBufferPeriod;
     uint256 fundingRate;
+    uint256 constant toWei = 1000000000000000000;
     // update during every swap and used when shutting amm down. it's trader's total base asset size
     //    IChainLinkPriceFeed public priceFeed;
     IERC20 public override quoteAsset;
@@ -136,18 +137,14 @@ contract Amm is IAmm, BlockContext {
         liquidityDetail.quoteReserveAmount = _quoteAssetReserve;
         liquidityDetail.liquidity = _baseAssetReserve.mul(_quoteAssetReserve);
 
-
         quoteAsset = IERC20(_quoteAsset);
-
         // initialize tick
         int256 tick = TickMath.getTickAtPrice(startPrice);
-
         ammState = AmmState({
         price : startPrice,
         tick : tick,
         unlocked : true
         });
-
         //        spotPriceTwapInterval = 1 hours;
     }
 
@@ -194,8 +191,13 @@ contract Amm is IAmm, BlockContext {
 
         tickOrder[_tick].liquidity = tickOrder[_tick].liquidity.add(liquidityAdded);
 
-
-        uint256 nextIndex = tickOrder[_tick].currentIndex.add(1);
+        // NOTE check if current index has order or not
+        uint256 nextIndex;
+        if (tickOrder[_tick].currentIndex == 0) {
+            nextIndex = tickOrder[_tick].currentIndex;
+        } else {
+            nextIndex = tickOrder[_tick].currentIndex.add(1);
+        }
 
         tickOrder[_tick].order[nextIndex] = Order({
         side : _side,
@@ -204,13 +206,14 @@ contract Amm is IAmm, BlockContext {
         amountAssetBase : _amountAssetBase,
         limitPrice : _limitPrice,
         amountLiquidity : liquidityAdded,
-
         //TODO edit orderLiquidityRemain
         orderLiquidityRemain : _amountAssetQuote,
         margin : _margin,
         status : Status.OPENING
         });
-
+        (int256 wordPos, uint256 bitPos) = TickBitmap.position(_tick);
+        uint256 mask = 1 << bitPos;
+        tickBitmap[wordPos] |= mask;
         return nextIndex;
 
     }
@@ -230,10 +233,6 @@ contract Amm is IAmm, BlockContext {
         (uint256 liquidity, uint256 quoteReserveAmount, uint256 baseReserveAmount) = getLiquidityDetail();
 
 
-        console.log("liquidity %s", liquidity);
-        console.log("quoteReserveAmount %s", quoteReserveAmount);
-        console.log("baseReserveAmount %s", baseReserveAmount);
-
 
         OpenMarketState memory state = OpenMarketState({
         quoteRemainingAmount : paramsOpenMarket.quoteAmount,
@@ -243,95 +242,125 @@ contract Amm is IAmm, BlockContext {
         price : ammStateStart.price,
         tick : ammStateStart.tick
         });
-
         while (state.quoteRemainingAmount != 0) {
+            console.log("in while");
             StepComputations memory step;
             step.priceStart = state.price;
             (step.tickNext, step.initialized) = TickBitmap.nextInitializedTickWithinOneWord(
                 tickBitmap,
                 state.tick,
             // true if buy, false if sell
-                sideBuy
+                !sideBuy
             );
+            console.log("initialized", step.initialized);
             // TODO update function getPriceAtTick in TickMath library
             // get price for the next tick
             step.priceNext = TickMath.getPriceAtTick(step.tickNext);
+            console.log("step price next", step.priceNext);
             // TODO check function mostSignificantBit
             // TODO check if current tick is fulfill
             // if not try to fill all of the remaining amount then calculate next step
             // compute values to swap to the target tick or point where quote remaining amount is exhausted
+            console.log("step price start", step.priceStart);
             (state.price, step.quoteCalculatedAmount, step.baseCalculatedAmount) = ComputeAmountMath.computeSwapStep(
                 step.priceStart,
                 step.priceNext,
-                liquidityDetail.liquidity,
+                liquidity,
                 state.quoteRemainingAmount
             );
-
+            console.log("state price",state.price);
             state.quoteCalculatedAmount = state.quoteCalculatedAmount.add(step.quoteCalculatedAmount);
             state.quoteRemainingAmount = state.quoteRemainingAmount.sub(step.quoteCalculatedAmount);
             state.baseRemainingAmount = state.baseRemainingAmount.sub(step.baseCalculatedAmount);
             state.baseCalculatedAmount = state.baseCalculatedAmount.add(step.baseCalculatedAmount);
 
             updateReserve(step.quoteCalculatedAmount, step.baseCalculatedAmount, sideBuy);
+            console.log("quote remaining", state.quoteRemainingAmount);
+            console.log("step quote calculated", step.quoteCalculatedAmount);
+            console.log("step base calculated", step.baseCalculatedAmount);
 
             // shift tick if we reached the next tick's price
             if (state.price == step.priceNext) {
                 // if the tick is initialized, run the tick transition
                 if (step.initialized) {
-                    // TODO check limit order in this tick
-                    uint256 unfilledLiquidity = tickOrder[step.tickNext].liquidity.sub(tickOrder[step.tickNext].filledLiquidity);
-                    uint256 remainingLiquidity = state.quoteRemainingAmount.mul(state.baseRemainingAmount);
+                    // NOTE unfilledLiquidity div toWei
+                    uint256 unfilledLiquidity = ((tickOrder[step.tickNext].liquidity).div(toWei)).sub(tickOrder[step.tickNext].filledLiquidity);
+                    uint256 remainingLiquidity = (state.quoteRemainingAmount.mul(state.baseRemainingAmount)).div(toWei);
+                    console.log(283);
+                    console.log("unfilledLiquidity", unfilledLiquidity);
+                    console.log("remainingLiquidity", remainingLiquidity);
                     if (remainingLiquidity < unfilledLiquidity) {
+                        console.log(291);
                         tickOrder[step.tickNext].filledLiquidity = tickOrder[step.tickNext].filledLiquidity.add(remainingLiquidity);
 
                         uint256 filledIndex = tickOrder[step.tickNext].filledIndex;
-                        tickOrder[step.tickNext].filledLiquidity = tickOrder[step.tickNext].filledLiquidity.add(remainingLiquidity);
-
+                        console.log("filledIndex", filledIndex);
+                        console.log(288);
                         while (remainingLiquidity != 0) {
                             if (tickOrder[step.tickNext].order[filledIndex].status == Status.PARTIAL_FILLED) {
-                                remainingLiquidity.sub(tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain);
-                                //                                tickOrder[step.tickNext].order[filledIndex].status = Status.OPENING;
-                                //                                tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain = 0;
-                                filledIndex = filledIndex.add(1);
-
+                                // TODO check if orderLiquidityRemain > remainingLiquidity
+                                if (remainingLiquidity >= tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain) {
+                                    remainingLiquidity.sub(tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain);
+                                    filledIndex = filledIndex.add(1);
+                                } else {
+                                    (tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain).sub(remainingLiquidity);
+                                }
+                                console.log(295);
                             } else if (tickOrder[step.tickNext].order[filledIndex].status == Status.OPENING) {
+                                console.log("remainingLiquidity",remainingLiquidity);
+                                console.log("orderLiquidityRemain",tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain);
                                 if (remainingLiquidity > tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain) {
                                     remainingLiquidity = remainingLiquidity.sub(tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain);
                                     filledIndex = filledIndex.add(1);
-
+                                    console.log(303);
                                 } else {
                                     tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain = tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain.sub(remainingLiquidity);
                                     tickOrder[step.tickNext].order[filledIndex].status = Status.PARTIAL_FILLED;
                                     remainingLiquidity = 0;
 
                                 }
-
+                                console.log(307);
                             }
                         }
+                        console.log(308);
                         state.quoteCalculatedAmount = state.quoteCalculatedAmount.add(state.quoteRemainingAmount);
                         state.baseCalculatedAmount = state.baseCalculatedAmount.add(state.baseRemainingAmount);
                         (state.quoteRemainingAmount, state.baseRemainingAmount) = (0, 0);
-
+                        console.log(312);
                         tickOrder[step.tickNext].filledIndex = filledIndex;
-
+                        state.tick = step.tickNext;
 
                     } else {
+                        console.log(327);
                         tickOrder[step.tickNext].filledLiquidity = tickOrder[step.tickNext].filledLiquidity.add(unfilledLiquidity);
+                        console.log(329);
                         tickOrder[step.tickNext].filledIndex = tickOrder[step.tickNext].currentIndex;
+                        console.log(331);
                         state.quoteCalculatedAmount = state.quoteCalculatedAmount.add(Calc.sqrt(unfilledLiquidity.mul(state.price)));
+                        console.log(333);
                         state.quoteRemainingAmount = state.quoteRemainingAmount.sub(Calc.sqrt(unfilledLiquidity.mul(state.price)));
+                        console.log(335);
                         state.baseRemainingAmount = state.baseRemainingAmount.sub(Calc.sqrt(unfilledLiquidity.div(state.price)));
+                        console.log(337);
                         state.baseCalculatedAmount = state.baseCalculatedAmount.add(Calc.sqrt(unfilledLiquidity.div(state.price)));
                         // TODO calculate remaining amount after fulfill this tick's liquidity
+                        console.log(340);
                         state.tick = step.tickNext;
-                        TickBitmap.flipTick(tickBitmap, state.tick);
+                        (int256 wordPos, uint256 bitPos) = TickBitmap.position(state.tick);
+                        uint256 mask = 1 << bitPos;
+                        tickBitmap[wordPos] ^= mask;
+                        console.log(326);
                     }
-                }
-            } else if (state.price < step.priceNext) {
-                state.tick = TickMath.getTickAtPrice(state.price);
-            }
-        }
 
+                }
+                state.tick = step.tickNext;
+            } else if (state.price != step.priceNext) {
+                state.tick = TickMath.getTickAtPrice(state.price);
+                console.log("calculated tick", uint256(state.tick));
+            }
+            console.log("tick after 1 while", uint256(state.tick));
+        }
+        console.log(337);
         if (state.tick != ammStateStart.tick) {
             (ammState.tick, ammState.price) = (
             state.tick,
@@ -339,21 +368,22 @@ contract Amm is IAmm, BlockContext {
             );
         }
         updateReserve(state.quoteCalculatedAmount, state.baseCalculatedAmount, true);
-
+        console.log(345);
         //TODO open position market
         PositionOpenMarket memory position = positionMarketMap[paramsOpenMarket._trader];
-
+        console.log(348);
         // TODO position.side == side
         if (position.side == paramsOpenMarket.side) {
-
+            console.log(351);
             //TODO increment position
             // same side
             positionMarketMap[paramsOpenMarket._trader].margin = positionMarketMap[paramsOpenMarket._trader].margin.add(paramsOpenMarket.margin);
             positionMarketMap[paramsOpenMarket._trader].amountAssetQuote = positionMarketMap[paramsOpenMarket._trader].amountAssetQuote.add(paramsOpenMarket.quoteAmount);
             positionMarketMap[paramsOpenMarket._trader].amountAssetBase = positionMarketMap[paramsOpenMarket._trader].amountAssetBase.add(paramsOpenMarket.baseAmount);
-
+            console.log(357);
 
         } else {
+            console.log(360);
             // TODO decrement position
             if (paramsOpenMarket.margin > positionMarketMap[paramsOpenMarket._trader].margin) {
                 // open reserve position
@@ -365,11 +395,15 @@ contract Amm is IAmm, BlockContext {
                 }
 
             }
-            positionMarketMap[paramsOpenMarket._trader].margin = positionMarketMap[paramsOpenMarket._trader].margin.sub(paramsOpenMarket.margin);
+            console.log(372);
+            positionMarketMap[paramsOpenMarket._trader].margin = paramsOpenMarket.margin.sub(positionMarketMap[paramsOpenMarket._trader].margin);
+            console.log(373);
             positionMarketMap[paramsOpenMarket._trader].amountAssetQuote = positionMarketMap[paramsOpenMarket._trader].amountAssetQuote.add(paramsOpenMarket.quoteAmount);
             positionMarketMap[paramsOpenMarket._trader].amountAssetBase = positionMarketMap[paramsOpenMarket._trader].amountAssetBase.add(paramsOpenMarket.baseAmount);
+            console.log(374);
         }
         ammState.unlocked = true;
+        console.log("final liquidity",liquidityDetail.liquidity);
     }
 
     function cancelOrder(address _trader, uint256 _index, int256 _tick) external override {
