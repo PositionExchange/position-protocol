@@ -105,17 +105,24 @@ describe('TickMath', () => {
         })
     })
 
+    //TODO delete
+    describe('bitpos', async () => {
+        it('correct return', async () => {
+            expect (await tickMath.bitPos(207)).to.eq('205688069665150755269371147819668813122841983204197482918576128')
+        })
+    })
+
     describe('#getTickAtSqrtRatio', () => {
         it('throws for too low', async () => {
-            await expect(tickMath.getTickAtPrice(MIN_SQRT_RATIO.sub(1))).to.be.revertedWith('R')
+            expect (await tickMath.getTickAtPrice(MIN_SQRT_RATIO.sub(1))).to.be.revertedWith('R')
         })
 
         it('throws for too high', async () => {
-            await expect(tickMath.getTickAtPrice(BigNumber.from(MAX_SQRT_RATIO))).to.be.revertedWith('R')
+            expect (await tickMath.getTickAtPrice(BigNumber.from(MAX_SQRT_RATIO))).to.be.revertedWith('R')
         })
 
         it('ratio of min tick', async () => {
-            expect(await tickMath.getTickAtPrice('999000549780071600')).to.eq('-10')
+            expect(await tickMath.getTickAtPrice('978436322384533167861')).to.eq('-10')
         })
         it('ratio of min tick + 1', async () => {
             expect(await tickMath.getTickAtPrice('4295343490')).to.eq(MIN_TICK + 1)
