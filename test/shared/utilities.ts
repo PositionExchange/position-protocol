@@ -2,6 +2,11 @@ import bn from 'bignumber.js'
 import {BigNumber, BigNumberish, constants, Contract, ContractTransaction, utils, Wallet} from 'ethers'
 import web3Utils from "web3-utils";
 
+const {web3, ethers} = require("hardhat");
+
+// const web3Utils = require('web3-utils')
+
+
 export const MaxUint128 = BigNumber.from(2).pow(128).sub(1)
 
 export const getMinTick = (tickSpacing: number) => Math.ceil(-887272 / tickSpacing) * tickSpacing
@@ -82,4 +87,15 @@ export function toWeiWithString(n: string): any {
 
 export function fromWeiWithString(n: string): any {
     return web3Utils.fromWei(n)
+}
+
+export function stringToBytes32(str: string): string {
+    // return ethers.utils.toUtf8Bytes(str);
+    return ethers.utils.formatBytes32String(str)
+    // return web3Utils.asciiToHex(str)
+}
+
+export function fromBytes32(str: string): string {
+    return ethers.utils.parseBytes32String(str);
+    // return web3Utils.hexToUtf8(str)
 }

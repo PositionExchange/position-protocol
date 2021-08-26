@@ -8,7 +8,7 @@ library Calc {
     using SafeMath for uint256;
 
     function abs(int256 x) internal pure returns (uint256) {
-        return x >= 0 ? uint256(x) : uint256(- x);
+        return x >= 0 ? uint256(x) : uint256(-x);
     }
 
     function cmp(uint256 x, uint256 y) internal pure returns (int256) {

@@ -181,6 +181,19 @@ interface IAmm {
     }
 
 
+    struct PositionResponse {
+        Side side;
+        uint256 quoteAmount;
+        uint256 baseAmount;
+        uint256 margin;
+        uint256 leverage;
+        int256 PnLUnrealized;
+        uint256 marginRatio;
+        uint256 fundingPayment;
+
+    }
+
+
 
 
 
@@ -229,11 +242,11 @@ interface IAmm {
 
     function getIsOrderExecuted(int256 _tick, uint256 _index) external view returns (bool);
 
-    function getTotalPositionSize() external view returns (uint256);
+    function getTotalPositionSize() external view returns (int256);
 
     function getCurrentTick() external view returns (int256);
 
-    function settleFunding() external view returns (uint256);
+    function settleFunding() external view returns (int256);
 
     function quoteAsset() external view returns (IERC20);
 
@@ -246,6 +259,10 @@ interface IAmm {
     function getReserve() external view returns (uint256 quoteReserveAmount, uint256 baseReserveAmount);
 
     function getPnL(address _trader) external view returns (int256);
+
+    function getPosition(address _trader) external view returns (PositionResponse memory positionResponse);
+
+    function getPositionInOrder(address _trader) external view returns (Order[] memory listOrder);
 
     // For test
     function queryPositions(address _trader) external view returns (Position[] memory position);

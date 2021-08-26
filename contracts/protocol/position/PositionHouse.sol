@@ -6,10 +6,12 @@ import {IAmm} from "../../interfaces/a.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
 import {Calc} from "../libraries/math/Calc.sol";
 import {BlockContext} from "../libraries/helpers/BlockContext.sol";
+import {Uint256ERC20} from "../libraries/helpers/Uint256ERC20.sol";
 import {IPositionHouse} from "../../interfaces/IPositionHouse.sol";
 import {IInsuranceFund} from  "../../interfaces/IInsuranceFund.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import {SignedSafeMath} from "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
 //import "../../interfaces/a.sol";
 
 /**
@@ -17,8 +19,9 @@ import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 * Manage positions with action like: openPostion, closePosition,...
 */
 
-contract PositionHouse is IPositionHouse, BlockContext {
+contract PositionHouse is IPositionHouse, BlockContext, Uint256ERC20 {
     using SafeMath for uint256;
+    using SignedSafeMath for int256;
     using Calc for uint256;
 
 
@@ -131,19 +134,20 @@ contract PositionHouse is IPositionHouse, BlockContext {
     }
 
 
-    function addMargin(IAmm _amm, uint256 index, int256 tick, uint256 _addedMargin) public {
+    function addMargin(IAmm _amm, uint256 _addedMargin) public {
         // check condition
         requireAmm(_amm, true);
         requireNonZeroInput(_addedMargin);
         // update margin part in personal position
-        address trader = msg.sender;
+        address _trader = msg.sender;
 
-        //        _amm.addMargin(index, tick, _addedMargin);
-        emit MarginChanged(trader, address(_amm), _addedMargin, 0);
+        _amm.addMargin(_trader, _addedMargin);
+        emit MarginChanged(_trader, address(_amm), _addedMargin, 0);
+
     }
 
     // TODO modify function
-    function removeMargin(IAmm _amm, uint256 index, int256 tick, uint256 _amountRemoved) public {
+    function removeMargin(IAmm _amm, uint256 _amountRemoved) public {
         // check condition
         requireAmm(_amm, true);
         requireNonZeroInput(_amountRemoved);
@@ -151,6 +155,8 @@ contract PositionHouse is IPositionHouse, BlockContext {
         address _trader = msg.sender;
 
         _amm.removeMargin(_trader, _amountRemoved);
+        emit MarginChanged(_trader, address(_amm), _amountRemoved, 0);
+
         //        emit MarginChanged(trader, address(_amm), int256(_amountRemoved.toUint()), 0);
     }
 
@@ -179,7 +185,7 @@ contract PositionHouse is IPositionHouse, BlockContext {
     // TODO modify function
     function payFunding(IAmm _amm) public {
         requireAmm(_amm, true);
-        uint256 premiumFraction = _amm.settleFunding();
+        int256 premiumFraction = _amm.settleFunding();
         //        address(_amm).cumulativePremiumFractions.push(
         //            premiumFraction.add(getLatestCumulativePremiumFraction(_amm))
         //        );
@@ -190,15 +196,15 @@ contract PositionHouse is IPositionHouse, BlockContext {
         // if premiumFraction is positive: long pay short, amm get positive funding payment
         // if premiumFraction is negative: short pay long, amm get negative funding payment
         // if totalPositionSize.side * premiumFraction > 0, funding payment is positive which means profit
-        uint256 totalTraderPositionSize = _amm.getTotalPositionSize();
-        uint256 ammFundingPaymentProfit = premiumFraction.mul(totalTraderPositionSize);
+        int256 totalTraderPositionSize = _amm.getTotalPositionSize();
+        int256 ammFundingPaymentProfit = premiumFraction.mul(totalTraderPositionSize);
 
         IERC20 quoteAsset = _amm.quoteAsset();
-        //        if (ammFundingPaymentProfit.toInt() < 0) {
-        //            insuranceFund.withdraw(quoteAsset, ammFundingPaymentProfit.abs());
-        //        } else {
-        //            transferToInsuranceFund(quoteAsset, ammFundingPaymentProfit.abs());
-        //        }
+        if (ammFundingPaymentProfit < 0) {
+            insuranceFund.withdraw(quoteAsset, Calc.abs(ammFundingPaymentProfit));
+        } else {
+            transferToInsuranceFund(quoteAsset, Calc.abs(ammFundingPaymentProfit));
+        }
 
     }
 
@@ -219,50 +225,12 @@ contract PositionHouse is IPositionHouse, BlockContext {
 
     // TODO modify function
     function transferToInsuranceFund(IERC20 _token, uint256 _amount) internal {
-        //        uint256 memory totalTokenBalance = _balanceOf(_token, address(this));
-        //        _transfer(
-        //            _token,
-        //            address(insuranceFund),
-        //            totalTokenBalance.toUint() < _amount.toUint() ? totalTokenBalance : _amount
-        //        );
-    }
-
-
-    function closePosition(IAmm _amm, uint256 index, uint256 tick) public {
-
-        // TODO require close position
-
-        address _trader = msg.sender;
-
-        // TODO close position
-        // calc PnL, transfer money
-        //
-
-
-
-        _amm.closePosition(_trader);
-        //        ammMap[_amm].positionMap[_trader]
-        //
-        //        Position[] memory templePosition;
-        //
-        //        for (uint256 i = 0; i < address(_amm).positionMap[_trader].length; i++) {
-        //            int256 tickOrder = address(_amm).positionMap[_trader][i].tick;
-        //            uint256 indexOrder = address(_amm).positionMap[_trader][i].index;
-        //
-        //            if (_amm.getIsWaitingOrder(tickOrder, indexOrder) == true) {
-        //                //                templePosition.push(Position(indexOrder, tickOrder));
-        //
-        //            }
-        //
-        //        }
-        //
-        //
-        //        address(_amm).positionMap[_trader] = templePosition;
-
-
-        // TODO emit event
-
-
+        uint256 totalTokenBalance = _balanceOf(_token, address(this));
+        _transfer(
+            _token,
+            address(insuranceFund),
+            totalTokenBalance < _amount ? totalTokenBalance : _amount
+        );
     }
 
 
@@ -304,15 +272,6 @@ contract PositionHouse is IPositionHouse, BlockContext {
     function getPosition(IAmm _amm, address _trader) public view returns (IAmm.Position memory positionsOpened, IAmm.Position memory positionOrder)  {
 
         // TODO require getPosition
-
-
-        //        Position[] memory positions = address(_amm).positionMap[_trader];
-        //
-        //        for (uint256 i = 0; i < positions.length; i.add(1)) {
-        //            int256 tick = positions[i].tick;
-        //            uint256 index = positions[i].index;
-        //
-        //        }
 
     }
 

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity 0.8.0;
+pragma experimental ABIEncoderV2;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {IChainLinkPriceFeed}  from "../../interfaces/IChainLinkPriceFeed.sol";
@@ -7,6 +8,7 @@ import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {BlockContext} from "../libraries/helpers/BlockContext.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
 import {PosiFiOwnableUpgrade} from "../libraries/helpers/PosiFiOwnableUpgrade.sol";
+import "hardhat/console.sol";
 
 contract ChainLinkPriceFeed is IChainLinkPriceFeed, PosiFiOwnableUpgrade, BlockContext {
     using SafeMath for uint256;
@@ -33,24 +35,29 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed, PosiFiOwnableUpgrade, BlockC
     //
     // FUNCTIONS
     //
-//    function initialize() public {
-//        __Ownable_init();
-//    }
+    //    function initialize() public {
+    //        __Ownable_init();
+    //    }
 
     function initialize() public initializer {
         __Ownable_init();
     }
 
-    function addAggregator(bytes32 _priceFeedKey, address _aggregator) external onlyOwner {
+    // TODO add for only owner
+    function addAggregator(bytes32 _priceFeedKey, address _aggregator) external {
         requireNonEmptyAddress(_aggregator);
         if (address(priceFeedMap[_priceFeedKey]) == address(0)) {
             priceFeedKeys.push(_priceFeedKey);
         }
-        priceFeedMap[_priceFeedKey] = AggregatorV3Interface(_aggregator);
-        priceFeedDecimalMap[_priceFeedKey] = AggregatorV3Interface(_aggregator).decimals();
+        console.log("here %s", _aggregator);
+        AggregatorV3Interface aggregator = getAggregator(_priceFeedKey);
+        priceFeedMap[_priceFeedKey] = aggregator;
+        priceFeedDecimalMap[_priceFeedKey] = aggregator.decimals();
     }
 
-    function removeAggregator(bytes32 _priceFeedKey) external onlyOwner {
+
+    // TODO add for only owner
+    function removeAggregator(bytes32 _priceFeedKey) external {
         requireNonEmptyAddress(address(getAggregator(_priceFeedKey)));
         delete priceFeedMap[_priceFeedKey];
         delete priceFeedDecimalMap[_priceFeedKey];
@@ -91,7 +98,7 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed, PosiFiOwnableUpgrade, BlockC
 
     function getPrice(bytes32 _priceFeedKey) external view override returns (uint256) {
         AggregatorV3Interface aggregator = getAggregator(_priceFeedKey);
-        requireNonEmptyAddress(address(aggregator));
+//        requireNonEmptyAddress(address(aggregator));
 
         (, uint256 latestPrice,) = getLatestRoundData(aggregator);
         return formatDecimals(latestPrice, priceFeedDecimalMap[_priceFeedKey]);

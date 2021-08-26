@@ -422,13 +422,9 @@ contract Amm is IAmm, BlockContext {
     function closePosition(address _trader) external override {
 
         // TODO require close position
-
-
         // TODO close position
         // calc PnL, transfer money
         //
-
-
 
         uint256 i = positionMap[_trader].length.sub(1);
 
@@ -456,16 +452,6 @@ contract Amm is IAmm, BlockContext {
         }
     }
 
-    function addMargin(uint256 index, int256 tick, uint256 _amountAdded) public {
-        require(
-            _amountAdded != 0,
-            Errors.VL_INVALID_AMOUNT
-        );
-        // TODO addMargin, cal position
-
-        tickOrder[tick].order[index].margin = tickOrder[tick].order[index].margin.add(_amountAdded);
-
-    }
 
     function removeMargin(address _trader, uint256 _amountRemoved) external override {
         require(
@@ -482,6 +468,8 @@ contract Amm is IAmm, BlockContext {
             Errors.VL_INVALID_AMOUNT
         );
         // TODO addMargin, calc
+        //        tickOrder[tick].order[index].margin = tickOrder[tick].order[index].margin.add(_amountAdded);
+
         //        tickOrder[tick].order[index].margin = tickOrder[tick].order[index].margin.sub(_amountRemoved);
     }
 
@@ -516,6 +504,63 @@ contract Amm is IAmm, BlockContext {
         emit FundingRateUpdated(fundingRate, _underlyingPrice);
     }
 
+    function getPosition(address _trader) external view override returns (PositionResponse memory positionResponse){
+
+        PositionOpenMarket memory positionMarket = positionMarketMap[_trader];
+
+        PositionResponse memory positionResponseLong;
+        PositionResponse memory positionResponseShort;
+
+
+
+        for (uint256 i = 0; i < positionMap[_trader].length; i++) {
+            int256 tick = positionMap[_trader][i].tick;
+            uint256 index = positionMap[_trader][i].index;
+            if (index < tickOrder[tick].filledIndex) {
+
+                if (tickOrder[tick].order[index].side == Side.BUY) {
+                    positionResponseLong.baseAmount = positionResponseLong.baseAmount.add(tickOrder[tick].order[index].amountAssetBase);
+                    positionResponseLong.baseAmount = positionResponseLong.quoteAmount.add(tickOrder[tick].order[index].amountAssetQuote);
+                    positionResponseLong.margin = positionResponseLong.margin.add(tickOrder[tick].order[index].margin);
+                } else if (tickOrder[tick].order[index].side == Side.SELL) {
+
+                    positionResponseShort.baseAmount = positionResponseShort.baseAmount.add(tickOrder[tick].order[index].amountAssetBase);
+                    positionResponseShort.baseAmount = positionResponseShort.quoteAmount.add(tickOrder[tick].order[index].amountAssetQuote);
+                    positionResponseLong.margin = positionResponseShort.margin.add(tickOrder[tick].order[index].margin);
+                }
+
+            }
+
+        }
+
+    }
+
+
+    function getPositionInOrder(address _trader) external view override returns (Order[] memory listOrder){
+
+
+        uint256 counter = 0;
+
+        for (uint256 i = 0; i < positionMap[_trader].length; i++) {
+
+            int256 tick = positionMap[_trader][i].tick;
+            uint256 index = positionMap[_trader][i].index;
+            if (index > tickOrder[tick].filledIndex) {
+
+                listOrder[counter] = tickOrder[tick].order[index];
+                counter++;
+
+            } else if (index == tickOrder[tick].filledIndex) {
+
+                listOrder[counter] = tickOrder[tick].order[index];
+                listOrder[counter].status = Status.PARTIAL_FILLED;
+                counter++;
+            }
+        }
+
+    }
+
+
     function getIsWaitingOrder(int256 _tick, uint256 _index) public view returns (bool)
     {
         return tickOrder[_tick].order[_index].status == Status.OPENING && tickOrder[_tick].filledIndex < _index;
@@ -536,7 +581,7 @@ contract Amm is IAmm, BlockContext {
         baseReserveAmount = liquidityDetail.baseReserveAmount;
     }
 
-    function getTotalPositionSize() external view override returns (uint256) {
+    function getTotalPositionSize() external view override returns (int256) {
 
         //        return totalPositionSize;
         return 0;
@@ -546,7 +591,7 @@ contract Amm is IAmm, BlockContext {
         return ammState.tick;
     }
 
-    function settleFunding() external view override returns (uint256){
+    function settleFunding() external view override returns (int256){
         //
         //        require(_blockTimestamp() >= nextFundingTime, Errors.A_AMM_SETTLE_TO_SOON);
         //        // premium = twapMarketPrice - twapIndexPrice
