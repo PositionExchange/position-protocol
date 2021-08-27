@@ -275,8 +275,9 @@ contract Amm is IAmm, BlockContext {
             state.baseCalculatedAmount = state.baseCalculatedAmount.add(step.baseCalculatedAmount);
 
             updateReserve(step.quoteCalculatedAmount, step.baseCalculatedAmount, sideBuy);
-            console.log("quote remaining", state.quoteRemainingAmount);
             console.log("step quote calculated", step.quoteCalculatedAmount);
+            console.log("quote remaining", state.quoteRemainingAmount);
+            console.log("base remaining", state.baseRemainingAmount);
             console.log("step base calculated", step.baseCalculatedAmount);
 
             // shift tick if we reached the next tick's price
@@ -521,9 +522,6 @@ contract Amm is IAmm, BlockContext {
 
     function getPnL(address _trader) external view override returns (int256) {
         //        requireAmm(_amm, true);
-
-
-
         return 0;
     }
 

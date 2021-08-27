@@ -33,8 +33,11 @@ library PriceMath {
         liquidity = Calc.sqrt(liquidity);
         if (targetPrice > currentPrice){
             amountCalculated = (Calc.sqrt(targetPrice).sub(Calc.sqrt(currentPrice)).mul(liquidity)).div(powNine);
+            console.log("price math in if");
+            console.log(amountCalculated);
         } else {
             amountCalculated = (Calc.sqrt(currentPrice).sub(Calc.sqrt(targetPrice)).mul(liquidity)).div(powNine);
+            console.log("price math in else");
         }
     }
 

@@ -58,19 +58,26 @@ library ComputeAmountMath {
             }
             console.log("next price", nextPrice);
         } else {
-            uint256 amountCalculated = PriceMath.getQuoteAmountToTargetPrice(targetPrice, currentPrice, liquidity);
+            console.log("start compute swap step");
+            console.log("targetPrice: %s",targetPrice);
+            console.log("currentPrice: %s",currentPrice);
+            amountCalculated = PriceMath.getQuoteAmountToTargetPrice(targetPrice, currentPrice, liquidity);
+            console.log("amount quote calculated: %s",amountCalculated);
+            console.log("amount quote remaining: %s",quoteRemainingAmount);
+            console.log("end compute swap step");
             if (quoteRemainingAmount >= amountCalculated) nextPrice = targetPrice;
             else
             // function calculate the next price after swap an specific amount
                 nextPrice = PriceMath.getNextPriceFromInput(
                     currentPrice,
-                    liquidity,
+                    quoteRemainingAmount,
                     sideBuy,
-                    quoteRemainingAmount
+                    liquidity
                 );
         }
         bool max = targetPrice == nextPrice;
-
+        console.log("final amount calculated", amountCalculated);
+        console.log("final quote remaining amount", quoteRemainingAmount);
         // get the input/output amounts
         if (sideBuy) {
             quoteCalculatedAmount = max
@@ -87,6 +94,7 @@ library ComputeAmountMath {
             ? PriceMath.getBaseAmountToTargetPrice(targetPrice, currentPrice, liquidity)
             : PriceMath.getBaseAmountToTargetPrice(nextPrice, currentPrice, liquidity);
         }
+        console.log("final quote calculated amount", quoteCalculatedAmount);
     }
 }
 
