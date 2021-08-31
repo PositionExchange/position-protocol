@@ -1,5 +1,5 @@
 const {expect, use} = require('chai')
-const {ethers, waffle, web3} = require("hardhat")
+const {ethers, waffle, web3, deployments} = require("hardhat")
 const {ContractFactory, utils, BigNumber, Signer} = require('ethers');
 const {waffleChai} = require('@ethereum-waffle/chai');
 const {deployMockContract, provider, solidity} = waffle

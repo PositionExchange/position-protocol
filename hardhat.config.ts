@@ -3,7 +3,7 @@ import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-etherscan';
 import "@typechain/hardhat";
 import {task} from "hardhat/config";
-import {BSC_TESTNET_URL, GAS_PRICE} from "./constants";
+import {BSC_MAINNET_URL, BSC_TESTNET_URL, GAS_PRICE} from "./constants";
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -21,21 +21,27 @@ task("accounts", "Prints the list of accounts", async (args, hre) => {
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
+    defaultNetwork: "hardhat",
+
     networks: {
+        localhost: {
+            url: "http://127.0.0.1:8545"
+        },
         hardhat: {
             allowUnlimitedContractSize: true,
         },
-        // coverage: {
-        //     url: COVERAGE_URL,
-        // },
-        bsctestnet: {
+        testnet: {
             url: BSC_TESTNET_URL,
             chainId: 97,
             gasPrice: 20000000000,
-            // gasPrice: 5000000000,
             accounts: ["e797cad59780e24c113373fc91345869d7eab37ea0e843117575854b01625df4"],
         },
-
+        mainnet: {
+            url: BSC_MAINNET_URL,
+            chainId: 56,
+            gasPrice: 20000000000,
+            accounts: ["e797cad59780e24c113373fc91345869d7eab37ea0e843117575854b01625df4"],
+        }
     },
 
     solidity: {
@@ -64,6 +70,9 @@ module.exports = {
     typechain: {
         outDir: "typeChain",
         target: "ethers-v5",
+    },
+    mocha: {
+        timeout: 100000
     }
 };
 

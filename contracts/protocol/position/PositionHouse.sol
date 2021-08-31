@@ -159,7 +159,6 @@ contract PositionHouse is IPositionHouse, BlockContext, Uint256ERC20 {
         _amm.removeMargin(_trader, _amountRemoved);
         emit MarginChanged(_trader, address(_amm), _amountRemoved, 0);
 
-        //        emit MarginChanged(trader, address(_amm), int256(_amountRemoved.toUint()), 0);
     }
 
     // TODO modify function
@@ -271,9 +270,12 @@ contract PositionHouse is IPositionHouse, BlockContext, Uint256ERC20 {
     }
 
 
-    function getPosition(IAmm _amm, address _trader) public view returns (IAmm.Position memory positionsOpened, IAmm.Position memory positionOrder)  {
+    function getPosition(IAmm _amm, address _trader) public view returns (IAmm.PositionResponse memory positionsOpened, IAmm.Order[] memory listOrder)  {
 
         // TODO require getPosition
+
+        listOrder = _amm.getPositionInOrder(_trader);
+        positionsOpened = _amm.getPosition(_trader);
 
     }
 

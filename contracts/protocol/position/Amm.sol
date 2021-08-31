@@ -33,7 +33,7 @@ contract Amm is IAmm, BlockContext {
     uint256 fundingRate;
     uint256 constant toWei = 1000000000000000000;
     // update during every swap and used when shutting amm down. it's trader's total base asset size
-    //    IChainLinkPriceFeed public priceFeed;
+    IChainLinkPriceFeed public priceFeed;
     IERC20 public override quoteAsset;
     /// list of all tick index
     //    mapping(uint256 => Tick.Info) public override ticks;
@@ -233,7 +233,6 @@ contract Amm is IAmm, BlockContext {
         (uint256 liquidity, uint256 quoteReserveAmount, uint256 baseReserveAmount) = getLiquidityDetail();
 
 
-
         OpenMarketState memory state = OpenMarketState({
         quoteRemainingAmount : paramsOpenMarket.quoteAmount,
         quoteCalculatedAmount : 0,
@@ -268,7 +267,7 @@ contract Amm is IAmm, BlockContext {
                 liquidity,
                 state.quoteRemainingAmount
             );
-            console.log("state price",state.price);
+            console.log("state price", state.price);
             state.quoteCalculatedAmount = state.quoteCalculatedAmount.add(step.quoteCalculatedAmount);
             state.quoteRemainingAmount = state.quoteRemainingAmount.sub(step.quoteCalculatedAmount);
             state.baseRemainingAmount = state.baseRemainingAmount.sub(step.baseCalculatedAmount);
@@ -307,8 +306,8 @@ contract Amm is IAmm, BlockContext {
                                 }
                                 console.log(295);
                             } else if (tickOrder[step.tickNext].order[filledIndex].status == Status.OPENING) {
-                                console.log("remainingLiquidity",remainingLiquidity);
-                                console.log("orderLiquidityRemain",tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain);
+                                console.log("remainingLiquidity", remainingLiquidity);
+                                console.log("orderLiquidityRemain", tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain);
                                 if (remainingLiquidity > tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain) {
                                     remainingLiquidity = remainingLiquidity.sub(tickOrder[step.tickNext].order[filledIndex].orderLiquidityRemain);
                                     filledIndex = filledIndex.add(1);
@@ -403,7 +402,7 @@ contract Amm is IAmm, BlockContext {
             console.log(374);
         }
         ammState.unlocked = true;
-        console.log("final liquidity",liquidityDetail.liquidity);
+        console.log("final liquidity", liquidityDetail.liquidity);
     }
 
     function cancelOrder(address _trader, uint256 _index, int256 _tick) external override {
@@ -437,7 +436,6 @@ contract Amm is IAmm, BlockContext {
                 uint256 _index = positionMap[_trader][i].index;
                 tickOrder[_tick].liquidity = tickOrder[_tick].liquidity.sub(tickOrder[_tick].order[_index].amountLiquidity);
                 tickOrder[_tick].order[_index].status = Status.CANCEL;
-
                 positionMap[_trader][i] = positionMap[_trader][positionMap[_trader].length - 1];
                 positionMap[_trader].pop();
 
@@ -477,8 +475,6 @@ contract Amm is IAmm, BlockContext {
                     positionMap[_trader][i] = positionMap[_trader][positionMap[_trader].length - 1];
                     positionMap[_trader].pop();
                 }
-
-
             }
 
             i = i.sub(1);
@@ -509,8 +505,6 @@ contract Amm is IAmm, BlockContext {
 
     function getPnL(address _trader) external view override returns (int256) {
         //        requireAmm(_amm, true);
-
-
 
         return 0;
     }
@@ -545,19 +539,23 @@ contract Amm is IAmm, BlockContext {
         PositionResponse memory positionResponseLong;
         PositionResponse memory positionResponseShort;
 
-
+        uint256 leverage;
+        uint256 maxIndex;
 
         for (uint256 i = 0; i < positionMap[_trader].length; i++) {
             int256 tick = positionMap[_trader][i].tick;
             uint256 index = positionMap[_trader][i].index;
             if (index < tickOrder[tick].filledIndex) {
 
+                if (index > maxIndex) {
+                    leverage = tickOrder[tick].order[index].leverage;
+                    maxIndex = index;
+                }
                 if (tickOrder[tick].order[index].side == Side.BUY) {
                     positionResponseLong.baseAmount = positionResponseLong.baseAmount.add(tickOrder[tick].order[index].amountAssetBase);
                     positionResponseLong.baseAmount = positionResponseLong.quoteAmount.add(tickOrder[tick].order[index].amountAssetQuote);
                     positionResponseLong.margin = positionResponseLong.margin.add(tickOrder[tick].order[index].margin);
                 } else if (tickOrder[tick].order[index].side == Side.SELL) {
-
                     positionResponseShort.baseAmount = positionResponseShort.baseAmount.add(tickOrder[tick].order[index].amountAssetBase);
                     positionResponseShort.baseAmount = positionResponseShort.quoteAmount.add(tickOrder[tick].order[index].amountAssetQuote);
                     positionResponseLong.margin = positionResponseShort.margin.add(tickOrder[tick].order[index].margin);
@@ -567,12 +565,12 @@ contract Amm is IAmm, BlockContext {
 
         }
 
+        //TODO get calc
+
     }
 
-
+    //TODO Add test
     function getPositionInOrder(address _trader) external view override returns (Order[] memory listOrder){
-
-
         uint256 counter = 0;
 
         for (uint256 i = 0; i < positionMap[_trader].length; i++) {
@@ -580,12 +578,10 @@ contract Amm is IAmm, BlockContext {
             int256 tick = positionMap[_trader][i].tick;
             uint256 index = positionMap[_trader][i].index;
             if (index > tickOrder[tick].filledIndex) {
-
                 listOrder[counter] = tickOrder[tick].order[index];
                 counter++;
 
             } else if (index == tickOrder[tick].filledIndex) {
-
                 listOrder[counter] = tickOrder[tick].order[index];
                 listOrder[counter].status = Status.PARTIAL_FILLED;
                 counter++;
@@ -598,7 +594,6 @@ contract Amm is IAmm, BlockContext {
     function getIsWaitingOrder(int256 _tick, uint256 _index) public view returns (bool)
     {
         return tickOrder[_tick].order[_index].status == Status.OPENING && tickOrder[_tick].filledIndex < _index;
-        //        return true;
     }
 
     function getIsOrderExecuted(int256 _tick, uint256 _index) external view override returns (bool) {
@@ -711,8 +706,7 @@ contract Amm is IAmm, BlockContext {
      * @return underlying price
      */
     function getUnderlyingPrice() public view returns (uint256) {
-        //        return Decimal.decimal(priceFeed.getPrice(priceFeedKey));
-        return 0;
+        return priceFeed.getPrice(priceFeedKey);
     }
 
     /**
@@ -720,15 +714,15 @@ contract Amm is IAmm, BlockContext {
      * @return underlying price
      */
     function getUnderlyingTwapPrice(uint256 _intervalInSeconds) public view returns (uint256) {
-        //        return Decimal.decimal(priceFeed.getTwapPrice(priceFeedKey, _intervalInSeconds));
-        return 0;
+        return priceFeed.getTwapPrice(priceFeedKey, _intervalInSeconds);
+        //        return 0;
     }
 
     /**
      * @notice get twap price
      */
     function getTwapPrice(uint256 _intervalInSeconds) public view returns (uint256) {
-        //        return implGetReserveTwapPrice(_intervalInSeconds);
+        //                return implGetReserveTwapPrice(_intervalInSeconds);
         return 0;
     }
 
