@@ -67,7 +67,7 @@ describe('Test Amm', () => {
             // Iamm
             addressAmm,
             // amount base
-            toWei(0.001),
+            toWei(0.95238),
             //amount quote
             toWei(1000),
             //limit price
@@ -83,7 +83,7 @@ describe('Test Amm', () => {
             // Iamm
             addressAmm,
             // amount base
-            toWei(0.002),
+            toWei(1.86916),
             //amount quote
             toWei(2000),
             //limit price
@@ -99,11 +99,17 @@ describe('Test Amm', () => {
             addressAmm,
             0,
             toWei(5000),
-            toWei(50),
+            toWei(5),
             10
         );
 
-
+        await positionHouse.connect(account2).openPosition(
+            addressAmm,
+            1,
+            toWei(5000),
+            toWei(5),
+            10
+        );
     });
 
 

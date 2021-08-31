@@ -223,7 +223,7 @@ contract Amm is IAmm, BlockContext {
         ParamsOpenMarket memory paramsOpenMarket
     ) external override {
         require(paramsOpenMarket.quoteAmount != 0, 'Invalid amount');
-
+        console.log("start open market");
         AmmState memory ammStateStart = ammState;
 
         require(ammStateStart.unlocked, 'Amm is locked');
@@ -231,8 +231,8 @@ contract Amm is IAmm, BlockContext {
         ammState.unlocked = false;
         bool sideBuy = paramsOpenMarket.side == Side.BUY ? true : false;
         (uint256 liquidity, uint256 quoteReserveAmount, uint256 baseReserveAmount) = getLiquidityDetail();
-
-
+        console.log("quote reserve amount", quoteReserveAmount);
+        console.log("base reserve amount", baseReserveAmount);
 
         OpenMarketState memory state = OpenMarketState({
         quoteRemainingAmount : paramsOpenMarket.quoteAmount,
@@ -242,6 +242,7 @@ contract Amm is IAmm, BlockContext {
         price : ammStateStart.price,
         tick : ammStateStart.tick
         });
+        console.log("before while", state.baseRemainingAmount);
         while (state.quoteRemainingAmount != 0) {
             console.log("in while");
             StepComputations memory step;
@@ -269,16 +270,23 @@ contract Amm is IAmm, BlockContext {
                 state.quoteRemainingAmount
             );
             console.log("state price",state.price);
-            state.quoteCalculatedAmount = state.quoteCalculatedAmount.add(step.quoteCalculatedAmount);
-            state.quoteRemainingAmount = state.quoteRemainingAmount.sub(step.quoteCalculatedAmount);
-            state.baseRemainingAmount = state.baseRemainingAmount.sub(step.baseCalculatedAmount);
-            state.baseCalculatedAmount = state.baseCalculatedAmount.add(step.baseCalculatedAmount);
-
-            updateReserve(step.quoteCalculatedAmount, step.baseCalculatedAmount, sideBuy);
             console.log("step quote calculated", step.quoteCalculatedAmount);
             console.log("quote remaining", state.quoteRemainingAmount);
-            console.log("base remaining", state.baseRemainingAmount);
             console.log("step base calculated", step.baseCalculatedAmount);
+            console.log("base remaining", state.baseRemainingAmount);
+            state.quoteCalculatedAmount = state.quoteCalculatedAmount.add(step.quoteCalculatedAmount);
+            console.log(273);
+            state.quoteRemainingAmount = state.quoteRemainingAmount.sub(step.quoteCalculatedAmount);
+            console.log(275);
+            state.baseRemainingAmount = state.baseRemainingAmount.sub(step.baseCalculatedAmount);
+            console.log(277);
+            state.baseCalculatedAmount = state.baseCalculatedAmount.add(step.baseCalculatedAmount);
+            console.log(279);
+            updateReserve(step.quoteCalculatedAmount, step.baseCalculatedAmount, sideBuy);
+            console.log("state quote calculated", state.quoteCalculatedAmount);
+            console.log("quote remaining", state.quoteRemainingAmount);
+            console.log("state base calculated", state.baseCalculatedAmount);
+            console.log("base remaining", state.baseRemainingAmount);
 
             // shift tick if we reached the next tick's price
             if (state.price == step.priceNext) {
@@ -521,7 +529,8 @@ contract Amm is IAmm, BlockContext {
     }
 
     function getPnL(address _trader) external view override returns (int256) {
-        //        requireAmm(_amm, true);
+        requireAmm(_amm, true);
+        uint256 unrealizedPnl = positionSize * directionOfOrder * (markPrice - entryPrice);
         return 0;
     }
 
@@ -683,6 +692,41 @@ contract Amm is IAmm, BlockContext {
     function getTwapPrice(uint256 _intervalInSeconds) public view returns (uint256) {
         //        return implGetReserveTwapPrice(_intervalInSeconds);
         return 0;
+    }
+
+    function getPosition(address _trader) external view override returns (PositionResponse memory positionResponse){
+
+        PositionOpenMarket memory positionMarket = positionMarketMap[_trader];
+
+        PositionResponse memory positionResponseLong;
+        PositionResponse memory positionResponseShort;
+
+        uint256 leverage;
+        uint256 minIndex = ~uint256(0);
+
+        for (uint256 i = 0; i < positionMap[_trader].length; i++) {
+            int256 tick = positionMap[_trader][i].tick;
+            uint256 index = positionMap[_trader][i].index;
+            if (index < tickOrder[tick].filledIndex) {
+
+                if (index < minIndex) {
+                    leverage = tickOrder[tick].order[index].leverage;
+                    minIndex = index;
+                }
+                if (tickOrder[tick].order[index].side == Side.BUY) {
+                    positionResponseLong.baseAmount = positionResponseLong.baseAmount.add(tickOrder[tick].order[index].amountAssetBase);
+                    positionResponseLong.baseAmount = positionResponseLong.quoteAmount.add(tickOrder[tick].order[index].amountAssetQuote);
+                    positionResponseLong.margin = positionResponseLong.margin.add(tickOrder[tick].order[index].margin);
+                } else if (tickOrder[tick].order[index].side == Side.SELL) {
+
+                    positionResponseShort.baseAmount = positionResponseShort.baseAmount.add(tickOrder[tick].order[index].amountAssetBase);
+                    positionResponseShort.baseAmount = positionResponseShort.quoteAmount.add(tickOrder[tick].order[index].amountAssetQuote);
+                    positionResponseLong.margin = positionResponseShort.margin.add(tickOrder[tick].order[index].margin);
+                }
+
+            }
+
+        }
     }
 
 }
