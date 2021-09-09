@@ -27,6 +27,7 @@ contract Amm is IAmm, BlockContext {
     using Calc for uint256;
 
     // variable
+    uint256 public maintenanceMarginRatio;
     uint256 public spotPriceTwapInterval;
     uint256 public fundingPeriod;
     uint256 public fundingBufferPeriod;
@@ -162,9 +163,10 @@ contract Amm is IAmm, BlockContext {
     }
 
 
-    function getPrice() external override view returns (uint256 price) {
-        price = liquidityDetail.quoteReserveAmount.div(liquidityDetail.baseReserveAmount);
-
+    function getPrice() external view override returns (uint256 price) {
+        uint256 quoteReserveAmount = liquidityDetail.quoteReserveAmount;
+        uint256 baseReserveAmount = liquidityDetail.baseReserveAmount;
+        price = quoteReserveAmount.mul(toWei).div(baseReserveAmount);
     }
     // margin =_amountAssetQuote / _leverage
 
@@ -207,7 +209,7 @@ contract Amm is IAmm, BlockContext {
         limitPrice : _limitPrice,
         amountLiquidity : liquidityAdded,
         //TODO edit orderLiquidityRemain
-        orderLiquidityRemain : _amountAssetQuote,
+        orderLiquidityRemain : _amountAssetQuote.mul(_amountAssetBase),
         margin : _margin,
         status : Status.OPENING
         });
@@ -235,14 +237,49 @@ contract Amm is IAmm, BlockContext {
         console.log("base reserve amount", baseReserveAmount);
 
         OpenMarketState memory state = OpenMarketState({
-        quoteRemainingAmount : paramsOpenMarket.quoteAmount,
-        quoteCalculatedAmount : 0,
-        baseRemainingAmount : LiquidityMath.getBaseAmountByQuote(paramsOpenMarket.quoteAmount, sideBuy, liquidity, quoteReserveAmount, baseReserveAmount),
-        baseCalculatedAmount : 0,
-        price : ammStateStart.price,
-        tick : ammStateStart.tick
+            quoteRemainingAmount : paramsOpenMarket.quoteAmount,
+            quoteCalculatedAmount : 0,
+            baseRemainingAmount : LiquidityMath.getBaseAmountByQuote(paramsOpenMarket.quoteAmount, sideBuy, liquidity, quoteReserveAmount, baseReserveAmount),
+            baseCalculatedAmount : 0,
+            price : ammStateStart.price,
+            tick : ammStateStart.tick
         });
+        // Check current tick have same order's side with market order
+        (int256 checkCurrentTick, bool checkInitialized) = TickBitmap.nextInitializedTickWithinOneWord(
+            tickBitmap,
+            state.tick,
+            !sideBuy
+        );
+        uint256 checkCurrentIndex = tickOrder[checkCurrentTick].currentIndex;
+        if (checkCurrentTick == state.tick && checkInitialized == true && tickOrder[checkCurrentTick].order[checkCurrentIndex].side == paramsOpenMarket.side) {
+            uint256 quoteCalculatedCheckAmount;
+            uint256 baseCalculatedCheckAmount;
+            uint256 priceStart = state.price;
+            if (sideBuy == true) {
+                console.log("side buy 0");
+            } else {
+                console.log("side buy 1");
+                int256 tickNext = checkCurrentTick - 1;
+                console.log("tick next", uint256(tickNext));
+                uint256 priceNext = TickMath.getPriceAtTick(tickNext);
+                (state.price, quoteCalculatedCheckAmount, baseCalculatedCheckAmount) = ComputeAmountMath.computeSwapStep(
+                    priceStart,
+                    priceNext,
+                    liquidity,
+                    state.quoteRemainingAmount
+                );
+                console.log("quote check amount", quoteCalculatedCheckAmount);
+                console.log("base check amount", baseCalculatedCheckAmount);
+                state.quoteCalculatedAmount = state.quoteCalculatedAmount.add(quoteCalculatedCheckAmount);
+                state.quoteRemainingAmount = state.quoteRemainingAmount.sub(quoteCalculatedCheckAmount);
+                state.baseRemainingAmount = state.baseRemainingAmount.sub(baseCalculatedCheckAmount);
+                state.baseCalculatedAmount = state.baseCalculatedAmount.add(baseCalculatedCheckAmount);
+                state.tick = tickNext;
+            }
+        }
+
         console.log("before while", state.baseRemainingAmount);
+
         while (state.quoteRemainingAmount != 0) {
             console.log("in while");
             StepComputations memory step;
@@ -282,12 +319,10 @@ contract Amm is IAmm, BlockContext {
             console.log(277);
             state.baseCalculatedAmount = state.baseCalculatedAmount.add(step.baseCalculatedAmount);
             console.log(279);
-            updateReserve(step.quoteCalculatedAmount, step.baseCalculatedAmount, sideBuy);
             console.log("state quote calculated", state.quoteCalculatedAmount);
             console.log("quote remaining", state.quoteRemainingAmount);
             console.log("state base calculated", state.baseCalculatedAmount);
             console.log("base remaining", state.baseRemainingAmount);
-
             // shift tick if we reached the next tick's price
             if (state.price == step.priceNext) {
                 // if the tick is initialized, run the tick transition
@@ -332,8 +367,8 @@ contract Amm is IAmm, BlockContext {
                             }
                         }
                         console.log(308);
-                        state.quoteCalculatedAmount = state.quoteCalculatedAmount.add(state.quoteRemainingAmount);
-                        state.baseCalculatedAmount = state.baseCalculatedAmount.add(state.baseRemainingAmount);
+//                        state.quoteCalculatedAmount = state.quoteCalculatedAmount.add(state.quoteRemainingAmount);
+//                        state.baseCalculatedAmount = state.baseCalculatedAmount.add(state.baseRemainingAmount);
                         (state.quoteRemainingAmount, state.baseRemainingAmount) = (0, 0);
                         console.log(312);
                         tickOrder[step.tickNext].filledIndex = filledIndex;
@@ -345,13 +380,13 @@ contract Amm is IAmm, BlockContext {
                         console.log(329);
                         tickOrder[step.tickNext].filledIndex = tickOrder[step.tickNext].currentIndex;
                         console.log(331);
-                        state.quoteCalculatedAmount = state.quoteCalculatedAmount.add(Calc.sqrt(unfilledLiquidity.mul(state.price)));
+//                        state.quoteCalculatedAmount = state.quoteCalculatedAmount.add(Calc.sqrt(unfilledLiquidity.mul(state.price)));
                         console.log(333);
                         state.quoteRemainingAmount = state.quoteRemainingAmount.sub(Calc.sqrt(unfilledLiquidity.mul(state.price)));
                         console.log(335);
                         state.baseRemainingAmount = state.baseRemainingAmount.sub(Calc.sqrt(unfilledLiquidity.div(state.price)));
                         console.log(337);
-                        state.baseCalculatedAmount = state.baseCalculatedAmount.add(Calc.sqrt(unfilledLiquidity.div(state.price)));
+//                        state.baseCalculatedAmount = state.baseCalculatedAmount.add(Calc.sqrt(unfilledLiquidity.div(state.price)));
                         // TODO calculate remaining amount after fulfill this tick's liquidity
                         console.log(340);
                         state.tick = step.tickNext;
@@ -376,43 +411,60 @@ contract Amm is IAmm, BlockContext {
             state.price
             );
         }
-        updateReserve(state.quoteCalculatedAmount, state.baseCalculatedAmount, true);
+        console.log("begin update reserve");
+        console.log("state quote calculated amount", state.quoteCalculatedAmount);
+        console.log("state base calculated amount", state.baseCalculatedAmount);
+        updateReserve(state.quoteCalculatedAmount, state.baseCalculatedAmount, sideBuy);
         console.log(345);
         //TODO open position market
         PositionOpenMarket memory position = positionMarketMap[paramsOpenMarket._trader];
         console.log(348);
         // TODO position.side == side
-        if (position.side == paramsOpenMarket.side) {
-            console.log(351);
-            //TODO increment position
-            // same side
-            positionMarketMap[paramsOpenMarket._trader].margin = positionMarketMap[paramsOpenMarket._trader].margin.add(paramsOpenMarket.margin);
-            positionMarketMap[paramsOpenMarket._trader].amountAssetQuote = positionMarketMap[paramsOpenMarket._trader].amountAssetQuote.add(paramsOpenMarket.quoteAmount);
-            positionMarketMap[paramsOpenMarket._trader].amountAssetBase = positionMarketMap[paramsOpenMarket._trader].amountAssetBase.add(paramsOpenMarket.baseAmount);
-            console.log(357);
+        if (position.amountAssetQuote != 0) {
+            if (position.side == paramsOpenMarket.side) {
+                console.log(351);
+                //TODO increment position
+                // same side
+                positionMarketMap[paramsOpenMarket._trader].margin = positionMarketMap[paramsOpenMarket._trader].margin.add(paramsOpenMarket.margin);
+                positionMarketMap[paramsOpenMarket._trader].amountAssetQuote = positionMarketMap[paramsOpenMarket._trader].amountAssetQuote.add(paramsOpenMarket.quoteAmount);
+                positionMarketMap[paramsOpenMarket._trader].amountAssetBase = positionMarketMap[paramsOpenMarket._trader].amountAssetBase.add(paramsOpenMarket.baseAmount);
+                console.log(357);
+            } else {
+                console.log(360);
+                // TODO decrement position
+                if (paramsOpenMarket.margin > positionMarketMap[paramsOpenMarket._trader].margin) {
+                    // open reserve position
+                    if (position.side == Side.BUY) {
+                        positionMarketMap[paramsOpenMarket._trader].side = Side.SELL;
 
-        } else {
-            console.log(360);
-            // TODO decrement position
-            if (paramsOpenMarket.margin > positionMarketMap[paramsOpenMarket._trader].margin) {
-                // open reserve position
-                if (position.side == Side.BUY) {
-                    positionMarketMap[paramsOpenMarket._trader].side = Side.SELL;
+                    } else {
+                        positionMarketMap[paramsOpenMarket._trader].side = Side.SELL;
+                    }
 
-                } else {
-                    positionMarketMap[paramsOpenMarket._trader].side = Side.SELL;
                 }
-
+                console.log(372);
+                positionMarketMap[paramsOpenMarket._trader].margin = paramsOpenMarket.margin.sub(positionMarketMap[paramsOpenMarket._trader].margin);
+                console.log(373);
+                positionMarketMap[paramsOpenMarket._trader].amountAssetQuote = positionMarketMap[paramsOpenMarket._trader].amountAssetQuote.add(paramsOpenMarket.quoteAmount);
+                positionMarketMap[paramsOpenMarket._trader].amountAssetBase = positionMarketMap[paramsOpenMarket._trader].amountAssetBase.add(paramsOpenMarket.baseAmount);
+                console.log(374);
             }
-            console.log(372);
-            positionMarketMap[paramsOpenMarket._trader].margin = paramsOpenMarket.margin.sub(positionMarketMap[paramsOpenMarket._trader].margin);
-            console.log(373);
+        } else {
+            console.log("new position");
+            positionMarketMap[paramsOpenMarket._trader].margin = positionMarketMap[paramsOpenMarket._trader].margin.add(paramsOpenMarket.margin);
+            console.log("positionMarketMap[paramsOpenMarket._trader].margin", uint256(positionMarketMap[paramsOpenMarket._trader].margin));
             positionMarketMap[paramsOpenMarket._trader].amountAssetQuote = positionMarketMap[paramsOpenMarket._trader].amountAssetQuote.add(paramsOpenMarket.quoteAmount);
+            console.log("positionMarketMap[paramsOpenMarket._trader].amountAssetQuote", uint256(positionMarketMap[paramsOpenMarket._trader].amountAssetQuote));
             positionMarketMap[paramsOpenMarket._trader].amountAssetBase = positionMarketMap[paramsOpenMarket._trader].amountAssetBase.add(paramsOpenMarket.baseAmount);
-            console.log(374);
+            console.log("positionMarketMap[paramsOpenMarket._trader].amountAssetBase", uint256(positionMarketMap[paramsOpenMarket._trader].amountAssetBase));
+            positionMarketMap[paramsOpenMarket._trader].side = paramsOpenMarket.side;
+            positionMarketMap[paramsOpenMarket._trader].leverage = paramsOpenMarket.leverage;
+            console.log("open new position success");
         }
         ammState.unlocked = true;
         console.log("final liquidity", liquidityDetail.liquidity);
+        console.log("final quote reserve amount", liquidityDetail.quoteReserveAmount);
+        console.log("final base reserve amount", liquidityDetail.baseReserveAmount);
     }
 
     function cancelOrder(address _trader, uint256 _index, int256 _tick) external override {
@@ -513,10 +565,33 @@ contract Amm is IAmm, BlockContext {
         //        tickOrder[tick].order[index].margin = tickOrder[tick].order[index].margin.sub(_amountRemoved);
     }
 
-    function getPnL(address _trader) external view override returns (int256) {
-        requireAmm(_amm, true);
-        uint256 unrealizedPnl = positionSize * directionOfOrder * (markPrice - entryPrice);
-        return 0;
+    function getPnL(bool sideBuy, uint256 baseAmount, uint256 entryPrice, uint256 markPrice) external view returns (int256) {
+        console.log("in getPnl");
+        int256 unrealizedPnl;
+        console.log("side buy", sideBuy);
+        console.log("entry price", entryPrice);
+        console.log("mark price", markPrice);
+        console.log("base amount", baseAmount);
+        if (sideBuy) {
+            unrealizedPnl = int256(baseAmount) * (int256(markPrice) - int256(entryPrice)) / int256(toWei);
+        } else {
+            unrealizedPnl = int256(baseAmount) * (int256(entryPrice) - int256(markPrice)) / int256(toWei);
+        }
+        console.log("unrealized pnl", uint256(unrealizedPnl));
+        return unrealizedPnl;
+    }
+
+    function getMarginRatio(
+        uint256 _leverage,
+        uint256 _margin,
+        int256 _unrealizedPnl
+    ) external view returns (uint256 marginRatio) {
+        uint256 maintenanceMarginRate = toWei.div(50);
+        uint256 initialMarginRate = (toWei.mul(toWei)).div(_leverage);
+        uint256 initialMargin = (_margin.mul(toWei)).div(_leverage);
+        uint256 maintenanceMargin = (initialMargin.mul(maintenanceMarginRate)).div(toWei);
+        uint256 marginBalance = uint256(int256(initialMargin) + _unrealizedPnl);
+        marginRatio = (maintenanceMargin.mul(toWei)).div(marginBalance);
     }
 
     function updateReserve(
@@ -543,7 +618,7 @@ contract Amm is IAmm, BlockContext {
     }
 
     function getPosition(address _trader) external view override returns (PositionResponse memory positionResponse){
-
+        console.log("get position");
         PositionOpenMarket memory positionMarket = positionMarketMap[_trader];
 
         PositionResponse memory positionResponseLong;
@@ -551,30 +626,48 @@ contract Amm is IAmm, BlockContext {
 
         uint256 leverage;
         uint256 maxIndex;
-
+        console.log("max index", maxIndex);
         for (uint256 i = 0; i < positionMap[_trader].length; i++) {
+            console.log("in for");
             int256 tick = positionMap[_trader][i].tick;
             uint256 index = positionMap[_trader][i].index;
-            if (index < tickOrder[tick].filledIndex) {
-
+            console.log("tick", uint256(tick));
+            console.log("index", uint256(index));
+            console.log("tickOrder[tick].order[index].side", uint256(tickOrder[tick].order[index].side));
+            if (index <= tickOrder[tick].filledIndex) {
+                console.log("in first if");
                 if (index > maxIndex) {
                     leverage = tickOrder[tick].order[index].leverage;
                     maxIndex = index;
                 }
+
                 if (tickOrder[tick].order[index].side == Side.BUY) {
+                    console.log("in if");
                     positionResponseLong.baseAmount = positionResponseLong.baseAmount.add(tickOrder[tick].order[index].amountAssetBase);
-                    positionResponseLong.baseAmount = positionResponseLong.quoteAmount.add(tickOrder[tick].order[index].amountAssetQuote);
+                    positionResponseLong.quoteAmount = positionResponseLong.quoteAmount.add(tickOrder[tick].order[index].amountAssetQuote);
                     positionResponseLong.margin = positionResponseLong.margin.add(tickOrder[tick].order[index].margin);
                 } else if (tickOrder[tick].order[index].side == Side.SELL) {
+                    console.log("in else amm");
+                    console.log("amount asset quote", tickOrder[tick].order[index].amountAssetQuote);
+                    console.log("amount asset base", tickOrder[tick].order[index].amountAssetBase);
                     positionResponseShort.baseAmount = positionResponseShort.baseAmount.add(tickOrder[tick].order[index].amountAssetBase);
-                    positionResponseShort.baseAmount = positionResponseShort.quoteAmount.add(tickOrder[tick].order[index].amountAssetQuote);
-                    positionResponseLong.margin = positionResponseShort.margin.add(tickOrder[tick].order[index].margin);
+                    positionResponseShort.quoteAmount = positionResponseShort.quoteAmount.add(tickOrder[tick].order[index].amountAssetQuote);
+                    positionResponseShort.margin = positionResponseShort.margin.add(tickOrder[tick].order[index].margin);
+                    positionResponseShort.leverage = tickOrder[tick].order[index].leverage;
                 }
 
             }
 
         }
-
+        int256 unrealizedPnl = this.getPnL(false, positionResponseShort.baseAmount, positionResponseShort.quoteAmount.mul(toWei).div(positionResponseShort.baseAmount), this.getPrice());
+        uint256 entryPrice = positionResponseShort.quoteAmount.mul(toWei).div(positionResponseShort.baseAmount);
+        uint256 marginRatio = this.getMarginRatio(positionResponseShort.leverage, positionResponseShort.margin, unrealizedPnl);
+        console.log("positionResponseShort.baseAmount", positionResponseShort.baseAmount);
+        console.log("positionResponseShort.quoteAmount", positionResponseShort.quoteAmount);
+        console.log("positionResponseShort.margin", positionResponseShort.margin);
+        console.log("price", entryPrice);
+        console.log("pnl", uint256(unrealizedPnl));
+        console.log("margin ratio", marginRatio);
         //TODO get calc
 
     }

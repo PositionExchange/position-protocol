@@ -54,7 +54,7 @@ library ComputeAmountMath {
                     !sideBuy,
                     liquidity
                 );
-                console.log("in else");
+                console.log("in else compute amount math");
             }
             console.log("next price", nextPrice);
         } else {

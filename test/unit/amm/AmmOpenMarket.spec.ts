@@ -62,7 +62,7 @@ describe('Test Amm', () => {
 
     it('should open long limit correct and filled with 1 account', async () => {
 
-
+        console.log(account0.address);
         await positionHouse.connect(account0).openLimitOrder(
             // Iamm
             addressAmm,
@@ -110,7 +110,10 @@ describe('Test Amm', () => {
             toWei(5),
             10
         );
-    });
 
+        await amm.connect(account0).getPosition(
+            account0.address
+        );
+    });
 
 })

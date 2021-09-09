@@ -258,7 +258,7 @@ interface IAmm {
 
     function getReserve() external view returns (uint256 quoteReserveAmount, uint256 baseReserveAmount);
 
-    function getPnL(address _trader) external view returns (int256);
+//    function getPnL(address _trader) external view returns (int256);
 
     function getPosition(address _trader) external view returns (PositionResponse memory positionResponse);
 
