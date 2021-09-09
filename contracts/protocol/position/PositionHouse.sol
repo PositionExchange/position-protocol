@@ -13,6 +13,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {SignedSafeMath} from "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
 import "hardhat/console.sol";
+import {IMultiTokenRewardRecipient} from "../../interfaces/IMultiTokenRewardRecipient.sol";
 //import "../../interfaces/a.sol";
 
 /**
@@ -28,6 +29,8 @@ contract PositionHouse is IPositionHouse, BlockContext, Uint256ERC20 {
 
     // contract dependencies
     IInsuranceFund public insuranceFund;
+    IMultiTokenRewardRecipient public feePool;
+
     mapping(address => bool) whitelist;
     mapping(address => bool) blacklist;
     //    address[] whitelist;
@@ -35,6 +38,13 @@ contract PositionHouse is IPositionHouse, BlockContext, Uint256ERC20 {
     // event position house
     event MarginChanged(address indexed sender, address indexed amm, uint256 amount, int256 fundingPayment);
 
+
+    function initialize(
+
+
+    ) public {
+
+    }
 
     function queryOrder(IAmm amm) public view returns (IAmm.Position[] memory positions){
         address trader = msg.sender;
@@ -60,7 +70,7 @@ contract PositionHouse is IPositionHouse, BlockContext, Uint256ERC20 {
             _amountAssetQuote != 0,
             Errors.VL_INVALID_AMOUNT
         );
-        address trader = msg.sender;
+        address _trader = msg.sender;
 
         uint256 _margin = _amountAssetQuote.div(_leverage);
 
@@ -80,8 +90,11 @@ contract PositionHouse is IPositionHouse, BlockContext, Uint256ERC20 {
                 _amountAssetBase,
                 _leverage,
                 _margin,
-                msg.sender));
-        console.log("finish open market order");
+                _trader));
+
+        // transferFee when openLimitOrder;
+
+
     }
 
     function openLimitOrder(
@@ -113,10 +126,16 @@ contract PositionHouse is IPositionHouse, BlockContext, Uint256ERC20 {
             _margin,
             _side,
             _tick,
-            _leverage
+            _leverage,
+            _trader
+
         );
 
         _amm.addPositionMap(_trader, _tick, nextIndex);
+
+        // transferFee when openLimitOrder;
+
+
         // TODO Save position
 
         // TODO emit event
@@ -144,6 +163,8 @@ contract PositionHouse is IPositionHouse, BlockContext, Uint256ERC20 {
         address _trader = msg.sender;
 
         _amm.addMargin(_trader, _addedMargin);
+
+
         emit MarginChanged(_trader, address(_amm), _addedMargin, 0);
 
     }
@@ -161,32 +182,12 @@ contract PositionHouse is IPositionHouse, BlockContext, Uint256ERC20 {
 
     }
 
-    // TODO modify function
-    function withdraw(
-        IERC20 _token,
-        address _receiver,
-        uint256 _amount
-    ) internal {
-        // if withdraw amount is larger than entire balance of vault
-        // means this trader's profit comes from other under collateral position's future loss
-        // and the balance of entire vault is not enough
-        // need money from IInsuranceFund to pay first, and record this prepaidBadDebt
-        // in this case, insurance fund loss must be zero
-        //        uint256 memory totalTokenBalance = _balanceOf(_token, address(this));
-        //        if (totalTokenBalance.toUint() < _amount.toUint()) {
-        //            uint256 memory balanceShortage = _amount.subD(totalTokenBalance);
-        //            prepaidBadDebt[address(_token)] = prepaidBadDebt[address(_token)].addD(balanceShortage);
-        //            insuranceFund.withdraw(_token, balanceShortage);
-        //        }
-        //
-        //        _transfer(_token, _receiver, _amount);
-    }
 
 
     // TODO modify function
     function payFunding(IAmm _amm) public {
         requireAmm(_amm, true);
-        int256 premiumFraction = _amm.settleFunding();
+        _amm.payFunding();
         //        address(_amm).cumulativePremiumFractions.push(
         //            premiumFraction.add(getLatestCumulativePremiumFraction(_amm))
         //        );
@@ -197,15 +198,15 @@ contract PositionHouse is IPositionHouse, BlockContext, Uint256ERC20 {
         // if premiumFraction is positive: long pay short, amm get positive funding payment
         // if premiumFraction is negative: short pay long, amm get negative funding payment
         // if totalPositionSize.side * premiumFraction > 0, funding payment is positive which means profit
-        int256 totalTraderPositionSize = _amm.getTotalPositionSize();
-        int256 ammFundingPaymentProfit = premiumFraction.mul(totalTraderPositionSize);
-
-        IERC20 quoteAsset = _amm.quoteAsset();
-        if (ammFundingPaymentProfit < 0) {
-            insuranceFund.withdraw(quoteAsset, Calc.abs(ammFundingPaymentProfit));
-        } else {
-            transferToInsuranceFund(quoteAsset, Calc.abs(ammFundingPaymentProfit));
-        }
+        //        int256 totalTraderPositionSize = _amm.getTotalPositionSize();
+        //        int256 ammFundingPaymentProfit = premiumFraction.mul(totalTraderPositionSize);
+        //
+        //        IERC20 quoteAsset = _amm.quoteAsset();
+        //        if (ammFundingPaymentProfit < 0) {
+        //            insuranceFund.withdraw(quoteAsset, Calc.abs(ammFundingPaymentProfit));
+        //        } else {
+        //            transferToInsuranceFund(quoteAsset, Calc.abs(ammFundingPaymentProfit));
+        //        }
 
     }
 
@@ -224,15 +225,8 @@ contract PositionHouse is IPositionHouse, BlockContext, Uint256ERC20 {
     }
 
 
-    // TODO modify function
-    function transferToInsuranceFund(IERC20 _token, uint256 _amount) internal {
-        uint256 totalTokenBalance = _balanceOf(_token, address(this));
-        _transfer(
-            _token,
-            address(insuranceFund),
-            totalTokenBalance < _amount ? totalTokenBalance : _amount
-        );
-    }
+
+
 
 
     /*
@@ -247,7 +241,6 @@ contract PositionHouse is IPositionHouse, BlockContext, Uint256ERC20 {
         address _trader = msg.sender;
 
         _amm.cancelOrder(_trader, index, tick);
-
 
         emit CancelOrder(address(_amm), index, tick);
     }

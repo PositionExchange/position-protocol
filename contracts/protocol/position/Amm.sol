@@ -6,6 +6,7 @@ pragma solidity 0.8.0;
 */
 import {BlockContext} from "../libraries/helpers/BlockContext.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import {SignedSafeMath} from "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAmm} from "../../interfaces/a.sol";
 import {IChainLinkPriceFeed} from "../../interfaces/IChainLinkPriceFeed.sol";
@@ -15,6 +16,9 @@ import {PriceMath} from "../libraries/math/PriceMath.sol";
 import {TickMath} from "../libraries/math/TickMath.sol";
 import {TickBitmap} from "../libraries/math/TickBitmap.sol";
 import {ComputeAmountMath} from "../libraries/math/ComputeAmountMath.sol";
+import {Uint256ERC20} from "../libraries/helpers/Uint256ERC20.sol";
+import {IInsuranceFund} from  "../../interfaces/IInsuranceFund.sol";
+
 import "./PositionHouse.sol";
 import "../libraries/amm/PositionLimit.sol";
 import "../libraries/amm/Tick.sol";
@@ -22,8 +26,9 @@ import "./PositionHouse.sol";
 //import "../../interfaces/IAmmState.sol";
 import "hardhat/console.sol";
 
-contract Amm is IAmm, BlockContext {
+contract Amm is IAmm, BlockContext, Uint256ERC20 {
     using SafeMath for uint256;
+    using SignedSafeMath for int256;
     using Calc for uint256;
 
     // variable
@@ -32,6 +37,8 @@ contract Amm is IAmm, BlockContext {
     uint256 public fundingBufferPeriod;
     uint256 fundingRate;
     uint256 constant toWei = 1000000000000000000;
+    // only admin
+    uint256 public maintenanceMarginRatio;
     // update during every swap and used when shutting amm down. it's trader's total base asset size
     IChainLinkPriceFeed public priceFeed;
     IERC20 public override quoteAsset;
@@ -50,9 +57,17 @@ contract Amm is IAmm, BlockContext {
 
     // tickID => Tick
     mapping(int256 => TickOrder) tickOrder;
-    uint256[] cumulativePremiumFractions;
+    //    uint256[] cumulativePremiumFractions;
     // address _trader => Position
     mapping(address => Position[]) positionMap;
+
+    uint256 public tollRatio;
+    uint256 public spreadRatio;
+
+    IInsuranceFund public insuranceFund;
+    IMultiTokenRewardRecipient public feePool;
+
+
 
     /**
     * @notice event in amm
@@ -62,9 +77,11 @@ contract Amm is IAmm, BlockContext {
     event SwapOutput(Dir dir, uint256 quoteAssetAmount, uint256 baseAssetAmount);
     event FundingRateUpdated(uint256 rate, uint256 underlyingPrice);
     event CancelOrder(int256 tick, uint256 index);
+    event MarginRatioChanged(uint256 maintenanceMarginRatio);
 
     event OpenLimitOrder(int256 tick, uint256 index);
     event OpenMarketOrder(int256 tick, uint256 index);
+    event AddMargin(address trader, uint256 amountAdded);
 
     /**
      * @notice MODIFIER
@@ -105,7 +122,10 @@ contract Amm is IAmm, BlockContext {
         uint256 startPrice,
         uint256 _quoteAssetReserve,
         uint256 _baseAssetReserve,
-        address _quoteAsset
+        address _quoteAsset,
+        uint256 _maintenanceMarginRatio,
+        uint256 _tollRatio,
+        uint256 _spreadRatio
     //        uint256 _tradeLimitRatio,
     //        uint256 _fundingPeriod,
     //        IChainLinkPriceFeed _priceFeed,
@@ -132,12 +152,17 @@ contract Amm is IAmm, BlockContext {
 
         spotPriceTwapInterval = 1 hours;
 
+        tollRatio = _tollRatio;
+        spreadRatio = _spreadRatio;
+
 
         liquidityDetail.baseReserveAmount = _baseAssetReserve;
         liquidityDetail.quoteReserveAmount = _quoteAssetReserve;
         liquidityDetail.liquidity = _baseAssetReserve.mul(_quoteAssetReserve);
 
         quoteAsset = IERC20(_quoteAsset);
+
+        maintenanceMarginRatio = _maintenanceMarginRatio;
         // initialize tick
         int256 tick = TickMath.getTickAtPrice(startPrice);
         ammState = AmmState({
@@ -161,6 +186,17 @@ contract Amm is IAmm, BlockContext {
         liquidityDetail.liquidity = quoteReserveAmount.mul(baseReserveAmount);
     }
 
+    /**
+     * @notice set maintenance margin ratio
+     * @dev only owner can call
+     * @param _maintenanceMarginRatio new maintenance margin ratio in 18 digits
+     */
+    //TODO add only owner
+    function setMaintenanceMarginRatio(uint256 _maintenanceMarginRatio) external {
+        maintenanceMarginRatio = _maintenanceMarginRatio;
+        emit MarginRatioChanged(maintenanceMarginRatio);
+    }
+
 
     function getPrice() external override view returns (uint256 price) {
         price = liquidityDetail.quoteReserveAmount.div(liquidityDetail.baseReserveAmount);
@@ -177,7 +213,8 @@ contract Amm is IAmm, BlockContext {
         uint256 _margin,
         Side _side,
         int256 _tick,
-        uint256 _leverage) external override returns (uint256){
+        uint256 _leverage,
+        address _trader) external override returns (uint256){
 
         // TODO require openLimit
         require(_amountAssetBase != 0 &&
@@ -209,11 +246,16 @@ contract Amm is IAmm, BlockContext {
         //TODO edit orderLiquidityRemain
         orderLiquidityRemain : _amountAssetQuote,
         margin : _margin,
-        status : Status.OPENING
+        status : Status.OPENING,
+        timestamp : _blockTimestamp(),
+        blockNumber : _blockNumber()
         });
         (int256 wordPos, uint256 bitPos) = TickBitmap.position(_tick);
         uint256 mask = 1 << bitPos;
         tickBitmap[wordPos] |= mask;
+
+        _transferFrom(quoteAsset, _trader, address(this), _margin);
+        transferFee(_trader, _amountAssetQuote);
         return nextIndex;
 
     }
@@ -367,13 +409,10 @@ contract Amm is IAmm, BlockContext {
             );
         }
         updateReserve(state.quoteCalculatedAmount, state.baseCalculatedAmount, true);
-        console.log(345);
         //TODO open position market
         PositionOpenMarket memory position = positionMarketMap[paramsOpenMarket._trader];
-        console.log(348);
         // TODO position.side == side
         if (position.side == paramsOpenMarket.side) {
-            console.log(351);
             //TODO increment position
             // same side
             positionMarketMap[paramsOpenMarket._trader].margin = positionMarketMap[paramsOpenMarket._trader].margin.add(paramsOpenMarket.margin);
@@ -402,6 +441,7 @@ contract Amm is IAmm, BlockContext {
             console.log(374);
         }
         ammState.unlocked = true;
+        transferFee(paramsOpenMarket._trader, paramsOpenMarket.quoteAmount);
         console.log("final liquidity", liquidityDetail.liquidity);
     }
 
@@ -410,6 +450,8 @@ contract Amm is IAmm, BlockContext {
 
         tickOrder[_tick].liquidity = tickOrder[_tick].liquidity.sub(tickOrder[_tick].order[_index].amountLiquidity);
         tickOrder[_tick].order[_index].status = Status.CANCEL;
+
+        uint256 amountToRefund = tickOrder[_tick].order[_index].margin;
 
         for (uint256 i = 0; i < positionMap[_trader].length; i++) {
 
@@ -421,6 +463,8 @@ contract Amm is IAmm, BlockContext {
             }
         }
 
+        withdraw(quoteAsset, _trader, amountToRefund);
+
 
         emit CancelOrder(_tick, _index);
     }
@@ -428,19 +472,27 @@ contract Amm is IAmm, BlockContext {
 
     function cancelAllOrder(address _trader) external override {
 
+
+        uint256 amountToRefund;
+
         for (uint256 i = 0; i < positionMap[_trader].length; i++) {
 
-            if (positionMap[_trader][i].index < tickOrder[positionMap[_trader][i].tick].filledIndex) {
+            if (positionMap[_trader][i].index > tickOrder[positionMap[_trader][i].tick].filledIndex) {
 
                 int256 _tick = positionMap[_trader][i].tick;
                 uint256 _index = positionMap[_trader][i].index;
+
                 tickOrder[_tick].liquidity = tickOrder[_tick].liquidity.sub(tickOrder[_tick].order[_index].amountLiquidity);
                 tickOrder[_tick].order[_index].status = Status.CANCEL;
+
+                amountToRefund = amountToRefund.add(tickOrder[_tick].order[_index].margin);
+
                 positionMap[_trader][i] = positionMap[_trader][positionMap[_trader].length - 1];
                 positionMap[_trader].pop();
 
             }
         }
+        withdraw(quoteAsset, _trader, amountToRefund);
 
     }
 
@@ -455,7 +507,7 @@ contract Amm is IAmm, BlockContext {
 
         // TODO require close position
         // TODO close position
-        // calc PnL, transfer money
+        // TODO calc PnL, transfer money
         //
 
         uint256 i = positionMap[_trader].length.sub(1);
@@ -480,6 +532,14 @@ contract Amm is IAmm, BlockContext {
             i = i.sub(1);
 
         }
+
+        positionMarketMap[_trader] = PositionOpenMarket({
+        side : Side.BUY,
+        leverage : 0,
+        amountAssetQuote : 0,
+        amountAssetBase : 0,
+        margin : 0});
+
     }
 
 
@@ -490,24 +550,57 @@ contract Amm is IAmm, BlockContext {
         );
         // TODO removeMargin, calc
         //        tickOrder[tick].order[index].margin = tickOrder[tick].order[index].margin.sub(_amountRemoved);
+
+        withdraw(quoteAsset, _trader, _amountRemoved);
     }
 
-    function addMargin(address _trader, uint256 _amountRemoved) external override {
+
+    function addMargin(address _trader, uint256 _amountAdded) external override {
         require(
-            _amountRemoved != 0,
+            _amountAdded != 0,
             Errors.VL_INVALID_AMOUNT
         );
         // TODO addMargin, calc
-        //        tickOrder[tick].order[index].margin = tickOrder[tick].order[index].margin.add(_amountAdded);
 
-        //        tickOrder[tick].order[index].margin = tickOrder[tick].order[index].margin.sub(_amountRemoved);
+        require(positionMap[_trader].length > 0, "Require have position");
+
+        Position memory _position = positionMap[_trader][0];
+
+        tickOrder[_position.tick].order[_position.index].margin = tickOrder[_position.tick].order[_position.index].margin.add(_amountAdded);
+
+        _transferFrom(quoteAsset, _trader, address(this), _amountAdded);
+        //TODO transfer amount
+        emit AddMargin(_trader, _amountAdded);
+
     }
 
     function getPnL(address _trader) external view override returns (int256) {
         //        requireAmm(_amm, true);
+        uint256 price = liquidityDetail.quoteReserveAmount.div(liquidityDetail.baseReserveAmount);
 
         return 0;
     }
+
+    function getMarginRatio(PositionResponse memory positionResponse) external view returns (uint256) {
+
+        return 0;
+    }
+    /**
+   * @notice calculate total fee (including toll and spread) by input quoteAssetAmount
+   * @param _quoteAssetAmount quoteAssetAmount
+   * @return total tx fee
+   */
+    function calcFee(uint256 _quoteAssetAmount)
+    internal
+    view
+    returns (uint256, uint256)
+    {
+        if (_quoteAssetAmount == 0) {
+            return (0, 0);
+        }
+        return (_quoteAssetAmount.mul(tollRatio), _quoteAssetAmount.mul(spreadRatio));
+    }
+
 
     function updateReserve(
         uint256 _quoteAssetAmount,
@@ -567,6 +660,7 @@ contract Amm is IAmm, BlockContext {
 
         //TODO get calc
 
+
     }
 
     //TODO Add test
@@ -590,6 +684,28 @@ contract Amm is IAmm, BlockContext {
 
     }
 
+    // TODO modify function
+    function withdraw(
+        IERC20 _token,
+        address _receiver,
+        uint256 _amount
+    ) internal {
+        // if withdraw amount is larger than entire balance of vault
+        // means this trader's profit comes from other under collateral position's future loss
+        // and the balance of entire vault is not enough
+        // need money from IInsuranceFund to pay first, and record this prepaidBadDebt
+        // in this case, insurance fund loss must be zero
+        uint256 totalTokenBalance = _balanceOf(_token, address(this));
+        // TODO calc prepaidBadDebt
+        //        if (totalTokenBalance.toUint() < _amount.toUint()) {
+        //            uint256 memory balanceShortage = _amount.subD(totalTokenBalance);
+        //            prepaidBadDebt[address(_token)] = prepaidBadDebt[address(_token)].addD(balanceShortage);
+        //            insuranceFund.withdraw(_token, balanceShortage);
+        //        }
+
+        _transfer(_token, _receiver, _amount);
+    }
+
 
     function getIsWaitingOrder(int256 _tick, uint256 _index) public view returns (bool)
     {
@@ -610,17 +726,12 @@ contract Amm is IAmm, BlockContext {
         baseReserveAmount = liquidityDetail.baseReserveAmount;
     }
 
-    function getTotalPositionSize() external view override returns (int256) {
-
-        //        return totalPositionSize;
-        return 0;
-    }
 
     function getCurrentTick() external view override returns (int256) {
         return ammState.tick;
     }
 
-    function settleFunding() external view override returns (int256){
+    function settleFunding() internal view returns (int256){
         //
         //        require(_blockTimestamp() >= nextFundingTime, Errors.A_AMM_SETTLE_TO_SOON);
         //        // premium = twapMarketPrice - twapIndexPrice
@@ -649,6 +760,72 @@ contract Amm is IAmm, BlockContext {
         //        uint256 baseAssetDeltaThisFundingPeriod = 0;
         //
         //        return premiumFraction;
+        return 0;
+    }
+    // TODO modify function
+    function payFunding() external override {
+
+        int256 premiumFraction = settleFunding();
+
+        //        address(_amm).cumulativePremiumFractions.push(
+        //            premiumFraction.add(getLatestCumulativePremiumFraction(_amm))
+        //        );
+
+
+        // funding payment = premium fraction * position
+        // eg. if alice takes 10 long position, totalPositionSize = 10
+        // if premiumFraction is positive: long pay short, amm get positive funding payment
+        // if premiumFraction is negative: short pay long, amm get negative funding payment
+        // if totalPositionSize.side * premiumFraction > 0, funding payment is positive which means profit
+        int256 totalTraderPositionSize = getTotalPositionSize();
+        int256 ammFundingPaymentProfit = premiumFraction.mul(totalTraderPositionSize);
+
+        //        IERC20 quoteAsset = _amm.quoteAsset();
+        if (ammFundingPaymentProfit < 0) {
+            insuranceFund.withdraw(quoteAsset, Calc.abs(ammFundingPaymentProfit));
+        } else {
+            transferToInsuranceFund(quoteAsset, Calc.abs(ammFundingPaymentProfit));
+        }
+
+    }
+
+    function getTotalPositionSize() internal view returns (int256){
+        return 0;
+    }
+    // TODO modify function
+    function transferToInsuranceFund(IERC20 _token, uint256 _amount) internal {
+        uint256 totalTokenBalance = _balanceOf(_token, address(this));
+        _transfer(
+            _token,
+            address(insuranceFund),
+            totalTokenBalance < _amount ? totalTokenBalance : _amount
+        );
+    }
+
+    function transferFee(
+        address _trader,
+        uint256 _amountAssetQuote
+    ) internal returns (uint256) {
+        (uint256 toll,uint256 spread) = calcFee(_amountAssetQuote);
+        bool hasToll = toll > 0;
+        bool hasSpread = spread > 0;
+        if (hasToll || hasSpread) {
+            //            IERC20 quoteAsset = _amm.quoteAsset();
+
+            // transfer spread to insurance fund
+            if (hasSpread) {
+                _transferFrom(quoteAsset, _trader, address(insuranceFund), spread);
+            }
+
+            // transfer toll to feePool
+            if (hasToll) {
+                require(address(feePool) != address(0), "Invalid feePool");
+                _transferFrom(quoteAsset, _trader, address(feePool), toll);
+            }
+
+            // fee = spread + toll
+            return toll.add(spread);
+        }
         return 0;
     }
 

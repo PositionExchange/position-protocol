@@ -10,6 +10,7 @@ interface IAmm {
 
     enum Status  {OPENING, CLOSED, CANCEL, PARTIAL_FILLED}
     enum Side  {BUY, SELL}
+    enum PnlCalcOption {SPOT_PRICE, TWAP, ORACLE}
     struct PositionOpenMarket {
         // Type order BUY or SELL
         Side side;
@@ -21,6 +22,7 @@ interface IAmm {
         uint256 amountAssetBase;
         // margin of position
         uint256 margin;
+
     }
 
     /**
@@ -125,6 +127,8 @@ interface IAmm {
         // if FILLED: orderLiquidityRemain = 0;
         uint256 orderLiquidityRemain;
         Status status;
+        uint256 timestamp;
+        uint256 blockNumber;
     }
 
 
@@ -189,6 +193,7 @@ interface IAmm {
         uint256 leverage;
         int256 PnLUnrealized;
         uint256 marginRatio;
+        uint256 maintainMargin;
         uint256 fundingPayment;
 
     }
@@ -221,7 +226,9 @@ interface IAmm {
         uint256 _margin,
         Side _side,
         int256 _tick,
-        uint256 _leverage) external returns (uint256);
+        uint256 _leverage,
+        address _trader
+    ) external returns (uint256);
     //
     function openMarket(ParamsOpenMarket memory paramsOpenMarket) external;
     //
@@ -242,17 +249,22 @@ interface IAmm {
 
     function getIsOrderExecuted(int256 _tick, uint256 _index) external view returns (bool);
 
-    function getTotalPositionSize() external view returns (int256);
+//    function getTotalPositionSize() external view returns (int256);
 
     function getCurrentTick() external view returns (int256);
 
-    function settleFunding() external view returns (int256);
+//    function settleFunding() external view returns (int256);
+
+    function payFunding() external;
+
 
     function quoteAsset() external view returns (IERC20);
 
     function addPositionMap(address _trader, int256 tick, uint256 index) external;
 
     function closePosition(address _trader) external;
+
+//    function calcFee(uint256 _quoteAssetAmount) external view returns ( uint256, uint256);
 
     function getPrice() external view returns (uint256 price);
 
