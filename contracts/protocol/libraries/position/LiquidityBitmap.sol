@@ -36,10 +36,7 @@ library LiquidityBitmap {
             // all the 1s at or to the right of the current bitPos
             uint256 mask = (1 << bitPos) - 1 + (1 << bitPos);
             uint256 masked = self[wordPos] & mask;
-//
-            //            console.log("mask %s", mask);
-            //            console.log("self %s", self[wordPos]);
-            //            console.log("masked %s", masked);
+
 
             bool hasLiquidity = (self[wordPos] & 1 << bitPos) != 0;
 
@@ -61,10 +58,7 @@ library LiquidityBitmap {
             // all the 1s at or to the left of the bitPos
             uint256 mask = ~((1 << bitPos) - 1);
             uint256 masked = self[wordPos] & mask;
-//
-//            console.log("mask %s", mask);
-//            console.log("self %s", self[wordPos]);
-//            console.log("masked %s", masked);
+
 
             bool hasLiquidity = (self[wordPos] & 1 << bitPos) != 0;
 
