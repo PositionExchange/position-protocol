@@ -12,7 +12,7 @@ import "./Initializable.sol";
  * paying for execution may not be the actual sender (as far as an application
  * is concerned).
  *
- * This contract is only required for intermediate, library-like contracts.
+ * This contract is only required for intermediate, libraries-like contracts.
  */
 contract ContextUpgradeSafe is Initializable {
     // Empty internal constructor, to prevent people from mistakenly deploying

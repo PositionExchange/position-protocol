@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity 0.8.0;
 /**
- * @title Errors library
+ * @title Errors libraries
  * @author Position Exchange
  * @notice Defines the error messages emitted by the different contracts of the Position Exchange protocol
  * @dev Error messages prefix glossary:
