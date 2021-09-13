@@ -13,6 +13,20 @@ library LiquidityBitmap {
         bitPos = uint8(uint128(pip) & 0xff); // % 256
     }
 
+    /// @notice find the next pip has liquidity
+    /// @param pip The current pip index
+    /// @param lte  Whether to search for the next initialized tick to the left (less than or equal to the starting tick)
+    /// @return next The next bit position has liquidity, 0 means no liquidity found
+    function findNextInitializedLiquidity(
+        mapping(int128 => uint256) storage self,
+        int128 pip,
+        bool lte
+    ) internal view returns (
+        int128 next
+    ) {
+       // find the next pip has liquidity
+    }
+
     function hasLiquidity(
         mapping(int128 => uint256) storage self,
         int128 pip
