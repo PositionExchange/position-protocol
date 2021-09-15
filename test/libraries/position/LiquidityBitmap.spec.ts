@@ -96,20 +96,40 @@ describe('LiquidityBitmapTest', function () {
             await setBitsInRage(50, 100);
             const next = await liquidityBitmap.findNextInitializedLiquidity(110, true);
             expect(next.toNumber()).eq(100)
+            await unsetBitsInRange(50, 100);
 
             await setBitsInRage(50, 300);
             const next1 = await liquidityBitmap.findNextInitializedLiquidity(400, true);
             expect(next1.toNumber()).eq(300)
+            await unsetBitsInRange(50, 300);
 
 
             await setBitsInRage(50, 350);
             const next2 = await liquidityBitmap.findNextInitializedLiquidity(600, true);
             expect(next2.toNumber()).eq(0)
+            await unsetBitsInRange(50, 350);
+
+            await setBitsInRage(50, 350);
+            const next3 = await liquidityBitmap.findNextInitializedLiquidity(50, true);
+            expect(next3.toNumber()).eq(50)
+            await unsetBitsInRange(50, 350);
+
+
+
 
 
             await setBitsInRage(50, 300);
-            const next3 = await liquidityBitmap.findNextInitializedLiquidity(99, true);
-            expect(next3.toNumber()).eq(99)
+            const next5 = await liquidityBitmap.findNextInitializedLiquidity(99, true);
+            expect(next5.toNumber()).eq(99)
+            await unsetBitsInRange(50, 300);
+
+
+            // not passed
+            // await setBitsInRage(50, 350);
+            // const next4 = await liquidityBitmap.findNextInitializedLiquidity(49, true);
+            // expect(next4.toNumber()).eq(0)
+            // await unsetBitsInRange(50, 350);
+
         })
 
 
@@ -131,6 +151,25 @@ describe('LiquidityBitmapTest', function () {
             const next2 = await liquidityBitmap.findNextInitializedLiquidity(40, false);
             expect(next2.toNumber()).be.eq(50)
             await unsetBitsInRange(50, 300);
+
+
+            await setBitsInRage(50, 300);
+            const next3 = await liquidityBitmap.findNextInitializedLiquidity(50, false);
+            expect(next3.toNumber()).be.eq(50)
+            await unsetBitsInRange(50, 300);
+
+
+            await setBitsInRage(50, 100);
+            const next4 = await liquidityBitmap.findNextInitializedLiquidity(110, false);
+            expect(next4.toNumber()).be.eq(0)
+            await unsetBitsInRange(50, 100);
+
+
+            // not passed
+            // await setBitsInRage(50, 100);
+            // const next5 = await liquidityBitmap.findNextInitializedLiquidity(100, false);
+            // expect(next5.toNumber()).be.eq(100)
+            // await unsetBitsInRange(50, 100);
 
 
         })

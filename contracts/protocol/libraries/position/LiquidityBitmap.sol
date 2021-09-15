@@ -36,8 +36,6 @@ library LiquidityBitmap {
             // all the 1s at or to the right of the current bitPos
             uint256 mask = (1 << bitPos) - 1 + (1 << bitPos);
             uint256 masked = self[wordPos] & mask;
-
-
             bool hasLiquidity = (self[wordPos] & 1 << bitPos) != 0;
 
             // if there are no initialized ticks to the right of or at the current tick, return rightmost in the word
@@ -53,7 +51,8 @@ library LiquidityBitmap {
 
         } else {
             // start from the word of the next tick, since the current tick state doesn't matter
-            (int16 wordPos, uint8 bitPos) = position(pip + 1);
+            (int16 wordPos, uint8 bitPos) = position(pip);
+            //            (int16 wordPos1, uint8 bitPos1) = position(pip);
             // why need plus + 1?
             // all the 1s at or to the left of the bitPos
             uint256 mask = ~((1 << bitPos) - 1);
@@ -62,20 +61,26 @@ library LiquidityBitmap {
 
             bool hasLiquidity = (self[wordPos] & 1 << bitPos) != 0;
 
-
             // if there are no initialized ticks to the left of the current tick, return leftmost in the word
             bool initialized = masked != 0;
             // overflow/underflow is possible, but prevented externally by limiting both tickSpacing and tick
             next = initialized
-            ? (pip + 1 + int128(BitMath.leastSignificantBit(masked) - bitPos))  // +1
+            ? (pip + int128(BitMath.leastSignificantBit(masked) - bitPos))  // +1
             : 0;
+
+
+            console.log("bitPos +1 %s", bitPos);
+            console.log("wordPos +1 %s", uint256(int256(wordPos)));
+            //            console.log("bitPos %s", bitPos1);
+            console.log("hasLiquidity %s", hasLiquidity);
+            console.log("mask %s", mask);
+            console.log("self %s", self[wordPos]);
+            console.log("masked %s", masked);
+
 
             if (!hasLiquidity && next != 0) {
                 next = next + 1;
-            } else if (hasLiquidity && next != 0) {
-                next = next - 1;
             }
-
 
         }
 
