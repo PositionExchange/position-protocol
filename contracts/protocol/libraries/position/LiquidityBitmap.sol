@@ -31,7 +31,6 @@ library LiquidityBitmap {
         if (lte) {
             // main is find the next pip has liquidity
             (int16 wordPos, uint8 bitPos) = position(pip);
-            console.log("bitPos %s", bitPos);
 
             // all the 1s at or to the right of the current bitPos
             uint256 mask = (1 << bitPos) - 1 + (1 << bitPos);
@@ -67,16 +66,6 @@ library LiquidityBitmap {
             next = initialized
             ? (pip + int128(BitMath.leastSignificantBit(masked) - bitPos))  // +1
             : 0;
-
-
-            console.log("bitPos +1 %s", bitPos);
-            console.log("wordPos +1 %s", uint256(int256(wordPos)));
-            //            console.log("bitPos %s", bitPos1);
-            console.log("hasLiquidity %s", hasLiquidity);
-            console.log("mask %s", mask);
-            console.log("self %s", self[wordPos]);
-            console.log("masked %s", masked);
-
 
             if (!hasLiquidity && next != 0) {
                 next = next + 1;
