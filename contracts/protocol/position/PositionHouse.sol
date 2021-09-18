@@ -25,8 +25,6 @@ contract PositionHouse is IPositionHouse, BlockContext, Uint256ERC20 {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using Calc for uint256;
-
-
     // contract dependencies
     IInsuranceFund public insuranceFund;
     IMultiTokenRewardRecipient public feePool;
@@ -74,27 +72,6 @@ contract PositionHouse is IPositionHouse, BlockContext, Uint256ERC20 {
 
         uint256 _margin = _amountAssetQuote.div(_leverage);
 
-
-        // TODO open market: calc liquidity filled.
-        // if can cross tick => filled order next tick. Update filled liquidity, filled index
-
-        //
-        //        Side side,
-        //        uint256 quoteAmount,
-        //        uint256 leverage,
-        //        uint256 margin,
-        //        address _trader
-        _amm.openMarket(IAmm.ParamsOpenMarket(
-                _side,
-                _amountAssetQuote,
-                _amountAssetBase,
-                _leverage,
-                _margin,
-                _trader));
-
-        // transferFee when openLimitOrder;
-
-
     }
 
     function openLimitOrder(
@@ -106,40 +83,6 @@ contract PositionHouse is IPositionHouse, BlockContext, Uint256ERC20 {
         int256 _tick,
         uint256 _leverage) public {
 
-
-        // TODO require for openLimitOrder
-        int256 _currentTick = _amm.getCurrentTick();
-        if (_side == IAmm.Side.BUY) {
-            require(_tick < _currentTick, "Your ordered price is higher than current price");
-        } else {
-            require(_tick > _currentTick, "Your ordered price is lower than current price");
-        }
-
-        address _trader = msg.sender;
-
-        uint256 _margin = _amountAssetQuote.div(_leverage);
-
-        uint256 nextIndex = _amm.openLimit(
-            _amountAssetBase,
-            _amountAssetQuote,
-            _limitPrice,
-            _margin,
-            _side,
-            _tick,
-            _leverage,
-            _trader
-
-        );
-
-        _amm.addPositionMap(_trader, _tick, nextIndex);
-
-        // transferFee when openLimitOrder;
-
-
-        // TODO Save position
-
-        // TODO emit event
-        emit OpenLimitOrder(address(_amm), _trader, _tick, nextIndex);
 
     }
 

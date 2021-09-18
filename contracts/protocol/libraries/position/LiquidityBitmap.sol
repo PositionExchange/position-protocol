@@ -10,7 +10,8 @@ library LiquidityBitmap {
     /// @return bitPos the position in the bitmap
     function position(int128 pip) private pure returns (int16 mapIndex, uint8 bitPos) {
         mapIndex = int16(pip >> 8);
-        bitPos = uint8(uint128(pip) & 0xff); // % 256
+        bitPos = uint8(uint128(pip) & 0xff);
+        // % 256
     }
 
     /// @notice find the next pip has liquidity
@@ -24,7 +25,7 @@ library LiquidityBitmap {
     ) internal view returns (
         int128 next
     ) {
-       // find the next pip has liquidity
+        // find the next pip has liquidity
     }
 
     function hasLiquidity(
@@ -49,14 +50,14 @@ library LiquidityBitmap {
     ) internal {
         (int16 fromMapIndex, uint8 fromBitPos) = position(fromPip);
         (int16 toMapIndex, uint8 toBitPos) = position(toPip);
-        if(toMapIndex == fromMapIndex){
+        if (toMapIndex == fromMapIndex) {
             // in the same storage
             // Set all the bits in given range of a number
             self[toMapIndex] |= (((1 << (fromBitPos - 1)) - 1) ^ ((1 << toBitPos) - 1));
-        }else{
+        } else {
             // need to shift the map index
             // TODO fromMapIndex needs set separately
-            for(int16 i = fromMapIndex; i < toMapIndex; i++){
+            for (int16 i = fromMapIndex; i < toMapIndex; i++) {
                 // pass uint256.MAX to avoid gas for computing
                 self[i] = MAX_UINT256;
             }

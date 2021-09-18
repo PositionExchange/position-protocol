@@ -3,13 +3,16 @@ import {BlockContext} from "../libraries/helpers/BlockContext.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "../libraries/position/TickPosition.sol";
+import "../libraries/position/LimitOrder.sol";
 import "../libraries/position/TickStore.sol";
+import "../libraries/position/LiquidityBitmap.sol";
 
 import "hardhat/console.sol";
 
 contract PositionManager {
     using TickPosition for TickPosition.Data;
     using TickStore for mapping(int128 => uint256);
+    using LiquidityBitmap for mapping(int128 => uint256);
     uint256 public basisPoint = 10001; //1.0001
     uint256 public constant basisPointBase = 100;
     struct SingleSlot {
@@ -17,10 +20,11 @@ contract PositionManager {
         int128 pip;
     }
     SingleSlot public singleSlot;
-    mapping(int256 => TickPosition.Data) public tickPosition;
+    mapping(int128 => TickPosition.Data) public tickPosition;
     mapping(int128 => uint256) public tickStore;
     // a packed array of boolean, where liquidity is filled or not
     mapping(int128 => uint256) public liquidityBitmap;
+//    mapping(uint64 => LimitOrder.Data) orderQueue;
 
     modifier whenNotPause(){
         //TODO implement
@@ -30,6 +34,17 @@ contract PositionManager {
     modifier onlyCounterParty(){
         //TODO implement
         _;
+    }
+
+    function hasLiquidity(int128 pip) public view returns(bool) {
+        return liquidityBitmap.hasLiquidity(pip);
+    }
+
+    function getPendingOrderDetail(int128 pip, uint64 orderId) public view returns(
+        bool isBuy,
+        uint256 size
+    ){
+        return tickPosition[pip].getQueueOrder(orderId);
     }
 
     function currentPositionData(address _trader) external view returns (
@@ -45,25 +60,31 @@ contract PositionManager {
         return 0;
     }
 
-    function openLimitPosition(int256 tick, uint256 size, bool isBuy) external whenNotPause onlyCounterParty {
-//        require(tick != singleSlot.pip, "!!"); //call market order instead
-//        require(isBuy && tick < singleSlot.pip, "!B");
-//        require(!isBuy && tick > singleSlot.pip, "!B");
-//        //TODO validate tick
-//        // convert tick to price
-//        uint256 tickToPrice = 0;
-//        tickPosition[tick].insertLimit(tickToPrice, size);
-
+    function openLimitPosition(int128 pip, uint128 size, bool isBuy) external whenNotPause onlyCounterParty {
+        require(pip != singleSlot.pip, "!!"); //call market order instead
+        if(isBuy && singleSlot.pip != 0){
+            require(pip < singleSlot.pip, "!B");
+        }else{
+            require(pip > singleSlot.pip, "!S");
+        }
+        //TODO validate pip
+        // convert tick to price
+        // save at that pip has how many liquidity
+        bool hasLiquidity = liquidityBitmap.hasLiquidity(pip);
+        tickPosition[pip].insertLimitOrder(size, hasLiquidity, isBuy);
+        if(!hasLiquidity){
+            //set the bit to mark it has liquidity
+            liquidityBitmap.toggleSingleBit(pip, true);
+        }
+        // TODO insert order to queue then return
     }
 
     struct SwapState {
-        int256 remainingSize;
+        uint256 remainingSize;
         // the amount already swapped out/in of the output/input asset
         int256 amountCalculated;
         // the tick associated with the current price
-        int24 tick;
-        // the current liquidity in range
-        uint128 liquidity;
+        int128 pip;
     }
 
     struct StepComputations {
@@ -85,47 +106,40 @@ contract PositionManager {
     }
 
 
-    function openMarketPosition(uint256 size, bool isLong) external whenNotPause onlyCounterParty {
-//        require(size != 0, "!S");
-//        // TODO lock
-//        // get current tick liquidity
-//        TickPosition.Data storage tickData = tickPosition[singleSlot.pip];
-//
-//        SwapState memory state = SwapState({
-//            remainingSize: size,
-//            amountCalculated: 0,
-//            tick: singleSlot.pip,
-//            liquidity: 0
-//        });
-//        while (state.remainingSize != 0){
-//            StepComputations memory step;
-//            (step.tickNext, step.initialized) = tickStore.getNextInitializedTick(
-//                state.tick,
-//                1,
-//                isLong
-//            );
-//            if(step.initialized){
-//                step.nextLiquidity = tickData[step.nextLiquidity].liquidity;
-//                if(step.nextLiquidity >= state.remainingSize){
-//                    // size <= liquidity => fill all
-//                    state.amountCalculated = state.amountCalculated.add(state.remainingSize);
-//                    state.remainingSize = 0;
-//                }else{
-//                    state.remainingSize = state.remainingSize.sub(step.nextLiquidity);
-//                    state.amountCalculated = state.amountCalculated.add(step.nextLiquidity);
-//                    state.tick = isLong ? step.tickNext : step.tickNext - 1;
-//                }
-//            }else{
-//
-//            }
-//        }
-//        if(singleSlot.pip != state.tick){
-//            // all ticks in shifted range must be marked as filled
-//            uint256 tickShifted = isLong ? state.tick - singleSlot.pip : singleSlot.pip - state.tick;
-//            singleSlot.pip = state.tick;
-//            // TODO write a checkpoint that we shift a range of ticks
-//        }
-
+    function openMarketPosition(uint256 size, bool isLong) external whenNotPause onlyCounterParty returns (uint256 sizeOut) {
+        require(size != 0, "!S");
+        // TODO lock
+        // get current tick liquidity
+        TickPosition.Data storage tickData = tickPosition[singleSlot.pip];
+        SwapState memory state = SwapState({
+            remainingSize: size,
+            amountCalculated: 0,
+            pip: singleSlot.pip
+        });
+        while (state.remainingSize != 0){
+            StepComputations memory step;
+            // find the next tick has liquidity
+            (state.pip) = liquidityBitmap.findNextInitializedLiquidity(
+                state.pip,
+                !isLong
+            );
+            // get liquidity at a tick index
+            uint128 liquidity = tickPosition[state.pip].liquidity;
+            if(liquidity > state.remainingSize){
+                // pip position will partially filled and stop here
+                tickPosition[state.pip].partiallyFill(state.remainingSize);
+                state.remainingSize = 0;
+            }else{
+                // pip position will be fully filled
+                state.remainingSize = state.remainingSize - liquidity;
+            }
+        }
+        if(singleSlot.pip != state.pip){
+            // all ticks in shifted range must be marked as filled
+            liquidityBitmap.unsetBitsRange(singleSlot.pip, state.pip);
+            singleSlot.pip = state.pip;
+            // TODO write a checkpoint that we shift a range of ticks
+        }
     }
 
 }

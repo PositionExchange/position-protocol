@@ -1,31 +1,55 @@
 pragma solidity ^0.8.0;
 
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "./Position.sol";
+import "./LimitOrder.sol";
+
+/*
+ * A library storing data and logic at a pip
+ */
 
 library TickPosition {
     using SafeMath for uint128;
     using SafeMath for uint64;
+    using LimitOrder for LimitOrder.Data;
     struct Data {
         uint128 liquidity;
         uint64 filledIndex;
         uint64 currentIndex;
         // position at a certain tick
-        // index => Position.Data
-        mapping(uint64 => Position.Data) positions;
+        // index => order data
+        mapping(uint64 => LimitOrder.Data) orderQueue;
     }
-//
-//    function insertLimit(
-//        Data storage self,
-//        uint256 size
-//    ) internal {
-//        self.liquidity = self.liquidity.add(size);
-//        self.positions[self.currentIndex++] = Position.Data({
-//            side: 1
-//        });
-//
-//    }
 
+    function insertLimitOrder(
+        TickPosition.Data storage self,
+        uint128 size,
+        bool hasLiquidity,
+        bool isBuy
+    ) internal returns (uint64) {
+        if(!hasLiquidity && self.filledIndex != self.currentIndex){
+            // means it has liquidity but is not set currentIndex yet
+            // reset the filledIndex to fill all
+            self.filledIndex = self.currentIndex;
+            self.liquidity = size;
+        }else{
+            self.liquidity = self.liquidity + size;
+        }
+        self.orderQueue[self.currentIndex++].update(isBuy, size);
+        return self.currentIndex;
+    }
+
+    function getQueueOrder(
+        TickPosition.Data storage self,
+        uint64 orderId
+    ) internal view returns (bool, uint256) {
+        return self.orderQueue[orderId].getData();
+    }
+
+    function partiallyFill(
+        TickPosition.Data storage self,
+        uint256 amount
+    ) internal {
+    }
 //    function executeOrder(Data storage self, uint256 size, bool isLong)
 //    internal returns
 //    (
