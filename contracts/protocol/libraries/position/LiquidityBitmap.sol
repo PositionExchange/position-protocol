@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
+
 import "hardhat/console.sol";
+import './BitMath.sol';
 
 library LiquidityBitmap {
     uint256 public constant MAX_UINT256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
@@ -10,7 +12,8 @@ library LiquidityBitmap {
     /// @return bitPos the position in the bitmap
     function position(int128 pip) private pure returns (int16 mapIndex, uint8 bitPos) {
         mapIndex = int16(pip >> 8);
-        bitPos = uint8(uint128(pip) & 0xff); // % 256
+        bitPos = uint8(uint128(pip) & 0xff);
+        // % 256
     }
 
     /// @notice find the next pip has liquidity
@@ -24,7 +27,53 @@ library LiquidityBitmap {
     ) internal view returns (
         int128 next
     ) {
-       // find the next pip has liquidity
+
+        if (lte) {
+            // main is find the next pip has liquidity
+            (int16 wordPos, uint8 bitPos) = position(pip);
+
+            // all the 1s at or to the right of the current bitPos
+            uint256 mask = (1 << bitPos) - 1 + (1 << bitPos);
+            uint256 masked = self[wordPos] & mask;
+            bool hasLiquidity = (self[wordPos] & 1 << bitPos) != 0;
+
+            // if there are no initialized ticks to the right of or at the current tick, return rightmost in the word
+            bool initialized = masked != 0;
+            // overflow/underflow is possible, but prevented externally by limiting both tickSpacing and tick
+            next = initialized
+            ? (pip - int128(bitPos - BitMath.mostSignificantBit(masked)))
+            : 0;
+
+            if (!hasLiquidity && next != 0) {
+                next = next + 1;
+            }
+
+        } else {
+            // start from the word of the next tick, since the current tick state doesn't matter
+            (int16 wordPos, uint8 bitPos) = position(pip);
+            //            (int16 wordPos1, uint8 bitPos1) = position(pip);
+            // why need plus + 1?
+            // all the 1s at or to the left of the bitPos
+            uint256 mask = ~((1 << bitPos) - 1);
+            uint256 masked = self[wordPos] & mask;
+
+
+            bool hasLiquidity = (self[wordPos] & 1 << bitPos) != 0;
+
+            // if there are no initialized ticks to the left of the current tick, return leftmost in the word
+            bool initialized = masked != 0;
+            // overflow/underflow is possible, but prevented externally by limiting both tickSpacing and tick
+            next = initialized
+            ? (pip + int128(BitMath.leastSignificantBit(masked) - bitPos))  // +1
+            : 0;
+
+            if (!hasLiquidity && next != 0) {
+                next = next + 1;
+            }
+
+        }
+
+
     }
 
     function hasLiquidity(
@@ -49,14 +98,15 @@ library LiquidityBitmap {
     ) internal {
         (int16 fromMapIndex, uint8 fromBitPos) = position(fromPip);
         (int16 toMapIndex, uint8 toBitPos) = position(toPip);
-        if(toMapIndex == fromMapIndex){
+        if (toMapIndex == fromMapIndex) {
             // in the same storage
             // Set all the bits in given range of a number
             self[toMapIndex] |= (((1 << (fromBitPos - 1)) - 1) ^ ((1 << toBitPos) - 1));
-        }else{
+        } else {
             // need to shift the map index
             // TODO fromMapIndex needs set separately
-            for(int16 i = fromMapIndex; i < toMapIndex; i++){
+            self[fromMapIndex] |= (((1 << (fromBitPos - 1)) - 1) ^ ((1 << 255) - 1));
+            for (int16 i = fromMapIndex + 1; i < toMapIndex; i++) {
                 // pass uint256.MAX to avoid gas for computing
                 self[i] = MAX_UINT256;
             }
@@ -72,11 +122,11 @@ library LiquidityBitmap {
     ) internal {
         (int16 fromMapIndex, uint8 fromBitPos) = position(fromPip);
         (int16 toMapIndex, uint8 toBitPos) = position(toPip);
-        if(toMapIndex == fromMapIndex){
+        if (toMapIndex == fromMapIndex) {
             self[toMapIndex] &= toggleBitsFromLToR(MAX_UINT256, fromBitPos, toBitPos);
-        }else{
+        } else {
             self[fromMapIndex] &= ~toggleLastMBits(MAX_UINT256, fromBitPos);
-            for (int16 i = fromMapIndex+1; i < toMapIndex; i++){
+            for (int16 i = fromMapIndex + 1; i < toMapIndex; i++) {
                 self[i] = 0;
             }
             self[toMapIndex] &= toggleLastMBits(MAX_UINT256, toBitPos);
@@ -89,9 +139,9 @@ library LiquidityBitmap {
         bool isSet
     ) internal {
         (int16 mapIndex, uint8 bitPos) = position(pip);
-        if(isSet){
+        if (isSet) {
             self[mapIndex] |= 1 << bitPos;
-        }else{
+        } else {
             self[mapIndex] &= ~(1 << bitPos);
         }
     }
