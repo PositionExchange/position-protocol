@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./LimitOrder.sol";
 
+import "hardhat/console.sol";
+
 /*
  * A library storing data and logic at a pip
  */
@@ -26,50 +28,75 @@ library TickPosition {
         bool hasLiquidity,
         bool isBuy
     ) internal returns (uint64) {
-        if(!hasLiquidity && self.filledIndex != self.currentIndex){
+        if (!hasLiquidity && self.filledIndex != self.currentIndex) {
             // means it has liquidity but is not set currentIndex yet
             // reset the filledIndex to fill all
             self.filledIndex = self.currentIndex;
             self.liquidity = size;
-        }else{
+        } else {
             self.liquidity = self.liquidity + size;
         }
-        self.orderQueue[self.currentIndex++].update(isBuy, size);
+        self.currentIndex++;
+        self.orderQueue[self.currentIndex].update(isBuy, size);
         return self.currentIndex;
     }
 
     function getQueueOrder(
         TickPosition.Data storage self,
         uint64 orderId
-    ) internal view returns (bool, uint256) {
-        return self.orderQueue[orderId].getData();
+    ) internal view returns (
+        bool isFilled,
+        bool isBuy,
+        uint256 size,
+        uint256 partialFilled
+    ) {
+        (isBuy, size, partialFilled) = self.orderQueue[orderId].getData();
+        if (self.filledIndex > self.currentIndex) {
+            isFilled = true;
+        } else if (self.filledIndex < self.currentIndex) {
+            isFilled = false;
+        } else {
+            // filledIndex == currentIndex
+            isFilled = partialFilled > 0 && partialFilled < size ? false : true;
+        }
     }
 
     function partiallyFill(
         TickPosition.Data storage self,
-        uint256 amount
+        uint120 amount
     ) internal {
+        self.liquidity -= amount;
+    unchecked {
+        uint64 index = self.filledIndex;
+        uint120 totalSize = 0;
+        while (totalSize < amount) {
+            totalSize += self.orderQueue[index].size;
+            index += 1;
+        }
+        index--;
+        self.filledIndex = index;
+        self.orderQueue[index].updatePartialFill(totalSize - amount);
     }
-//    function executeOrder(Data storage self, uint256 size, bool isLong)
-//    internal returns
-//    (
-//        uint256 remainingAmount
-//    ) {
-//        if(self.liquidity > size){
-//            self.liquidity = self.liquidity.sub(size);
-//            // safe to increase by plus 1
-//            //TODO determine index to plus
-////            self.filledIndex += 1;
-//            remainingAmount = 0;
-//        }else{
-//            // fill all liquidity
-//            // safe to use with out safemath to avoid gas wasting?
-//            remainingAmount = size.sub(self.liquidity);
-//            self.liquidity = 0;
-//            self.filledIndex = self.currentIndex;
-//        }
-//    }
-
+    }
+    //    function executeOrder(Data storage self, uint256 size, bool isLong)
+    //    internal returns
+    //    (
+    //        uint256 remainingAmount
+    //    ) {
+    //        if(self.liquidity > size){
+    //            self.liquidity = self.liquidity.sub(size);
+    //            // safe to increase by plus 1
+    //            //TODO determine index to plus
+    ////            self.filledIndex += 1;
+    //            remainingAmount = 0;
+    //        }else{
+    //            // fill all liquidity
+    //            // safe to use with out safemath to avoid gas wasting?
+    //            remainingAmount = size.sub(self.liquidity);
+    //            self.liquidity = 0;
+    //            self.filledIndex = self.currentIndex;
+    //        }
+    //    }
 
 
 }

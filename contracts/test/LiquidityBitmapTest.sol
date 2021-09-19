@@ -41,7 +41,7 @@ contract LiquidityBitmapTest {
         bool lte
 
     ) public view returns (int128 next) {
-        next = liquidityBitmap.findNextInitializedLiquidity(pip, lte);
+        next = liquidityBitmap.findHasLiquidityInOneWords(pip, lte);
 
     }
 }

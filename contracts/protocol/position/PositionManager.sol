@@ -1,4 +1,5 @@
 pragma solidity ^0.8.0;
+
 import {BlockContext} from "../libraries/helpers/BlockContext.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
@@ -15,16 +16,22 @@ contract PositionManager {
     using LiquidityBitmap for mapping(int128 => uint256);
     uint256 public basisPoint = 10001; //1.0001
     uint256 public constant basisPointBase = 100;
+
     struct SingleSlot {
         // percentage in point
         int128 pip;
     }
+
+    int128 public maxFindingWordsIndex = 10;
+
     SingleSlot public singleSlot;
     mapping(int128 => TickPosition.Data) public tickPosition;
     mapping(int128 => uint256) public tickStore;
     // a packed array of boolean, where liquidity is filled or not
     mapping(int128 => uint256) public liquidityBitmap;
-//    mapping(uint64 => LimitOrder.Data) orderQueue;
+    //    mapping(uint64 => LimitOrder.Data) orderQueue;
+    event Swap(address account, uint256 indexed amountIn, uint256 indexed amountOut);
+    event LimitOrderCreated(uint256 indexed orderId, int128 pip, uint128 size, bool isBuy);
 
     modifier whenNotPause(){
         //TODO implement
@@ -36,13 +43,24 @@ contract PositionManager {
         _;
     }
 
-    function hasLiquidity(int128 pip) public view returns(bool) {
+    constructor(int128 initialPip) {
+        singleSlot.pip = initialPip;
+    }
+
+    function getCurrentPip() public view returns(int128) {
+        return singleSlot.pip;
+    }
+
+    function hasLiquidity(int128 pip) public view returns (bool) {
         return liquidityBitmap.hasLiquidity(pip);
     }
 
-    function getPendingOrderDetail(int128 pip, uint64 orderId) public view returns(
+    function getPendingOrderDetail(int128 pip, uint64 orderId) public view returns (
+        bool isFilled,
         bool isBuy,
-        uint256 size
+        uint256 size,
+        uint256 partiallyFilled
+
     ){
         return tickPosition[pip].getQueueOrder(orderId);
     }
@@ -52,31 +70,33 @@ contract PositionManager {
         uint256 margin,
         uint256 openNotional
     ){
-//        return;
+        //        return;
     }
 
-    function currentPositionPrice(address _trader) internal view returns(uint256) {
+    function currentPositionPrice(address _trader) internal view returns (uint256) {
         //get overage of ticks
         return 0;
     }
 
-    function openLimitPosition(int128 pip, uint128 size, bool isBuy) external whenNotPause onlyCounterParty {
-        require(pip != singleSlot.pip, "!!"); //call market order instead
-        if(isBuy && singleSlot.pip != 0){
+    function openLimitPosition(int128 pip, uint128 size, bool isBuy) external whenNotPause onlyCounterParty returns (uint256 orderId) {
+        require(pip != singleSlot.pip, "!!");
+        //call market order instead
+        if (isBuy && singleSlot.pip != 0) {
             require(pip < singleSlot.pip, "!B");
-        }else{
+        } else {
             require(pip > singleSlot.pip, "!S");
         }
         //TODO validate pip
         // convert tick to price
         // save at that pip has how many liquidity
         bool hasLiquidity = liquidityBitmap.hasLiquidity(pip);
-        tickPosition[pip].insertLimitOrder(size, hasLiquidity, isBuy);
-        if(!hasLiquidity){
+        orderId = tickPosition[pip].insertLimitOrder(size, hasLiquidity, isBuy);
+        if (!hasLiquidity) {
             //set the bit to mark it has liquidity
             liquidityBitmap.toggleSingleBit(pip, true);
         }
         // TODO insert order to queue then return
+        emit LimitOrderCreated(orderId, pip, size, isBuy);
     }
 
     struct SwapState {
@@ -110,36 +130,43 @@ contract PositionManager {
         require(size != 0, "!S");
         // TODO lock
         // get current tick liquidity
-        TickPosition.Data storage tickData = tickPosition[singleSlot.pip];
+        console.log("start market order");
         SwapState memory state = SwapState({
-            remainingSize: size,
-            amountCalculated: 0,
-            pip: singleSlot.pip
+        remainingSize : size,
+        amountCalculated : 0,
+        pip : singleSlot.pip
         });
-        while (state.remainingSize != 0){
+        while (state.remainingSize != 0) {
             StepComputations memory step;
             // find the next tick has liquidity
-            (state.pip) = liquidityBitmap.findNextInitializedLiquidity(
+            (state.pip) = liquidityBitmap.findHasLiquidityInMultipleWords(
                 state.pip,
+                maxFindingWordsIndex,
                 !isLong
             );
             // get liquidity at a tick index
             uint128 liquidity = tickPosition[state.pip].liquidity;
-            if(liquidity > state.remainingSize){
+            console.log("next pip", uint256(uint128(state.pip)));
+            console.log("liquidity", uint256(liquidity));
+            if (liquidity > state.remainingSize) {
                 // pip position will partially filled and stop here
-                tickPosition[state.pip].partiallyFill(state.remainingSize);
+                tickPosition[state.pip].partiallyFill(uint120(state.remainingSize));
                 state.remainingSize = 0;
-            }else{
+            } else {
                 // pip position will be fully filled
                 state.remainingSize = state.remainingSize - liquidity;
             }
+            if (state.pip == 0) {
+                break;
+            }
         }
-        if(singleSlot.pip != state.pip){
+        if (singleSlot.pip != state.pip) {
             // all ticks in shifted range must be marked as filled
             liquidityBitmap.unsetBitsRange(singleSlot.pip, state.pip);
             singleSlot.pip = state.pip;
             // TODO write a checkpoint that we shift a range of ticks
         }
+        sizeOut = size - state.remainingSize;
+        emit Swap(msg.sender, size, sizeOut);
     }
-
 }
