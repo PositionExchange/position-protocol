@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
-
 /// @title Twap
 /// @notice Provides price and liquidity data useful for a wide variety of system designs
 /// @dev Instances of stored twap data, "observations", are collected in the twap array
@@ -289,13 +287,11 @@ library Twap {
         uint32[] memory secondsAgos,
         uint128 pip,
         uint16 index,
-    //        uint128 liquidity,
         uint16 cardinality
     ) internal view returns (uint128[] memory pipCumulatives) {
         require(cardinality > 0, 'I');
 
         pipCumulatives = new uint128[](secondsAgos.length);
-        //        secondsPerLiquidityCumulativeX128s = new uint160[](secondsAgos.length);
         for (uint256 i = 0; i < secondsAgos.length; i++) {
             (pipCumulatives[i]) = observeSingle(
                 self,
