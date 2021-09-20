@@ -17,7 +17,6 @@ library Twap {
         // the pip accumulator, i.e. pip * time elapsed since the pool was first initialized
         uint128 pipCumulative;
         // the seconds per liquidity, i.e. seconds elapsed / max(1, liquidity) since the pool was first initialized
-        //        uint160 secondsPerLiquidityCumulativeX128;
         // whether or not the observation is initialized
         bool initialized;
     }
@@ -113,9 +112,6 @@ library Twap {
         if (next <= current) return current;
         // store in each slot to prevent fresh SSTOREs in swaps
         // this data will not be used because the initialized boolean is still false
-
-        console.log("current %s", current);
-        console.log("next %s", next);
         for (uint16 i = current; i < next; i++) self[i].blockTimestamp = 1;
         return next;
     }
