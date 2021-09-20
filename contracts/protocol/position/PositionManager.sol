@@ -59,10 +59,15 @@ contract PositionManager {
         bool isFilled,
         bool isBuy,
         uint256 size,
-        uint256 partiallyFilled
+        uint256 partialFilled
 
     ){
-        return tickPosition[pip].getQueueOrder(orderId);
+        (isFilled, isBuy, size, partialFilled) = tickPosition[pip].getQueueOrder(orderId);
+
+        if(!liquidityBitmap.hasLiquidity(pip)){
+            isFilled = true;
+            partialFilled = 0;
+        }
     }
 
     function currentPositionData(address _trader) external view returns (
@@ -79,12 +84,12 @@ contract PositionManager {
     }
 
     function openLimitPosition(int128 pip, uint128 size, bool isBuy) external whenNotPause onlyCounterParty returns (uint256 orderId) {
-        require(pip != singleSlot.pip, "!!");
+//        require(pip != singleSlot.pip, "!!");
         //call market order instead
         if (isBuy && singleSlot.pip != 0) {
-            require(pip < singleSlot.pip, "!B");
+            require(pip <= singleSlot.pip, "!B");
         } else {
-            require(pip > singleSlot.pip, "!S");
+            require(pip >= singleSlot.pip, "!S");
         }
         //TODO validate pip
         // convert tick to price
@@ -123,50 +128,71 @@ contract PositionManager {
         uint256 amountOut;
         // how much fee is being paid in
         uint256 feeAmount;
+        int128 pipNext;
     }
 
 
-    function openMarketPosition(uint256 size, bool isLong) external whenNotPause onlyCounterParty returns (uint256 sizeOut) {
+    function openMarketPosition(uint256 size, bool isBuy) external whenNotPause onlyCounterParty returns (uint256 sizeOut) {
         require(size != 0, "!S");
         // TODO lock
         // get current tick liquidity
-        console.log("start market order");
+        console.log("start market order, size: ", size, "is buy: ", isBuy);
         SwapState memory state = SwapState({
-        remainingSize : size,
-        amountCalculated : 0,
-        pip : singleSlot.pip
+            remainingSize : size,
+            amountCalculated : 0,
+            pip : singleSlot.pip
         });
+        int128 startPip;
+        bool isPartialFill;
+        // TODO find words has liquidity first here
         while (state.remainingSize != 0) {
             StepComputations memory step;
             // find the next tick has liquidity
-            (state.pip) = liquidityBitmap.findHasLiquidityInMultipleWords(
+            (step.pipNext) = liquidityBitmap.findHasLiquidityInMultipleWords(
                 state.pip,
                 maxFindingWordsIndex,
-                !isLong
+                !isBuy
             );
-            // get liquidity at a tick index
-            uint128 liquidity = tickPosition[state.pip].liquidity;
-            console.log("next pip", uint256(uint128(state.pip)));
-            console.log("liquidity", uint256(liquidity));
-            if (liquidity > state.remainingSize) {
-                // pip position will partially filled and stop here
-                tickPosition[state.pip].partiallyFill(uint120(state.remainingSize));
-                state.remainingSize = 0;
-            } else {
-                // pip position will be fully filled
-                state.remainingSize = state.remainingSize - liquidity;
-            }
-            if (state.pip == 0) {
+            console.log("SWAP: next pip", uint256(uint128(step.pipNext)));
+            if(startPip == 0) startPip = step.pipNext;
+            if (step.pipNext == 0) {
+                // no more next pip
+                // state pip back 1 pip
+                if(isBuy){
+                    state.pip--;
+                }else{
+                    state.pip++;
+                }
                 break;
             }
+            // get liquidity at a tick index
+            uint128 liquidity = tickPosition[step.pipNext].liquidity;
+            console.log("SWAP: liquidity", uint256(liquidity));
+            if (liquidity > state.remainingSize) {
+                // pip position will partially filled and stop here
+                tickPosition[step.pipNext].partiallyFill(uint120(state.remainingSize));
+                state.remainingSize = 0;
+                state.pip = step.pipNext;
+                isPartialFill = true;
+            } else {
+                // order in that pip will be fulfilled
+                state.remainingSize = state.remainingSize - liquidity;
+                // increase pip
+                state.pip = state.remainingSize > 0 ? (isBuy ? step.pipNext+1 : step.pipNext - 1) : step.pipNext;
+            }
+            console.log("SWAP: Remaining size: ", state.remainingSize);
         }
         if (singleSlot.pip != state.pip) {
             // all ticks in shifted range must be marked as filled
-            liquidityBitmap.unsetBitsRange(singleSlot.pip, state.pip);
+            if(!(isPartialFill && startPip == state.pip)){
+                liquidityBitmap.unsetBitsRange(startPip, isPartialFill ? (isBuy ? state.pip - 1 :state.pip + 1) : state.pip);
+            }
             singleSlot.pip = state.pip;
             // TODO write a checkpoint that we shift a range of ticks
         }
         sizeOut = size - state.remainingSize;
+        console.log("Final size state: ", size, sizeOut, state.remainingSize);
+        console.log("SWAP: final pip", uint256(uint128(state.pip)));
         emit Swap(msg.sender, size, sizeOut);
     }
 }

@@ -42,6 +42,9 @@ contract LiquidityBitmapTest {
 
     ) public view returns (int128 next) {
         next = liquidityBitmap.findHasLiquidityInOneWords(pip, lte);
+    }
 
+    function findHasLiquidityInMultipleWords(int128 pip, int128 maxWords, bool lte) public view returns (int128 next) {
+        next = liquidityBitmap.findHasLiquidityInMultipleWords(pip, maxWords, lte);
     }
 }

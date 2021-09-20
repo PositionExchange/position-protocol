@@ -34,7 +34,6 @@ library LimitOrder {
         uint120 remainSize
     ) internal {
         // remainingSize should be negative
-        console.log("Remaining size", uint256(self.size) , uint256(remainSize));
         self.partialFilled = self.size - remainSize;
     }
 

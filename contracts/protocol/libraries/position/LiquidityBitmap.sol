@@ -30,7 +30,6 @@ library LiquidityBitmap {
         if (lte) {
             // main is find the next pip has liquidity
             (int128 wordPos, uint8 bitPos) = position(pip);
-
             // all the 1s at or to the right of the current bitPos
             uint256 mask = (1 << bitPos) - 1 + (1 << bitPos);
             uint256 masked = self[wordPos] & mask;
@@ -49,6 +48,7 @@ library LiquidityBitmap {
 
         } else {
             // start from the word of the next tick, since the current tick state doesn't matter
+            console.log("find pip", uint256(uint128(pip)));
             (int128 wordPos, uint8 bitPos) = position(pip);
             // all the 1s at or to the left of the bitPos
             uint256 mask = ~((1 << bitPos) - 1);
@@ -75,9 +75,20 @@ library LiquidityBitmap {
     ) internal view returns (
         int128 next
     ) {
-        for(int128 i=0; i < (pip << 8) + (lte ? -maxWords : maxWords); i++) {
-            if(self[i] != 0){
-                return findHasLiquidityInOneWords(self, pip, lte);
+        int128 startWord = pip >> 8;
+        if(lte){
+            // TODO check overflow
+            for(int128 i=startWord;i>startWord-maxWords;i--){
+                if(self[i] != 0){
+                    return findHasLiquidityInOneWords(self, i < startWord ? 256*i+255 : pip, true);
+                }
+            }
+        }else{
+            for(int128 i = startWord; i < startWord + maxWords; i++){
+                if(self[i] != 0){
+                    // avoid mload in lte
+                    return findHasLiquidityInOneWords(self, i > startWord ? 256*i : pip, false);
+                }
             }
         }
     }
@@ -126,13 +137,26 @@ library LiquidityBitmap {
         int128 fromPip,
         int128 toPip
     ) internal {
-        console.log("from pip -> to pip", uint256(uint128(fromPip)), uint256(uint128(toPip)));
+        if(fromPip == toPip) return toggleSingleBit(self, fromPip, false);
+        fromPip++;
+        toPip++;
+        if(toPip < fromPip){
+            int128 n = fromPip;
+            fromPip = toPip;
+            toPip = n;
+        }
         (int128 fromMapIndex, uint8 fromBitPos) = position(fromPip);
         (int128 toMapIndex, uint8 toBitPos) = position(toPip);
-        console.log("fromBitPos -> toBitPos: ", fromBitPos, toBitPos);
         if (toMapIndex == fromMapIndex) {
+//            if(fromBitPos > toBitPos){
+//                uint8 n = fromBitPos;
+//                fromBitPos = toBitPos;
+//                toBitPos = n;
+//            }
             self[toMapIndex] &= toggleBitsFromLToR(MAX_UINT256, fromBitPos, toBitPos);
         } else {
+            //TODO check overflow here
+            fromBitPos--;
             self[fromMapIndex] &= ~toggleLastMBits(MAX_UINT256, fromBitPos);
             for (int128 i = fromMapIndex + 1; i < toMapIndex; i++) {
                 self[i] = 0;
@@ -155,6 +179,7 @@ library LiquidityBitmap {
     }
 
     function toggleBitsFromLToR(uint256 n, uint8 l, uint8 r) private returns (uint256) {
+        console.log("l: ", l, "r: ", r);
         // calculating a number 'num'
         // having 'r' number of bits
         // and bits in the range l
