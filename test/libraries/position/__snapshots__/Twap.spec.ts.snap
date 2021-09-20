@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Twap #grow gas for growing by 1 slot when index != cardinality - 1 1`] = `24000`;
+
+exports[`Twap #grow gas for growing by 1 slot when index == cardinality - 1 1`] = `24000`;
+
+exports[`Twap #grow gas for growing by 10 slots when index != cardinality - 1 1`] = `49159`;
+
+exports[`Twap #grow gas for growing by 10 slots when index == cardinality - 1 1`] = `160799`;
