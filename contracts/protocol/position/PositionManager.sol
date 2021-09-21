@@ -185,6 +185,9 @@ contract PositionManager {
         if (singleSlot.pip != state.pip) {
             // all ticks in shifted range must be marked as filled
             if(!(isPartialFill && startPip == state.pip)){
+                // example pip partiallyFill in pip 200
+                // current pip should be set to 200
+                // but should not marked pip 200 doesn't have liquidity
                 liquidityBitmap.unsetBitsRange(startPip, isPartialFill ? (isBuy ? state.pip - 1 :state.pip + 1) : state.pip);
             }
             singleSlot.pip = state.pip;
