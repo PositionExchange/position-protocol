@@ -1,7 +1,7 @@
 import {ethers} from 'hardhat';
 import BigNumber from 'BigNumber.js'
 import {expect} from 'chai';
-import {PositionManager} from "../../../typeChain/PositionManager"
+import {PositionManager} from "../../typeChain/PositionManager"
 
 describe('Position Manager', async function () {
     let positionManager: PositionManager;
@@ -474,7 +474,6 @@ describe('Position Manager', async function () {
                 isBuy: false
             })
         });
-
     });
 });
 

@@ -1,18 +1,16 @@
 pragma solidity ^0.8.0;
 
-import {BlockContext} from "../libraries/helpers/BlockContext.sol";
+import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-import "../libraries/position/TickPosition.sol";
-import "../libraries/position/LimitOrder.sol";
-import "../libraries/position/TickStore.sol";
-import "../libraries/position/LiquidityBitmap.sol";
+import "./libraries/position/TickPosition.sol";
+import "./libraries/position/LimitOrder.sol";
+import "./libraries/position/LiquidityBitmap.sol";
 
 import "hardhat/console.sol";
 
 contract PositionManager {
     using TickPosition for TickPosition.Data;
-    using TickStore for mapping(int128 => uint256);
     using LiquidityBitmap for mapping(int128 => uint256);
     uint256 public basisPoint = 10001; //1.0001
     uint256 public constant basisPointBase = 100;
@@ -122,7 +120,6 @@ contract PositionManager {
         console.log("start market order, size: ", size, "is buy: ", isBuy);
         SwapState memory state = SwapState({
             remainingSize : size,
-            amountCalculated : 0,
             pip : singleSlot.pip
         });
         int128 startPip;
