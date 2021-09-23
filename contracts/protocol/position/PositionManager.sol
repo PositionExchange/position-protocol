@@ -106,28 +106,11 @@ contract PositionManager {
 
     struct SwapState {
         uint256 remainingSize;
-        // the amount already swapped out/in of the output/input asset
-        int256 amountCalculated;
         // the tick associated with the current price
         int128 pip;
     }
 
     struct StepComputations {
-        // the price at the beginning of the step
-        uint160 sqrtPriceStartX96;
-        // the next tick to swap to from the current tick in the swap direction
-        int24 tickNext;
-        // whether tickNext is initialized or not
-        bool initialized;
-        uint64 nextLiquidity;
-        // sqrt(price) for the next tick (1/0)
-        uint160 sqrtPriceNextX96;
-        // how much is being swapped in in this step
-        uint256 amountIn;
-        // how much is being swapped out
-        uint256 amountOut;
-        // how much fee is being paid in
-        uint256 feeAmount;
         int128 pipNext;
     }
 
