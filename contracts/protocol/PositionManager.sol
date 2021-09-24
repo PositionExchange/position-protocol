@@ -1,6 +1,9 @@
 pragma solidity ^0.8.0;
 
-import {Context} from "@openzeppelin/contracts/utils/Context.sol";
+import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "./libraries/position/TickPosition.sol";
@@ -9,11 +12,12 @@ import "./libraries/position/LiquidityBitmap.sol";
 
 import "hardhat/console.sol";
 
-contract PositionManager {
+// TODO upgradable
+contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
     using TickPosition for TickPosition.Data;
     using LiquidityBitmap for mapping(int128 => uint256);
-    uint256 public basisPoint = 10001; //1.0001
-    uint256 public constant basisPointBase = 100;
+    uint256 public basisPoint = 100; //0.01
+    uint256 public constant BASE_BASIC_POINT = 10000;
 
     struct SingleSlot {
         // percentage in point
@@ -45,8 +49,12 @@ contract PositionManager {
         singleSlot.pip = initialPip;
     }
 
-    function getCurrentPip() public view returns(int128) {
+    function getCurrentPip() public view returns (int128) {
         return singleSlot.pip;
+    }
+
+    function getPrice() public view returns (uint256) {
+        return uint256(uint128(singleSlot.pip)) * BASE_BASIC_POINT / basisPoint;
     }
 
     function hasLiquidity(int128 pip) public view returns (bool) {
@@ -62,7 +70,7 @@ contract PositionManager {
     ){
         (isFilled, isBuy, size, partialFilled) = tickPosition[pip].getQueueOrder(orderId);
 
-        if(!liquidityBitmap.hasLiquidity(pip)){
+        if (!liquidityBitmap.hasLiquidity(pip)) {
             isFilled = true;
             partialFilled = 0;
         }
@@ -82,7 +90,7 @@ contract PositionManager {
     }
 
     function openLimitPosition(int128 pip, uint128 size, bool isBuy) external whenNotPause onlyCounterParty returns (uint256 orderId) {
-//        require(pip != singleSlot.pip, "!!");
+        //        require(pip != singleSlot.pip, "!!");
         //call market order instead
         if (isBuy && singleSlot.pip != 0) {
             require(pip <= singleSlot.pip, "!B");
@@ -119,8 +127,8 @@ contract PositionManager {
         // get current tick liquidity
         console.log("start market order, size: ", size, "is buy: ", isBuy);
         SwapState memory state = SwapState({
-            remainingSize : size,
-            pip : singleSlot.pip
+        remainingSize : size,
+        pip : singleSlot.pip
         });
         int128 startPip;
         bool isPartialFill;
@@ -134,13 +142,13 @@ contract PositionManager {
                 !isBuy
             );
             console.log("SWAP: next pip", uint256(uint128(step.pipNext)));
-            if(startPip == 0) startPip = step.pipNext;
+            if (startPip == 0) startPip = step.pipNext;
             if (step.pipNext == 0) {
                 // no more next pip
                 // state pip back 1 pip
-                if(isBuy){
+                if (isBuy) {
                     state.pip--;
-                }else{
+                } else {
                     state.pip++;
                 }
                 break;
@@ -158,17 +166,17 @@ contract PositionManager {
                 // order in that pip will be fulfilled
                 state.remainingSize = state.remainingSize - liquidity;
                 // increase pip
-                state.pip = state.remainingSize > 0 ? (isBuy ? step.pipNext+1 : step.pipNext - 1) : step.pipNext;
+                state.pip = state.remainingSize > 0 ? (isBuy ? step.pipNext + 1 : step.pipNext - 1) : step.pipNext;
             }
             console.log("SWAP: Remaining size: ", state.remainingSize);
         }
         if (singleSlot.pip != state.pip) {
             // all ticks in shifted range must be marked as filled
-            if(!(isPartialFill && startPip == state.pip)){
+            if (!(isPartialFill && startPip == state.pip)) {
                 // example pip partiallyFill in pip 200
                 // current pip should be set to 200
                 // but should not marked pip 200 doesn't have liquidity
-                liquidityBitmap.unsetBitsRange(startPip, isPartialFill ? (isBuy ? state.pip - 1 :state.pip + 1) : state.pip);
+                liquidityBitmap.unsetBitsRange(startPip, isPartialFill ? (isBuy ? state.pip - 1 : state.pip + 1) : state.pip);
             }
             singleSlot.pip = state.pip;
             // TODO write a checkpoint that we shift a range of ticks

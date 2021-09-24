@@ -1925,6 +1925,11 @@
   "resolved" "https://registry.npmjs.org/@openzeppelin/contracts-ethereum-package/-/contracts-ethereum-package-3.0.0.tgz"
   "version" "3.0.0"
 
+"@openzeppelin/contracts-upgradeable@^4.3.2":
+  "integrity" "sha512-i/pOaOtcqDk4UqsrOv735uYyTbn6dvfiuVu5hstsgV6c4ZKUtu88/31zT2BzkCg+3JfcwOfgg2TtRKVKKZIGkQ=="
+  "resolved" "https://registry.npmjs.org/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.3.2.tgz"
+  "version" "4.3.2"
+
 "@openzeppelin/contracts@^4.2.0":
   "integrity" "sha512-LD4NnkKpHHSMo5z9MvFsG4g1xxZUDqV3A3Futu3nvyfs4wPwXxqOgMaxOoa2PeyGL2VNeSlbxT54enbQzGcgJQ=="
   "resolved" "https://registry.npmjs.org/@openzeppelin/contracts/-/contracts-4.2.0.tgz"

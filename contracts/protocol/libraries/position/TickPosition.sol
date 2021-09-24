@@ -23,7 +23,7 @@ library TickPosition {
     }
 
     function insertLimitOrder(
-        TickPosition.Data storage self,
+            TickPosition.Data storage self,
         uint128 size,
         bool hasLiquidity,
         bool isBuy

@@ -48,6 +48,7 @@
     "@nomiclabs/hardhat-etherscan": "^2.1.4",
     "@openzeppelin/contracts": "^4.2.0",
     "@openzeppelin/contracts-ethereum-package": "^3.0.0",
+    "@openzeppelin/contracts-upgradeable": "^4.3.2",
     "dotenv": "^10.0.0",
     "ethereumjs-util": "^7.1.0",
     "mocha-chai-jest-snapshot": "^1.1.2",

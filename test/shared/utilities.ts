@@ -81,6 +81,10 @@ export function fromWei(n: number): any {
     return web3Utils.fromWei(n.toString())
 }
 
+export function toWeiBN(n: string) {
+    return ethers.utils.parseEther(n)
+}
+
 export function toWeiWithString(n: string): any {
     return web3Utils.toWei(n)
 }
@@ -98,4 +102,15 @@ export function stringToBytes32(str: string): string {
 export function fromBytes32(str: string): string {
     return ethers.utils.parseBytes32String(str);
     // return web3Utils.hexToUtf8(str)
+}
+
+export function pipToPrice(pip: number, basicPoint = 0.01): number | string {
+    return pip * basicPoint;
+}
+
+export function priceToPip(price: number, basicPoint = 0.01): string | number {
+
+    return price / basicPoint;
+
+
 }

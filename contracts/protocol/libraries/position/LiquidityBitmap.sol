@@ -40,6 +40,8 @@ library LiquidityBitmap {
             // overflow/underflow is possible, but prevented externally by limiting both tickSpacing and tick
             next = initialized
             ? (pip - int128(bitPos - BitMath.mostSignificantBit(masked)))
+            // TODO should return rightmost bit in the word instead of 0
+            // : (pip - int128(bitPos))
             : 0;
 
 //            if (!hasLiquidity && next != 0) {
