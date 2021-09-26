@@ -131,6 +131,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         pip : singleSlot.pip
         });
         int128 startPip;
+        console.log("start pip", uint128(startPip));
         bool isPartialFill;
         // TODO find words has liquidity first here
         while (state.remainingSize != 0) {
@@ -141,6 +142,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                 maxFindingWordsIndex,
                 !isBuy
             );
+            console.log("SWAP: state pip", uint128(state.pip));
             console.log("SWAP: next pip", uint256(uint128(step.pipNext)));
             if (startPip == 0) startPip = step.pipNext;
             if (step.pipNext == 0) {
@@ -163,8 +165,11 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                 state.pip = step.pipNext;
                 isPartialFill = true;
             } else {
+                console.log("remain size > liquidity");
                 // order in that pip will be fulfilled
                 state.remainingSize = state.remainingSize - liquidity;
+                // NOTICE toggle current state to uninitialized after fulfill liquidity
+                liquidityBitmap.toggleSingleBit(state.pip, false);
                 // increase pip
                 state.pip = state.remainingSize > 0 ? (isBuy ? step.pipNext + 1 : step.pipNext - 1) : step.pipNext;
             }

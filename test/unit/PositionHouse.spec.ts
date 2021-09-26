@@ -25,9 +25,11 @@ interface PositionData {
 describe("PositionHouse", () => {
     let positionHouse: PositionHouse;
     let trader: any;
+    let trader1: any;
+    let trader2: any;
     let positionManager: PositionManager;
     beforeEach(async () => {
-        [trader] = await ethers.getSigners()
+        [trader, trader1, trader2] = await ethers.getSigners()
         const positionManagerFactory = await ethers.getContractFactory("PositionManager")
         // BTC-USD Perpetual, initial price is 5000
         // each pip = 0.01
@@ -64,12 +66,20 @@ describe("PositionHouse", () => {
                 leverage,
             )
             const positionInfo = await positionHouse.getPosition(positionManager.address, trader) as unknown as PositionData;
-            console.log("positionInfo", positionInfo)
-            const openNotional = positionInfo.openNotional.div('10000').toString()
-            expectedNotional = expectedNotional && expectedNotional.toString() || size.mul(price).mul(leverage.toString()).toString()
+            // console.log("positionInfo", positionInfo)
+            console.log('opennational :', positionInfo.openNotional.toString());
+            console.log('size: ', positionInfo.size.toString());
+            const currentPrice = Number((await positionManager.getPrice()).toString())
+            console.log('currentPrice ', currentPrice);
 
+            const openNotional = positionInfo.openNotional.div('10000').toString()
+            expectedNotional = expectedNotional && expectedNotional.toString() || size.mul(price).toString()
+            console.log(72);
+            console.log("actual size of position", positionInfo.size.toString())
             expect(positionInfo.size.toString()).eq(expectedSize || size.toString())
+            console.log(73);
             expect(openNotional).eq(expectedNotional)
+            console.log(74);
             expectedMargin && expect(positionInfo.margin.div('10000').toString()).eq(expectedMargin.toString())
         }
 
@@ -81,7 +91,7 @@ describe("PositionHouse", () => {
             const leverage = 10
             await positionManager.openLimitPosition(
                 priceToPip(5000),
-                toWeiBN('10'),
+                toWeiBN('1'),
                 true
             );
 
@@ -104,12 +114,18 @@ describe("PositionHouse", () => {
                     '20',
                     true
                 );
+
+                console.log('open limit done');
                 await openMarketPosition({
                     size: BigNumber.from('2'),
                     side: SIDE.SHORT,
                     trader: trader.address,
                     leverage: 10
                 });
+
+
+                console.log('open market done');
+
                 const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnl(
                     positionManager.address,
                     trader.address,
@@ -129,7 +145,7 @@ describe("PositionHouse", () => {
                     true
                 );
                 await openMarketPosition({
-                    size: BigNumber.from('2'),
+                    size: BigNumber.from('20'),
                     leverage: 10,
                     side: SIDE.SHORT,
                     trader: trader.address
@@ -140,18 +156,87 @@ describe("PositionHouse", () => {
                     false
                 );
                 await openMarketPosition({
-                    size: BigNumber.from('1'),
+                    size: BigNumber.from('10'),
                     side: SIDE.LONG,
                     leverage: 10,
                     trader: trader.address,
-                    expectedSize: BigNumber.from('1'),
+                    expectedSize: BigNumber.from('10'),
                     expectedNotional: BigNumber.from('50000'),
-                    expectedMargin: BigNumber.from('500')
+                    expectedMargin: BigNumber.from('5000')
                 })
             });
 
 
             it('should pnl > 0', async function () {
+
+
+                await positionManager.connect(trader1).openLimitPosition(
+                    priceToPip(5000),
+                    '1',
+                    true
+                );
+
+                await openMarketPosition({
+                    size: BigNumber.from('1'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader.address
+                })
+
+
+                await positionManager.connect(trader1).openLimitPosition(
+                    priceToPip(4990),
+                    '5',
+                    true
+                );
+
+                console.log(192);
+
+                await openMarketPosition({
+                    size: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader.address,
+                    price: Number('4990'),
+                    expectedSize: BigNumber.from('6'),
+                    expectedNotional: BigNumber.from('29950')
+                })
+
+
+                const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                    positionManager.address,
+                    trader.address,
+                    1
+                )
+                console.log("positionNotionalAndPnLn expect 1 ", positionNotionalAndPnL.toString())
+
+
+                expect(positionNotionalAndPnL.unrealizedPnl).gte(0)
+                expect(positionNotionalAndPnL.unrealizedPnl.div(10000)).eq(10)
+
+                await positionManager.connect(trader1).openLimitPosition(
+                    priceToPip(4950),
+                    '10',
+                    true
+                );
+
+                console.log(222);
+
+                await openMarketPosition({
+                    size: BigNumber.from('10'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    price: Number('4950'),
+                    expectedSize: BigNumber.from('10'),
+                    expectedNotional: BigNumber.from('49500')
+                });
+
+                console.log("positionNotionalAndPnL expect 2", positionNotionalAndPnL.toString())
+
+
+                expect(positionNotionalAndPnL.unrealizedPnl).gte(0)
+                expect(positionNotionalAndPnL.unrealizedPnl.div(10000)).eq(250)
 
             });
 
