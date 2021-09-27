@@ -5,13 +5,14 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 
 import "./libraries/position/TickPosition.sol";
 import "./libraries/position/LimitOrder.sol";
 import "./libraries/position/LiquidityBitmap.sol";
 
 import "hardhat/console.sol";
-
 // TODO upgradable
 contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
     using TickPosition for TickPosition.Data;
@@ -24,6 +25,10 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         int128 pip;
     }
 
+    IERC20 quoteAsset;
+
+
+    // Max finding word can be 3000
     int128 public maxFindingWordsIndex = 10;
 
     SingleSlot public singleSlot;
@@ -45,8 +50,13 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         _;
     }
 
-    constructor(int128 initialPip) {
+    constructor(
+        int128 initialPip,
+        address _quoteAsset
+    ) {
         singleSlot.pip = initialPip;
+        quoteAsset = IERC20(_quoteAsset);
+
     }
 
     function getCurrentPip() public view returns (int128) {
@@ -190,5 +200,9 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         console.log("Final size state: ", size, sizeOut, state.remainingSize);
         console.log("SWAP: final pip", uint256(uint128(state.pip)));
         emit Swap(msg.sender, size, sizeOut);
+    }
+
+    function getQuoteAsset() public view returns (IERC20) {
+        return quoteAsset;
     }
 }

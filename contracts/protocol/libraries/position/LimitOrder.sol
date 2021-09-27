@@ -7,6 +7,7 @@ library LimitOrder {
         // Type order LONG or SHORT
         uint8 isBuy;
         uint120 size;
+        // NOTICE need to add leverage
         uint120 partialFilled;
     }
 

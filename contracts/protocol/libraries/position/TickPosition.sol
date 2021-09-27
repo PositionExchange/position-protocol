@@ -23,7 +23,7 @@ library TickPosition {
     }
 
     function insertLimitOrder(
-            TickPosition.Data storage self,
+        TickPosition.Data storage self,
         uint128 size,
         bool hasLiquidity,
         bool isBuy
@@ -66,17 +66,17 @@ library TickPosition {
         uint120 amount
     ) internal {
         self.liquidity -= amount;
-        unchecked {
-            uint64 index = self.filledIndex;
-            uint120 totalSize = 0;
-            while (totalSize < amount) {
-                totalSize += self.orderQueue[index].size;
-                index++;
-            }
-            index--;
-            self.filledIndex = index;
-            self.orderQueue[index].updatePartialFill(totalSize - amount);
+    unchecked {
+        uint64 index = self.filledIndex;
+        uint120 totalSize = 0;
+        while (totalSize < amount) {
+            totalSize += self.orderQueue[index].size;
+            index++;
         }
+        index--;
+        self.filledIndex = index;
+        self.orderQueue[index].updatePartialFill(totalSize - amount);
+    }
     }
     //    function executeOrder(Data storage self, uint256 size, bool isLong)
     //    internal returns
