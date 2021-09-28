@@ -29,7 +29,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
 
 
     // Max finding word can be 3000
-    int128 public maxFindingWordsIndex = 10;
+    int128 public maxFindingWordsIndex = 1000;
 
     SingleSlot public singleSlot;
     mapping(int128 => TickPosition.Data) public tickPosition;
@@ -38,7 +38,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     mapping(int128 => uint256) public liquidityBitmap;
     //    mapping(uint64 => LimitOrder.Data) orderQueue;
     event Swap(address account, uint256 indexed amountIn, uint256 indexed amountOut);
-    event LimitOrderCreated(uint256 indexed orderId, int128 pip, uint128 size, bool isBuy);
+    event LimitOrderCreated(bytes orderId, int128 pip, uint128 size, bool isBuy);
 
     modifier whenNotPause(){
         //TODO implement
@@ -103,7 +103,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         return 0;
     }
 
-    function openLimitPosition(int128 pip, uint128 size, bool isBuy) external whenNotPause onlyCounterParty returns (uint256 orderId) {
+    function openLimitPosition(int128 pip, uint128 size, bool isBuy) external whenNotPause onlyCounterParty returns (bytes memory orderId) {
         //        require(pip != singleSlot.pip, "!!");
         //call market order instead
         if (isBuy && singleSlot.pip != 0) {
@@ -115,7 +115,8 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         // convert tick to price
         // save at that pip has how many liquidity
         bool hasLiquidity = liquidityBitmap.hasLiquidity(pip);
-        orderId = tickPosition[pip].insertLimitOrder(size, hasLiquidity, isBuy);
+        uint64 _orderId = tickPosition[pip].insertLimitOrder(size, hasLiquidity, isBuy);
+        orderId = abi.encode(pip, _orderId);
         if (!hasLiquidity) {
             //set the bit to mark it has liquidity
             liquidityBitmap.toggleSingleBit(pip, true);
@@ -167,6 +168,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                 } else {
                     state.pip++;
                 }
+                revert("not enough liquidity to fulfill order");
                 break;
             }
             // get liquidity at a tick index

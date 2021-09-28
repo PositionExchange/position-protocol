@@ -13,7 +13,7 @@ interface IPositionManager {
         uint256 partialFilled
     );
 
-    function openLimitPosition(int128 pip, uint128 size, bool isBuy) external returns (uint256 orderId);
+    function openLimitPosition(int128 pip, uint128 size, bool isBuy) external returns (bytes memory orderId);
 
     function openMarketPosition(uint256 size, bool isBuy) external returns (uint256 sizeOut);
 
