@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "../interfaces/IPositionManager.sol";
 import "./libraries/position/Position.sol";
 import "hardhat/console.sol";
+import "./PositionManager.sol";
 
 contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable
 {
@@ -43,20 +44,13 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     //    mapping(address => mapping(address => )  )
 
     uint256 maintenanceMarginRatio;
+    uint256 maintenanceMarginRatioConst = 3;
+    uint256 partialLiquidationRatio;
 
     modifier whenNotPause(){
         //TODO implement
         _;
     }
-
-    function initialize(
-        uint256 _maintenanceMarginRatio
-    ) public initializer {
-
-        maintenanceMarginRatio = _maintenanceMarginRatio;
-
-    }
-
 
     event OpenMarket(
         address trader,
@@ -83,7 +77,11 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
     event RemoveMargin(address trader, uint256 marginRemoved, IPositionManager positionManager);
 
-    function initialize() public initializer {
+    function initialize(
+        uint256 _maintenanceMarginRatio
+    ) public initializer {
+        maintenanceMarginRatio = _maintenanceMarginRatio;
+
 
     }
 
@@ -92,14 +90,13 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         Position.Side _side,
         uint256 _quantity,
         uint256 _leverage
-    ) external whenNotPause nonReentrant {
+    ) public whenNotPause nonReentrant {
         //check input
         address _trader = _msgSender();
         //TODO check is new Position
         //        bool isNewPosition = isNewPosition(_positionManager, _trader);
         Position.Data memory oldPosition = getPosition(address(_positionManager), _trader);
         PositionResp memory positionResp;
-
         if (oldPosition.quantity == 0 || oldPosition.side == _side) {
             console.log("increasePosition ");
             positionResp = increasePosition(_positionManager, _side, _quantity, _leverage);
@@ -116,6 +113,11 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
         // TODO transfer money from trader or pay margin + profit to trader
 
+        if (positionResp.marginToVault > 0) {
+            //TODO transfer from trader to vault
+        } else if (positionResp.marginToVault < 0) {
+            // TODO withdraw to user
+        }
 
         emit OpenMarket(_trader, _quantity, _side, _leverage, positionResp.exchangedQuoteAssetAmount / _quantity, _positionManager);
     }
@@ -137,14 +139,52 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         // TODO transfer money from trader
     }
 
+    function closePosition(
+        IPositionManager _positionManager
+    ) public {
+
+        // check conditions
+        requirePositionManager(_positionManager, true);
+
+        address _trader = _msgSender();
+        Position.Data memory positionData = getPosition(address(_positionManager), _trader);
+
+        uint256 oldPositionLeverage = positionData.openNotional / positionData.margin;
+        PositionResp memory positionResp;
+        if (positionData.side == Position.Side.LONG) {
+            openMarketPosition(_positionManager, Position.Side.SHORT, positionData.quantity, oldPositionLeverage);
+        } else {
+            openMarketPosition(_positionManager, Position.Side.LONG, positionData.quantity, oldPositionLeverage);
+        }
+    }
+
+
+    function liquidate(
+        IPositionManager _positionManager,
+        address _trader
+    ) external {
+        requirePositionManager(_positionManager, true);
+        (uint256 maintenanceMargin, int256 marginBalance, uint256 marginRatio) = getMaintenanceDetail(_positionManager, _trader);
+
+        requireMoreMarginRatio(marginRatio);
+
+        PositionResp memory positionResp;
+        uint256 liquidationPenalty;
+//        {
+//            uint256 feeToLiquidator;
+//            uint256 feeToInsuranceFund;
+//            if (marginRatio >= partialLiquidationRatio) {
+//
+//            }
+//        }
+
+    }
+
     function addMargin(IPositionManager _positionManager, uint256 _marginAdded) external {
 
         address _trader = _msgSender();
-
         Position.Data memory positionData = getPosition(address(_positionManager), _trader);
-
-
-        positionData.margin = positionData.margin + _marginAdded;
+        positionData.margin = positionData.margin + _positionManager.calcAdjustMargin(_marginAdded);
 
         positionMap[address(_positionManager)][_trader].update(
             positionData
@@ -162,6 +202,21 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         address _trader = _msgSender();
 
         Position.Data memory positionData = getPosition(address(_positionManager), _trader);
+
+        _marginRemoved = _positionManager.calcAdjustMargin(_marginRemoved);
+
+
+        //        console.log("positionData.margin ", positionData.margin);
+        require(positionData.margin > _marginRemoved, "Margin remove not than old margin");
+
+        (uint256 remainMargin, ,) =
+        calcRemainMarginWithFundingPayment(positionData.margin, int256(positionData.margin - _marginRemoved));
+
+        positionData.margin = remainMargin;
+
+        positionMap[address(_positionManager)][_trader].update(
+            positionData
+        );
 
 
         // TODO transfer money back to trader
@@ -187,6 +242,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             uint256 _newSize = oldPosition.quantity + positionResp.exchangedPositionSize;
             uint256 _currentPrice = _positionManager.getPrice();
             uint256 increaseMarginRequirement = _quantity * _currentPrice / _leverage;
+            console.log(' increaseMarginRequirement : ', increaseMarginRequirement);
             // TODO update function latestCumulativePremiumFraction
             (uint256 remainMargin, uint256 fundingPayment, uint256 latestCumulativePremiumFraction) =
             calcRemainMarginWithFundingPayment(oldPosition.margin, int256(oldPosition.margin + increaseMarginRequirement));
@@ -196,6 +252,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             // update positionResp
             positionResp.exchangedQuoteAssetAmount = _quantity * _currentPrice;
             positionResp.unrealizedPnl = unrealizedPnl;
+            positionResp.realizedPnl = 0;
             positionResp.marginToVault = int256(increaseMarginRequirement);
             positionResp.fundingPayment = fundingPayment;
             positionResp.position = Position.Data(
@@ -237,7 +294,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             positionResp.marginToVault = - (int256(reduceMarginRequirement) + positionResp.realizedPnl);
 
             // NOTICE calc unrealizedPnl after open reverse
-            positionResp.unrealizedPnl = 0;
+            positionResp.unrealizedPnl = unrealizedPnl - positionResp.realizedPnl;
             positionResp.position = Position.Data(
                 oldPosition.side,
                 oldPosition.quantity - _quantity,
@@ -271,13 +328,13 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         } else {
             PositionResp memory increasePositionResp = increasePosition(_positionManager, _side, openNotional / _currentPrice, _leverage);
             positionResp = PositionResp({
-                position : increasePositionResp.position,
-                exchangedQuoteAssetAmount : closePositionResp.exchangedQuoteAssetAmount + increasePositionResp.exchangedQuoteAssetAmount,
-                fundingPayment : closePositionResp.fundingPayment + increasePositionResp.fundingPayment,
-                exchangedPositionSize : closePositionResp.exchangedPositionSize + increasePositionResp.exchangedPositionSize,
-                realizedPnl : closePositionResp.realizedPnl + increasePositionResp.realizedPnl,
-                unrealizedPnl : 0,
-                marginToVault : closePositionResp.marginToVault + increasePositionResp.marginToVault
+            position : increasePositionResp.position,
+            exchangedQuoteAssetAmount : closePositionResp.exchangedQuoteAssetAmount + increasePositionResp.exchangedQuoteAssetAmount,
+            fundingPayment : closePositionResp.fundingPayment + increasePositionResp.fundingPayment,
+            exchangedPositionSize : closePositionResp.exchangedPositionSize + increasePositionResp.exchangedPositionSize,
+            realizedPnl : closePositionResp.realizedPnl + increasePositionResp.realizedPnl,
+            unrealizedPnl : 0,
+            marginToVault : closePositionResp.marginToVault + increasePositionResp.marginToVault
             });
         }
         return positionResp;
@@ -290,16 +347,23 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     ) internal returns (PositionResp memory positionResp) {
         Position.Data memory oldPosition = getPosition(address(_positionManager), _trader);
         requirePositionSize(oldPosition.quantity);
+        if (oldPosition.side == Position.Side.LONG) {
+            positionResp.exchangedPositionSize = _positionManager.openMarketPosition(oldPosition.quantity, false);
+        } else {
+            positionResp.exchangedPositionSize = _positionManager.openMarketPosition(oldPosition.quantity, true);
+        }
         uint256 _currentPrice = _positionManager.getPrice();
         (,int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, _pnlCalcOption);
+        console.log("unreazlied pnl ", uint256(unrealizedPnl));
         (
         uint256 remainMargin,
         uint256 fundingPayment,
         uint256 latestCumulativePremiumFraction
         ) = calcRemainMarginWithFundingPayment(oldPosition.margin, unrealizedPnl);
 
-        positionResp.exchangedPositionSize = oldPosition.quantity;
         positionResp.realizedPnl = unrealizedPnl;
+        console.log("line 391 position house");
+        console.log("close position realized pnl", uint256(- unrealizedPnl));
         positionResp.fundingPayment = fundingPayment;
         // NOTICE remainMargin can be negative
         positionResp.marginToVault = int256(remainMargin);
@@ -389,11 +453,33 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         address _trader,
         PnlCalcOption _pnlCalcOption
     ) public view returns (uint256 liquidationPrice){
-        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(positionManager, _trader, _pnlCalcOption);
+        Position.Data memory positionData = getPosition(address(positionManager), _trader);
+        (uint256 maintenanceMargin, ,) = getMaintenanceDetail(positionManager, _trader);
         // NOTICE get maintenance margin of positionManager
         // calculate marginBalance = initialMargin + unrealizedPnl
         // maintenanceMargin = initialMargin * maintenanceMarginRatio
         // if maintenanceMargin / marginBalance = 100% then the position will be liquidate
+        if (positionData.side == Position.Side.LONG) {
+            //        int256(positionNotional) - int256(oldPositionNotional) = positionData.margin * maintenanceMarginRatioConst - positionData.margin
+            //        => positionData.quantity * liquidatePrice - positionData.openNotional = positionData.margin * maintenanceMarginRatioConst - positionData.margin
+            liquidationPrice = (maintenanceMargin - positionData.margin + positionData.openNotional) / positionData.quantity;
+        } else {
+            //        int256(oldPositionNotional) - int256(positionNotional) = positionData.margin * maintenanceMarginRatioConst - positionData.margin
+            //        => positionData.openNotional - positionData.quantity * liquidatePrice = positionData.margin * maintenanceMarginRatioConst - positionData.margin
+            liquidationPrice = (positionData.openNotional - maintenanceMargin + positionData.margin) / positionData.quantity;
+        }
+    }
+
+    function getMaintenanceDetail(
+        IPositionManager positionManager,
+        address _trader
+    ) public view returns (uint256 maintenanceMargin, int256 marginBalance, uint256 marginRatio) {
+        Position.Data memory positionData = getPosition(address(positionManager), _trader);
+        // TODO update maintenanceMarginRatioConst
+        maintenanceMargin = positionData.margin * maintenanceMarginRatioConst / 100;
+        (,int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(positionManager, _trader, PnlCalcOption.SPOT_PRICE);
+        marginBalance = int256(positionData.margin) + unrealizedPnl;
+        marginRatio = maintenanceMargin / uint256(marginBalance) * 100;
     }
 
 
@@ -408,14 +494,21 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
     }
 
+    function requireMoreMarginRatio(uint256 marginRatio) private view {
+        require(marginRatio >= 100, "Margin ratio not meet criteria");
+    }
+
     function requirePositionSize(
         uint256 _quantity
     ) private pure {
         require(_quantity != 0, "positionSize is 0");
     }
 
+
     function changeMaintenanceMarginRatio(uint256 newMaintenanceMarginRatio) external initializer {
         maintenanceMarginRatio = newMaintenanceMarginRatio;
         emit ChangeMaintenanceMarginRatio(newMaintenanceMarginRatio);
     }
+
+
 }

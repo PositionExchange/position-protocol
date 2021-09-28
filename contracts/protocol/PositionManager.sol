@@ -67,6 +67,10 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         return uint256(uint128(singleSlot.pip)) * BASE_BASIC_POINT / basisPoint;
     }
 
+    function calcAdjustMargin(uint256 adjustMargin) public view returns (uint256) {
+        return adjustMargin * BASE_BASIC_POINT;
+    }
+
     function hasLiquidity(int128 pip) public view returns (bool) {
         return liquidityBitmap.hasLiquidity(pip);
     }

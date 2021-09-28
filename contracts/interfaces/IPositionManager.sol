@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
-
 interface IPositionManager {
     function getCurrentPip() external view returns (int128);
 
@@ -21,5 +20,7 @@ interface IPositionManager {
     function getPrice() external view returns (uint256);
 
     function getQuoteAsset() external view returns (IERC20);
+
+    function calcAdjustMargin(uint256 adjustMargin) external view returns (uint256);
 
 }
