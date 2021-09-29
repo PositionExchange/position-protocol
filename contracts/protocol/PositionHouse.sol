@@ -38,8 +38,16 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
     }
 
+    struct LimitOrder {
+        int128 pip;
+
+        uint64 orderId;
+    }
+
     // Mapping from position manager address of each pair to position data of each trader
     mapping(address => mapping(address => Position.Data)) public positionMap;
+
+    mapping(address => mapping(address => LimitOrder[])) public limitOrderMap;
 
     //    mapping(address => mapping(address => )  )
 
@@ -64,7 +72,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         IPositionManager positionManager
     );
     event OpenLimit(
-        bytes orderId,
+        uint64 orderId,
         address trader,
         uint128 quantity,
         Position.Side side,
@@ -149,9 +157,20 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint256 _leverage
     ) external whenNotPause nonReentrant {
         address _trader = _msgSender();
-        bytes memory orderId = _positionManager.openLimitPosition(_pip, _quantity, _side == Position.Side.LONG ? true : false);
-        emit OpenLimit(orderId, _trader, _quantity, _side, _leverage, _pip, _positionManager);
+        uint64 _orderId = _positionManager.openLimitPosition(_pip, _quantity, _side == Position.Side.LONG ? true : false);
+
+        limitOrderMap[address(_positionManager)][_trader].push(LimitOrder({
+        pip : _pip,
+        orderId : _orderId
+        }));
+
+
+        emit OpenLimit(_orderId, _trader, _quantity, _side, _leverage, _pip, _positionManager);
         // TODO transfer money from trader
+    }
+
+    function cancelOrder(IPositionManager _positionManager, int128 pip, uint64 orderId) external {
+        //        _positionManager.liquidity
     }
 
 
@@ -273,7 +292,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
         _marginRemoved = _positionManager.calcAdjustMargin(_marginRemoved);
         require(positionData.margin > _marginRemoved, "Margin remove not than old margin");
-        (uint256 remainMargin, ,) =
+        (uint256 remainMargin,,) =
         calcRemainMarginWithFundingPayment(positionData.margin, int256(positionData.margin - _marginRemoved));
 
         positionData.margin = remainMargin;
@@ -425,7 +444,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         require(positionResp.exchangedPositionSize == oldPosition.quantity, " not enough liquidity to fully close ");
 
         uint256 _currentPrice = _positionManager.getPrice();
-        (,int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, _pnlCalcOption);
+        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, _pnlCalcOption);
         (
         uint256 remainMargin,
         uint256 fundingPayment,
@@ -445,7 +464,38 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         address positionManager,
         address _trader
     ) public view returns (Position.Data memory positionData){
+
         positionData = positionMap[positionManager][_trader];
+
+        LimitOrder[] memory listLimitOrder = limitOrderMap[positionManager][_trader];
+
+        IPositionManager _positionManager = IPositionManager(positionManager);
+
+
+        for (uint i = 0; i < listLimitOrder.length; i++) {
+
+            (bool isFilled, bool isBuy,
+            uint256 size, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
+
+            if (isFilled && partialFilled == size) {
+
+
+//                // same side LONG or SHORT
+//                if ((isBuy && positionData.side == Position.Side.LONG) || (!isBuy && positionData.side == Position.Side.SHORT)) {
+//                    positionData.quantity = positionData.quantity + size;
+//
+//                } else if ((isBuy && positionData.side == Position.Side.SHORT) || (!isBuy && positionData.side == Position.Side.LONG)) {
+//
+//                    positionData.quantity = positionData.quantity + size;
+//
+//                }
+
+            }
+
+        }
+
+        // TODO add size limit position when trader has limit order
+
 
     }
 
@@ -538,7 +588,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         // TODO update maintenanceMarginRatioConst
         console.log("get maintenance detail", positionData.margin);
         maintenanceMargin = positionData.margin * maintenanceMarginRatioConst / 100;
-        (,int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, PnlCalcOption.SPOT_PRICE);
+        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, PnlCalcOption.SPOT_PRICE);
         marginBalance = int256(positionData.margin) + unrealizedPnl;
         if (marginBalance <= 0) {
             marginRatio = 100;

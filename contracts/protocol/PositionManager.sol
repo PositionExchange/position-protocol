@@ -38,7 +38,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     mapping(int128 => uint256) public liquidityBitmap;
     //    mapping(uint64 => LimitOrder.Data) orderQueue;
     event Swap(address account, uint256 indexed amountIn, uint256 indexed amountOut);
-    event LimitOrderCreated(bytes orderId, int128 pip, uint128 size, bool isBuy);
+    event LimitOrderCreated(uint64 orderId, int128 pip, uint128 size, bool isBuy);
 
     modifier whenNotPause(){
         //TODO implement
@@ -103,7 +103,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         return 0;
     }
 
-    function openLimitPosition(int128 pip, uint128 size, bool isBuy) external whenNotPause onlyCounterParty returns (bytes memory orderId) {
+    function openLimitPosition(int128 pip, uint128 size, bool isBuy) external whenNotPause onlyCounterParty returns (uint64 orderId) {
         //        require(pip != singleSlot.pip, "!!");
         //call market order instead
         if (isBuy && singleSlot.pip != 0) {
@@ -115,8 +115,8 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         // convert tick to price
         // save at that pip has how many liquidity
         bool hasLiquidity = liquidityBitmap.hasLiquidity(pip);
-        uint64 _orderId = tickPosition[pip].insertLimitOrder(size, hasLiquidity, isBuy);
-        orderId = abi.encode(pip, _orderId);
+        uint64 orderId = tickPosition[pip].insertLimitOrder(size, hasLiquidity, isBuy);
+        //        orderId = abi.encode(pip, _orderId);
         if (!hasLiquidity) {
             //set the bit to mark it has liquidity
             liquidityBitmap.toggleSingleBit(pip, true);
