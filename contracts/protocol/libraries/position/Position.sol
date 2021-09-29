@@ -1,12 +1,16 @@
 pragma solidity ^0.8.0;
 
+import "../helpers/Quantity.sol";
+
 
 library Position {
+
+    using Quantity for int256;
     enum Side {LONG, SHORT}
     struct Data {
         // TODO restruct data
         Position.Side side;
-        uint256 quantity;
+        int256 quantity;
         uint256 margin;
         uint256 openNotional;
         uint256 lastUpdatedCumulativePremiumFraction;
@@ -38,7 +42,7 @@ library Position {
     }
 
     function getEntryPrice(Position.Data memory self) internal view returns (uint256){
-        return self.openNotional / self.quantity;
+        return self.openNotional / self.quantity.abs();
     }
 
 }

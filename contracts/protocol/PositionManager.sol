@@ -103,9 +103,15 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         return 0;
     }
 
+    function cancelLimitOrder(int128 pip, uint64 orderId) external returns (uint256) {
+        tickPosition[pip].cancelLimitOrder(orderId);
+        return 1;
+    }
+
     function openLimitPosition(int128 pip, uint128 size, bool isBuy) external whenNotPause onlyCounterParty returns (uint64 orderId) {
         //        require(pip != singleSlot.pip, "!!");
         //call market order instead
+        console.log("open limit position size", size);
         if (isBuy && singleSlot.pip != 0) {
             require(pip <= singleSlot.pip, "!B");
         } else {
@@ -115,7 +121,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         // convert tick to price
         // save at that pip has how many liquidity
         bool hasLiquidity = liquidityBitmap.hasLiquidity(pip);
-        uint64 orderId = tickPosition[pip].insertLimitOrder(size, hasLiquidity, isBuy);
+        orderId = tickPosition[pip].insertLimitOrder(size, hasLiquidity, isBuy);
         //        orderId = abi.encode(pip, _orderId);
         if (!hasLiquidity) {
             //set the bit to mark it has liquidity
@@ -168,7 +174,6 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                 } else {
                     state.pip++;
                 }
-                revert("not enough liquidity to fulfill order");
                 break;
             }
             // get liquidity at a tick index

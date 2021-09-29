@@ -7,7 +7,7 @@ describe('Position Manager', async function () {
     let positionManager: PositionManager;
     beforeEach(async () => {
         const factory = await ethers.getContractFactory("PositionManager")
-        positionManager = (await factory.deploy(200)) as unknown as PositionManager
+        positionManager = (await factory.deploy(200, '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager
     })
 
     async function createLimitOrder(pip: number, size: number, isBuy: boolean) {
