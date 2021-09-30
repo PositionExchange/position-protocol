@@ -67,6 +67,11 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         return uint256(uint128(singleSlot.pip)) * BASE_BASIC_POINT / basisPoint;
     }
 
+    function pipToPrice(int128 pip) public view returns (uint256) {
+        return uint256(uint128(pip)) * BASE_BASIC_POINT / basisPoint;
+    }
+
+
     function calcAdjustMargin(uint256 adjustMargin) public view returns (uint256) {
         return adjustMargin * BASE_BASIC_POINT;
     }
@@ -152,49 +157,62 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         pip : singleSlot.pip
         });
         int128 startPip;
-        console.log("start pip", uint128(startPip));
+        int128 startWord = singleSlot.pip >> 8;
+        int128 wordIndex = startWord;
+        console.log("start word", uint128(startWord), uint128(maxFindingWordsIndex));
         bool isPartialFill;
-        // TODO find words has liquidity first here
         while (state.remainingSize != 0) {
+            console.log(">> wordIndex", uint128(wordIndex), liquidityBitmap[wordIndex]);
             StepComputations memory step;
             // find the next tick has liquidity
-            (step.pipNext) = liquidityBitmap.findHasLiquidityInMultipleWords(
-                state.pip,
-                maxFindingWordsIndex,
+            (step.pipNext) = liquidityBitmap[wordIndex] != 0 ? liquidityBitmap.findHasLiquidityInOneWords(
+                !isBuy ? (wordIndex < startWord ? 256 * startWord + 255 : state.pip) : (wordIndex > startWord ? 256*wordIndex : state.pip),
                 !isBuy
-            );
-            console.log("SWAP: state pip", uint128(state.pip));
-            console.log("SWAP: next pip", uint256(uint128(step.pipNext)));
-            if (startPip == 0) startPip = step.pipNext;
-            if (step.pipNext == 0) {
-                // no more next pip
-                // state pip back 1 pip
-                if (isBuy) {
-                    state.pip--;
-                } else {
-                    state.pip++;
+            ) : 0;
+
+            if(step.pipNext == 0){
+                if (isBuy ? wordIndex > startWord + maxFindingWordsIndex : startWord - maxFindingWordsIndex < wordIndex) {
+                    // no more next pip
+                    // state pip back 1 pip
+                    if (isBuy) {
+                        state.pip--;
+                    } else {
+                        state.pip++;
+                    }
+                    break;
                 }
-                break;
+                // increase word
+                if(isBuy){
+                    wordIndex++;
+                }else{
+                    wordIndex--;
+                }
+            }else{
+                console.log("SWAP: state pip", uint128(state.pip));
+                console.log("SWAP: next pip", uint128(step.pipNext));
+                if (startPip == 0) startPip = step.pipNext;
+
+                // get liquidity at a tick index
+                uint128 liquidity = tickPosition[step.pipNext].liquidity;
+                console.log("SWAP: liquidity", uint256(liquidity));
+                if (liquidity > state.remainingSize) {
+                    // pip position will partially filled and stop here
+                    tickPosition[step.pipNext].partiallyFill(uint120(state.remainingSize));
+                    state.remainingSize = 0;
+                    state.pip = step.pipNext;
+                    isPartialFill = true;
+                } else {
+                    console.log("remain size > liquidity");
+                    // order in that pip will be fulfilled
+                    state.remainingSize = state.remainingSize - liquidity;
+                    // NOTICE toggle current state to uninitialized after fulfill liquidity
+                    console.log(uint128(state.pip));
+                    liquidityBitmap.toggleSingleBit(state.pip, false);
+                    //                liquidityBitmap.toggleSingleBit(step.pipNext, false);
+                    // increase pip
+                    state.pip = state.remainingSize > 0 ? (isBuy ? step.pipNext + 1 : step.pipNext - 1) : step.pipNext;
+                }
             }
-            // get liquidity at a tick index
-            uint128 liquidity = tickPosition[step.pipNext].liquidity;
-            console.log("SWAP: liquidity", uint256(liquidity));
-            if (liquidity > state.remainingSize) {
-                // pip position will partially filled and stop here
-                tickPosition[step.pipNext].partiallyFill(uint120(state.remainingSize));
-                state.remainingSize = 0;
-                state.pip = step.pipNext;
-                isPartialFill = true;
-            } else {
-                console.log("remain size > liquidity");
-                // order in that pip will be fulfilled
-                state.remainingSize = state.remainingSize - liquidity;
-                // NOTICE toggle current state to uninitialized after fulfill liquidity
-                liquidityBitmap.toggleSingleBit(state.pip, false);
-                // increase pip
-                state.pip = state.remainingSize > 0 ? (isBuy ? step.pipNext + 1 : step.pipNext - 1) : step.pipNext;
-            }
-            console.log("SWAP: Remaining size: ", state.remainingSize);
         }
         if (singleSlot.pip != state.pip) {
             // all ticks in shifted range must be marked as filled

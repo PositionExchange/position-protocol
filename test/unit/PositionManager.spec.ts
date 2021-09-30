@@ -349,7 +349,9 @@ describe('Position Manager', async function () {
                 partialFilledAmounts: [5, 0, 0],
                 isFilledAmounts: [false, false, false]
             })
+            console.log((await positionManager.tickPosition(220)).liquidity.toString())
             await createLimitOrderAndVerify(220, 5, false)
+            console.log((await positionManager.tickPosition(220)).liquidity.toString())
             await createMarketOrderAndVerifyAfter({
                 sizeOut: 5,
                 size: 5,

@@ -45,10 +45,12 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     struct LimitOrderID {
         int128 pip;
         uint64 orderId;
+        uint16 leverage;
     }
 
     // Mapping from position manager address of each pair to position data of each trader
     mapping(address => mapping(address => Position.Data)) public positionMap;
+
 
     mapping(address => mapping(address => LimitOrderID[])) public limitOrderMap;
 
@@ -167,7 +169,8 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         console.log("orderid ", _orderId);
         limitOrderMap[address(_positionManager)][_trader].push(LimitOrderID({
         pip : _pip,
-        orderId : _orderId
+        orderId : _orderId,
+        leverage : uint16(_leverage)
         }));
 
 
@@ -487,49 +490,50 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         LimitOrderID[] memory listLimitOrder = limitOrderMap[positionManager][_trader];
 
         IPositionManager _positionManager = IPositionManager(positionManager);
-        console.log("get position quantity", uint256(positionData.quantity));
 
-//        console.log('')
 
         for (uint i = 0; i < listLimitOrder.length; i++) {
-            console.log("get pending order detail pip", uint128(listLimitOrder[i].pip));
-            console.log("get pending order detail  orderId", uint128(listLimitOrder[i].orderId));
+            console.log(" pip and orderId ", uint128(listLimitOrder[i].pip), listLimitOrder[i].orderId);
+
 
             (bool isFilled, bool isBuy,
-            uint256 size, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
+            uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
 
-            console.log("size: ", size);
+            console.log("quantity: ", quantity);
             console.log("is filled", isFilled);
+            uint256 openNotional = quantity * _positionManager.pipToPrice(listLimitOrder[i].pip);
+            uint256 newMargin = openNotional / listLimitOrder[i].leverage;
 
             // TODO check again the way convert uint256 to int256
-            int256 _size = isBuy ? int256(size) : - int256(size);
+            int256 _quantity = isBuy ? int256(quantity) : - int256(quantity);
             console.log("partial filled", partialFilled);
-
+            int256 _partialFilled = isBuy ? int256(partialFilled) : - int256(partialFilled);
 
             if (isFilled) {
+                // NEED UPDATE calculate positionData.margin
+                if (positionData.quantity * _quantity > 0) {
+                    positionData.margin = positionData.margin + newMargin;
+                } else {
+                    if (positionData.quantity.abs() > quantity) {
+                        positionData.margin = positionData.margin - newMargin;
+                    } else {
+                        positionData.margin = newMargin - positionData.margin;
+                    }
+                }
+                positionData.quantity = positionData.quantity + _quantity;
 
-                positionData.quantity = positionData.quantity + _size;
+                positionData.side = positionData.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT;
+            } else if (!isFilled && partialFilled != 0) {
+
+                positionData.quantity = positionData.quantity + _partialFilled;
 
                 positionData.side = positionData.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT;
 
-                //                // same side LONG or SHORT
-                //                if ((isBuy && positionData.side == Position.Side.LONG) || (!isBuy && positionData.side == Position.Side.SHORT)) {
-                //                    positionData.quantity = positionData.quantity + _size;
-                //
-                //                } else if ((isBuy && positionData.side == Position.Side.SHORT) || (!isBuy && positionData.side == Position.Side.LONG)) {
-                //
-                //                    positionData.quantity = positionData.quantity + _size;
-                //
-                //                }
-            } else {
-
             }
         }
-
-        // TODO add size limit position when trader has limit order
-
-
     }
+
+    // TODO add size limit position when trader has limit order
 
     function getPendingOrder(
         IPositionManager positionManager,

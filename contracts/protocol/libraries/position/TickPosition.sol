@@ -28,7 +28,8 @@ library TickPosition {
         bool hasLiquidity,
         bool isBuy
     ) internal returns (uint64) {
-        if (!hasLiquidity && self.filledIndex != self.currentIndex) {
+        self.currentIndex++;
+        if (!hasLiquidity && self.filledIndex != self.currentIndex && self.liquidity != 0) {
             // means it has liquidity but is not set currentIndex yet
             // reset the filledIndex to fill all
             self.filledIndex = self.currentIndex;
@@ -36,7 +37,6 @@ library TickPosition {
         } else {
             self.liquidity = self.liquidity + size;
         }
-        self.currentIndex++;
         self.orderQueue[self.currentIndex].update(isBuy, size);
         return self.currentIndex;
     }
@@ -51,9 +51,9 @@ library TickPosition {
         uint256 partialFilled
     ) {
         (isBuy, size, partialFilled) = self.orderQueue[orderId].getData();
-        if (self.filledIndex > self.currentIndex) {
+        if (self.filledIndex > orderId && size != 0) {
             isFilled = true;
-        } else if (self.filledIndex < self.currentIndex) {
+        } else if (self.filledIndex < orderId) {
             isFilled = false;
         } else {
             // filledIndex == currentIndex
@@ -66,17 +66,18 @@ library TickPosition {
         uint120 amount
     ) internal {
         self.liquidity -= amount;
-    unchecked {
-        uint64 index = self.filledIndex;
-        uint120 totalSize = 0;
-        while (totalSize < amount) {
-            totalSize += self.orderQueue[index].size;
-            index++;
+        unchecked {
+            uint64 index = self.filledIndex;
+            uint120 totalSize = 0;
+            while (totalSize < amount) {
+                totalSize += self.orderQueue[index].size;
+                index++;
+            }
+            index--;
+            self.filledIndex = index;
+//            self.orderQueue[index].partialFilled = totalSize - amount;
+            self.orderQueue[index].updatePartialFill(totalSize - amount);
         }
-        index--;
-        self.filledIndex = index;
-        self.orderQueue[index].updatePartialFill(totalSize - amount);
-    }
     }
 
     function cancelLimitOrder(
