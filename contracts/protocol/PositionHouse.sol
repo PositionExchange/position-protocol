@@ -52,6 +52,20 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint64 orderId;
         uint16 leverage;
         TypeLimitOrder typeLimitOrder;
+        // TODO add blockNumber open create a new struct
+        uint24 blockNumber;
+
+    }
+
+    struct LimitOrderPending {
+        // TODO restruct data
+        Position.Side side;
+        int256 quantity;
+        uint256 openNotional;
+        uint256 pip;
+        uint256 partialFilled;
+        uint256 leverage;
+        uint24 blockNumber;
 
     }
 
@@ -162,6 +176,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     * @param _quantity quantity of size after mul with leverage
     * @param _pip is pip converted from limit price of position
     * @param _leverage leverage of position
+    * @param isOpenLimitOrder type openLimit, OPEN or CLOSE
     */
     function openLimitOrder(
         IPositionManager _positionManager,
@@ -179,9 +194,10 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         pip : _pip,
         orderId : _orderId,
         leverage : uint16(_leverage),
-        typeLimitOrder : isOpenLimitOrder ? TypeLimitOrder.OPEN_LIMIT : TypeLimitOrder.CLOSE_LIMIT
-        }));
+        typeLimitOrder : isOpenLimitOrder ? TypeLimitOrder.OPEN_LIMIT : TypeLimitOrder.CLOSE_LIMIT,
+        blockNumber : 0
 
+        }));
 
         emit OpenLimit(_orderId, _trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _side, _leverage, _pip, _positionManager);
         // TODO transfer money from trader
@@ -218,6 +234,12 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     }
 
 
+    /**
+    * @notice close position with close market
+    * @param _positionManager IPositionManager address
+    * @param _pip limit price want to close
+    * @param _quantity want to close
+    */
     function closeLimitPosition(IPositionManager _positionManager, int128 _pip, uint256 _quantity) public {
 
         // check conditions
@@ -236,6 +258,69 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             openLimitOrder(_positionManager, Position.Side.LONG, _quantity, _pip, oldPositionLeverage, false);
 
         }
+    }
+
+    function claimFund(IPositionManager _positionManager) public {
+
+        address _trader = _msgSender();
+
+        (bool canClaim,int256 amount) = canClaimFund(_positionManager);
+
+        if (canClaim) {
+
+            // TODO transfer amount fund back to _trader and clean limitOrderMap of _trader
+
+            Position.Data memory positionData = getPosition(address(_positionManager), _trader);
+
+            // ensure no has order any more => after
+            if (positionData.quantity == 0) {
+                delete limitOrderMap[address(_positionManager)][_trader];
+                clearPosition(_positionManager, _trader);
+
+            }
+
+        }
+
+
+    }
+
+    function canClaimFund(IPositionManager _positionManager) public view returns (bool canClaim, int256 amount){
+
+        address _trader = _msgSender();
+        //        bool isCanClaim = false;
+        LimitOrderID[] memory listLimitOrder = limitOrderMap[address(_positionManager)][_trader];
+
+        Position.Data memory positionData = getPositionWithoutCloseOrder(address(_positionManager), _trader);
+
+
+        for (uint i = 0; i < listLimitOrder.length; i ++) {
+
+            (bool isFilled, bool isBuy,
+            uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
+
+            if (listLimitOrder[i].typeLimitOrder == TypeLimitOrder.CLOSE_LIMIT && partialFilled > 0) {
+
+                if (positionData.side == Position.Side.LONG) {
+
+                    uint256 notionalWhenFilled = partialFilled * _positionManager.pipToPrice(listLimitOrder[i].pip);
+                    int256 realizedPnl = int256(notionalWhenFilled) - int256(positionData.openNotional);
+                    amount = amount + realizedPnl;
+
+                    positionData.openNotional = positionData.openNotional - partialFilled;
+
+                } else {
+
+                    uint256 notionalWhenFilled = partialFilled * _positionManager.pipToPrice(listLimitOrder[i].pip);
+                    int256 realizedPnl = int256(positionData.openNotional) - int256(notionalWhenFilled);
+                    amount = amount + realizedPnl;
+                    positionData.openNotional = positionData.openNotional - partialFilled;
+                }
+
+            }
+        }
+
+        return amount > 0 ? (true, amount) : (false, 0);
+
 
     }
 
@@ -511,22 +596,60 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         clearPosition(_positionManager, _trader);
     }
 
+    // TODO add size limit position when trader has limit order
+
+    function getPendingOrder(
+        IPositionManager positionManager,
+        int128 pip,
+        uint256 orderId
+    ) public view returns (
+        bool isFilled,
+        bool isBuy,
+        uint256 size,
+        uint256 partialFilled
+    ){
+        // TODO replace with pending position
+        return positionManager.getPendingOrderDetail(pip, uint64(orderId));
+    }
+
+
+    function getListOrderPending(IPositionManager _positionManager) public view returns (LimitOrderPending[] memory listPendingPositionData){
+        address _trader = _msgSender();
+        LimitOrderID[] memory listLimitOrder = limitOrderMap[address(_positionManager)][_trader];
+
+
+        uint index = 0;
+        for (uint i = 0; i < listLimitOrder.length; i++) {
+
+            (bool isFilled, bool isBuy,
+            uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
+            if (!isFilled) {
+
+                listPendingPositionData[index] = LimitOrderPending({
+                side : isBuy ? Position.Side.LONG : Position.Side.SHORT,
+                quantity : int256(quantity),
+                openNotional : quantity * _positionManager.pipToPrice(listLimitOrder[i].pip),
+                pip : _positionManager.pipToPrice(listLimitOrder[i].pip),
+                partialFilled : partialFilled,
+                leverage : listLimitOrder[i].leverage,
+                blockNumber : listLimitOrder[i].blockNumber
+                });
+                index++;
+            }
+
+        }
+
+    }
+
     function getPosition(
         address positionManager,
         address _trader
     ) public view returns (Position.Data memory positionData){
-
         positionData = positionMap[positionManager][_trader];
-
         LimitOrderID[] memory listLimitOrder = limitOrderMap[positionManager][_trader];
-
         IPositionManager _positionManager = IPositionManager(positionManager);
-
-
         for (uint i = 0; i < listLimitOrder.length; i++) {
             console.log("pip and orderId ", uint128(listLimitOrder[i].pip), listLimitOrder[i].orderId);
-
-
             (bool isFilled, bool isBuy,
             uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
 
@@ -537,7 +660,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
             uint256 newMargin = _openNotional / listLimitOrder[i].leverage;
             console.log(' openNotional and new margin: ', _openNotional, newMargin);
-
             // TODO check again the way convert uint256 to int256
             int256 _quantity = isBuy ? int256(quantity) : - int256(quantity);
             console.log("partial filled ", partialFilled);
@@ -547,10 +669,8 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
                 console.log("filly filled ");
                 // NEED UPDATE calculate positionData.margin
                 if (positionData.quantity * _quantity > 0) {
-
                     positionData.margin = positionData.margin + newMargin;
                     positionData.openNotional = positionData.openNotional + _openNotional;
-
                 } else {
                     if (positionData.quantity.abs() > quantity) {
                         positionData.margin = positionData.margin - newMargin;
@@ -562,7 +682,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
                     }
                 }
                 positionData.quantity = positionData.quantity + _quantity;
-
                 positionData.side = positionData.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT;
 
 
@@ -609,21 +728,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         }
     }
 
-    // TODO add size limit position when trader has limit order
-
-    function getPendingOrder(
-        IPositionManager positionManager,
-        int128 pip,
-        uint256 orderId
-    ) public view returns (
-        bool isFilled,
-        bool isBuy,
-        uint256 size,
-        uint256 partialFilled
-    ){
-        // TODO replace with pending position
-        return positionManager.getPendingOrderDetail(pip, uint64(orderId));
-    }
 
     function getPositionNotionalAndUnrealizedPnl(
         IPositionManager positionManager,
@@ -790,6 +894,85 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             0
         );
         return positionResp;
+    }
+
+    function getPositionWithoutCloseOrder(
+        address positionManager,
+        address _trader
+    ) internal view returns (Position.Data memory positionData){
+        positionData = positionMap[positionManager][_trader];
+        LimitOrderID[] memory listLimitOrder = limitOrderMap[positionManager][_trader];
+        IPositionManager _positionManager = IPositionManager(positionManager);
+        for (uint i = 0; i < listLimitOrder.length; i++) {
+
+            if (listLimitOrder[i].typeLimitOrder == TypeLimitOrder.OPEN_LIMIT) {
+                (bool isFilled, bool isBuy,
+                uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
+                uint256 _openNotional = quantity * _positionManager.pipToPrice(listLimitOrder[i].pip);
+                uint256 newMargin = _openNotional / listLimitOrder[i].leverage;
+                // TODO check again the way convert uint256 to int256
+                int256 _quantity = isBuy ? int256(quantity) : - int256(quantity);
+                int256 _partialFilled = isBuy ? int256(partialFilled) : - int256(partialFilled);
+
+                if (isFilled) {
+                    // NEED UPDATE calculate positionData.margin
+                    if (positionData.quantity * _quantity > 0) {
+                        positionData.margin = positionData.margin + newMargin;
+                        positionData.openNotional = positionData.openNotional + _openNotional;
+                    } else {
+                        if (positionData.quantity.abs() > quantity) {
+                            positionData.margin = positionData.margin - newMargin;
+
+                            positionData.openNotional = positionData.openNotional - _openNotional;
+                        } else {
+                            positionData.margin = newMargin - positionData.margin;
+                            positionData.openNotional = _openNotional - positionData.openNotional;
+                        }
+                    }
+                    positionData.quantity = positionData.quantity + _quantity;
+                    positionData.side = positionData.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT;
+
+                } else if (!isFilled && partialFilled != 0) {
+                    console.log("partial filled ");
+                    console.log("pip in partial filled:", uint128(listLimitOrder[i].pip));
+
+                    uint256 _partialOpenNotional = partialFilled * _positionManager.pipToPrice(listLimitOrder[i].pip);
+                    uint256 newPartialMargin = _partialOpenNotional / listLimitOrder[i].leverage;
+                    // TODO DISCUSS with case partialFilled > old position
+                    // (current is LONG but partialFilled is SHORT than current ), should we change side or something like that?
+                    // I will do with test, team will check again
+                    // below scope, old code is commented
+                    {
+                        // NEED UPDATE calculate positionData.margin
+                        if (positionData.quantity * _partialFilled > 0) {
+
+                            positionData.margin = positionData.margin + newMargin;
+                            positionData.openNotional = positionData.openNotional + _partialOpenNotional;
+
+                        } else {
+                            if (positionData.quantity.abs() > partialFilled) {
+                                positionData.margin = positionData.margin - newPartialMargin;
+
+                                positionData.openNotional = positionData.openNotional - _partialOpenNotional;
+                            } else {
+                                positionData.margin = newPartialMargin - positionData.margin;
+                                positionData.openNotional = _partialOpenNotional - positionData.openNotional;
+                            }
+                        }
+                        positionData.quantity = positionData.quantity + _partialFilled;
+
+                        positionData.side = positionData.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT;
+                    }
+
+                    // ********
+                    // positionData.quantity = positionData.quantity + _partialFilled;
+                    // positionData.side = positionData.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT;
+
+                }
+
+            }
+
+        }
     }
 
 
