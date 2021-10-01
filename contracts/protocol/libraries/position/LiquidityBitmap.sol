@@ -107,7 +107,6 @@ library LiquidityBitmap {
                     // avoid load in lte
 
                     return findHasLiquidityInOneWords(self, i > startWord ? 256 * i : pip, false);
-
                 }
             }
         }

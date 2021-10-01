@@ -162,16 +162,16 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         console.log("start word", uint128(startWord), uint128(maxFindingWordsIndex));
         bool isPartialFill;
         while (state.remainingSize != 0) {
-            console.log(">> wordIndex", uint128(wordIndex), liquidityBitmap[wordIndex]);
             StepComputations memory step;
             // find the next tick has liquidity
             (step.pipNext) = liquidityBitmap[wordIndex] != 0 ? liquidityBitmap.findHasLiquidityInOneWords(
-                !isBuy ? (wordIndex < startWord ? 256 * startWord + 255 : state.pip) : (wordIndex > startWord ? 256*wordIndex : state.pip),
+                !isBuy ? (wordIndex < startWord ? 256 * wordIndex + 255 : state.pip) : (wordIndex > startWord ? 256*wordIndex : state.pip),
                 !isBuy
             ) : 0;
+            console.log(">> wordIndex | liquidity | pipNext", uint128(wordIndex), liquidityBitmap[wordIndex] , uint128(step.pipNext));
 
             if(step.pipNext == 0){
-                if (isBuy ? wordIndex > startWord + maxFindingWordsIndex : startWord - maxFindingWordsIndex < wordIndex) {
+                if (isBuy ? wordIndex > startWord + maxFindingWordsIndex : wordIndex < startWord - maxFindingWordsIndex) {
                     // no more next pip
                     // state pip back 1 pip
                     if (isBuy) {

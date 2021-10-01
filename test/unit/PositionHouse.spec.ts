@@ -1004,7 +1004,7 @@ describe("PositionHouse", () => {
             _trader = _trader || trader
             if (!_positionManager) throw Error("No position manager")
             if (!_trader) throw Error("No trader")
-            const tx = await positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(Number(limitPrice)), leverage)
+            const tx = await positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(Number(limitPrice)), leverage, true)
             const receipt = await tx.wait()
 
             // console.log(receipt?.events)
@@ -1300,6 +1300,462 @@ describe("PositionHouse", () => {
 
             })
         })
+
+        describe('should PnL when open limit', async () => {
+            describe('PnL with fully filled', async () => {
+                it('should pnl  > 0 with SHORT', async () => {
+
+                    let response1 = (await openLimitPositionAndExpect({
+                        limitPrice: 5010,
+                        side: SIDE.SHORT,
+                        leverage: 10,
+                        quantity: 100
+                    })) as unknown as PositionLimitOrderID
+
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('100'),
+                        side: SIDE.LONG,
+                        price: 5010,
+                        expectedSize: BigNumber.from('100')
+                    })
+
+
+                    let response2 = (await openLimitPositionAndExpect({
+                        limitPrice: 5000,
+                        side: SIDE.LONG,
+                        leverage: 10,
+                        quantity: 200,
+                        _trader: trader2
+                    })) as unknown as PositionLimitOrderID
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('200'),
+                        side: SIDE.SHORT,
+                        price: 5000,
+                        expectedSize: BigNumber.from('-100')
+                    })
+
+
+                    console.log('*** start get PnL ***');
+                    const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnl(positionManager.address, trader.address, 1);
+
+                    expect(positionNotionalAndPnL.unrealizedPnl.div(10000)).eq(1000)
+                    expect(positionNotionalAndPnL.positionNotional.div(10000)).eq(500000)
+
+                })
+
+                it('should pnl < 0 with SHORT ', async () => {
+
+                    let response1 = (await openLimitPositionAndExpect({
+                        limitPrice: 5010,
+                        side: SIDE.SHORT,
+                        leverage: 10,
+                        quantity: 100
+                    })) as unknown as PositionLimitOrderID
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('100'),
+                        side: SIDE.LONG,
+                        price: 5010,
+                        expectedSize: BigNumber.from('100')
+                    })
+                    let response2 = (await openLimitPositionAndExpect({
+                        limitPrice: 5020,
+                        side: SIDE.SHORT,
+                        leverage: 10,
+                        quantity: 200,
+                        _trader: trader2
+                    })) as unknown as PositionLimitOrderID
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('200'),
+                        side: SIDE.LONG,
+                        price: 5020,
+                        expectedSize: BigNumber.from('300')
+                    })
+
+                    console.log('*** start get PnL ***');
+                    const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnl(positionManager.address, trader.address, 1);
+
+                    expect(positionNotionalAndPnL.unrealizedPnl.div(10000)).eq(-1000)
+                    expect(positionNotionalAndPnL.positionNotional.div(10000)).eq(502000)
+
+                })
+
+                it('should pnl  > 0 with LONG', async () => {
+
+                    let response1 = (await openLimitPositionAndExpect({
+                        limitPrice: 4990,
+                        side: SIDE.LONG,
+                        leverage: 10,
+                        quantity: 100
+                    })) as unknown as PositionLimitOrderID
+
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('100'),
+                        side: SIDE.SHORT,
+                        price: 4990,
+                        expectedSize: BigNumber.from('-100')
+                    })
+
+
+                    let response2 = (await openLimitPositionAndExpect({
+                        limitPrice: 5000,
+                        side: SIDE.SHORT,
+                        leverage: 10,
+                        quantity: 200,
+                        _trader: trader2
+                    })) as unknown as PositionLimitOrderID
+
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('200'),
+                        side: SIDE.LONG,
+                        price: 5000,
+                        expectedSize: BigNumber.from('100')
+                    })
+
+
+                    console.log('*** start get PnL ***');
+                    const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnl(positionManager.address, trader.address, 1);
+
+                    expect(positionNotionalAndPnL.unrealizedPnl.div(10000)).eq(1000)
+                    expect(positionNotionalAndPnL.positionNotional.div(10000)).eq(500000)
+
+                })
+
+
+                it('should pnl < 0 with LONG', async () => {
+
+                    let response1 = (await openLimitPositionAndExpect({
+                        limitPrice: 4990,
+                        side: SIDE.LONG,
+                        leverage: 10,
+                        quantity: 100
+                    })) as unknown as PositionLimitOrderID
+
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('100'),
+                        side: SIDE.SHORT,
+                        price: 4990,
+                        expectedSize: BigNumber.from('-100')
+                    })
+
+
+                    let response2 = (await openLimitPositionAndExpect({
+                        limitPrice: 4980,
+                        side: SIDE.LONG,
+                        leverage: 10,
+                        quantity: 200,
+                        _trader: trader2
+                    })) as unknown as PositionLimitOrderID
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('200'),
+                        side: SIDE.SHORT,
+                        price: 4980,
+                        expectedSize: BigNumber.from('-300')
+                    })
+
+
+                    console.log('*** start get PnL ***');
+                    const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnl(positionManager.address, trader.address, 1);
+
+                    expect(positionNotionalAndPnL.unrealizedPnl.div(10000)).eq(-1000)
+                    expect(positionNotionalAndPnL.positionNotional.div(10000)).eq(498000)
+
+                })
+
+            })
+
+            describe('PnL with partial filled', async () => {
+                it('should PnL > 0 with SHORT and partial filled', async () => {
+
+                    let response1 = (await openLimitPositionAndExpect({
+                        limitPrice: 5010,
+                        side: SIDE.SHORT,
+                        leverage: 10,
+                        quantity: 100
+                    })) as unknown as PositionLimitOrderID
+
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('100'),
+                        side: SIDE.LONG,
+                        price: 5010,
+                        expectedSize: BigNumber.from('100')
+                    })
+
+                    let response2 = (await openLimitPositionAndExpect({
+                        limitPrice: 5000,
+                        side: SIDE.LONG,
+                        leverage: 10,
+                        quantity: 200,
+                        _trader: trader2
+                    })) as unknown as PositionLimitOrderID
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('200'),
+                        side: SIDE.SHORT,
+                        price: 5000,
+                        expectedSize: BigNumber.from('-100')
+                    })
+
+                    let response3 = (await openLimitPositionAndExpect({
+                        limitPrice: 5005,
+                        side: SIDE.SHORT,
+                        leverage: 10,
+                        quantity: 100
+                    })) as unknown as PositionLimitOrderID
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('50'),
+                        side: SIDE.LONG,
+                        price: 5005,
+                        expectedSize: BigNumber.from('-50')
+                    })
+
+
+                    console.log('*** start get PnL ***');
+                    const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnl(positionManager.address, trader.address, 1);
+
+                    expect(positionNotionalAndPnL.unrealizedPnl.div(10000)).eq(500)
+                    expect(positionNotionalAndPnL.positionNotional.div(10000)).eq(750750)
+                })
+
+                it('should PnL < 0 with SHORT and partial filled', async () => {
+
+                    let response1 = (await openLimitPositionAndExpect({
+                        limitPrice: 5010,
+                        side: SIDE.SHORT,
+                        leverage: 10,
+                        quantity: 100
+                    })) as unknown as PositionLimitOrderID
+
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('100'),
+                        side: SIDE.LONG,
+                        price: 5010,
+                        expectedSize: BigNumber.from('100')
+                    })
+
+                    let response2 = (await openLimitPositionAndExpect({
+                        limitPrice: 5015,
+                        side: SIDE.SHORT,
+                        leverage: 10,
+                        quantity: 200,
+                        _trader: trader2
+                    })) as unknown as PositionLimitOrderID
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('200'),
+                        side: SIDE.LONG,
+                        price: 5015,
+                        expectedSize: BigNumber.from('300')
+                    })
+
+                    let response3 = (await openLimitPositionAndExpect({
+                        limitPrice: 5020,
+                        side: SIDE.SHORT,
+                        leverage: 10,
+                        quantity: 100
+                    })) as unknown as PositionLimitOrderID
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('50'),
+                        side: SIDE.LONG,
+                        price: 5020,
+                        expectedSize: BigNumber.from('350')
+                    })
+
+
+                    console.log('*** start get PnL ***');
+                    const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnl(positionManager.address, trader.address, 1);
+
+                    expect(positionNotionalAndPnL.unrealizedPnl.div(10000)).eq(-1000)
+                    expect(positionNotionalAndPnL.positionNotional.div(10000)).eq(753000);
+
+                })
+
+                it('should pnl  > 0 with LONG and partial filled', async () => {
+
+                    let response1 = (await openLimitPositionAndExpect({
+                        limitPrice: 4990,
+                        side: SIDE.LONG,
+                        leverage: 10,
+                        quantity: 100
+                    })) as unknown as PositionLimitOrderID
+
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('100'),
+                        side: SIDE.SHORT,
+                        price: 4990,
+                        expectedSize: BigNumber.from('-100')
+                    })
+
+
+                    let response2 = (await openLimitPositionAndExpect({
+                        limitPrice: 5000,
+                        side: SIDE.SHORT,
+                        leverage: 10,
+                        quantity: 200,
+                        _trader: trader2
+                    })) as unknown as PositionLimitOrderID
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('200'),
+                        side: SIDE.LONG,
+                        price: 5000,
+                        expectedSize: BigNumber.from('100')
+                    })
+
+
+                    let response3 = (await openLimitPositionAndExpect({
+                        limitPrice: 4995,
+                        side: SIDE.LONG,
+                        leverage: 10,
+                        quantity: 100
+                    })) as unknown as PositionLimitOrderID
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('50'),
+                        side: SIDE.SHORT,
+                        price: 4995,
+                        expectedSize: BigNumber.from('50')
+                    })
+
+
+                    console.log('*** start get PnL ***');
+                    const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnl(positionManager.address, trader.address, 1);
+
+                    expect(positionNotionalAndPnL.unrealizedPnl.div(10000)).eq(500)
+                    expect(positionNotionalAndPnL.positionNotional.div(10000)).eq(749250)
+
+                })
+
+                it('should PnL < 0 with LONG and partial filled', async () => {
+
+                    let response1 = (await openLimitPositionAndExpect({
+                        limitPrice: 4990,
+                        side: SIDE.LONG,
+                        leverage: 10,
+                        quantity: 100
+                    })) as unknown as PositionLimitOrderID
+
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('100'),
+                        side: SIDE.SHORT,
+                        price: 4990,
+                        expectedSize: BigNumber.from('-100')
+                    })
+
+
+                    let response2 = (await openLimitPositionAndExpect({
+                        limitPrice: 4980,
+                        side: SIDE.LONG,
+                        leverage: 10,
+                        quantity: 200,
+                        _trader: trader2
+                    })) as unknown as PositionLimitOrderID
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('200'),
+                        side: SIDE.SHORT,
+                        price: 4980,
+                        expectedSize: BigNumber.from('-300')
+                    })
+
+                    let response3 = (await openLimitPositionAndExpect({
+                        limitPrice: 4975,
+                        side: SIDE.LONG,
+                        leverage: 10,
+                        quantity: 100
+                    })) as unknown as PositionLimitOrderID
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('50'),
+                        side: SIDE.SHORT,
+                        price: 4975,
+                        expectedSize: BigNumber.from('-350')
+                    })
+
+
+                    console.log('*** start get PnL ***');
+                    const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnl(positionManager.address, trader.address, 1);
+
+                    expect(positionNotionalAndPnL.unrealizedPnl.div(10000)).eq(-1500)
+                    expect(positionNotionalAndPnL.positionNotional.div(10000)).eq(746250)
+
+                })
+            });
+
+        })
+
+
+        describe('should close position with close limit', async () => {
+            it('should close limit with PnL > 0', async () => {
+
+                let response1 = (await openLimitPositionAndExpect({
+                    limitPrice: 4990,
+                    side: SIDE.LONG,
+                    leverage: 10,
+                    quantity: 100
+                })) as unknown as PositionLimitOrderID
+
+
+            })
+        })
+
+        describe('should increase open limit with Pnl ', async () => {
+        })
+
+        describe('should reduce open limit with Pnl ', async () => {
+        })
     })
 
 
@@ -1369,14 +1825,13 @@ describe("PositionHouse", () => {
             console.log('positionData after add margin margin: ', positionData1.margin.div(10000).toString());
             expect(positionData1.margin.div(10000)).eq(900);
 
-
         })
 
     })
 
     describe('close position', async function () {
 
-        it('should close position', async function () {
+        it('should close position with close Market', async function () {
             const positionManager2 = (await positionManagerFactory.deploy(priceToPip(50), '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
             await positionManager2.connect(trader1).openLimitPosition(
                 priceToPip(50),
@@ -1417,6 +1872,8 @@ describe("PositionHouse", () => {
             });
 
         })
+
+
     })
 
     describe('liquidate position', async function () {
