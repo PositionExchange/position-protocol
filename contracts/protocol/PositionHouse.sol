@@ -24,7 +24,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         ORACLE
     }
 
-    enum TypeLimitOrder {
+    enum LimitOrderType {
         OPEN_LIMIT,
         CLOSE_LIMIT
     }
@@ -51,7 +51,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         int128 pip;
         uint64 orderId;
         uint16 leverage;
-        TypeLimitOrder typeLimitOrder;
+        LimitOrderType typeLimitOrder;
         // TODO add blockNumber open create a new struct
         uint24 blockNumber;
 
@@ -73,6 +73,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     mapping(address => mapping(address => Position.Data)) public positionMap;
 
 
+    //can update with index => no need delete array when close all
     mapping(address => mapping(address => LimitOrderID[])) public limitOrderMap;
 
     //    mapping(address => mapping(address => )  )
@@ -142,7 +143,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         Position.Data memory oldPosition = getPosition(address(_positionManager), _trader);
         PositionResp memory positionResp;
         // check if old position quantity is same side with new
-        if (oldPosition.quantity == 0 || oldPosition.side == _side) {
+        if (oldPosition.quantity == 0 || oldPosition.side() == _side) {
             console.log("increasePosition ");
             positionResp = increasePosition(_positionManager, _side, int256(_quantity), _leverage);
         } else {
@@ -190,13 +191,13 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint64 _orderId = _positionManager.openLimitPosition(_pip, int256(_quantity).abs128(), _side == Position.Side.LONG ? true : false);
         console.log("open limit order", uint128(_pip));
         console.log("orderid ", _orderId);
+
         limitOrderMap[address(_positionManager)][_trader].push(LimitOrderID({
         pip : _pip,
         orderId : _orderId,
         leverage : uint16(_leverage),
-        typeLimitOrder : isOpenLimitOrder ? TypeLimitOrder.OPEN_LIMIT : TypeLimitOrder.CLOSE_LIMIT,
+        typeLimitOrder : isOpenLimitOrder ? LimitOrderType.OPEN_LIMIT : LimitOrderType.CLOSE_LIMIT,
         blockNumber : 0
-
         }));
 
         emit OpenLimit(_orderId, _trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _side, _leverage, _pip, _positionManager);
@@ -264,11 +265,13 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
         address _trader = _msgSender();
 
-        (bool canClaim,int256 amount) = canClaimFund(_positionManager);
+        (bool canClaim,int256 amount) = canClaimFund(_positionManager, _trader);
 
         if (canClaim) {
 
             // TODO transfer amount fund back to _trader and clean limitOrderMap of _trader
+
+            //TODO check the case close limit partial, should we delete the limit order have been closed
 
             Position.Data memory positionData = getPosition(address(_positionManager), _trader);
 
@@ -276,52 +279,26 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             if (positionData.quantity == 0) {
                 delete limitOrderMap[address(_positionManager)][_trader];
                 clearPosition(_positionManager, _trader);
-
             }
-
         }
-
-
     }
 
-    function canClaimFund(IPositionManager _positionManager) public view returns (bool canClaim, int256 amount){
+    function canClaimFund(IPositionManager _positionManager, address _trader) public view returns (bool canClaim, int256 amount){
 
-        address _trader = _msgSender();
-        //        bool isCanClaim = false;
+
         LimitOrderID[] memory listLimitOrder = limitOrderMap[address(_positionManager)][_trader];
 
-        Position.Data memory positionData = getPositionWithoutCloseOrder(address(_positionManager), _trader);
-
-
+        Position.Data memory positionData = getPositionWithoutCloseLimitOrder(address(_positionManager), _trader);
         for (uint i = 0; i < listLimitOrder.length; i ++) {
+            (bool isFilled, bool isBuy, uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
 
-            (bool isFilled, bool isBuy,
-            uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
-
-            if (listLimitOrder[i].typeLimitOrder == TypeLimitOrder.CLOSE_LIMIT && partialFilled > 0) {
-
-                if (positionData.side == Position.Side.LONG) {
-
-                    uint256 notionalWhenFilled = partialFilled * _positionManager.pipToPrice(listLimitOrder[i].pip);
-                    int256 realizedPnl = int256(notionalWhenFilled) - int256(positionData.openNotional);
-                    amount = amount + realizedPnl;
-
-                    positionData.openNotional = positionData.openNotional - partialFilled;
-
-                } else {
-
-                    uint256 notionalWhenFilled = partialFilled * _positionManager.pipToPrice(listLimitOrder[i].pip);
-                    int256 realizedPnl = int256(positionData.openNotional) - int256(notionalWhenFilled);
-                    amount = amount + realizedPnl;
-                    positionData.openNotional = positionData.openNotional - partialFilled;
-                }
-
+            if (listLimitOrder[i].typeLimitOrder == LimitOrderType.CLOSE_LIMIT && partialFilled > 0) {
+                (amount, positionData) = _calcRealPnL(_positionManager, positionData, partialFilled, listLimitOrder[i].pip, amount);
+            } else if (listLimitOrder[i].typeLimitOrder == LimitOrderType.CLOSE_LIMIT && isFilled == true) {
+                (amount, positionData) = _calcRealPnL(_positionManager, positionData, quantity, listLimitOrder[i].pip, amount);
             }
         }
-
         return amount > 0 ? (true, amount) : (false, 0);
-
-
     }
 
     /**
@@ -471,7 +448,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             positionResp.marginToVault = int256(increaseMarginRequirement);
             positionResp.fundingPayment = fundingPayment;
             positionResp.position = Position.Data(
-                _side,
                 _newSize,
                 remainMargin,
                 oldPosition.openNotional + positionResp.exchangedQuoteAssetAmount,
@@ -517,7 +493,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             // NOTICE calc unrealizedPnl after open reverse
             positionResp.unrealizedPnl = unrealizedPnl - positionResp.realizedPnl;
             positionResp.position = Position.Data(
-                oldPosition.side,
                 oldPosition.quantity + _quantity,
                 remainMargin,
                 oldPosition.openNotional - _quantity.abs() * _entryPrice,
@@ -649,82 +624,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         LimitOrderID[] memory listLimitOrder = limitOrderMap[positionManager][_trader];
         IPositionManager _positionManager = IPositionManager(positionManager);
         for (uint i = 0; i < listLimitOrder.length; i++) {
-            console.log("pip and orderId ", uint128(listLimitOrder[i].pip), listLimitOrder[i].orderId);
-            (bool isFilled, bool isBuy,
-            uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
-
-            console.log("quantity: ", quantity);
-            console.log("is filled and is buy", isFilled, isBuy);
-            console.log("price ", _positionManager.pipToPrice(listLimitOrder[i].pip));
-            uint256 _openNotional = quantity * _positionManager.pipToPrice(listLimitOrder[i].pip);
-
-            uint256 newMargin = _openNotional / listLimitOrder[i].leverage;
-            console.log(' openNotional and new margin: ', _openNotional, newMargin);
-            // TODO check again the way convert uint256 to int256
-            int256 _quantity = isBuy ? int256(quantity) : - int256(quantity);
-            console.log("partial filled ", partialFilled);
-            int256 _partialFilled = isBuy ? int256(partialFilled) : - int256(partialFilled);
-
-            if (isFilled) {
-                console.log("filly filled ");
-                // NEED UPDATE calculate positionData.margin
-                if (positionData.quantity * _quantity > 0) {
-                    positionData.margin = positionData.margin + newMargin;
-                    positionData.openNotional = positionData.openNotional + _openNotional;
-                } else {
-                    if (positionData.quantity.abs() > quantity) {
-                        positionData.margin = positionData.margin - newMargin;
-
-                        positionData.openNotional = positionData.openNotional - _openNotional;
-                    } else {
-                        positionData.margin = newMargin - positionData.margin;
-                        positionData.openNotional = _openNotional - positionData.openNotional;
-                    }
-                }
-                positionData.quantity = positionData.quantity + _quantity;
-                positionData.side = positionData.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT;
-
-
-            } else if (!isFilled && partialFilled != 0) {
-                console.log("partial filled ");
-                console.log("pip in partial filled:", uint128(listLimitOrder[i].pip));
-
-                uint256 _partialOpenNotional = partialFilled * _positionManager.pipToPrice(listLimitOrder[i].pip);
-
-                uint256 newPartialMargin = _partialOpenNotional / listLimitOrder[i].leverage;
-
-
-                // TODO DISCUSS with case partialFilled > old position
-                // (current is LONG but partialFilled is SHORT than current ), should we change side or something like that?
-                // I will do with test, team will check again
-                // below scope, old code is commented
-                {
-                    // NEED UPDATE calculate positionData.margin
-                    if (positionData.quantity * _partialFilled > 0) {
-
-                        positionData.margin = positionData.margin + newMargin;
-                        positionData.openNotional = positionData.openNotional + _partialOpenNotional;
-
-                    } else {
-                        if (positionData.quantity.abs() > partialFilled) {
-                            positionData.margin = positionData.margin - newPartialMargin;
-
-                            positionData.openNotional = positionData.openNotional - _partialOpenNotional;
-                        } else {
-                            positionData.margin = newPartialMargin - positionData.margin;
-                            positionData.openNotional = _partialOpenNotional - positionData.openNotional;
-                        }
-                    }
-                    positionData.quantity = positionData.quantity + _partialFilled;
-
-                    positionData.side = positionData.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT;
-                }
-
-                // ********
-                // positionData.quantity = positionData.quantity + _partialFilled;
-                // positionData.side = positionData.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT;
-
-            }
+            positionData = _accumulateLimitOrderToPositionData(_positionManager, listLimitOrder[i], positionData);
         }
     }
 
@@ -743,34 +643,30 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         if (_pnlCalcOption == PnlCalcOption.TWAP) {
             // TODO get twap price
         } else if (_pnlCalcOption == PnlCalcOption.SPOT_PRICE) {
-            //            console.log("=== Quality: %s, Price %s", position.quantity, positionManager.getPrice());
             positionNotional = positionManager.getPrice() * position.quantity.abs();
-
-            console.log("current positionNotional and quantity: ", positionNotional, position.quantity.abs());
         } else {
             // TODO get oracle price
         }
-        if (position.side == Position.Side.LONG) {
+        if (position.side() == Position.Side.LONG) {
             unrealizedPnl = int256(positionNotional) - int256(oldPositionNotional);
         } else {
-            console.log("short oldPositionNotional and positionNotional: ", oldPositionNotional, positionNotional);
             unrealizedPnl = int256(oldPositionNotional) - int256(positionNotional);
         }
 
     }
 
-    function getLiquidationPriceType2(
+    function getLiquidationPrice(
         IPositionManager positionManager,
         address _trader,
         PnlCalcOption _pnlCalcOption
     ) public view returns (uint256 liquidationPrice){
         Position.Data memory positionData = getPosition(address(positionManager), _trader);
-        (uint256 maintenanceMargin, ,) = getMaintenanceDetail(positionManager, _trader);
+        (uint256 maintenanceMargin,,) = getMaintenanceDetail(positionManager, _trader);
         // NOTICE get maintenance margin of positionManager
         // calculate marginBalance = initialMargin + unrealizedPnl
         // maintenanceMargin = initialMargin * maintenanceMarginRatio
         // if maintenanceMargin / marginBalance = 100% then the position will be liquidate
-        if (positionData.side == Position.Side.LONG) {
+        if (positionData.side() == Position.Side.LONG) {
             // int256(positionNotional) - int256(oldPositionNotional) = positionData.margin * maintenanceMarginRatioConst - positionData.margin
             //  => positionData.quantity * liquidatePrice - positionData.openNotional = positionData.margin * maintenanceMarginRatioConst - positionData.margin
             liquidationPrice = (maintenanceMargin - positionData.margin + positionData.openNotional) / positionData.quantity.abs();
@@ -857,7 +753,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         return positionMap[address(_positionManager)][_trader].quantity != 0;
     }
 
-
     function calcRemainMarginWithFundingPayment(
         uint256 oldPositionMargin, int256 deltaMargin
     ) internal view returns (uint256 remainMargin, uint256 fundingPayment, uint256 latestCumulativePremiumFraction){
@@ -885,7 +780,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         positionResp.marginToVault = int256(remainMargin) - int256(oldPosition.margin);
         positionResp.unrealizedPnl = unrealizedPnl;
         positionResp.position = Position.Data(
-            oldPosition.side,
         // from oldPosition.quantity - _quantity to +
             oldPosition.quantity + _quantity,
             remainMargin,
@@ -896,7 +790,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         return positionResp;
     }
 
-    function getPositionWithoutCloseOrder(
+    function getPositionWithoutCloseLimitOrder(
         address positionManager,
         address _trader
     ) internal view returns (Position.Data memory positionData){
@@ -904,76 +798,41 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         LimitOrderID[] memory listLimitOrder = limitOrderMap[positionManager][_trader];
         IPositionManager _positionManager = IPositionManager(positionManager);
         for (uint i = 0; i < listLimitOrder.length; i++) {
-
-            if (listLimitOrder[i].typeLimitOrder == TypeLimitOrder.OPEN_LIMIT) {
-                (bool isFilled, bool isBuy,
-                uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
-                uint256 _openNotional = quantity * _positionManager.pipToPrice(listLimitOrder[i].pip);
-                uint256 newMargin = _openNotional / listLimitOrder[i].leverage;
-                // TODO check again the way convert uint256 to int256
-                int256 _quantity = isBuy ? int256(quantity) : - int256(quantity);
-                int256 _partialFilled = isBuy ? int256(partialFilled) : - int256(partialFilled);
-
-                if (isFilled) {
-                    // NEED UPDATE calculate positionData.margin
-                    if (positionData.quantity * _quantity > 0) {
-                        positionData.margin = positionData.margin + newMargin;
-                        positionData.openNotional = positionData.openNotional + _openNotional;
-                    } else {
-                        if (positionData.quantity.abs() > quantity) {
-                            positionData.margin = positionData.margin - newMargin;
-
-                            positionData.openNotional = positionData.openNotional - _openNotional;
-                        } else {
-                            positionData.margin = newMargin - positionData.margin;
-                            positionData.openNotional = _openNotional - positionData.openNotional;
-                        }
-                    }
-                    positionData.quantity = positionData.quantity + _quantity;
-                    positionData.side = positionData.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT;
-
-                } else if (!isFilled && partialFilled != 0) {
-                    console.log("partial filled ");
-                    console.log("pip in partial filled:", uint128(listLimitOrder[i].pip));
-
-                    uint256 _partialOpenNotional = partialFilled * _positionManager.pipToPrice(listLimitOrder[i].pip);
-                    uint256 newPartialMargin = _partialOpenNotional / listLimitOrder[i].leverage;
-                    // TODO DISCUSS with case partialFilled > old position
-                    // (current is LONG but partialFilled is SHORT than current ), should we change side or something like that?
-                    // I will do with test, team will check again
-                    // below scope, old code is commented
-                    {
-                        // NEED UPDATE calculate positionData.margin
-                        if (positionData.quantity * _partialFilled > 0) {
-
-                            positionData.margin = positionData.margin + newMargin;
-                            positionData.openNotional = positionData.openNotional + _partialOpenNotional;
-
-                        } else {
-                            if (positionData.quantity.abs() > partialFilled) {
-                                positionData.margin = positionData.margin - newPartialMargin;
-
-                                positionData.openNotional = positionData.openNotional - _partialOpenNotional;
-                            } else {
-                                positionData.margin = newPartialMargin - positionData.margin;
-                                positionData.openNotional = _partialOpenNotional - positionData.openNotional;
-                            }
-                        }
-                        positionData.quantity = positionData.quantity + _partialFilled;
-
-                        positionData.side = positionData.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT;
-                    }
-
-                    // ********
-                    // positionData.quantity = positionData.quantity + _partialFilled;
-                    // positionData.side = positionData.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT;
-
-                }
-
+            if (listLimitOrder[i].typeLimitOrder == LimitOrderType.OPEN_LIMIT) {
+                positionData = _accumulateLimitOrderToPositionData(_positionManager, listLimitOrder[i], positionData);
             }
-
         }
     }
 
+    function _accumulateLimitOrderToPositionData(IPositionManager _positionManager, LimitOrderID memory limitOrder, Position.Data memory positionData) internal view returns (Position.Data memory) {
+        (bool isFilled, bool isBuy,
+        uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(limitOrder.pip, limitOrder.orderId);
+        if (isFilled) {
+            int256 _orderQuantity = isBuy ? int256(quantity) : - int256(quantity);
+            uint256 _orderNotional = quantity * _positionManager.pipToPrice(limitOrder.pip);
+            uint256 _orderMargin = _orderNotional / limitOrder.leverage;
+            positionData = positionData.accumulateLimitOrder(_orderQuantity, _orderMargin, _orderNotional);
+        } else if (!isFilled && partialFilled != 0) {
+            int256 _partialQuantity = isBuy ? int256(partialFilled) : - int256(partialFilled);
+            uint256 _partialOpenNotional = partialFilled * _positionManager.pipToPrice(limitOrder.pip);
+            uint256 _partialMargin = _partialOpenNotional / limitOrder.leverage;
+            positionData = positionData.accumulateLimitOrder(_partialQuantity, _partialMargin, _partialOpenNotional);
+        }
+        return positionData;
+    }
 
+    function _calcRealPnL(IPositionManager _positionManager, Position.Data memory positionData, uint256 amountFilled, int128 pip, int256 amount) public view returns (int256, Position.Data memory)  {
+        if (positionData.side() == Position.Side.LONG) {
+            uint256 notionalWhenFilled = amountFilled * _positionManager.pipToPrice(pip);
+            int256 realizedPnl = int256(notionalWhenFilled) - int256(positionData.openNotional) / positionData.quantity * int256(amountFilled);
+            amount = amount + realizedPnl;
+            positionData.quantity = positionData.quantity - int256(amountFilled);
+        } else {
+            uint256 notionalWhenFilled = amountFilled * _positionManager.pipToPrice(pip);
+            int256 realizedPnl = int256(positionData.openNotional) / (- positionData.quantity) * int256(amountFilled) - int256(notionalWhenFilled);
+            amount = amount + realizedPnl;
+            positionData.quantity = positionData.quantity + int256(amountFilled);
+        }
+        return (amount, positionData);
+    }
 }

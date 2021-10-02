@@ -1,6 +1,7 @@
 pragma solidity ^0.8.0;
 
 import "../helpers/Quantity.sol";
+import "hardhat/console.sol";
 
 
 library Position {
@@ -9,7 +10,7 @@ library Position {
     enum Side {LONG, SHORT}
     struct Data {
         // TODO restruct data
-        Position.Side side;
+        //        Position.Side side;
         int256 quantity;
         uint256 margin;
         uint256 openNotional;
@@ -21,7 +22,6 @@ library Position {
         Position.Data storage self,
         Position.Data memory newPosition
     ) internal {
-        self.side = newPosition.side;
         self.quantity = newPosition.quantity;
         self.margin = newPosition.margin;
         self.openNotional = newPosition.openNotional;
@@ -32,7 +32,6 @@ library Position {
     function clear(
         Position.Data storage self
     ) internal {
-        self.side = Side.LONG;
         self.quantity = 0;
         self.margin = 0;
         self.openNotional = 0;
@@ -41,8 +40,34 @@ library Position {
         self.blockNumber = 0;
     }
 
+    function side(Position.Data memory self) internal view returns (Position.Side) {
+        return self.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT;
+    }
+
     function getEntryPrice(Position.Data memory self) internal view returns (uint256){
         return self.openNotional / self.quantity.abs();
+    }
+
+    function accumulateLimitOrder(
+        Position.Data memory self,
+        int256 quantity,
+        uint256 orderMargin,
+        uint256 orderNotional
+    ) internal view returns (Position.Data memory positionData) {
+        // same side
+        if (self.quantity * quantity > 0) {
+            positionData.margin = self.margin + orderMargin;
+            positionData.openNotional = self.openNotional + orderNotional;
+        } else {
+            if (self.quantity.abs() > quantity.abs()) {
+                positionData.margin = self.margin - orderMargin;
+                positionData.openNotional = self.openNotional - orderNotional;
+            } else {
+                positionData.margin = orderMargin - positionData.margin;
+                positionData.openNotional = orderNotional - positionData.openNotional;
+            }
+        }
+        positionData.quantity = self.quantity + quantity;
     }
 
 }

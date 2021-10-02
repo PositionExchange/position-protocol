@@ -197,6 +197,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                 console.log("SWAP: liquidity", uint256(liquidity));
                 if (liquidity > state.remainingSize) {
                     // pip position will partially filled and stop here
+                    console.log("two times partial fill");
                     tickPosition[step.pipNext].partiallyFill(uint120(state.remainingSize));
                     state.remainingSize = 0;
                     state.pip = step.pipNext;
