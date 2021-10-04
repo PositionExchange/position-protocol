@@ -51,6 +51,7 @@ library TickPosition {
         uint256 partialFilled
     ) {
         (isBuy, size, partialFilled) = self.orderQueue[orderId].getData();
+        console.log(">> TickPosition partialFilled", partialFilled);
         if (self.filledIndex > orderId && size != 0) {
             isFilled = true;
         } else if (self.filledIndex < orderId) {

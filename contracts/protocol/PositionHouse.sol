@@ -489,8 +489,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         PositionResp memory positionResp;
         // TODO calc pnl before check margin to open reverse
         Position.Data memory oldPosition = getPosition(address(_positionManager), _trader);
-        //positionMap[address(_positionManager)][_trader];
-        // getPosition(address(_positionManager), _trader);
+
         // margin required to reduce
         console.log("open reverse position _quantity ", _quantity.abs());
         console.log("open reverse position oldPosition.quantity", oldPosition.quantity.abs());
@@ -504,7 +503,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             oldPosition = getPosition(address(_positionManager), _trader);
 
             console.log("get entry price");
-            //            uint256 _entryPrice = oldPosition.getEntryPrice();
+            uint256 _entryPrice = oldPosition.getEntryPrice();
             console.log("get position notional and unrealized pnl");
             (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, PnlCalcOption.SPOT_PRICE);
             positionResp.realizedPnl = unrealizedPnl * int256(positionResp.exchangedPositionSize) / oldPosition.quantity;
@@ -513,31 +512,23 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             calcRemainMarginWithFundingPayment(oldPosition.margin, int256(oldPosition.margin - reduceMarginRequirement));
 
             // _entryPrice =
-            positionResp.exchangedQuoteAssetAmount = _quantity.abs() * oldPosition.getEntryPrice();
+            positionResp.exchangedQuoteAssetAmount = _quantity.abs() * _entryPrice;
             positionResp.fundingPayment = fundingPayment;
             // NOTICE margin to vault can be negative
             positionResp.marginToVault = - (int256(reduceMarginRequirement) + positionResp.realizedPnl);
-
-            //
-            //            int256 newQuantity = oldPosition.quantity + _quantity;
-            //
-//            int256 _sumQuantityLimitOrder = sumQuantityLimitOrder(_positionManager, _trader);
-
 
             console.log("old quantity", uint256(oldPosition.quantity));
 
 
             console.log("new quantity", uint256(oldPosition.quantity + _quantity));
 
-            //            Position.Data memory oldPosition1 = positionMap[address(_positionManager)][_trader];
-
 
             // NOTICE calc unrealizedPnl after open reverse
             positionResp.unrealizedPnl = unrealizedPnl - positionResp.realizedPnl;
             positionResp.position = Position.Data(
-                oldPosition.quantity + _quantity ,
+                oldPosition.quantity + _quantity,
                 remainMargin,
-                oldPosition.openNotional - _quantity.abs() * oldPosition.getEntryPrice(),
+                oldPosition.openNotional - _quantity.abs() * _entryPrice,
                 0,
                 0
             );
