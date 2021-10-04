@@ -314,6 +314,8 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         requirePositionManager(_positionManager, true);
         (uint256 maintenanceMargin, int256 marginBalance, uint256 marginRatio) = getMaintenanceDetail(_positionManager, _trader);
 
+        // TODO before liquidate should we check can claimFund, becase trader has close position limit before liquidate
+
         // require trader's margin ratio higher than partial liquidation ratio
         requireMoreMarginRatio(marginRatio);
 
