@@ -35,6 +35,7 @@ library LimitOrder {
         uint120 remainSize
     ) internal {
         // remainingSize should be negative
+        console.log(">> Limit Order, update partial filled", uint256(self.partialFilled), uint256(self.size - remainSize));
         self.partialFilled += self.size - remainSize;
     }
 

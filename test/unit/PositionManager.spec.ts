@@ -32,13 +32,19 @@ describe('Position Manager', async function () {
     async function marketBuy(size: number, isBuy: boolean = true) {
         return positionManager.openMarketPosition(size, isBuy)
     }
-    const shouldBuyMarketAndVerify = async function(size: number, expectOut: number, isBuy: boolean = true) {
+
+    const shouldBuyMarketAndVerify = async function (size: number, expectOut: number, isBuy: boolean = true) {
         const [caller] = await ethers.getSigners()
         await expect(marketBuy(size, isBuy)).to.emit(positionManager, 'Swap')
             .withArgs(caller.address, size, expectOut)
     }
-    const verifyLimitOrderDetail = async function(
-        {pip, orderId, partialFilled, isFilled}: {pip: number, orderId: number, partialFilled: number, isFilled: boolean}
+    const verifyLimitOrderDetail = async function (
+        {
+            pip,
+            orderId,
+            partialFilled,
+            isFilled
+        }: { pip: number, orderId: number, partialFilled: number, isFilled: boolean }
             = {
             partialFilled: 0,
             pip: 0,
@@ -50,20 +56,22 @@ describe('Position Manager', async function () {
         expect(orderDetail.partialFilled.toNumber()).eq(partialFilled, `Incorrect partial filled amount`)
         expect(orderDetail.isFilled).eq(isFilled, "Order not filled")
     }
-    const checkLiquidityAtPip = async function(pip: number, hasLiquidity: boolean) {
+    const checkLiquidityAtPip = async function (pip: number, hasLiquidity: boolean) {
         expect(await positionManager.hasLiquidity(pip)).eq(hasLiquidity, `!hasLiquidity pip: ${pip}`)
     }
-    const shouldReachPip = async function(pip: number){
+    const shouldReachPip = async function (pip: number) {
         expect((await positionManager.getCurrentPip()).toNumber()).eq(pip)
     }
+
     async function createLimitOrderInPipRanges(pipRanges: number[], size: number[], isBuy = false) {
         const orders = []
-        for(let i in pipRanges) {
+        for (let i in pipRanges) {
             const orderId = await createLimitOrderAndVerify(pipRanges[i], size[i], isBuy)
             orders.push([pipRanges[i], orderId])
         }
         return orders
     }
+
     interface CreateMarketOrderAndVerifyAfterArg {
         size: number;
         sizeOut: number
@@ -75,6 +83,7 @@ describe('Position Manager', async function () {
         isFilledAmounts?: boolean[],
         isBuy?: boolean
     }
+
     async function createMarketOrderAndVerifyAfter(
         {
             size,
@@ -89,10 +98,10 @@ describe('Position Manager', async function () {
         }: CreateMarketOrderAndVerifyAfterArg
     ) {
         await shouldBuyMarketAndVerify(size, sizeOut, isBuy)
-        for(let i in pipsHasLiquidity){
+        for (let i in pipsHasLiquidity) {
             await checkLiquidityAtPip(pips[i], pipsHasLiquidity[i])
         }
-        if(orders && partialFilledAmounts && isFilledAmounts && orders.length > 0)
+        if (orders && partialFilledAmounts && isFilledAmounts && orders.length > 0)
             for(let orderIndex in orders){
                 await verifyLimitOrderDetail({
                     pip: orders[orderIndex][0],
@@ -349,8 +358,8 @@ describe('Position Manager', async function () {
                 partialFilledAmounts: [5, 0, 0],
                 isFilledAmounts: [false, false, false]
             })
-            console.log((await positionManager.tickPosition(220)).liquidity.toString())
-            await createLimitOrderAndVerify(220, 5, false)
+            const newOrderId = await createLimitOrderAndVerify(220, 5, false)
+            // orders.push(newOrderId)
             console.log((await positionManager.tickPosition(220)).liquidity.toString())
             await createMarketOrderAndVerifyAfter({
                 sizeOut: 5,
@@ -359,10 +368,12 @@ describe('Position Manager', async function () {
                 pipsHasLiquidity: [true, true, true],
                 reachPip: 220,
                 orders,
-                partialFilledAmounts: [5, 0, 0],
-                isFilledAmounts: [false, false, false]
-            })
-            await createLimitOrderAndVerify(220, 5, false)
+                partialFilledAmounts: [10, 0, 0, 0, ],
+                isFilledAmounts: [true, false, false, false, ]
+            });
+            const newLimitOrderId = await createLimitOrderAndVerify(220, 5, false)
+            // @ts-ignore
+            // orders.push(newLimitOrderId)
             await createMarketOrderAndVerifyAfter({
                 sizeOut: 45,
                 size: 50,
@@ -370,8 +381,8 @@ describe('Position Manager', async function () {
                 pipsHasLiquidity: [false, false, false],
                 reachPip: 230,
                 orders,
-                partialFilledAmounts: [0, 0, 0],
-                isFilledAmounts: [true, true, true]
+                partialFilledAmounts: [0, 0, 0, 0],
+                isFilledAmounts: [true, true, true, true]
             })
         });
     });

@@ -93,6 +93,9 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
             isFilled = true;
             partialFilled = 0;
         }
+        if(size != 0 && size == partialFilled){
+            isFilled = true;
+        }
     }
 
     function currentPositionData(address _trader) external view returns (
@@ -159,7 +162,6 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         int128 startPip;
         int128 startWord = singleSlot.pip >> 8;
         int128 wordIndex = startWord;
-        console.log("start word", uint128(startWord), uint128(maxFindingWordsIndex));
         bool isPartialFill;
         while (state.remainingSize != 0) {
             StepComputations memory step;
@@ -197,21 +199,25 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                 console.log("SWAP: liquidity", uint256(liquidity));
                 if (liquidity > state.remainingSize) {
                     // pip position will partially filled and stop here
-                    console.log("two times partial fill");
+                    console.log("partialFilled to pip | amount", uint256(uint128(step.pipNext)) , uint256(state.remainingSize));
                     tickPosition[step.pipNext].partiallyFill(uint120(state.remainingSize));
                     state.remainingSize = 0;
                     state.pip = step.pipNext;
                     isPartialFill = true;
-                } else {
+                } else if(state.remainingSize > liquidity) {
                     console.log("remain size > liquidity");
                     // order in that pip will be fulfilled
                     state.remainingSize = state.remainingSize - liquidity;
                     // NOTICE toggle current state to uninitialized after fulfill liquidity
                     console.log(uint128(state.pip));
-                    liquidityBitmap.toggleSingleBit(state.pip, false);
+//                    liquidityBitmap.toggleSingleBit(state.pip, false);
                     //                liquidityBitmap.toggleSingleBit(step.pipNext, false);
                     // increase pip
                     state.pip = state.remainingSize > 0 ? (isBuy ? step.pipNext + 1 : step.pipNext - 1) : step.pipNext;
+                }else{
+                    liquidityBitmap.toggleSingleBit(state.pip, false);
+                    state.remainingSize = 0;
+                    state.pip = step.pipNext;
                 }
             }
         }
@@ -221,6 +227,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                 // example pip partiallyFill in pip 200
                 // current pip should be set to 200
                 // but should not marked pip 200 doesn't have liquidity
+                console.log("startPip > state.pip" , uint256(uint128(startPip)), uint256(uint128(state.pip)) );
                 liquidityBitmap.unsetBitsRange(startPip, isPartialFill ? (isBuy ? state.pip - 1 : state.pip + 1) : state.pip);
             }
             singleSlot.pip = state.pip;
