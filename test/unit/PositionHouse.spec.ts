@@ -2056,7 +2056,63 @@ describe("PositionHouse", () => {
             })
 
             describe('close position with close limit when has openMarketPosition', async () => {
-                it('close limit when has openMarketPosition SHORT', async () => {
+                it('close limit when has openMarketPosition SHORT and have no partialFilled before', async () => {
+                    let response = (await openLimitPositionAndExpect({
+                        _trader: trader1,
+                        limitPrice: 4990,
+                        side: SIDE.LONG,
+                        leverage: 10,
+                        quantity: 100
+                    })) as unknown as PositionLimitOrderID
+
+
+                    await openMarketPosition({
+                        instanceTrader: trader,
+                        leverage: 10,
+                        quantity: BigNumber.from('100'),
+                        side: SIDE.SHORT,
+                        price: 4990,
+                        expectedSize: BigNumber.from('-100')
+                    });
+
+                    await positionHouse.connect(trader).closeLimitPosition(positionManager.address, priceToPip(Number(4980)), 100);
+
+
+                    let response1 = (await openLimitPositionAndExpect({
+                        limitPrice: 4985,
+                        side: SIDE.LONG,
+                        leverage: 10,
+                        quantity: 50,
+                        _trader: trader1
+                    })) as unknown as PositionLimitOrderID
+
+
+                    await openMarketPosition({
+                        instanceTrader: trader2,
+                        leverage: 10,
+                        quantity: BigNumber.from('50'),
+                        side: SIDE.SHORT,
+                        price: 4985,
+                        expectedSize: BigNumber.from('-50')
+                    })
+
+                    const positionDataTrader1 = (await positionHouse.getPosition(positionManager.address, trader1.address)) as unknown as PositionData;
+                    console.log("position data trader 1", positionDataTrader1.quantity.toString());
+
+
+                    console.log('***************line 2025************')
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('150'),
+                        side: SIDE.SHORT,
+                        // price: 4980,
+                        expectedSize: BigNumber.from('0')
+                    })
+
+
+                })
+                it('close limit when has openMarketPosition SHORT and have partialFilled before', async () => {
                     let response = (await openLimitPositionAndExpect({
                         _trader: trader1,
                         limitPrice: 4990,
