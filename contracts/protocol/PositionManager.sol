@@ -90,10 +90,12 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         (isFilled, isBuy, size, partialFilled) = tickPosition[pip].getQueueOrder(orderId);
 
         if (!liquidityBitmap.hasLiquidity(pip)) {
+            console.log("line 93 position manager");
             isFilled = true;
             partialFilled = 0;
         }
         if(size != 0 && size == partialFilled){
+            console.log("line 98 position manager");
             isFilled = true;
         }
     }
@@ -164,6 +166,8 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         int128 wordIndex = startWord;
         bool isPartialFill;
         while (state.remainingSize != 0) {
+            console.log("while again");
+            console.log("state pip", uint128(state.pip));
             StepComputations memory step;
             // find the next tick has liquidity
             (step.pipNext) = liquidityBitmap[wordIndex] != 0 ? liquidityBitmap.findHasLiquidityInOneWords(
@@ -209,13 +213,13 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                     // order in that pip will be fulfilled
                     state.remainingSize = state.remainingSize - liquidity;
                     // NOTICE toggle current state to uninitialized after fulfill liquidity
-                    console.log(uint128(state.pip));
 //                    liquidityBitmap.toggleSingleBit(state.pip, false);
-                    //                liquidityBitmap.toggleSingleBit(step.pipNext, false);
+//                    liquidityBitmap.toggleSingleBit(step.pipNext, false);
                     // increase pip
                     state.pip = state.remainingSize > 0 ? (isBuy ? step.pipNext + 1 : step.pipNext - 1) : step.pipNext;
                 }else{
                     liquidityBitmap.toggleSingleBit(state.pip, false);
+//                    liquidityBitmap.toggleSingleBit(step.pipNext, false);
                     state.remainingSize = 0;
                     state.pip = step.pipNext;
                 }
