@@ -505,7 +505,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             // reduce old position only
             positionResp.exchangedPositionSize = openMarketOrder(_positionManager, _quantity.abs(), _side);
 
-                        oldPosition = getPosition(address(_positionManager), _trader);
+            oldPosition = getPosition(address(_positionManager), _trader);
 
             console.log("get entry price");
             uint256 _entryPrice = oldPosition.getEntryPrice();
@@ -892,17 +892,23 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     }
 
     function _calcRealPnL(IPositionManager _positionManager, Position.Data memory positionData, uint256 amountFilled, int128 pip, int256 amount) public view returns (int256, Position.Data memory)  {
-        // TODO add margin to amount
         if (positionData.side() == Position.Side.LONG) {
             uint256 notionalWhenFilled = amountFilled * _positionManager.pipToPrice(pip);
             int256 realizedPnl = int256(notionalWhenFilled) - int256(positionData.openNotional) / positionData.quantity * int256(amountFilled);
-            amount = amount + realizedPnl;
+            int256 realizedMargin = int256(positionData.margin) * int256(amountFilled) / positionData.quantity;
+            amount = amount + realizedPnl + realizedMargin;
+            positionData.openNotional = (positionData.openNotional / uint256(positionData.quantity)) * uint256(positionData.quantity - int256(amountFilled));
             positionData.quantity = positionData.quantity - int256(amountFilled);
+            positionData.margin = positionData.margin - uint256(realizedMargin);
         } else {
             uint256 notionalWhenFilled = amountFilled * _positionManager.pipToPrice(pip);
             int256 realizedPnl = int256(positionData.openNotional) / (- positionData.quantity) * int256(amountFilled) - int256(notionalWhenFilled);
-            amount = amount + realizedPnl;
+            int256 realizedMargin = int256(positionData.margin) * int256(amountFilled) / (-positionData.quantity);
+            amount = amount + realizedPnl + realizedMargin;
+            positionData.openNotional = (positionData.openNotional / uint256(-positionData.quantity)) * uint256(-positionData.quantity - int256(amountFilled));
             positionData.quantity = positionData.quantity + int256(amountFilled);
+            positionData.margin = positionData.margin - uint256(realizedMargin);
+
         }
         return (amount, positionData);
     }
