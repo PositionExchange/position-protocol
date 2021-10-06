@@ -2247,11 +2247,10 @@ describe("PositionHouse", () => {
         })
 
         describe('should increase open limit with Pnl ', async () => {
-            it('open limit order SHORT has been filled and open market with increase position', async () => {
+            it('open limit order SHORT has been fully filled and open market with increase position', async () => {
                 let response1: any;
                 let response2: any;
                 let response3: any;
-
 
                 {
                     response1 = (await openLimitPositionAndExpect({
@@ -2304,9 +2303,74 @@ describe("PositionHouse", () => {
                         instanceTrader: trader,
                         leverage: 10,
                         quantity: BigNumber.from('50'),
-                        side: SIDE.LONG,
+                        side: SIDE.SHORT,
                         price: 5015,
-                        expectedSize: BigNumber.from('-50')
+                        expectedSize: BigNumber.from('-150')
+                    });
+                }
+
+
+            })
+
+            it('open limit order SHORT has been partial filled and open market with increase position', async () => {
+                let response1: any;
+                let response2: any;
+                let response3: any;
+
+                {
+                    response1 = (await openLimitPositionAndExpect({
+                        limitPrice: 5010,
+                        side: SIDE.SHORT,
+                        leverage: 10,
+                        quantity: 200
+                    })) as unknown as PositionLimitOrderID
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('100'),
+                        side: SIDE.LONG,
+                        price: 5010,
+                        expectedSize: BigNumber.from('100')
+                    });
+                }
+
+                {
+
+                    response2 = (await openLimitPositionAndExpect({
+                        limitPrice: 5000,
+                        side: SIDE.LONG,
+                        leverage: 10,
+                        quantity: 200,
+                        _trader: trader2
+                    })) as unknown as PositionLimitOrderID
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('100'),
+                        side: SIDE.SHORT,
+                        price: 5000,
+                        expectedSize: BigNumber.from('0')
+                    });
+                }
+
+                {
+                    response3 = (await openLimitPositionAndExpect({
+                        limitPrice: 4995,
+                        side: SIDE.LONG,
+                        leverage: 10,
+                        quantity: 50,
+                        _trader: trader2
+                    })) as unknown as PositionLimitOrderID
+
+                    await openMarketPosition({
+                        instanceTrader: trader,
+                        leverage: 10,
+                        quantity: BigNumber.from('50'),
+                        side: SIDE.SHORT,
+                        price: 5015,
+                        expectedSize: BigNumber.from('-150')
                     });
                 }
 
@@ -2386,7 +2450,7 @@ describe("PositionHouse", () => {
             })
 
 
-            it('open limit order has been filled and open market with Reverse', async () => {
+            it('open limit order has been filled and open market with open reverse', async () => {
 
                 let response1: any;
                 let response2: any;

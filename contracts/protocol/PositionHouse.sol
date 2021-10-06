@@ -455,7 +455,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         positionResp.exchangedPositionSize = openMarketOrder(_positionManager, _quantity.abs(), _side);
         if (positionResp.exchangedPositionSize != 0) {
             // NOTICE _newSize from uint256 to int256
-            int256 _newSize = oldPosition.quantity + positionResp.exchangedPositionSize;
+            int256 _newSize = oldPosition.quantity + positionResp.exchangedPositionSize - oldPosition.sumQuantityLimitOrder;
             uint256 _currentPrice = _positionManager.getPrice();
             uint256 increaseMarginRequirement = (_quantity).abs() * _currentPrice / _leverage;
             console.log(' increaseMarginRequirement : ', increaseMarginRequirement);
