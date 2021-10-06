@@ -65,8 +65,10 @@ library Position {
                 console.log("orderMargin ", orderMargin);
                 console.log("self notional", self.openNotional);
                 console.log("order notional", orderNotional);
-                positionData.margin = self.margin - orderMargin;
-                positionData.openNotional = self.openNotional - orderNotional;
+                positionData.margin = self.margin > orderMargin ? self.margin - orderMargin : orderMargin - self.margin;
+                positionData.openNotional = self.openNotional > orderNotional ? self.openNotional - orderNotional : orderNotional - self.openNotional;
+                //                positionData.margin = self.margin - orderMargin;
+                //                positionData.openNotional = self.openNotional - orderNotional;
             } else {
                 positionData.margin = orderMargin - positionData.margin;
                 positionData.openNotional = orderNotional - positionData.openNotional;
