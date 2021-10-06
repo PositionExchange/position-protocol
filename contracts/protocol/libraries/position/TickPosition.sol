@@ -88,8 +88,9 @@ library TickPosition {
         (bool isBuy,
         uint256 size,
         uint256 partialFilled) = self.orderQueue[orderId].getData();
-        self.liquidity = self.liquidity - uint128(size);
-        self.orderQueue[orderId].update(isBuy, 0);
+        self.liquidity = self.liquidity - uint128(size - partialFilled);
+
+        self.orderQueue[orderId].update(isBuy, partialFilled);
     }
     //    function executeOrder(Data storage self, uint256 size, bool isLong)
     //    internal returns
@@ -110,6 +111,5 @@ library TickPosition {
     //            self.filledIndex = self.currentIndex;
     //        }
     //    }
-
 
 }

@@ -673,7 +673,24 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         console.log("quantityMarket ", uint256(quantityMarket));
 
         positionData.sumQuantityLimitOrder = positionData.quantity - quantityMarket;
+    }
 
+    function getPositionIncludePending(
+        address positionManager,
+        address _trader
+    ) public view returns (Position.Data memory positionData){
+        positionData = positionMap[positionManager][_trader];
+        int256 quantityMarket = positionData.quantity;
+        LimitOrderID[] memory listLimitOrder = limitOrderMap[positionManager][_trader];
+        IPositionManager _positionManager = IPositionManager(positionManager);
+        console.log("limit order length", listLimitOrder.length);
+        for (uint i = 0; i < listLimitOrder.length; i++) {
+            positionData = _accumulateLimitOrderToPositionData(_positionManager, listLimitOrder[i], positionData);
+        }
+        console.log("positionData.quantity ", uint256(positionData.quantity));
+        console.log("quantityMarket ", uint256(quantityMarket));
+
+        positionData.sumQuantityLimitOrder = positionData.quantity - quantityMarket;
     }
 
 
@@ -856,6 +873,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     function _accumulateLimitOrderToPositionData(IPositionManager _positionManager, LimitOrderID memory limitOrder, Position.Data memory positionData) internal view returns (Position.Data memory) {
         (bool isFilled, bool isBuy,
         uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(limitOrder.pip, limitOrder.orderId);
+        console.log("line 859 quantity", quantity, partialFilled);
         if (isFilled) {
             console.log("into full fill");
             int256 _orderQuantity = isBuy ? int256(quantity) : - int256(quantity);
@@ -874,6 +892,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     }
 
     function _calcRealPnL(IPositionManager _positionManager, Position.Data memory positionData, uint256 amountFilled, int128 pip, int256 amount) public view returns (int256, Position.Data memory)  {
+        // TODO add margin to amount
         if (positionData.side() == Position.Side.LONG) {
             uint256 notionalWhenFilled = amountFilled * _positionManager.pipToPrice(pip);
             int256 realizedPnl = int256(notionalWhenFilled) - int256(positionData.openNotional) / positionData.quantity * int256(amountFilled);
