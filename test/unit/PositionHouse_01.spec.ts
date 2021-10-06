@@ -41,7 +41,7 @@ interface ClaimFund {
     amount: BigNumber
 }
 
-describe("PositionHouse", () => {
+describe("PositionHouse_01", () => {
     let positionHouse: PositionHouse;
     let trader: any;
     let trader1: any;
@@ -2208,6 +2208,9 @@ describe("PositionHouse", () => {
                         expectedSize: BigNumber.from('0')
                     })
 
+                    // const res = await positionManager.getPendingOrderDetail(pip, orderId)
+
+
 
                 })
                 it('ERROR open reverse: close limit when has openMarketPosition SHORT and have partialFilled before 01', async () => {
@@ -2258,10 +2261,10 @@ describe("PositionHouse", () => {
                     await openMarketPosition({
                         instanceTrader: trader1,
                         leverage: 10,
-                        quantity: BigNumber.from('150'),
+                        quantity: BigNumber.from('180'),
                         side: SIDE.SHORT,
                         // price: 4980,
-                        expectedSize: BigNumber.from('50')
+                        expectedSize: BigNumber.from('20')
                     })
 
 
@@ -2306,19 +2309,19 @@ describe("PositionHouse", () => {
                         expectedSize: BigNumber.from('-50')
                     })
 
-                    const positionDataTrader1 = (await positionHouse.getPosition(positionManager.address, trader1.address)) as unknown as PositionData;
-                    console.log("position data trader 1", positionDataTrader1.quantity.toString());
-
 
                     console.log('***************line 2025************')
-                    await openMarketPosition({
+                        await openMarketPosition({
                         instanceTrader: trader1,
                         leverage: 10,
                         quantity: BigNumber.from('130'),
                         side: SIDE.SHORT,
                         // price: 4980,
-                        expectedSize: BigNumber.from('50')
+                        expectedSize: BigNumber.from('70')
                     })
+
+                    const positionDataTrader1 = (await positionHouse.getPosition(positionManager.address, trader1.address)) as unknown as PositionData;
+                    console.log("position data trader 1", positionDataTrader1.quantity.toString());
 
 
                 })
