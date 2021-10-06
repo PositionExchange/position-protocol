@@ -12,6 +12,7 @@ library Position {
         // TODO restruct data
         //        Position.Side side;
         int256 quantity;
+        int256 sumQuantityLimitOrder;
         uint256 margin;
         uint256 openNotional;
         uint256 lastUpdatedCumulativePremiumFraction;
@@ -60,6 +61,10 @@ library Position {
             positionData.openNotional = self.openNotional + orderNotional;
         } else {
             if (self.quantity.abs() > quantity.abs()) {
+                console.log("self.margin", self.margin);
+                console.log("orderMargin ", orderMargin);
+                console.log("self notional", self.openNotional);
+                console.log("order notional", orderNotional);
                 positionData.margin = self.margin - orderMargin;
                 positionData.openNotional = self.openNotional - orderNotional;
             } else {
