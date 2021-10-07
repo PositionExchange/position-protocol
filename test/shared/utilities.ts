@@ -1,6 +1,8 @@
 import bn from 'bignumber.js'
 import {BigNumber, BigNumberish, constants, Contract, ContractTransaction, utils, Wallet} from 'ethers'
 import web3Utils from "web3-utils";
+import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
+import {PositionManager} from "../../typeChain";
 
 const {web3, ethers} = require("hardhat");
 
@@ -114,3 +116,62 @@ export function priceToPip(price: number, basicPoint = 0.01): string | number {
 
 
 }
+
+
+export const SIDE = {
+    LONG: 0,
+    SHORT: 1
+}
+
+
+export interface OpenLimitPositionAndExpectParams {
+    _trader?: SignerWithAddress
+    limitPrice: number | string
+    leverage: number,
+    quantity: number
+    side: number
+    _positionManager?: PositionManager
+}
+export interface PositionData {
+    quantity: BigNumber
+    margin: BigNumber
+    openNotional: BigNumber
+    side: BigNumber
+}
+
+export interface MaintenanceDetail {
+    maintenanceMargin: BigNumber
+    marginBalance: BigNumber
+    marginRatio: BigNumber
+}
+
+export interface PositionLimitOrderID {
+    pip: BigNumber,
+    orderId: BigNumber
+}
+
+export interface ClaimFund {
+    canClaim: boolean,
+    amount: BigNumber
+}
+export interface PositionPendingOrder {
+    limitPrice: BigNumber
+    leverage: BigNumber,
+    quantity: BigNumber
+    side: BigNumber,
+    margin: BigNumber
+    openNotional: BigNumber
+}
+
+export interface PendingOrder {
+    isFilled: boolean,
+    isBuy: boolean,
+    size: BigNumber,
+    partialFilled: BigNumber
+}
+
+export interface LimitOrderReturns {
+    orderId: string;
+    pip: number
+}
+

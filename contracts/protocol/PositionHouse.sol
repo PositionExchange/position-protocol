@@ -207,7 +207,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         // TODO send back margin to trader
     }
 
-
     /**
     * @notice close position with close market
     * @param _positionManager IPositionManager address
@@ -228,7 +227,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         if (positionData.quantity > 0) {
             openMarketPosition(_positionManager, Position.Side.SHORT, uint256(positionData.quantity), oldPositionLeverage);
         } else {
-            openMarketPosition(_positionManager, Position.Side.LONG, uint256(- positionData.quantity), oldPositionLeverage);
+            openMarketPosition(_positionManager, Position.Side.LONG, uint256(-positionData.quantity), oldPositionLeverage);
         }
 
     }
@@ -264,7 +263,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
         address _trader = _msgSender();
 
-        (bool canClaim,int256 amount) = canClaimFund(_positionManager, _trader);
+        (bool canClaim, int256 amount) = canClaimFund(_positionManager, _trader);
 
         if (canClaim) {
 
@@ -277,12 +276,24 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             // ensure no has order any more => after
             if (positionData.quantity == 0) {
                 clearPosition(_positionManager, _trader);
+            } else {
+                LimitOrderID[] memory listLimitOrder = limitOrderMap[address(_positionManager)][_trader];
+                for (uint i = 0; i < listLimitOrder.length; i ++) {
+                    //                    amount = _positionManager.closeLimitOrder(listLimitOrder[i].pip, listLimitOrder[i].orderId, amount);
+
+                }
+
+                if (amount > 0) {
+                    // TODO reduce in market order
+                    //                    positionMap[address(_positionManager)][_trader].clear();
+
+                }
+
             }
         }
     }
 
     function canClaimFund(IPositionManager _positionManager, address _trader) public view returns (bool canClaim, int256 amount){
-
 
         LimitOrderID[] memory listLimitOrder = limitOrderMap[address(_positionManager)][_trader];
 
@@ -359,10 +370,12 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
                 liquidationPenalty = uint256(- positionResp.marginToVault);
                 feeToLiquidator = liquidationPenalty / 2;
                 feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
-                // update position after reduce quantity and take liquidation fee
+                // update position after reduce quantity
                 positionMap[address(_positionManager)][_trader].update(
                     positionResp.position
                 );
+                // TODO take liquidation fee
+
             } else {
                 // fully liquidate trader's position
                 liquidationPenalty = getPosition(address(_positionManager), _trader).margin;
@@ -441,7 +454,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         if (limitOrderMap[address(_positionManager)][_trader].length > 0) {
             delete limitOrderMap[address(_positionManager)][_trader];
         }
-
     }
 
     function increasePosition(
@@ -505,7 +517,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             // reduce old position only
             positionResp.exchangedPositionSize = openMarketOrder(_positionManager, _quantity.abs(), _side);
 
-            oldPosition = getPosition(address(_positionManager), _trader);
+            //            oldPosition = getPosition(address(_positionManager), _trader);
 
             console.log("get entry price");
             uint256 _entryPrice = oldPosition.getEntryPrice();
@@ -523,7 +535,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             positionResp.marginToVault = - (int256(reduceMarginRequirement) + positionResp.realizedPnl);
 
             console.log("old quantity | margin ", uint256(oldPosition.quantity), remainMargin);
-
 
             console.log("new quantity | _quantity open", uint256(oldPosition.quantity + _quantity), uint256(- _quantity));
 
@@ -675,6 +686,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         positionData.sumQuantityLimitOrder = positionData.quantity - quantityMarket;
     }
 
+
     function getPositionIncludePending(
         address positionManager,
         address _trader
@@ -764,7 +776,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         }
 
     }
-
 
     //
     // REQUIRE FUNCTIONS
@@ -903,9 +914,9 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         } else {
             uint256 notionalWhenFilled = amountFilled * _positionManager.pipToPrice(pip);
             int256 realizedPnl = int256(positionData.openNotional) / (- positionData.quantity) * int256(amountFilled) - int256(notionalWhenFilled);
-            int256 realizedMargin = int256(positionData.margin) * int256(amountFilled) / (-positionData.quantity);
+            int256 realizedMargin = int256(positionData.margin) * int256(amountFilled) / (- positionData.quantity);
             amount = amount + realizedPnl + realizedMargin;
-            positionData.openNotional = (positionData.openNotional / uint256(-positionData.quantity)) * uint256(-positionData.quantity - int256(amountFilled));
+            positionData.openNotional = (positionData.openNotional / uint256(- positionData.quantity)) * uint256(- positionData.quantity - int256(amountFilled));
             positionData.quantity = positionData.quantity + int256(amountFilled);
             positionData.margin = positionData.margin - uint256(realizedMargin);
 
