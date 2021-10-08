@@ -219,12 +219,12 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                     state.remainingSize = state.remainingSize - liquidity;
                     // NOTICE toggle current state to uninitialized after fulfill liquidity
                     //                    liquidityBitmap.toggleSingleBit(state.pip, false);
-                    //                    liquidityBitmap.toggleSingleBit(step.pipNext, false);
+                    liquidityBitmap.toggleSingleBit(step.pipNext, false);
                     // increase pip
                     state.pip = state.remainingSize > 0 ? (isBuy ? step.pipNext + 1 : step.pipNext - 1) : step.pipNext;
                 } else {
-                    liquidityBitmap.toggleSingleBit(state.pip, false);
-                    //                    liquidityBitmap.toggleSingleBit(step.pipNext, false);
+//                    liquidityBitmap.toggleSingleBit(state.pip, false);
+                    liquidityBitmap.toggleSingleBit(step.pipNext, false);
                     state.remainingSize = 0;
                     state.pip = step.pipNext;
                 }

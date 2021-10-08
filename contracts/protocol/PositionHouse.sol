@@ -303,6 +303,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             if (listLimitOrder[i].typeLimitOrder == LimitOrderType.CLOSE_LIMIT && partialFilled > 0) {
                 console.log("can claim fund partially filled", partialFilled);
                 (amount, positionData) = _calcRealPnL(_positionManager, positionData, partialFilled, listLimitOrder[i].pip, amount);
+
             } else if (listLimitOrder[i].typeLimitOrder == LimitOrderType.CLOSE_LIMIT && isFilled == true) {
                 (amount, positionData) = _calcRealPnL(_positionManager, positionData, quantity, listLimitOrder[i].pip, amount);
             }
@@ -323,7 +324,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             } else if (!isFilled && partialFilled != 0) {
                 _sumQuantity += isBuy ? int256(partialFilled) : - int256(partialFilled);
             }
-
         }
         return _sumQuantity;
     }
