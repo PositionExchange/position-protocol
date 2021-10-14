@@ -15,7 +15,7 @@ interface IPositionManager {
 
     function openLimitPosition(int128 pip, uint128 size, bool isBuy) external returns (uint64 orderId);
 
-    function openMarketPosition(uint256 size, bool isBuy) external returns (uint256 sizeOut);
+    function openMarketPosition(uint256 size, bool isBuy) external returns (uint256 sizeOut, uint256 openNotional);
 
     function getPrice() external view returns (uint256);
 

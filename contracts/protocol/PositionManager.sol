@@ -88,13 +88,11 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
 
     ){
         (isFilled, isBuy, size, partialFilled) = tickPosition[pip].getQueueOrder(orderId);
-
         if (!liquidityBitmap.hasLiquidity(pip)) {
             console.log("line 93 position manager");
             isFilled = true;
-            partialFilled = 0;
         }
-        if (size != 0 && size == partialFilled) {
+        if ((size != 0 && size == partialFilled) || (size == 0 && size < partialFilled)) {
             console.log("line 98 position manager");
             isFilled = true;
         }
@@ -136,11 +134,12 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         // convert tick to price
         // save at that pip has how many liquidity
         bool hasLiquidity = liquidityBitmap.hasLiquidity(pip);
-        orderId = tickPosition[pip].insertLimitOrder(size, hasLiquidity, isBuy);
+        orderId = tickPosition[pip].insertLimitOrder(uint120(size), hasLiquidity, isBuy);
         //        orderId = abi.encode(pip, _orderId);
         if (!hasLiquidity) {
             //set the bit to mark it has liquidity
             liquidityBitmap.toggleSingleBit(pip, true);
+            tickPosition[pip].updateIsFullBuy(isBuy);
         }
         // TODO insert order to queue then return
         emit LimitOrderCreated(orderId, pip, size, isBuy);
@@ -157,7 +156,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     }
 
 
-    function openMarketPosition(uint256 size, bool isBuy) external whenNotPause onlyCounterParty returns (uint256 sizeOut) {
+    function openMarketPosition(uint256 size, bool isBuy) external whenNotPause onlyCounterParty returns (uint256 sizeOut, uint256 openNotional) {
         require(size != 0, "!S");
         // TODO lock
         // get current tick liquidity
@@ -206,27 +205,38 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                 // get liquidity at a tick index
                 uint128 liquidity = tickPosition[step.pipNext].liquidity;
                 console.log("SWAP: liquidity", uint256(liquidity));
-                if (liquidity > state.remainingSize) {
-                    // pip position will partially filled and stop here
-                    console.log("partialFilled to pip | amount", uint256(uint128(step.pipNext)), uint256(state.remainingSize));
-                    tickPosition[step.pipNext].partiallyFill(uint120(state.remainingSize));
-                    state.remainingSize = 0;
-                    state.pip = step.pipNext;
-                    isPartialFill = true;
-                } else if (state.remainingSize > liquidity) {
-                    console.log("remain size > liquidity");
-                    // order in that pip will be fulfilled
-                    state.remainingSize = state.remainingSize - liquidity;
-                    // NOTICE toggle current state to uninitialized after fulfill liquidity
-                    //                    liquidityBitmap.toggleSingleBit(state.pip, false);
-                    liquidityBitmap.toggleSingleBit(step.pipNext, false);
-                    // increase pip
-                    state.pip = state.remainingSize > 0 ? (isBuy ? step.pipNext + 1 : step.pipNext - 1) : step.pipNext;
+                if (isBuy != (tickPosition[step.pipNext].isFullBuy == 1)){
+                    if (liquidity > state.remainingSize) {
+                        // pip position will partially filled and stop here
+                        console.log("partialFilled to pip | amount", uint256(uint128(step.pipNext)), uint256(state.remainingSize));
+                        tickPosition[step.pipNext].partiallyFill(uint120(state.remainingSize));
+                        openNotional += state.remainingSize * pipToPrice(step.pipNext);
+                        state.remainingSize = 0;
+                        state.pip = step.pipNext;
+                        isPartialFill = true;
+                    } else if (state.remainingSize > liquidity) {
+                        console.log("remain size > liquidity");
+                        // order in that pip will be fulfilled
+                        state.remainingSize = state.remainingSize - liquidity;
+                        // NOTICE toggle current state to uninitialized after fulfill liquidity
+                        //                    liquidityBitmap.toggleSingleBit(state.pip, false);
+                        //                        liquidityBitmap.toggleSingleBit(step.pipNext, false);
+                        // increase pip
+                        openNotional += liquidity * pipToPrice(step.pipNext);
+                        startWord = wordIndex;
+                        state.pip = state.remainingSize > 0 ? (isBuy ? step.pipNext + 1 : step.pipNext - 1) : step.pipNext;
+
+                    } else {
+                        //                                            liquidityBitmap.toggleSingleBit(state.pip, false);
+                        liquidityBitmap.toggleSingleBit(step.pipNext, false);
+                        openNotional += state.remainingSize * pipToPrice(step.pipNext);
+                        //                        startWord = wordIndex;
+                        state.remainingSize = 0;
+                        state.pip = step.pipNext;
+
+                    }
                 } else {
-//                    liquidityBitmap.toggleSingleBit(state.pip, false);
-                    liquidityBitmap.toggleSingleBit(step.pipNext, false);
-                    state.remainingSize = 0;
-                    state.pip = step.pipNext;
+                    state.pip = isBuy ? step.pipNext + 1 : step.pipNext - 1;
                 }
             }
         }
