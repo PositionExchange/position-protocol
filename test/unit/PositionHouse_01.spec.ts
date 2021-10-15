@@ -2263,7 +2263,7 @@ describe("PositionHouse_01", () => {
 
 
                 })
-                it('ERROR open reverse: close limit when has openMarketPosition SHORT and have partialFilled before 01', async () => {
+                it('ERROR open reverse: close limit when has openMarketPosition SHORT and has partialFilled before 01', async () => {
                     let response = (await openLimitPositionAndExpect({
                         _trader: trader1,
                         limitPrice: 4990,
@@ -2275,6 +2275,7 @@ describe("PositionHouse_01", () => {
 
                     await openMarketPosition({
                         instanceTrader: trader,
+                        trader: trader.address,
                         leverage: 10,
                         quantity: BigNumber.from('100'),
                         side: SIDE.SHORT,
@@ -2296,6 +2297,7 @@ describe("PositionHouse_01", () => {
 
                     await openMarketPosition({
                         instanceTrader: trader2,
+                        trader: trader2.address,
                         leverage: 10,
                         quantity: BigNumber.from('50'),
                         side: SIDE.SHORT,
@@ -2310,6 +2312,7 @@ describe("PositionHouse_01", () => {
                     console.log('***************line 2025************')
                     await openMarketPosition({
                         instanceTrader: trader1,
+                        trader: trader1.address,
                         leverage: 10,
                         quantity: BigNumber.from('150'),
                         side: SIDE.SHORT,
@@ -2320,7 +2323,8 @@ describe("PositionHouse_01", () => {
 
                 })
 
-                it('ERROR open reverse: close limit when has openMarketPosition SHORT and have partialFilled before 02', async () => {
+                it('ERROR open reverse: close limit when has openMarketPosition SHORT and has partialFilled before 02', async () => {
+
                     let response = (await openLimitPositionAndExpect({
                         _trader: trader1,
                         limitPrice: 4990,
@@ -2332,6 +2336,7 @@ describe("PositionHouse_01", () => {
 
                     await openMarketPosition({
                         instanceTrader: trader,
+                        trader: trader.address,
                         leverage: 10,
                         quantity: BigNumber.from('100'),
                         side: SIDE.SHORT,
@@ -2353,6 +2358,7 @@ describe("PositionHouse_01", () => {
 
                     await openMarketPosition({
                         instanceTrader: trader2,
+                        trader: trader2.address,
                         leverage: 10,
                         quantity: BigNumber.from('50'),
                         side: SIDE.SHORT,
@@ -2364,6 +2370,7 @@ describe("PositionHouse_01", () => {
                     console.log('***************line 2025************')
                     await openMarketPosition({
                         instanceTrader: trader1,
+                        trader: trader1.address,
                         leverage: 10,
                         quantity: BigNumber.from('130'),
                         side: SIDE.SHORT,
@@ -2966,7 +2973,7 @@ describe("PositionHouse_01", () => {
             await positionManager2.connect(trader1).openLimitPosition(
                 priceToPip(5000),
                 '100',
-                true
+                false
             );
 
             console.log("open market 1");
@@ -3195,9 +3202,6 @@ describe("PositionHouse_01", () => {
             expect(positionData1.margin.div(10000)).eq(0)
 
         });
-
-        it (' host test')
-
 
     })
 })

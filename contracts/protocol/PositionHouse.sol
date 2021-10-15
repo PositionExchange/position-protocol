@@ -300,7 +300,12 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         Position.Data memory positionData = getPositionWithoutCloseLimitOrder(address(_positionManager), _trader);
         for (uint i = 0; i < listLimitOrder.length; i ++) {
             (bool isFilled, bool isBuy, uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
-            if (listLimitOrder[i].typeLimitOrder == LimitOrderType.CLOSE_LIMIT && partialFilled > 0) {
+            console.log("can claim fund is filled", isFilled ? "true" : "false");
+            console.log("can claim fund isBuy", isBuy ? "true" : "false");
+            console.log("can claim fund quantity", quantity);
+            console.log("can claim fund partialFilled", partialFilled);
+//            if (listLimitOrder[i].typeLimitOrder == LimitOrderType.CLOSE_LIMIT && partialFilled > 0) {
+            if (listLimitOrder[i].typeLimitOrder == LimitOrderType.CLOSE_LIMIT && isFilled == false) {
                 console.log("can claim fund partially filled", partialFilled);
                 (amount, positionData) = _calcRealPnL(_positionManager, positionData, partialFilled, listLimitOrder[i].pip, amount);
 
@@ -511,20 +516,18 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         console.log("open reverse position _quantity ", _quantity.abs());
         console.log("open reverse position oldPosition.quantity", oldPosition.quantity.abs());
 
-
         if (_quantity.abs() < oldPosition.quantity.abs()) {
             uint256 reduceMarginRequirement = oldPosition.margin * _quantity.abs() / oldPosition.quantity.abs();
             // reduce old position only
             (positionResp.exchangedPositionSize, ) = openMarketOrder(_positionManager, _quantity.abs(), _side);
 
-            //            oldPosition = getPosition(address(_positionManager), _trader);
+//                        oldPosition = getPosition(address(_positionManager), _trader);
             uint256 _entryPrice = oldPosition.getEntryPrice();
             (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, PnlCalcOption.SPOT_PRICE);
             positionResp.realizedPnl = unrealizedPnl * int256(positionResp.exchangedPositionSize) / oldPosition.quantity;
             // update old position
             (uint256 remainMargin, uint256 fundingPayment, uint256 latestCumulativePremiumFraction) =
             calcRemainMarginWithFundingPayment(oldPosition.margin, int256(oldPosition.margin - reduceMarginRequirement));
-
             // _entryPrice =
             positionResp.exchangedQuoteAssetAmount = _quantity.abs() * _entryPrice;
             positionResp.fundingPayment = fundingPayment;
@@ -552,23 +555,26 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         }
         //        }
         // if new position is larger then close old and open new
-        return closeAndOpenReversePosition(_positionManager, _side, _quantity, _leverage);
+        return closeAndOpenReversePosition(_positionManager, _side, _quantity, _leverage, oldPosition.openNotional);
     }
 
     function closeAndOpenReversePosition(
         IPositionManager _positionManager,
         Position.Side _side,
         int256 _quantity,
-        uint256 _leverage
+        uint256 _leverage,
+        uint256 _oldOpenNotional
     ) internal returns (PositionResp memory positionResp) {
         address _trader = _msgSender();
         // TODO change to TWAP
         PositionResp memory closePositionResp = internalClosePosition(_positionManager, _trader, PnlCalcOption.SPOT_PRICE);
         uint256 _currentPrice = _positionManager.getPrice();
         uint256 openNotional = _quantity.abs() * _currentPrice - closePositionResp.exchangedQuoteAssetAmount;
+//    uint256 openNotional = _oldOpenNotional - closePositionResp.exchangedQuoteAssetAmount;
         // if remain exchangedQuoteAssetAmount is too small (eg. 1wei) then the required margin might be 0
         // then the positionHouse will stop opening position
-        if (openNotional < _leverage) {
+        if (_quantity - closePositionResp.exchangedPositionSize == 0) {
+//        if (openNotional < _leverage) {
             positionResp = closePositionResp;
         } else {
 

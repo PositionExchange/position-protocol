@@ -88,14 +88,26 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
 
     ){
         (isFilled, isBuy, size, partialFilled) = tickPosition[pip].getQueueOrder(orderId);
-        if (!liquidityBitmap.hasLiquidity(pip)) {
-            console.log("line 93 position manager");
-            isFilled = true;
-        }
+        console.log("get pending order pip", uint128(pip));
+        console.log("get pending order", liquidityBitmap.hasLiquidity(pip) ? "true" : "false");
         if ((size != 0 && size == partialFilled) || (size == 0 && size < partialFilled)) {
             console.log("line 98 position manager");
             isFilled = true;
+            return (isFilled,
+            isBuy,
+            size,
+            partialFilled);
         }
+        if (!liquidityBitmap.hasLiquidity(pip)) {
+            console.log("line 93 position manager");
+            isFilled = true;
+            //            partialFilled = size;
+            partialFilled = 0;
+        }
+        //        if ((size != 0 && size == partialFilled) || (size == 0 && size < partialFilled)) {
+        //            console.log("line 98 position manager");
+        //            isFilled = true;
+        //        }
     }
 
     function currentPositionData(address _trader) external view returns (
@@ -205,7 +217,8 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                 // get liquidity at a tick index
                 uint128 liquidity = tickPosition[step.pipNext].liquidity;
                 console.log("SWAP: liquidity", uint256(liquidity));
-                if (isBuy != (tickPosition[step.pipNext].isFullBuy == 1)){
+                console.log("SWAP: state.remainingSize", uint256(state.remainingSize));
+                if (isBuy != (tickPosition[step.pipNext].isFullBuy == 1)) {
                     if (liquidity > state.remainingSize) {
                         // pip position will partially filled and stop here
                         console.log("partialFilled to pip | amount", uint256(uint128(step.pipNext)), uint256(state.remainingSize));
@@ -227,6 +240,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                         state.pip = state.remainingSize > 0 ? (isBuy ? step.pipNext + 1 : step.pipNext - 1) : step.pipNext;
 
                     } else {
+                        console.log("position manager 230");
                         //                                            liquidityBitmap.toggleSingleBit(state.pip, false);
                         liquidityBitmap.toggleSingleBit(step.pipNext, false);
                         openNotional += state.remainingSize * pipToPrice(step.pipNext);
@@ -247,7 +261,13 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                 // current pip should be set to 200
                 // but should not marked pip 200 doesn't have liquidity
                 console.log("startPip > state.pip", uint256(uint128(startPip)), uint256(uint128(state.pip)));
-                liquidityBitmap.unsetBitsRange(startPip, isPartialFill ? (isBuy ? state.pip - 1 : state.pip + 1) : state.pip);
+                if (isBuy == (tickPosition[startPip].isFullBuy == 1)) {
+                    console.log("into if");
+                    liquidityBitmap.unsetBitsRange(isBuy ? startPip + 1 : startPip - 1, isPartialFill ? (isBuy ? state.pip - 1 : state.pip + 1) : state.pip);
+                } else {
+                    console.log("into else");
+                    liquidityBitmap.unsetBitsRange(startPip, isPartialFill ? (isBuy ? state.pip - 1 : state.pip + 1) : state.pip);
+                }
             }
             singleSlot.pip = state.pip;
             // TODO write a checkpoint that we shift a range of ticks

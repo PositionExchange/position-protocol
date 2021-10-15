@@ -251,6 +251,7 @@ describe("PositionHouse_02", () => {
          - S11: Trade(cp2) open Market long(2)
          */
         it('PS_FUTU_21 increase size by market order and limit order', async () => {
+            console.log('****** Step 1 and Step 2')
             let response1 = (await openLimitPositionAndExpect({
                 limitPrice: 4980,
                 side: SIDE.LONG,
@@ -269,6 +270,9 @@ describe("PositionHouse_02", () => {
                     expectedSize: BigNumber.from('-8')
                 }
             );
+
+
+            console.log('****** Step 3 and Step 4')
 
             let response2 = (await openLimitPositionAndExpect({
                 limitPrice: 4950,
@@ -289,6 +293,9 @@ describe("PositionHouse_02", () => {
                 }
             );
 
+
+            console.log('****** Step 5 and Step 6')
+
             let response3 = (await openLimitPositionAndExpect({
                 limitPrice: 4900,
                 side: SIDE.LONG,
@@ -307,6 +314,9 @@ describe("PositionHouse_02", () => {
                     expectedSize: BigNumber.from('-18'),
                 }
             );
+
+
+            console.log('****** Step 7 and Step 8')
 
             await openMarketPosition({
                     quantity: BigNumber.from('1'),
@@ -327,6 +337,9 @@ describe("PositionHouse_02", () => {
                 _trader: trader2
             })) as unknown as PositionLimitOrderID
 
+
+            console.log('****** Step 9')
+
             await openMarketPosition({
                     quantity: BigNumber.from('4'),
                     leverage: 10,
@@ -338,6 +351,8 @@ describe("PositionHouse_02", () => {
                     expectedNotional: BigNumber.from('24400')
                 }
             );
+
+            console.log('****** Step 10 and 11')
 
             await changePrice({
                 limitPrice: 5000,
@@ -370,12 +385,10 @@ describe("PositionHouse_02", () => {
                 trader2.address,
                 1
             )
-            console.log(373)
             const positionTrader2 = (await positionHouse.getPosition(positionManager.address, trader2.address)) as unknown as PositionData
-            console.log("trader 2 quantity", positionTrader2.quantity.toString())
-            expect(positionTrader2.openNotional.div((10000))).eq(54570);
-            expect(positionTrader2.margin.div((10000))).eq(5457);
-            expect(positionNotionalAndPnLTrader2.unrealizedPnl.div(10000)).eq(950)
+            expect(positionTrader2.openNotional.div((10000))).eq(44350);
+            expect(positionTrader2.margin.div((10000))).eq(4435);
+            expect(positionNotionalAndPnLTrader2.unrealizedPnl.div(10000)).eq(650)
 
             const positionNotionalAndPnLTrader3 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
                 positionManager.address,
@@ -545,20 +558,47 @@ describe("PositionHouse_02", () => {
                 toHigherPrice: false
             })
 
-            const positionNotionalAndPnLTrader = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+            const positionNotionalAndPnLTrader0 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
                 positionManager.address,
                 trader.address,
                 1
             )
+            const positionTrader0 = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData
+            expect(positionTrader0.openNotional.div((10000))).eq(54780);
+            expect(positionTrader0.quantity.div((10000))).eq(11)
+            expect(positionTrader0.margin.div((10000))).eq(5478);
+            expect(positionNotionalAndPnLTrader0.unrealizedPnl.div(10000)).eq(-330)
 
-            expect(positionNotionalAndPnLTrader.unrealizedPnl.div(10000)).eq(100)
 
+            const positionNotionalAndPnLTrader1 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                positionManager.address,
+                trader1.address,
+                1
+            )
+            const positionTrader1 = (await positionHouse.getPosition(positionManager.address, trader1.address)) as unknown as PositionData
+            expect(positionTrader1.openNotional.div((10000))).eq(89190);
+            expect(positionTrader1.margin.div((10000))).eq(8919);
+            expect(positionNotionalAndPnLTrader1.unrealizedPnl.div(10000)).eq(-810)
 
-            const positionTrader = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData
+            const positionNotionalAndPnLTrader2 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                positionManager.address,
+                trader2.address,
+                1
+            )
+            const positionTrader2 = (await positionHouse.getPosition(positionManager.address, trader2.address)) as unknown as PositionData
+            expect(positionTrader2.openNotional.div((10000))).eq(44350);
+            expect(positionTrader2.margin.div((10000))).eq(4435);
+            expect(positionNotionalAndPnLTrader2.unrealizedPnl.div(10000)).eq(650)
 
-            expect(positionTrader.openNotional.div((10000))).eq(54780);
-
-            expect(positionTrader.margin.div((10000))).eq(5478);
+            const positionNotionalAndPnLTrader3 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                positionManager.address,
+                trader3.address,
+                1
+            )
+            const positionTrader3 = (await positionHouse.getPosition(positionManager.address, trader3.address)) as unknown as PositionData
+            expect(positionTrader3.openNotional.div((10000))).eq(24400);
+            expect(positionTrader3.margin.div((10000))).eq(2440);
+            expect(positionNotionalAndPnLTrader3.unrealizedPnl.div(10000)).eq(-600)
 
         })
 
