@@ -56,19 +56,13 @@ library TickPosition {
         uint256 partialFilled
     ) {
         (isBuy, size, partialFilled) = self.orderQueue[orderId].getData();
-        console.log(">> TickPosition partialFilled", partialFilled);
         if (self.filledIndex > orderId && size != 0) {
-            console.log("line 105 tick position ", self.filledIndex);
             isFilled = true;
         } else if (self.filledIndex < orderId) {
-            console.log("line 70 tick position", partialFilled);
             isFilled = false;
         } else {
-
             //            isFilled = partialFilled >= 0 && partialFilled < size ? false : true;
-
             isFilled = partialFilled >= size && size != 0 ? true : false;
-            console.log("line 78 tick position ", isFilled ? "true" : "false");
         }
     }
 

@@ -87,16 +87,13 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         uint256 partialFilled
 
     ){
-        console.log("checking pip", uint256(uint128(pip)));
         (isFilled, isBuy, size, partialFilled) = tickPosition[pip].getQueueOrder(orderId);
 
         if (!liquidityBitmap.hasLiquidity(pip)) {
-            console.log("line 93 position manager");
             isFilled = true;
             partialFilled = 0;
         }
         if(size != 0 && size == partialFilled){
-            console.log("line 98 position manager");
             isFilled = true;
         }
     }

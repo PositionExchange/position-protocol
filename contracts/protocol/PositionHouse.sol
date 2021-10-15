@@ -53,7 +53,8 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint16 leverage;
         LimitOrderType typeLimitOrder;
         // TODO add blockNumber open create a new struct
-        uint24 blockNumber;
+        uint8 isBuy;
+        uint8 isSelfFilled;
     }
 
     struct LimitOrderPending {
@@ -190,7 +191,8 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             orderId : _orderId,
             leverage : uint16(_leverage),
             typeLimitOrder : isOpenLimitOrder ? LimitOrderType.OPEN_LIMIT : LimitOrderType.CLOSE_LIMIT,
-            blockNumber : 0
+            isBuy: _side == Position.Side.LONG ? 1 : 2,
+            isSelfFilled: 0
         }));
 
         emit OpenLimit(_orderId, _trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _side, _leverage, _pip, _positionManager);
@@ -644,13 +646,13 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             if (!isFilled) {
 
                 listPendingPositionData[index] = LimitOrderPending({
-                side : isBuy ? Position.Side.LONG : Position.Side.SHORT,
-                quantity : int256(quantity),
-                openNotional : quantity * _positionManager.pipToPrice(listLimitOrder[i].pip),
-                pip : _positionManager.pipToPrice(listLimitOrder[i].pip),
-                partialFilled : partialFilled,
-                leverage : listLimitOrder[i].leverage,
-                blockNumber : listLimitOrder[i].blockNumber
+                    side : isBuy ? Position.Side.LONG : Position.Side.SHORT,
+                    quantity : int256(quantity),
+                    openNotional : quantity * _positionManager.pipToPrice(listLimitOrder[i].pip),
+                    pip : _positionManager.pipToPrice(listLimitOrder[i].pip),
+                    partialFilled : partialFilled,
+                    leverage : listLimitOrder[i].leverage,
+                    blockNumber : 0
                 });
                 index++;
             }
@@ -808,7 +810,32 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         Position.Side _side
     ) internal returns (int256 exchangedQuantity, uint256 openNotional){
         uint256 exchangedSize;
+        address _trader = _msgSender();
+        int128 pipBefore = _positionManager.getCurrentPip();
         (exchangedSize, openNotional) = _positionManager.openMarketPosition(_quantity, _side == Position.Side.LONG);
+        int128 currentPip = _positionManager.getCurrentPip();
+        console.log("current pip, before pip", uint256(uint128(currentPip)), uint256(uint128(pipBefore)), uint256(_side) );
+        uint256 gasBefore = gasleft();
+        if(currentPip != pipBefore){
+            // check if fill to self limit orders
+            LimitOrderID[] memory listLimitOrder = limitOrderMap[address(_positionManager)][_trader];
+            // TODO set self filled quantity
+            for(uint256 i; i<listLimitOrder.length; i++){
+//                (bool isFilled,,,) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
+                if(listLimitOrder[i].isBuy == 1 && _side == Position.Side.SHORT){
+                    if(currentPip <= listLimitOrder[i].pip){
+                        limitOrderMap[address(_positionManager)][_trader][i].isSelfFilled = 1;
+                    }
+                }
+                if(listLimitOrder[i].isBuy == 2 && _side == Position.Side.LONG){
+                    if(currentPip >= listLimitOrder[i].pip){
+                        console.log("set isSelfFilled");
+                        limitOrderMap[address(_positionManager)][_trader][i].isSelfFilled = 1;
+                    }
+                }
+            }
+        }
+        console.log("gas spent", gasBefore - gasleft());
         // TODO check if fill to self limit orders
         require(exchangedSize == _quantity, "not enough liquidity to fulfill the order");
         exchangedQuantity = _side == Position.Side.LONG ? int256(exchangedSize) : - int256(exchangedSize);
@@ -875,6 +902,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     }
 
     function _accumulateLimitOrderToPositionData(IPositionManager _positionManager, LimitOrderID memory limitOrder, Position.Data memory positionData) internal view returns (Position.Data memory) {
+        console.log("is self filled", limitOrder.isSelfFilled);
         (bool isFilled, bool isBuy,
         uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(limitOrder.pip, limitOrder.orderId);
         if (isFilled) {
