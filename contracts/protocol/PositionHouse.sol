@@ -300,11 +300,9 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         Position.Data memory positionData = getPositionWithoutCloseLimitOrder(address(_positionManager), _trader);
         for (uint i = 0; i < listLimitOrder.length; i ++) {
             (bool isFilled, bool isBuy, uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
-            console.log("can claim fund is filled", isFilled ? "true" : "false");
-            console.log("can claim fund isBuy", isBuy ? "true" : "false");
-            console.log("can claim fund quantity", quantity);
-            console.log("can claim fund partialFilled", partialFilled);
+
 //            if (listLimitOrder[i].typeLimitOrder == LimitOrderType.CLOSE_LIMIT && partialFilled > 0) {
+
             if (listLimitOrder[i].typeLimitOrder == LimitOrderType.CLOSE_LIMIT && isFilled == false) {
                 console.log("can claim fund partially filled", partialFilled);
                 (amount, positionData) = _calcRealPnL(_positionManager, positionData, partialFilled, listLimitOrder[i].pip, amount);
@@ -569,15 +567,12 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         // TODO change to TWAP
         PositionResp memory closePositionResp = internalClosePosition(_positionManager, _trader, PnlCalcOption.SPOT_PRICE);
         uint256 _currentPrice = _positionManager.getPrice();
-        uint256 openNotional = _quantity.abs() * _currentPrice - closePositionResp.exchangedQuoteAssetAmount;
-//    uint256 openNotional = _oldOpenNotional - closePositionResp.exchangedQuoteAssetAmount;
-        // if remain exchangedQuoteAssetAmount is too small (eg. 1wei) then the required margin might be 0
-        // then the positionHouse will stop opening position
+//        uint256 openNotional = _quantity.abs() * _currentPrice - closePositionResp.exchangedQuoteAssetAmount;
+        // if remainQuantity == 0 means no more quantity to open reverse position
         if (_quantity - closePositionResp.exchangedPositionSize == 0) {
 //        if (openNotional < _leverage) {
             positionResp = closePositionResp;
         } else {
-
             //            int256 _quantityConverted = _side == Position.Side.SHORT ? - int256(openNotional / _currentPrice) : int256(openNotional / _currentPrice);
             PositionResp memory increasePositionResp = increasePosition(_positionManager, _side, _quantity - closePositionResp.exchangedPositionSize, _leverage);
             positionResp = PositionResp({
@@ -609,7 +604,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(_positionManager, oldPosition.quantity.abs(), Position.Side.LONG);
         }
 
-        uint256 _currentPrice = _positionManager.getPrice();
+//        uint256 _currentPrice = _positionManager.getPrice();
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, _pnlCalcOption);
         (
         uint256 remainMargin,

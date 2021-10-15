@@ -19,6 +19,7 @@ library TickPosition {
         uint64 filledIndex;
         uint64 currentIndex;
         // IMPORTANT can change bool to uint8
+        // add attribute isFullBuy means a pip could have just all buy or all sell order (not both at the same time)
         uint8 isFullBuy;
         // position at a certain tick
         // index => order data
@@ -42,6 +43,9 @@ library TickPosition {
             self.orderQueue[self.currentIndex].update(isBuy, size);
         }
         // NEW UPDATE
+        // check new order is same side with isFullBuy or not
+        // if not new order can partially or fully fill old order
+        // to keep a pip just have full buy or full sell order
         else {
             if (!hasLiquidity && self.liquidity == 0) {
                 self.liquidity = self.liquidity + size;

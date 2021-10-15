@@ -88,10 +88,8 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
 
     ){
         (isFilled, isBuy, size, partialFilled) = tickPosition[pip].getQueueOrder(orderId);
-        console.log("get pending order pip", uint128(pip));
-        console.log("get pending order", liquidityBitmap.hasLiquidity(pip) ? "true" : "false");
+        // check condition size and quantity before hasLiquidity because openLimitOrder can have partialFilled != and size = 0
         if ((size != 0 && size == partialFilled) || (size == 0 && size < partialFilled)) {
-            console.log("line 98 position manager");
             isFilled = true;
             return (isFilled,
             isBuy,
@@ -99,9 +97,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
             partialFilled);
         }
         if (!liquidityBitmap.hasLiquidity(pip)) {
-            console.log("line 93 position manager");
             isFilled = true;
-            //            partialFilled = size;
             partialFilled = 0;
         }
         //        if ((size != 0 && size == partialFilled) || (size == 0 && size < partialFilled)) {
@@ -240,7 +236,6 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                         state.pip = state.remainingSize > 0 ? (isBuy ? step.pipNext + 1 : step.pipNext - 1) : step.pipNext;
 
                     } else {
-                        console.log("position manager 230");
                         //                                            liquidityBitmap.toggleSingleBit(state.pip, false);
                         liquidityBitmap.toggleSingleBit(step.pipNext, false);
                         openNotional += state.remainingSize * pipToPrice(step.pipNext);

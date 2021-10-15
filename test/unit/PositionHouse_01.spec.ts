@@ -2320,7 +2320,6 @@ describe("PositionHouse_01", () => {
                         expectedSize: BigNumber.from('50')
                     })
 
-
                 })
 
                 it('ERROR open reverse: close limit when has openMarketPosition SHORT and has partialFilled before 02', async () => {
