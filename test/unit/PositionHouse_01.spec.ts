@@ -1,44 +1,21 @@
 import {BigNumber, BigNumberish, ContractFactory, Signer, Wallet} from 'ethers'
 import {ethers, waffle} from 'hardhat'
-// import {PositionHouse} from "../../typeChain";
 import {loadFixture} from "ethereum-waffle";
-// import checkObservationEquals from "../../shared/checkObservationEquals";
-// import snapshotGasCost from "../../shared/snapshotGasCost";
-// import {expect} from "../../shared/expect";
-// import {TEST_POOL_START_TIME} from "../../shared/fixtures";
+
 import {describe} from "mocha";
 import {expect} from 'chai'
 import {PositionManager, PositionHouse} from "../../typeChain";
-import {priceToPip, toWeiBN, toWeiWithString} from "../shared/utilities";
+import {
+    ClaimFund, LimitOrderReturns,
+    MaintenanceDetail, OpenLimitPositionAndExpectParams,
+    PositionData,
+    PositionLimitOrderID,
+    priceToPip,
+    SIDE,
+    toWeiBN,
+    toWeiWithString
+} from "../shared/utilities";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
-
-const SIDE = {
-    LONG: 0,
-    SHORT: 1
-}
-
-interface PositionData {
-    quantity: BigNumber
-    margin: BigNumber
-    openNotional: BigNumber
-    side: BigNumber
-}
-
-interface MaintenanceDetail {
-    maintenanceMargin: BigNumber
-    marginBalance: BigNumber
-    marginRatio: BigNumber
-}
-
-interface PositionLimitOrderID {
-    pip: BigNumber,
-    orderId: BigNumber
-}
-
-interface ClaimFund {
-    canClaim: boolean,
-    amount: BigNumber
-}
 
 describe("PositionHouse_01", () => {
     let positionHouse: PositionHouse;
@@ -111,35 +88,8 @@ describe("PositionHouse_01", () => {
         expectedMargin && expect(positionInfo.margin.div('10000').toString()).eq(expectedMargin.toString())
     }
 
-    interface OpenLimitPositionAndExpectParams {
-        _trader?: SignerWithAddress
-        limitPrice: number | string
-        leverage: number,
-        quantity: number
-        side: number
-        _positionManager?: PositionManager
-    }
 
-    interface PositionPendingOrder {
-        limitPrice: BigNumber
-        leverage: BigNumber,
-        quantity: BigNumber
-        side: BigNumber,
-        margin: BigNumber
-        openNotional: BigNumber
-    }
 
-    interface PendingOrder {
-        isFilled: boolean,
-        isBuy: boolean,
-        size: BigNumber,
-        partialFilled: BigNumber
-    }
-
-    interface LimitOrderReturns {
-        orderId: string;
-        pip: number
-    }
 
     async function debugPendingOrder(pip: any, orderId: any) {
         const res = await positionManager.getPendingOrderDetail(pip, orderId)
@@ -200,8 +150,9 @@ describe("PositionHouse_01", () => {
         instanceTrader: any,
         _positionManager?: any
     }) => {
+        const positionData1 = (await positionHouse.connect(instanceTrader).getPosition(_positionManager.address, trader)) as unknown as PositionData;
         await positionHouse.connect(instanceTrader).closePosition(
-            _positionManager.address)
+            _positionManager.address);
 
         const positionData = (await positionHouse.getPosition(_positionManager.address, trader)) as unknown as PositionData;
         expect(positionData.margin).eq(0);
@@ -1805,6 +1756,8 @@ describe("PositionHouse_01", () => {
                     })
 
 
+
+
                     let response2 = (await openLimitPositionAndExpect({
                         limitPrice: 5000,
                         side: SIDE.SHORT,
@@ -2249,7 +2202,6 @@ describe("PositionHouse_01", () => {
                 })
 
 
-
             })
 
             describe('close position with close limit when has openMarketPosition', async () => {
@@ -2308,7 +2260,6 @@ describe("PositionHouse_01", () => {
                     })
 
                     // const res = await positionManager.getPendingOrderDetail(pip, orderId)
-
 
 
                 })
@@ -2411,7 +2362,7 @@ describe("PositionHouse_01", () => {
 
 
                     console.log('***************line 2025************')
-                        await openMarketPosition({
+                    await openMarketPosition({
                         instanceTrader: trader1,
                         leverage: 10,
                         quantity: BigNumber.from('130'),
@@ -2565,11 +2516,48 @@ describe("PositionHouse_01", () => {
 
         describe('should reduce open limit', async () => {
 
-            it('ERROR self filled market: open limit order has been filled and open market with reduce position', async () => {
+            it('ERROR self filled market: open limit order has been partialFilled and open market with reduce position', async () => {
                 let response1: any;
                 let response2: any;
                 let response3: any;
 
+                {
+                    response1 = (await openLimitPositionAndExpect({
+                        limitPrice: 5010,
+                        side: SIDE.SHORT,
+                        leverage: 10,
+                        quantity: 100
+                    })) as unknown as PositionLimitOrderID
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 10,
+                        quantity: BigNumber.from('30'),
+                        side: SIDE.LONG,
+                        price: 5010,
+                        expectedSize: BigNumber.from('30')
+                    });
+                }
+
+                // TODO verify expected size
+                await openMarketPosition({
+                    instanceTrader: trader,
+                    leverage: 10,
+                    quantity: BigNumber.from('40'),
+                    side: SIDE.LONG,
+                    price: 5015,
+                    expectedSize: BigNumber.from('0')
+                });
+
+                const pendingOrder = await positionHouse.getPendingOrder(positionManager.address, response1.pip, response1.orderId);
+                expect(pendingOrder.partialFilled).eq(70);
+
+
+            })
+            it('ERROR self filled market: open limit order has been filled and open market with reduce position', async () => {
+                let response1: any;
+                let response2: any;
+                let response3: any;
 
                 {
                     response1 = (await openLimitPositionAndExpect({
@@ -2609,6 +2597,8 @@ describe("PositionHouse_01", () => {
                     });
                 }
 
+
+                // TODO verify expected size
                 {
                     response3 = (await openLimitPositionAndExpect({
                         limitPrice: 5015,
@@ -2678,6 +2668,7 @@ describe("PositionHouse_01", () => {
                         expectedSize: BigNumber.from('0')
                     });
                 }
+
                 {
 
                     response3 = (await openLimitPositionAndExpect({
@@ -2699,6 +2690,91 @@ describe("PositionHouse_01", () => {
                 }
             })
 
+
+        })
+
+        describe('liquidate with open limit order', async () => {
+
+            it('liquidate partial position with limit order SHORT', async () => {
+                let response1: any;
+                let response2: any;
+                let response3: any;
+
+                {
+                    response1 = (await openLimitPositionAndExpect({
+                        limitPrice: 5000,
+                        side: SIDE.SHORT,
+                        leverage: 20,
+                        quantity: 100
+                    })) as unknown as PositionLimitOrderID
+
+                    await openMarketPosition({
+                        instanceTrader: trader1,
+                        leverage: 20,
+                        quantity: BigNumber.from('100'),
+                        side: SIDE.LONG,
+                        price: 5000,
+                        expectedSize: BigNumber.from('100')
+                    });
+                }
+
+                {
+                    response2 = (await openLimitPositionAndExpect({
+                        limitPrice: 5242,
+                        side: SIDE.SHORT,
+                        leverage: 20,
+                        quantity: 100,
+                        _trader: trader1
+                    })) as unknown as PositionLimitOrderID
+
+                    await openMarketPosition({
+                        instanceTrader: trader2,
+                        leverage: 20,
+                        quantity: BigNumber.from('100'),
+                        side: SIDE.LONG,
+                        price: 5242,
+                        expectedSize: BigNumber.from('100')
+                    });
+                }
+
+                const maintenanceDetail = (await positionHouse.getMaintenanceDetail(positionManager.address, trader.address)) as unknown as MaintenanceDetail;
+                const positionData = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData;
+                const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                    positionManager.address,
+                    trader.address,
+                    1
+                )
+
+
+                console.log('margin ', positionData.margin.div(10000).toString());
+                console.log('Pnl :', positionNotionalAndPnL1.unrealizedPnl.div(10000).toString())
+
+                console.log('margin maintenanceMargin: ', maintenanceDetail.maintenanceMargin.div(10000).toString());
+                console.log('margin balance: ', maintenanceDetail.marginBalance.div(10000).toString());
+                console.log('margin marginRatio: ', maintenanceDetail.marginRatio.toString());
+                console.log("start liquidate");
+
+                await positionManager.connect(trader1).openLimitPosition(
+                    priceToPip(5242),
+                    '20',
+                    false
+                );
+
+                await positionHouse.liquidate(positionManager.address, trader.address);
+
+
+                const positionData1 = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData;
+
+                console.log('quantity after liquidate ', positionData1.quantity.toString())
+                console.log('margin after liquidate ', positionData1.margin.toString())
+
+
+                expect(positionData1.quantity).eq(-80)
+
+                expect(positionData1.margin.div(10000)).eq(24250)
+
+
+            })
 
         })
     })
@@ -2824,6 +2900,7 @@ describe("PositionHouse_01", () => {
 
         it('should liquidate partial position with SHORT', async function () {
             const positionManager2 = (await positionManagerFactory.deploy(priceToPip(5000), '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
+
             await positionManager2.connect(trader1).openLimitPosition(
                 priceToPip(5000),
                 '100',
@@ -2955,7 +3032,7 @@ describe("PositionHouse_01", () => {
             )
 
 
-            console.log('mmargin ', positionData.margin.div(10000).toString());
+            console.log('margin ', positionData.margin.div(10000).toString());
             console.log('Pnl :', positionNotionalAndPnL1.unrealizedPnl.div(10000).toString())
 
             console.log('margin maintenanceMargin: ', maintenanceDetail.maintenanceMargin.div(10000).toString());
@@ -3136,5 +3213,9 @@ describe("PositionHouse_01", () => {
             expect(positionData1.margin.div(10000)).eq(0)
 
         });
+
+        it (' host test')
+
+
     })
 })

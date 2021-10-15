@@ -27,4 +27,6 @@ interface IPositionManager {
 
     function cancelLimitOrder(int128 pip, uint64 orderId) external returns (uint256);
 
+    function closeLimitOrder(int128 pip, uint64 orderId, uint256 amountClose) external;
+
 }

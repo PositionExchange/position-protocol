@@ -92,6 +92,30 @@ library TickPosition {
 
         self.orderQueue[orderId].update(isBuy, partialFilled);
     }
+    function closeLimitOrder(
+        TickPosition.Data storage self,
+        uint64 orderId,
+        uint256 amountClose
+    ) internal returns(uint256 remainAmountClose) {
+
+        (bool isBuy,
+        uint256 size,
+        uint256 partialFilled) = self.orderQueue[orderId].getData();
+
+        uint256 amount = amountClose > partialFilled ? 0 : amountClose;
+        if ( amountClose > partialFilled){
+            uint256 amount = size - partialFilled;
+            self.orderQueue[orderId].update(isBuy, amount);
+            remainAmountClose = amountClose - partialFilled;
+        }else {
+            uint256 amount = partialFilled - amountClose;
+            self.orderQueue[orderId].update(isBuy, amount);
+            remainAmountClose = 0;
+        }
+
+
+
+    }
     //    function executeOrder(Data storage self, uint256 size, bool isLong)
     //    internal returns
     //    (
