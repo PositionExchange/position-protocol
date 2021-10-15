@@ -150,12 +150,9 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         bool hasLiquidity = liquidityBitmap.hasLiquidity(pip);
         orderId = tickPosition[pip].insertLimitOrder(uint120(size), hasLiquidity, isBuy);
         console.log("pip, hasLiquidity", uint256(uint128(pip)), hasLiquidity);
-        //        orderId = abi.encode(pip, _orderId);
         if (!hasLiquidity) {
             //set the bit to mark it has liquidity
-            console.log("toggle pip", uint256(uint128(pip)));
             liquidityBitmap.toggleSingleBit(pip, true);
-//            tickPosition[pip].updateIsFullBuy(isBuy);
         }
         emit LimitOrderCreated(orderId, pip, size, isBuy);
     }
@@ -297,8 +294,10 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         singleSlot.pip = state.pip;
         singleSlot.isFullBuy = isFullBuy;
         sizeOut = size - state.remainingSize;
-        console.log("Final size state: ", size, sizeOut, state.remainingSize);
+        console.log("********************************************************************************");
+        console.log("Final size state: size, sizeOut, remainingSize", size, sizeOut, state.remainingSize);
         console.log("SWAP: final pip", uint256(uint128(state.pip)));
+        console.log("********************************************************************************");
         emit Swap(msg.sender, size, sizeOut);
     }
 

@@ -20,6 +20,7 @@ library TickPosition {
         uint64 currentIndex;
         // IMPORTANT can change bool to uint8
         // add attribute isFullBuy means a pip could have just all buy or all sell order (not both at the same time)
+        // TODO remove isFullBuy
         uint8 isFullBuy;
         // position at a certain tick
         // index => order data
@@ -43,13 +44,6 @@ library TickPosition {
         }
         self.orderQueue[self.currentIndex].update(isBuy, size);
         return self.currentIndex;
-    }
-
-    function updateIsFullBuy(
-        TickPosition.Data storage self,
-        bool isFullBuyParam
-    ) internal {
-        self.isFullBuy = isFullBuyParam ? 1 : 0;
     }
 
     function getQueueOrder(
@@ -83,18 +77,18 @@ library TickPosition {
         uint120 amount
     ) internal {
         self.liquidity -= amount;
-    unchecked {
-        uint64 index = self.filledIndex;
-        uint120 totalSize = 0;
-        while (totalSize < amount) {
-            totalSize += self.orderQueue[index].size;
-            index++;
+        unchecked {
+            uint64 index = self.filledIndex;
+            uint120 totalSize = 0;
+            while (totalSize < amount) {
+                totalSize += self.orderQueue[index].size;
+                index++;
+            }
+            index--;
+            self.filledIndex = index;
+            //            self.orderQueue[index].partialFilled = totalSize - amount;
+            self.orderQueue[index].updatePartialFill(totalSize - amount);
         }
-        index--;
-        self.filledIndex = index;
-        //            self.orderQueue[index].partialFilled = totalSize - amount;
-        self.orderQueue[index].updatePartialFill(totalSize - amount);
-    }
     }
 
     function cancelLimitOrder(

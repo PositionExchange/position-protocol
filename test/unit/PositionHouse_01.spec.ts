@@ -18,6 +18,10 @@ import {
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import PositionManagerTestingTool from "../shared/positionManagerTestingTool";
 import PositionHouseTestingTool from "../shared/positionHouseTestingTool";
+const sideObj = {
+    1: 'LONG',
+    0: 'SHORT'
+}
 
 describe("PositionHouse_01", () => {
     let positionHouse: PositionHouse;
@@ -67,6 +71,8 @@ describe("PositionHouse_01", () => {
         price?: number,
         _positionManager?: any
     }) => {
+        // @ts-ignore
+        console.group(`Open Market Order: ${sideObj[side.toString()]} ${quantity}`)
         trader = instanceTrader && instanceTrader.address || trader
         if (!trader) throw new Error("No trader")
         const tx = await positionHouse.connect(instanceTrader).openMarketPosition(
@@ -82,6 +88,7 @@ describe("PositionHouse_01", () => {
         const currentPrice = Number((await _positionManager.getPrice()).toString())
         const openNotional = positionInfo.openNotional.div('10000').toString()
         // expectedNotional = expectedNotional && expectedNotional.toString() || quantity.mul(price).toString()
+        console.log(`Position Info of ${trader}`)
         console.table([
             {
                 openNotional: positionInfo.openNotional.toString(),
@@ -93,6 +100,7 @@ describe("PositionHouse_01", () => {
         expect(positionInfo.quantity.toString()).eq(expectedSize || quantity.toString(), "Quantity not match")
         // expect(openNotional).eq(expectedNotional)
         expectedMargin && expect(positionInfo.margin.div('10000').toString()).eq(expectedMargin.toString())
+        console.groupEnd()
     }
 
     async function getOrderIdByTx(tx: any) {
@@ -118,6 +126,8 @@ describe("PositionHouse_01", () => {
         if (!_positionManager) throw Error("No position manager")
         if (!_trader) throw Error("No trader")
         const tx = await positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(Number(limitPrice)), leverage, true)
+        const receipt = await tx.wait()
+        console.log("Gas used to open limit order", receipt.gasUsed.toString())
         const {orderId, priceLimit} = await getOrderIdByTx(tx)
         console.log("order id", orderId)
         const pip = priceToPip(Number(limitPrice))
@@ -2282,6 +2292,7 @@ describe("PositionHouse_01", () => {
 
                 })
                 it('ERROR open reverse: close limit when has openMarketPosition SHORT and has partialFilled before 01', async () => {
+                    // trader1 long at 4990 quantity 100
                     let response = (await openLimitPositionAndExpect({
                         _trader: trader1,
                         limitPrice: 4990,
@@ -2290,7 +2301,8 @@ describe("PositionHouse_01", () => {
                         quantity: 100
                     })) as unknown as PositionLimitOrderID
 
-
+                    // trader market short
+                    // trader1 should fullfil
                     await openMarketPosition({
                         instanceTrader: trader,
                         trader: trader.address,
@@ -2304,6 +2316,12 @@ describe("PositionHouse_01", () => {
                     await positionManagerTestingTool.expectPendingOrderByLimitOrderResponse(response, {
                         isFilled: true
                     })
+
+                    await positionHouseTestingTool.expectPositionData(trader1, {
+                        quantity: 100
+                    })
+
+                    // open a buy limit at price 4980
                     await positionHouseTestingTool.closeLimitPosition({
                         trader,
                         price: 4980,
@@ -2331,25 +2349,25 @@ describe("PositionHouse_01", () => {
 
                     await positionManagerTestingTool.expectPendingOrderByLimitOrderResponse(response1, {
                         isFilled: false,
-                        size: 50,
+                        size: 100,
                         partialFilled: 50
                     })
 
-                    const positionDataTrader1 = (await positionHouse.getPosition(positionManager.address, trader1.address)) as unknown as PositionData;
-                    console.log("position data trader 1", positionDataTrader1.quantity.toString());
+                    await positionHouseTestingTool.debugPosition(trader1)
+                    await positionHouseTestingTool.expectPositionData(trader1, {
+                        quantity: 150
+                    })
 
-
-                    console.log('***************line 2025************')
                     await openMarketPosition({
                         instanceTrader: trader1,
                         trader: trader1.address,
                         leverage: 10,
                         quantity: BigNumber.from('150'),
                         side: SIDE.SHORT,
-                        // price: 4980,
+                        price: 4980,
                         expectedSize: BigNumber.from('50')
                     })
-
+                    await positionManagerTestingTool.debugPendingOrder(response1.pip, response1.orderId)
                 })
 
                 it('ERROR open reverse: close limit when has openMarketPosition SHORT and has partialFilled before 02', async () => {

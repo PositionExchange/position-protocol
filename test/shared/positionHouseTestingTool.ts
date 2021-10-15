@@ -146,10 +146,39 @@ export default class PositionHouseTestingTool {
 
     }
 
-    async getPosition({trader}: BasicParam): Promise<PositionData> {
+    async getPosition(trader: SignerWithAddress): Promise<PositionData> {
 
         return (await this.positionHouse.getPosition(this.positionManager.address, trader.address)) as unknown as PositionData;
 
+    }
+
+    async expectPositionData(trader: SignerWithAddress, {
+        margin,
+        quantity,
+        notional
+    }: any) {
+        const positionData = (await this.getPosition(trader))
+        margin && expect(positionData.margin.toString()).eq(margin.toString());
+        quantity && expect(positionData.quantity.toString()).eq(quantity.toString());
+        notional && expect(positionData.openNotional.div('10000').toString()).eq(notional.toString());
+    }
+
+    async debugPosition(trader: SignerWithAddress){
+        const positionInfo = await this.positionHouse.getPosition(this.positionManager.address, trader.address) as unknown as PositionData;
+        // console.log("positionInfo", positionInfo)
+        const currentPrice = Number((await this.positionManager.getPrice()).toString())
+        const openNotional = positionInfo.openNotional.div('10000').toString()
+        // expectedNotional = expectedNotional && expectedNotional.toString() || quantity.mul(price).toString()
+        console.log(`debugPosition Position Info of ${trader}`)
+        console.table([
+            {
+                openNotional: positionInfo.openNotional.toString(),
+                openNotionalFormated: openNotional,
+                currentPrice: currentPrice,
+                quantity: positionInfo.quantity.toString(),
+                margin: positionInfo.margin.div('10000').toString()
+            }
+        ])
     }
 
     async getMaintenanceDetail({trader}: BasicParam): Promise<MaintenanceDetail> {

@@ -61,10 +61,6 @@ library Position {
             positionData.openNotional = self.openNotional + orderNotional;
         } else {
             if (self.quantity.abs() > quantity.abs()) {
-                console.log("self.margin", self.margin);
-                console.log("orderMargin ", orderMargin);
-                console.log("self notional", self.openNotional);
-                console.log("order notional", orderNotional);
                 positionData.margin = self.margin > orderMargin ? self.margin - orderMargin : orderMargin - self.margin;
                 positionData.openNotional = self.openNotional > orderNotional ? self.openNotional - orderNotional : orderNotional - self.openNotional;
                 //                positionData.margin = self.margin - orderMargin;

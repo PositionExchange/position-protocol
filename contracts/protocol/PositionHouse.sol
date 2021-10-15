@@ -54,7 +54,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         LimitOrderType typeLimitOrder;
         // TODO add blockNumber open create a new struct
         uint24 blockNumber;
-
     }
 
     struct LimitOrderPending {
@@ -66,7 +65,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint256 partialFilled;
         uint256 leverage;
         uint24 blockNumber;
-
     }
 
     // Mapping from position manager address of each pair to position data of each trader
@@ -144,13 +142,10 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         PositionResp memory positionResp;
         // check if old position quantity is same side with new
         if (oldPosition.quantity == 0 || oldPosition.side() == _side) {
-            console.log("increasePosition ");
             positionResp = increasePosition(_positionManager, _side, int256(_quantity), _leverage);
         } else {
-            console.log('open reverse');
             // TODO adjust old position
             positionResp = openReversePosition(_positionManager, _side, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage);
-
         }
         console.log("before update open market");
         // update position sate
@@ -678,7 +673,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         }
         console.log("positionData.quantity ", uint256(positionData.quantity));
         console.log("quantityMarket ", uint256(quantityMarket));
-
         positionData.sumQuantityLimitOrder = positionData.quantity - quantityMarket;
     }
 
@@ -815,9 +809,9 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     ) internal returns (int256 exchangedQuantity, uint256 openNotional){
         uint256 exchangedSize;
         (exchangedSize, openNotional) = _positionManager.openMarketPosition(_quantity, _side == Position.Side.LONG);
-        require(exchangedSize == _quantity, "not enough liquidity to fulfill order");
+        // TODO check if fill to self limit orders
+        require(exchangedSize == _quantity, "not enough liquidity to fulfill the order");
         exchangedQuantity = _side == Position.Side.LONG ? int256(exchangedSize) : - int256(exchangedSize);
-
 
     }
 
@@ -883,18 +877,13 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     function _accumulateLimitOrderToPositionData(IPositionManager _positionManager, LimitOrderID memory limitOrder, Position.Data memory positionData) internal view returns (Position.Data memory) {
         (bool isFilled, bool isBuy,
         uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(limitOrder.pip, limitOrder.orderId);
-        console.log("line 859 quantity", quantity, partialFilled);
-        console.log("line 888 quantity", quantity);
-        console.log("line 889 partialFilled", partialFilled);
         if (isFilled) {
-            console.log("into full fill");
             int256 _orderQuantity = isBuy ? int256(quantity) : - int256(quantity);
             uint256 _orderNotional = quantity * _positionManager.pipToPrice(limitOrder.pip);
             // IMPORTANT UPDATE FORMULA WITH LEVERAGE
             uint256 _orderMargin = _orderNotional / limitOrder.leverage;
             positionData = positionData.accumulateLimitOrder(_orderQuantity, _orderMargin, _orderNotional);
-        } else if (!isFilled && partialFilled != 0) {
-            console.log("into partial fill");
+        } else if (!isFilled && partialFilled != 0) { // partial filled
             int256 _partialQuantity = isBuy ? int256(partialFilled) : - int256(partialFilled);
             uint256 _partialOpenNotional = partialFilled * _positionManager.pipToPrice(limitOrder.pip);
             uint256 _partialMargin = _partialOpenNotional / limitOrder.leverage;
