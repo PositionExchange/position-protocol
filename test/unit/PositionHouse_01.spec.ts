@@ -17,6 +17,7 @@ import {
 } from "../shared/utilities";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import PositionManagerTestingTool from "../shared/positionManagerTestingTool";
+import PositionHouseTestingTool from "../shared/positionHouseTestingTool";
 
 describe("PositionHouse_01", () => {
     let positionHouse: PositionHouse;
@@ -27,6 +28,7 @@ describe("PositionHouse_01", () => {
     let positionManager: PositionManager;
     let positionManagerFactory: ContractFactory;
     let positionManagerTestingTool: PositionManagerTestingTool
+    let positionHouseTestingTool: PositionHouseTestingTool
 
     beforeEach(async () => {
         [trader, trader1, trader2, trader3] = await ethers.getSigners()
@@ -39,6 +41,7 @@ describe("PositionHouse_01", () => {
         positionManagerTestingTool = new PositionManagerTestingTool(positionManager)
         const factory = await ethers.getContractFactory("PositionHouse")
         positionHouse = (await factory.deploy()) as unknown as PositionHouse;
+        positionHouseTestingTool = new PositionHouseTestingTool(positionHouse, positionManager)
     })
 
     const openMarketPosition = async ({
@@ -66,12 +69,13 @@ describe("PositionHouse_01", () => {
     }) => {
         trader = instanceTrader && instanceTrader.address || trader
         if (!trader) throw new Error("No trader")
-        await positionHouse.connect(instanceTrader).openMarketPosition(
+        const tx = await positionHouse.connect(instanceTrader).openMarketPosition(
             _positionManager.address,
             side,
             quantity,
             leverage,
         )
+        console.log("GAs USED",(await tx.wait()).gasUsed.toString())
 
         const positionInfo = await positionHouse.getPosition(_positionManager.address, trader) as unknown as PositionData;
         // console.log("positionInfo", positionInfo)
@@ -115,14 +119,18 @@ describe("PositionHouse_01", () => {
         if (!_trader) throw Error("No trader")
         const tx = await positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(Number(limitPrice)), leverage, true)
         const {orderId, priceLimit} = await getOrderIdByTx(tx)
-        console.log('orderId: ', orderId.toString())
-        console.log('priceLimit: ', priceLimit.toString());
-        // const positionLimitInOrder = (await positionHouse["getPendingOrder(address,bytes)"](_positionManager.address, orderId)) as unknown as PendingOrder;
-        // expect(positionLimitInOrder.size.toNumber()).eq(quantity);
-
+        console.log("order id", orderId)
+        const pip = priceToPip(Number(limitPrice))
+        await positionManagerTestingTool.expectPendingOrder({
+            pip,
+            orderId,
+            isFilled: false,
+            size: quantity,
+            partialFilled: 0
+        })
         return {
             orderId: orderId,
-            pip: priceToPip(Number(limitPrice))
+            pip
         } as LimitOrderReturns
         // expect(positionLimitInOrder..div(10000)).eq(limitPrice);
     }
@@ -1125,7 +1133,7 @@ describe("PositionHouse_01", () => {
 
             })
 
-            it('fill an short order by another short order', async () => {
+            it('fill a short order by another short order', async () => {
                 let response1 = (await openLimitPositionAndExpect({
                     limitPrice: 5010,
                     side: SIDE.SHORT,
@@ -1892,8 +1900,12 @@ describe("PositionHouse_01", () => {
                         price: 5000,
                         expectedSize: BigNumber.from('-50')
                     })
-
-                    await positionHouse.connect(trader).closeLimitPosition(positionManager.address, priceToPip(Number(5005)), 100);
+                    console.log("line 1902 position house test 1")
+                    await positionHouseTestingTool.closeLimitPosition({
+                        trader,
+                        price: 5005,
+                        quantity: 100
+                    })
 
                     await openMarketPosition({
                         instanceTrader: trader1,
@@ -1947,8 +1959,11 @@ describe("PositionHouse_01", () => {
                         price: 5000,
                         expectedSize: BigNumber.from('50')
                     })
-
-                    await positionHouse.connect(trader).closeLimitPosition(positionManager.address, priceToPip(Number(4995)), 100);
+                    await positionHouseTestingTool.closeLimitPosition({
+                        trader,
+                        price: 4995,
+                        quantity: 100
+                    })
 
                     await openMarketPosition({
                         instanceTrader: trader1,
@@ -2001,9 +2016,11 @@ describe("PositionHouse_01", () => {
                         price: 5000,
                         expectedSize: BigNumber.from('-50')
                     })
-
-                    const tx = await positionHouse.connect(trader).closeLimitPosition(positionManager.address, priceToPip(Number(5005)), 100);
-                    const {orderId: closeLimitOrderId} = await getOrderIdByTx(tx)
+                    await positionHouseTestingTool.closeLimitPosition({
+                        trader,
+                        price: 5005,
+                        quantity: 100
+                    })
 
                     await openMarketPosition({
                         instanceTrader: trader1,
@@ -2061,7 +2078,11 @@ describe("PositionHouse_01", () => {
 
                     console.log(1780);
                     // open LONG to close short position
-                    await positionHouse.connect(trader).closeLimitPosition(positionManager.address, priceToPip(Number(4995)), 100);
+                    await positionHouseTestingTool.closeLimitPosition({
+                        trader,
+                        price: 4995,
+                        quantity: 100
+                    })
 
                     await openMarketPosition({
                         instanceTrader: trader1,
@@ -2115,7 +2136,11 @@ describe("PositionHouse_01", () => {
                         price: 5020,
                         expectedSize: BigNumber.from('150')
                     })
-                    await positionHouse.connect(trader).closeLimitPosition(positionManager.address, priceToPip(Number(5015)), 100);
+                    await positionHouseTestingTool.closeLimitPosition({
+                        trader,
+                        price: 5015,
+                        quantity: 100
+                    })
 
                     await openMarketPosition({
                         instanceTrader: trader1,
@@ -2171,7 +2196,11 @@ describe("PositionHouse_01", () => {
                     })
 
                     // open LONG to close short position
-                    await positionHouse.connect(trader).closeLimitPosition(positionManager.address, priceToPip(Number(4995)), 100);
+                    await positionHouseTestingTool.closeLimitPosition({
+                        trader,
+                        price: 4995,
+                        quantity: 100
+                    })
 
                     await openMarketPosition({
                         instanceTrader: trader1,
@@ -2209,8 +2238,11 @@ describe("PositionHouse_01", () => {
                         price: 4990,
                         expectedSize: BigNumber.from('-100')
                     });
-
-                    await positionHouse.connect(trader).closeLimitPosition(positionManager.address, priceToPip(Number(4980)), 100);
+                    await positionHouseTestingTool.closeLimitPosition({
+                        trader,
+                        price: 4980,
+                        quantity: 100
+                    })
 
 
                     let response1 = (await openLimitPositionAndExpect({
@@ -2269,8 +2301,14 @@ describe("PositionHouse_01", () => {
                         expectedSize: BigNumber.from('-100')
                     });
 
-                    await positionHouse.connect(trader).closeLimitPosition(positionManager.address, priceToPip(Number(4980)), 100);
-
+                    await positionManagerTestingTool.expectPendingOrderByLimitOrderResponse(response, {
+                        isFilled: true
+                    })
+                    await positionHouseTestingTool.closeLimitPosition({
+                        trader,
+                        price: 4980,
+                        quantity: 100
+                    })
 
                     let response1 = (await openLimitPositionAndExpect({
                         limitPrice: 4985,
@@ -2334,9 +2372,11 @@ describe("PositionHouse_01", () => {
                         price: 4990,
                         expectedSize: BigNumber.from('-100')
                     });
-
-                    await positionHouse.connect(trader).closeLimitPosition(positionManager.address, priceToPip(Number(4980)), 100);
-
+                    await positionHouseTestingTool.closeLimitPosition({
+                        trader,
+                        price: 4980,
+                        quantity: 100
+                    })
 
                     let response1 = (await openLimitPositionAndExpect({
                         limitPrice: 4985,
@@ -2669,9 +2709,10 @@ describe("PositionHouse_01", () => {
                     leverage: 10,
                     quantity: BigNumber.from('100'),
                     side: SIDE.LONG,
-                    price: 5015,
+                    // price: 5015,
                     expectedSize: BigNumber.from('0')
                 });
+
             })
 
 

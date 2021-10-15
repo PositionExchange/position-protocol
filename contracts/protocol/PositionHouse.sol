@@ -252,10 +252,8 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         if (positionData.quantity > 0) {
 
             openLimitOrder(_positionManager, Position.Side.SHORT, _quantity, _pip, oldPositionLeverage, false);
-
         } else {
             openLimitOrder(_positionManager, Position.Side.LONG, _quantity, _pip, oldPositionLeverage, false);
-
         }
     }
 

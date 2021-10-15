@@ -110,9 +110,9 @@ export function pipToPrice(pip: number, basicPoint = 0.01): number | string {
     return pip * basicPoint;
 }
 
-export function priceToPip(price: number, basicPoint = 0.01): string | number {
+export function priceToPip(price: number | string, basicPoint = 0.01): string | number {
 
-    return price / basicPoint;
+    return Number(price) / basicPoint;
 
 
 }
@@ -132,6 +132,20 @@ export interface OpenLimitPositionAndExpectParams {
     side: number
     _positionManager?: PositionManager
 }
+
+export interface OpenMarketPositionParams {
+    quantity: BigNumber,
+    leverage: number,
+    side: number,
+    trader?: string,
+    instanceTrader: any,
+    expectedMargin?: BigNumber,
+    expectedNotional?: BigNumber | string,
+    expectedSize?: BigNumber,
+    price?: number,
+    _positionManager?: any
+}
+
 export interface PositionData {
     quantity: BigNumber
     margin: BigNumber
@@ -174,5 +188,17 @@ export interface LimitOrderReturns {
     orderId: string;
     pip: number
 }
+
+export enum OrderType {
+    Limit = 'limit',
+    Market = 'market'
+}
+
+export enum OrderSide {
+    Long = 'long',
+    Short = 'short',
+    Close = 'close'
+}
+
 
 
