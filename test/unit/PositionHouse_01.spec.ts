@@ -83,7 +83,7 @@ describe("PositionHouse_01", () => {
                 quantity: positionInfo.quantity.toString()
             }
         ])
-        expect(positionInfo.quantity.toString()).eq(expectedSize || quantity.toString())
+        expect(positionInfo.quantity.toString()).eq(expectedSize || quantity.toString(), "Quantity not match")
         // expect(openNotional).eq(expectedNotional)
         expectedMargin && expect(positionInfo.margin.div('10000').toString()).eq(expectedMargin.toString())
     }

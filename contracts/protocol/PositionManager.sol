@@ -235,13 +235,12 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                         state.pip = state.remainingSize > 0 ? (isBuy ? step.pipNext + 1 : step.pipNext - 1) : step.pipNext;
 
                     } else {
-                        //                                            liquidityBitmap.toggleSingleBit(state.pip, false);
+                        // remaining size = liquidity
+                        // only 1 pip should be toggled, so we call it directly here
                         liquidityBitmap.toggleSingleBit(step.pipNext, false);
                         openNotional += state.remainingSize * pipToPrice(step.pipNext);
-                        //                        startWord = wordIndex;
                         state.remainingSize = 0;
                         state.pip = step.pipNext;
-
                     }
                 } else {
                     state.pip = isBuy ? step.pipNext + 1 : step.pipNext - 1;
