@@ -13,7 +13,6 @@ import "./libraries/position/LimitOrder.sol";
 import "./libraries/position/LiquidityBitmap.sol";
 
 import "hardhat/console.sol";
-// TODO upgradable
 contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
     using TickPosition for TickPosition.Data;
     using LiquidityBitmap for mapping(int128 => uint256);
@@ -170,8 +169,8 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         // get current tick liquidity
         console.log("start market order, size: ", size, "is buy: ", isBuy);
         SwapState memory state = SwapState({
-        remainingSize : size,
-        pip : singleSlot.pip
+            remainingSize : size,
+            pip : singleSlot.pip
         });
         int128 startPip;
         int128 startWord = singleSlot.pip >> 8;

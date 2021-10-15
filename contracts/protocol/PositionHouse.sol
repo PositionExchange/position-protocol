@@ -191,11 +191,11 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint64 _orderId = _positionManager.openLimitPosition(_pip, int256(_quantity).abs128(), _side == Position.Side.LONG ? true : false);
 
         limitOrderMap[address(_positionManager)][_trader].push(LimitOrderID({
-        pip : _pip,
-        orderId : _orderId,
-        leverage : uint16(_leverage),
-        typeLimitOrder : isOpenLimitOrder ? LimitOrderType.OPEN_LIMIT : LimitOrderType.CLOSE_LIMIT,
-        blockNumber : 0
+            pip : _pip,
+            orderId : _orderId,
+            leverage : uint16(_leverage),
+            typeLimitOrder : isOpenLimitOrder ? LimitOrderType.OPEN_LIMIT : LimitOrderType.CLOSE_LIMIT,
+            blockNumber : 0
         }));
 
         emit OpenLimit(_orderId, _trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _side, _leverage, _pip, _positionManager);
