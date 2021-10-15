@@ -16,6 +16,7 @@ import {
     toWeiWithString
 } from "../shared/utilities";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
+import PositionManagerTestingTool from "../shared/positionManagerTestingTool";
 
 describe("PositionHouse_01", () => {
     let positionHouse: PositionHouse;
@@ -25,6 +26,7 @@ describe("PositionHouse_01", () => {
     let trader3: any;
     let positionManager: PositionManager;
     let positionManagerFactory: ContractFactory;
+    let positionManagerTestingTool: PositionManagerTestingTool
 
     beforeEach(async () => {
         [trader, trader1, trader2, trader3] = await ethers.getSigners()
@@ -34,6 +36,7 @@ describe("PositionHouse_01", () => {
         // => initial pip = 500000
         //quoteAsset    BUSD_TestNet = 0x8301f2213c0eed49a7e28ae4c3e91722919b8b47
         positionManager = (await positionManagerFactory.deploy(500000, '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
+        positionManagerTestingTool = new PositionManagerTestingTool(positionManager)
         const factory = await ethers.getContractFactory("PositionHouse")
         positionHouse = (await factory.deploy()) as unknown as PositionHouse;
     })
@@ -86,23 +89,6 @@ describe("PositionHouse_01", () => {
         expect(positionInfo.quantity.toString()).eq(expectedSize || quantity.toString(), "Quantity not match")
         // expect(openNotional).eq(expectedNotional)
         expectedMargin && expect(positionInfo.margin.div('10000').toString()).eq(expectedMargin.toString())
-    }
-
-
-
-
-    async function debugPendingOrder(pip: any, orderId: any) {
-        const res = await positionManager.getPendingOrderDetail(pip, orderId)
-        console.table([
-            {
-                pip,
-                orderId: orderId.toString(),
-                isFilled: res.isFilled,
-                isBuy: res.isBuy,
-                size: res.size.toString(),
-                partialFilled: res.partialFilled.toString(),
-            }
-        ])
     }
 
     async function getOrderIdByTx(tx: any) {
@@ -185,7 +171,7 @@ describe("PositionHouse_01", () => {
                     expectedSize: BigNumber.from('0')
                 }
             );
-            await debugPendingOrder(response1.pip, response1.orderId)
+            await positionManagerTestingTool.debugPendingOrder(response1.pip, response1.orderId)
         });
 
         it('should open market a position with many open limit LONG', async function () {
@@ -1301,7 +1287,7 @@ describe("PositionHouse_01", () => {
                     price: 4990,
                     expectedSize: BigNumber.from('-50')
                 })
-                await debugPendingOrder(response1.pip, response1.orderId)
+                await positionManagerTestingTool.debugPendingOrder(response1.pip, response1.orderId)
                 const pendingOrderDetails = await positionManager.getPendingOrderDetail(response1.pip, response1.orderId)
                 expect(pendingOrderDetails.partialFilled.toString()).eq('50')
                 const positionData1 = await positionHouse.getPosition(positionManager.address, trader.address)
@@ -2303,6 +2289,12 @@ describe("PositionHouse_01", () => {
                         side: SIDE.SHORT,
                         price: 4985,
                         expectedSize: BigNumber.from('-50')
+                    })
+
+                    await positionManagerTestingTool.expectPendingOrderByLimitOrderResponse(response1, {
+                        isFilled: false,
+                        size: 50,
+                        partialFilled: 50
                     })
 
                     const positionDataTrader1 = (await positionHouse.getPosition(positionManager.address, trader1.address)) as unknown as PositionData;
