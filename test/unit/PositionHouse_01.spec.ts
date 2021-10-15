@@ -694,7 +694,7 @@ describe("PositionHouse_01", () => {
 
                 })
 
-                // trader1 open a short order at price 5010, quantity 5 BTC
+                // trader1 open a long order at price 4990, quantity 5 BTC
                 await positionManager.connect(trader1).openLimitPosition(
                     priceToPip(4990),
                     '5',
@@ -1157,17 +1157,17 @@ describe("PositionHouse_01", () => {
                     expectedSize: BigNumber.from('100')
                 })
 
-                await openMarketPosition({
+                await expect( openMarketPosition({
                     instanceTrader: trader2,
                     leverage: 10,
                     quantity: BigNumber.from('50'),
                     side: SIDE.SHORT,
                     price: 5010,
                     expectedSize: BigNumber.from('-50')
-                })
+                })).to.be.revertedWith('not enough liquidity to fulfill order');
 
-                const positionData1 = await positionHouse.getPosition(positionManager.address, trader.address)
-                expect(positionData1.quantity.toNumber()).eq(-100)
+                // const positionData1 = await positionHouse.getPosition(positionManager.address, trader.address)
+                // expect(positionData1.quantity.toNumber()).eq(-100)
             })
         })
 
@@ -2253,17 +2253,17 @@ describe("PositionHouse_01", () => {
                     await openMarketPosition({
                         instanceTrader: trader1,
                         leverage: 10,
-                        quantity: BigNumber.from('150'),
+                        quantity: BigNumber.from('100'),
                         side: SIDE.SHORT,
                         // price: 4980,
-                        expectedSize: BigNumber.from('0')
+                        expectedSize: BigNumber.from('50')
                     })
 
                     // const res = await positionManager.getPendingOrderDetail(pip, orderId)
 
 
                 })
-                it('ERROR open reverse: close limit when has openMarketPosition SHORT and have partialFilled before 01', async () => {
+                it('ERROR open reverse: close limit when has openMarketPosition SHORT and has partialFilled before 01', async () => {
                     let response = (await openLimitPositionAndExpect({
                         _trader: trader1,
                         limitPrice: 4990,
@@ -2275,6 +2275,7 @@ describe("PositionHouse_01", () => {
 
                     await openMarketPosition({
                         instanceTrader: trader,
+                        trader: trader.address,
                         leverage: 10,
                         quantity: BigNumber.from('100'),
                         side: SIDE.SHORT,
@@ -2296,6 +2297,7 @@ describe("PositionHouse_01", () => {
 
                     await openMarketPosition({
                         instanceTrader: trader2,
+                        trader: trader2.address,
                         leverage: 10,
                         quantity: BigNumber.from('50'),
                         side: SIDE.SHORT,
@@ -2310,6 +2312,7 @@ describe("PositionHouse_01", () => {
                     console.log('***************line 2025************')
                     await openMarketPosition({
                         instanceTrader: trader1,
+                        trader: trader1.address,
                         leverage: 10,
                         quantity: BigNumber.from('150'),
                         side: SIDE.SHORT,
@@ -2317,10 +2320,10 @@ describe("PositionHouse_01", () => {
                         expectedSize: BigNumber.from('50')
                     })
 
-
                 })
 
-                it('ERROR open reverse: close limit when has openMarketPosition SHORT and have partialFilled before 02', async () => {
+                it('ERROR open reverse: close limit when has openMarketPosition SHORT and has partialFilled before 02', async () => {
+
                     let response = (await openLimitPositionAndExpect({
                         _trader: trader1,
                         limitPrice: 4990,
@@ -2332,6 +2335,7 @@ describe("PositionHouse_01", () => {
 
                     await openMarketPosition({
                         instanceTrader: trader,
+                        trader: trader.address,
                         leverage: 10,
                         quantity: BigNumber.from('100'),
                         side: SIDE.SHORT,
@@ -2353,6 +2357,7 @@ describe("PositionHouse_01", () => {
 
                     await openMarketPosition({
                         instanceTrader: trader2,
+                        trader: trader2.address,
                         leverage: 10,
                         quantity: BigNumber.from('50'),
                         side: SIDE.SHORT,
@@ -2364,6 +2369,7 @@ describe("PositionHouse_01", () => {
                     console.log('***************line 2025************')
                     await openMarketPosition({
                         instanceTrader: trader1,
+                        trader: trader1.address,
                         leverage: 10,
                         quantity: BigNumber.from('130'),
                         side: SIDE.SHORT,
@@ -2628,66 +2634,52 @@ describe("PositionHouse_01", () => {
                 let response2: any;
                 let response3: any;
 
-                {
-                    // trader open limit SHORT at price 5010 quantity 100
-                    response1 = (await openLimitPositionAndExpect({
-                        limitPrice: 5010,
-                        side: SIDE.SHORT,
-                        leverage: 10,
-                        quantity: 100
-                    })) as unknown as PositionLimitOrderID;
+                // trader open limit SHORT at price 5010 quantity 100
+                response1 = (await openLimitPositionAndExpect({
+                    limitPrice: 5010,
+                    side: SIDE.SHORT,
+                    leverage: 10,
+                    quantity: 100
+                })) as unknown as PositionLimitOrderID;
 
-
-                    await openMarketPosition({
-                        instanceTrader: trader1,
-                        leverage: 10,
-                        quantity: BigNumber.from('100'),
-                        side: SIDE.LONG,
-                        price: 5010,
-                        expectedSize: BigNumber.from('100')
-                    });
-
-                }
-
-                {
-
-                    response2 = (await openLimitPositionAndExpect({
-                        limitPrice: 5000,
-                        side: SIDE.LONG,
-                        leverage: 10,
-                        quantity: 200,
-                        _trader: trader2
-                    })) as unknown as PositionLimitOrderID
-
-                    await openMarketPosition({
-                        instanceTrader: trader1,
-                        leverage: 10,
-                        quantity: BigNumber.from('100'),
-                        side: SIDE.SHORT,
-                        price: 5000,
-                        expectedSize: BigNumber.from('0')
-                    });
-                }
-
-                {
-
-                    response3 = (await openLimitPositionAndExpect({
-                        limitPrice: 5000,
-                        side: SIDE.SHORT,
-                        leverage: 10,
-                        quantity: 200,
-                        _trader: trader2
-                    })) as unknown as PositionLimitOrderID
-
-                    await openMarketPosition({
-                        instanceTrader: trader,
-                        leverage: 10,
-                        quantity: BigNumber.from('100'),
-                        side: SIDE.LONG,
-                        price: 5015,
-                        expectedSize: BigNumber.from('0')
-                    });
-                }
+                await openMarketPosition({
+                    instanceTrader: trader1,
+                    leverage: 10,
+                    quantity: BigNumber.from('100'),
+                    side: SIDE.LONG,
+                    price: 5010,
+                    expectedSize: BigNumber.from('100')
+                });
+                response2 = (await openLimitPositionAndExpect({
+                    limitPrice: 5000,
+                    side: SIDE.LONG,
+                    leverage: 10,
+                    quantity: 200,
+                    _trader: trader2
+                })) as unknown as PositionLimitOrderID
+                await openMarketPosition({
+                    instanceTrader: trader1,
+                    leverage: 10,
+                    quantity: BigNumber.from('100'),
+                    side: SIDE.SHORT,
+                    price: 5000,
+                    expectedSize: BigNumber.from('0')
+                });
+                response3 = (await openLimitPositionAndExpect({
+                    limitPrice: 5000,
+                    side: SIDE.SHORT,
+                    leverage: 10,
+                    quantity: 200,
+                    _trader: trader2
+                })) as unknown as PositionLimitOrderID
+                await openMarketPosition({
+                    instanceTrader: trader,
+                    leverage: 10,
+                    quantity: BigNumber.from('100'),
+                    side: SIDE.LONG,
+                    price: 5015,
+                    expectedSize: BigNumber.from('0')
+                });
             })
 
 
@@ -2700,42 +2692,39 @@ describe("PositionHouse_01", () => {
                 let response2: any;
                 let response3: any;
 
-                {
-                    response1 = (await openLimitPositionAndExpect({
-                        limitPrice: 5000,
-                        side: SIDE.SHORT,
-                        leverage: 20,
-                        quantity: 100
-                    })) as unknown as PositionLimitOrderID
+                response1 = (await openLimitPositionAndExpect({
+                    limitPrice: 5000,
+                    side: SIDE.SHORT,
+                    leverage: 20,
+                    quantity: 100
+                })) as unknown as PositionLimitOrderID
 
-                    await openMarketPosition({
-                        instanceTrader: trader1,
-                        leverage: 20,
-                        quantity: BigNumber.from('100'),
-                        side: SIDE.LONG,
-                        price: 5000,
-                        expectedSize: BigNumber.from('100')
-                    });
-                }
+                await openMarketPosition({
+                    instanceTrader: trader1,
+                    leverage: 20,
+                    quantity: BigNumber.from('100'),
+                    side: SIDE.LONG,
+                    price: 5000,
+                    expectedSize: BigNumber.from('100')
+                });
 
-                {
-                    response2 = (await openLimitPositionAndExpect({
-                        limitPrice: 5242,
-                        side: SIDE.SHORT,
-                        leverage: 20,
-                        quantity: 100,
-                        _trader: trader1
-                    })) as unknown as PositionLimitOrderID
+                response2 = (await openLimitPositionAndExpect({
+                    limitPrice: 5242,
+                    side: SIDE.SHORT,
+                    leverage: 20,
+                    quantity: 100,
+                    _trader: trader1
+                })) as unknown as PositionLimitOrderID
 
-                    await openMarketPosition({
-                        instanceTrader: trader2,
-                        leverage: 20,
-                        quantity: BigNumber.from('100'),
-                        side: SIDE.LONG,
-                        price: 5242,
-                        expectedSize: BigNumber.from('100')
-                    });
-                }
+                await openMarketPosition({
+                    instanceTrader: trader2,
+                    leverage: 20,
+                    quantity: BigNumber.from('100'),
+                    side: SIDE.LONG,
+                    price: 5242,
+                    expectedSize: BigNumber.from('100')
+                });
+
 
                 const maintenanceDetail = (await positionHouse.getMaintenanceDetail(positionManager.address, trader.address)) as unknown as MaintenanceDetail;
                 const positionData = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData;
@@ -2781,7 +2770,6 @@ describe("PositionHouse_01", () => {
 
 
     describe('adjust margin', async function () {
-
         it('add margin', async function () {
             await positionManager.openLimitPosition(
                 priceToPip(5000),
@@ -2984,7 +2972,7 @@ describe("PositionHouse_01", () => {
             await positionManager2.connect(trader1).openLimitPosition(
                 priceToPip(5000),
                 '100',
-                true
+                false
             );
 
             console.log("open market 1");
@@ -3213,9 +3201,6 @@ describe("PositionHouse_01", () => {
             expect(positionData1.margin.div(10000)).eq(0)
 
         });
-
-        it (' host test')
-
 
     })
 })

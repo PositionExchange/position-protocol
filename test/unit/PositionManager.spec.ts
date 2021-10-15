@@ -381,7 +381,7 @@ describe('Position Manager', async function () {
                 pipsHasLiquidity: [false, false, false],
                 reachPip: 230,
                 orders,
-                partialFilledAmounts: [0, 0, 0, 0],
+                partialFilledAmounts: [10, 0, 0, 0],
                 isFilledAmounts: [true, true, true, true]
             })
         });
