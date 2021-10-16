@@ -829,7 +829,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
                 }
                 if(listLimitOrder[i].isBuy == 2 && _side == Position.Side.LONG){
                     if(currentPip >= listLimitOrder[i].pip){
-                        console.log("set isSelfFilled");
                         limitOrderMap[address(_positionManager)][_trader][i].isSelfFilled = 1;
                     }
                 }
