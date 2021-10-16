@@ -9,6 +9,7 @@ import "./libraries/position/Position.sol";
 import "hardhat/console.sol";
 import "./PositionManager.sol";
 import "./libraries/helpers/Quantity.sol";
+import "./libraries/position/PositionLimitOrder.sol";
 
 contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable
 {
@@ -22,11 +23,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         TWAP,
         SPOT_PRICE,
         ORACLE
-    }
-
-    enum LimitOrderType {
-        OPEN_LIMIT,
-        CLOSE_LIMIT
     }
 
     struct PositionResp {
@@ -47,15 +43,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
     }
 
-    struct LimitOrderID {
-        int128 pip;
-        uint64 orderId;
-        uint16 leverage;
-        LimitOrderType typeLimitOrder;
-        // TODO add blockNumber open create a new struct
-        uint8 isBuy;
-        uint8 isSelfFilled;
-    }
 
     struct LimitOrderPending {
         // TODO restruct data
@@ -73,7 +60,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
 
     //can update with index => no need delete array when close all
-    mapping(address => mapping(address => LimitOrderID[])) public limitOrderMap;
+    mapping(address => mapping(address => PositionLimitOrder.Data[])) public limitOrderMap;
 
     //    mapping(address => mapping(address => )  )
 
@@ -186,11 +173,11 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         address _trader = _msgSender();
         uint64 _orderId = _positionManager.openLimitPosition(_pip, int256(_quantity).abs128(), _side == Position.Side.LONG ? true : false);
 
-        limitOrderMap[address(_positionManager)][_trader].push(LimitOrderID({
+        limitOrderMap[address(_positionManager)][_trader].push(PositionLimitOrder.Data({
             pip : _pip,
             orderId : _orderId,
             leverage : uint16(_leverage),
-            typeLimitOrder : isOpenLimitOrder ? LimitOrderType.OPEN_LIMIT : LimitOrderType.CLOSE_LIMIT,
+            typeLimitOrder : isOpenLimitOrder ? PositionLimitOrder.OrderType.OPEN_LIMIT : PositionLimitOrder.OrderType.CLOSE_LIMIT,
             isBuy: _side == Position.Side.LONG ? 1 : 2,
             isSelfFilled: 0
         }));
@@ -272,7 +259,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             if (positionData.quantity == 0) {
                 clearPosition(_positionManager, _trader);
             } else {
-                LimitOrderID[] memory listLimitOrder = limitOrderMap[address(_positionManager)][_trader];
+                PositionLimitOrder.Data[] memory listLimitOrder = limitOrderMap[address(_positionManager)][_trader];
                 for (uint i = 0; i < listLimitOrder.length; i ++) {
                     //                    amount = _positionManager.closeLimitOrder(listLimitOrder[i].pip, listLimitOrder[i].orderId, amount);
 
@@ -290,19 +277,19 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
     function canClaimFund(IPositionManager _positionManager, address _trader) public view returns (bool canClaim, int256 amount){
 
-        LimitOrderID[] memory listLimitOrder = limitOrderMap[address(_positionManager)][_trader];
+        PositionLimitOrder.Data[] memory listLimitOrder = limitOrderMap[address(_positionManager)][_trader];
 
         Position.Data memory positionData = getPositionWithoutCloseLimitOrder(address(_positionManager), _trader);
         for (uint i = 0; i < listLimitOrder.length; i ++) {
             (bool isFilled, bool isBuy, uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
 
-//            if (listLimitOrder[i].typeLimitOrder == LimitOrderType.CLOSE_LIMIT && partialFilled > 0) {
+//            if (listLimitOrder[i].typeLimitOrder == PositionLimitOrder.OrderType.CLOSE_LIMIT && partialFilled > 0) {
 
-            if (listLimitOrder[i].typeLimitOrder == LimitOrderType.CLOSE_LIMIT && isFilled == false) {
+            if (listLimitOrder[i].typeLimitOrder == PositionLimitOrder.OrderType.CLOSE_LIMIT && isFilled == false) {
                 console.log("can claim fund partially filled", partialFilled);
                 (amount, positionData) = _calcRealPnL(_positionManager, positionData, partialFilled, listLimitOrder[i].pip, amount);
 
-            } else if (listLimitOrder[i].typeLimitOrder == LimitOrderType.CLOSE_LIMIT && isFilled == true) {
+            } else if (listLimitOrder[i].typeLimitOrder == PositionLimitOrder.OrderType.CLOSE_LIMIT && isFilled == true) {
                 (amount, positionData) = _calcRealPnL(_positionManager, positionData, quantity, listLimitOrder[i].pip, amount);
             }
         }
@@ -312,7 +299,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
     function sumQuantityLimitOrder(IPositionManager _positionManager, address _trader) public view returns (int256 _sumQuantity){
 
-        LimitOrderID[] memory listLimitOrder = limitOrderMap[address(_positionManager)][_trader];
+        PositionLimitOrder.Data[] memory listLimitOrder = limitOrderMap[address(_positionManager)][_trader];
 
         for (uint i = 0; i < listLimitOrder.length; i ++) {
             (bool isFilled, bool isBuy, uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
@@ -635,7 +622,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
     function getListOrderPending(IPositionManager _positionManager) public view returns (LimitOrderPending[] memory listPendingPositionData){
         address _trader = _msgSender();
-        LimitOrderID[] memory listLimitOrder = limitOrderMap[address(_positionManager)][_trader];
+        PositionLimitOrder.Data[] memory listLimitOrder = limitOrderMap[address(_positionManager)][_trader];
 
 
         uint index = 0;
@@ -667,7 +654,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     ) public view returns (Position.Data memory positionData){
         positionData = positionMap[positionManager][_trader];
         int256 quantityMarket = positionData.quantity;
-        LimitOrderID[] memory listLimitOrder = limitOrderMap[positionManager][_trader];
+        PositionLimitOrder.Data[] memory listLimitOrder = limitOrderMap[positionManager][_trader];
         IPositionManager _positionManager = IPositionManager(positionManager);
         console.log("limit order length", listLimitOrder.length);
         for (uint i = 0; i < listLimitOrder.length; i++) {
@@ -685,7 +672,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     ) public view returns (Position.Data memory positionData){
         positionData = positionMap[positionManager][_trader];
         int256 quantityMarket = positionData.quantity;
-        LimitOrderID[] memory listLimitOrder = limitOrderMap[positionManager][_trader];
+        PositionLimitOrder.Data[] memory listLimitOrder = limitOrderMap[positionManager][_trader];
         IPositionManager _positionManager = IPositionManager(positionManager);
         console.log("limit order length", listLimitOrder.length);
         for (uint i = 0; i < listLimitOrder.length; i++) {
@@ -818,17 +805,19 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint256 gasBefore = gasleft();
         if(currentPip != pipBefore){
             // check if fill to self limit orders
-            LimitOrderID[] memory listLimitOrder = limitOrderMap[address(_positionManager)][_trader];
+            PositionLimitOrder.Data[] memory listLimitOrder = limitOrderMap[address(_positionManager)][_trader];
             // TODO set self filled quantity
             for(uint256 i; i<listLimitOrder.length; i++){
+                PositionLimitOrder.Data memory limitOrder = listLimitOrder[i];
 //                (bool isFilled,,,) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
-                if(listLimitOrder[i].isBuy == 1 && _side == Position.Side.SHORT){
-                    if(currentPip <= listLimitOrder[i].pip){
+                console.log("order pip", uint256(uint128(limitOrder.pip)));
+                if(limitOrder.isBuy == 1 && _side == Position.Side.SHORT){
+                    if(currentPip <= limitOrder.pip && pipBefore >= limitOrder.pip){
                         limitOrderMap[address(_positionManager)][_trader][i].isSelfFilled = 1;
                     }
                 }
-                if(listLimitOrder[i].isBuy == 2 && _side == Position.Side.LONG){
-                    if(currentPip >= listLimitOrder[i].pip){
+                if(limitOrder.isBuy == 2 && _side == Position.Side.LONG){
+                    if(currentPip >= limitOrder.pip){
                         limitOrderMap[address(_positionManager)][_trader][i].isSelfFilled = 1;
                     }
                 }
@@ -891,16 +880,16 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         address _trader
     ) internal view returns (Position.Data memory positionData){
         positionData = positionMap[positionManager][_trader];
-        LimitOrderID[] memory listLimitOrder = limitOrderMap[positionManager][_trader];
+        PositionLimitOrder.Data[] memory listLimitOrder = limitOrderMap[positionManager][_trader];
         IPositionManager _positionManager = IPositionManager(positionManager);
         for (uint i = 0; i < listLimitOrder.length; i++) {
-            if (listLimitOrder[i].typeLimitOrder == LimitOrderType.OPEN_LIMIT) {
+            if (listLimitOrder[i].typeLimitOrder == PositionLimitOrder.OrderType.OPEN_LIMIT) {
                 positionData = _accumulateLimitOrderToPositionData(_positionManager, listLimitOrder[i], positionData);
             }
         }
     }
 
-    function _accumulateLimitOrderToPositionData(IPositionManager _positionManager, LimitOrderID memory limitOrder, Position.Data memory positionData) internal view returns (Position.Data memory) {
+    function _accumulateLimitOrderToPositionData(IPositionManager _positionManager, PositionLimitOrder.Data memory limitOrder, Position.Data memory positionData) internal view returns (Position.Data memory) {
         console.log("is self filled", limitOrder.isSelfFilled);
         (bool isFilled, bool isBuy,
         uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(limitOrder.pip, limitOrder.orderId);
