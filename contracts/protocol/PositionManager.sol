@@ -13,6 +13,7 @@ import "./libraries/position/LimitOrder.sol";
 import "./libraries/position/LiquidityBitmap.sol";
 
 import "hardhat/console.sol";
+
 contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
     using TickPosition for TickPosition.Data;
     using LiquidityBitmap for mapping(int128 => uint256);
@@ -39,6 +40,10 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     //    mapping(uint64 => LimitOrder.Data) orderQueue;
     event Swap(address account, uint256 indexed amountIn, uint256 indexed amountOut);
     event LimitOrderCreated(uint64 orderId, int128 pip, uint128 size, bool isBuy);
+    event UpdateMaxFindingWordsIndex(int128 newMaxFindingWordsIndex);
+    event UpdateBasicPoint(uint256 newBasicPoint);
+
+
 
     modifier whenNotPause(){
         //TODO implement
@@ -93,7 +98,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
             isFilled = true;
             partialFilled = 0;
         }
-        if(size != 0 && size == partialFilled){
+        if (size != 0 && size == partialFilled) {
             isFilled = true;
         }
     }
@@ -125,19 +130,20 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         //        require(pip != singleSlot.pip, "!!");
         //call market order instead
         console.log("open limit position size", size);
-//        if (isBuy && singleSlot.pip != 0) {
-//            require(pip <= singleSlot.pip, "!B");
-//        } else {
-//            require(pip >= singleSlot.pip, "!S");
-//        }
-        SingleSlot memory _singleSlot = singleSlot; //save gas
-        if(isBuy && pip >= _singleSlot.pip){
+        //        if (isBuy && singleSlot.pip != 0) {
+        //            require(pip <= singleSlot.pip, "!B");
+        //        } else {
+        //            require(pip >= singleSlot.pip, "!S");
+        //        }
+        SingleSlot memory _singleSlot = singleSlot;
+        //save gas
+        if (isBuy && pip >= _singleSlot.pip) {
             // open market buy
 
-        }else if(!isBuy && pip <= _singleSlot.pip){
+        } else if (!isBuy && pip <= _singleSlot.pip) {
             //open market sell
 
-        }else{
+        } else {
             // open limit only
 
         }
@@ -179,14 +185,16 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     }
 
     function _internalOpenMarketOrder(uint256 size, bool isBuy, uint128 maxPip) internal returns (uint256 sizeOut, uint256 openNotional) {
+        console.log("gas before open market", gasleft());
         require(size != 0, "!S");
         // TODO lock
         // get current tick liquidity
         console.log("start market order, size: ", size, "is buy: ", isBuy);
-        SingleSlot memory _initialSingleSlot = singleSlot; //save gas
+        SingleSlot memory _initialSingleSlot = singleSlot;
+        //save gas
         SwapState memory state = SwapState({
-            remainingSize : size,
-            pip : _initialSingleSlot.pip
+        remainingSize : size,
+        pip : _initialSingleSlot.pip
         });
         int128 startPip;
         int128 startWord = _initialSingleSlot.pip >> 8;
@@ -195,8 +203,8 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         uint8 isFullBuy = 0;
         bool isSkipFirstPip;
         CurrentLiquiditySide currentLiquiditySide = CurrentLiquiditySide(_initialSingleSlot.isFullBuy);
-        if(currentLiquiditySide != CurrentLiquiditySide.NotSet){
-            if(isBuy)
+        if (currentLiquiditySide != CurrentLiquiditySide.NotSet) {
+            if (isBuy)
             // if buy and latest liquidity is buy. skip current pip
                 isSkipFirstPip = currentLiquiditySide == CurrentLiquiditySide.Buy;
             else
@@ -232,7 +240,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                     wordIndex--;
                 }
             } else {
-                if(!isSkipFirstPip){
+                if (!isSkipFirstPip) {
                     console.log("SWAP: state pip", uint128(state.pip));
                     console.log("SWAP: next pip", uint128(step.pipNext));
                     if (startPip == 0) startPip = step.pipNext;
@@ -295,10 +303,22 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         console.log("Final size state: size, sizeOut, remainingSize", size, sizeOut, state.remainingSize);
         console.log("SWAP: final pip", uint256(uint128(state.pip)));
         console.log("********************************************************************************");
+        console.log("gas left open market", gasleft());
         emit Swap(msg.sender, size, sizeOut);
     }
 
     function getQuoteAsset() public view returns (IERC20) {
         return quoteAsset;
+    }
+
+
+    function updateMaxFindingWordsIndex(int128 _newMaxFindingWordsIndex) public onlyOwner {
+        maxFindingWordsIndex = _newMaxFindingWordsIndex;
+        emit  UpdateMaxFindingWordsIndex(_newMaxFindingWordsIndex);
+    }
+
+    function updateBasicPoint(uint256 _newBasicPoint) public onlyOwner {
+        basisPoint = _newBasicPoint;
+        emit UpdateBasicPoint(_newBasicPoint);
     }
 }
