@@ -732,12 +732,277 @@ describe("PositionHouse_02", () => {
                     trader: trader2.address,
                     instanceTrader: trader2,
                     _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-12')
                 }
             );
 
+            let response2Trader0 = (await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 5,
+                _trader: trader
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('8'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-6')
+                }
+            );
+
+            const positionNotionalAndPnLTrader0 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                positionManager.address,
+                trader.address,
+                1
+            )
+            const positionTrader0 = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData
+            expect(positionTrader0.openNotional.div((10000))).eq(74400);
+            expect(positionTrader0.margin.div((10000))).eq(7440);
+            expect(positionNotionalAndPnLTrader0.unrealizedPnl.div(10000)).eq(-900)
+
+            const positionNotionalAndPnLTrader1 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                positionManager.address,
+                trader1.address,
+                1
+            )
+            const positionTrader1 = (await positionHouse.getPosition(positionManager.address, trader1.address)) as unknown as PositionData
+            expect(positionTrader1.openNotional.div((10000))).eq(4900);
+            expect(positionTrader1.margin.div((10000))).eq(490);
+            expect(positionNotionalAndPnLTrader1.unrealizedPnl.div(10000)).eq(0)
+
+            const positionNotionalAndPnLTrader2 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                positionManager.address,
+                trader2.address,
+                1
+            )
+            const positionTrader2 = (await positionHouse.getPosition(positionManager.address, trader2.address)) as unknown as PositionData
+            expect(positionTrader2.openNotional.div((10000))).eq(59800);
+            expect(positionTrader2.margin.div((10000))).eq(5980);
+            expect(positionNotionalAndPnLTrader2.unrealizedPnl.div(10000)).eq(1000)
+        })
+
+        /**
+         * PS_FUTU_106
+         S1: Trader0 open limit order Long (4950, 5)
+         S2: Trader1 open limit order Long (4980,3)
+         S3: Trader2 open market order Short (6)
+         S4: Trader0 open limit order Long (4900,5)
+         S5: Trader1 open market order Short (5)
+         S6: Trader2 open limit order Short(4910,1)
+         S7: Trader1 open market order Long (1)
+         S8: Current price 4910
+         */
+        it('PS_FUTU_106: reverse limit position quantity', async function () {
+            let response1Trader0 = (await openLimitPositionAndExpect({
+                limitPrice: 4950,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 5,
+                _trader: trader
+            })) as unknown as PositionLimitOrderID
+
+            let response1Trader1 = (await openLimitPositionAndExpect({
+                limitPrice: 4980,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 3,
+                _trader: trader1
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('6'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-6')
+                }
+            );
+
+            let response2Trader0 = (await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 5,
+                _trader: trader
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-2')
+                }
+            );
+
+            let response2Trader2 = (await openLimitPositionAndExpect({
+                limitPrice: 4910,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 1,
+                _trader: trader2
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('1'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-1')
+                }
+            );
+
+            // UPDATE EXPECT
+            const positionNotionalAndPnLTrader0 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                positionManager.address,
+                trader.address,
+                1
+            )
+            const positionTrader0 = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData
+            expect(positionTrader0.openNotional.div((10000))).eq(74400);
+            expect(positionTrader0.margin.div((10000))).eq(7440);
+            expect(positionNotionalAndPnLTrader0.unrealizedPnl.div(10000)).eq(-900)
+
+            const positionNotionalAndPnLTrader1 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                positionManager.address,
+                trader1.address,
+                1
+            )
+            const positionTrader1 = (await positionHouse.getPosition(positionManager.address, trader1.address)) as unknown as PositionData
+            expect(positionTrader1.openNotional.div((10000))).eq(4900);
+            expect(positionTrader1.margin.div((10000))).eq(490);
+            expect(positionNotionalAndPnLTrader1.unrealizedPnl.div(10000)).eq(0)
+
+            const positionNotionalAndPnLTrader2 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                positionManager.address,
+                trader2.address,
+                1
+            )
+            const positionTrader2 = (await positionHouse.getPosition(positionManager.address, trader2.address)) as unknown as PositionData
+            expect(positionTrader2.openNotional.div((10000))).eq(59800);
+            expect(positionTrader2.margin.div((10000))).eq(5980);
+            expect(positionNotionalAndPnLTrader2.unrealizedPnl.div(10000)).eq(1000)
 
         })
 
+        /**
+         * PS_FUTU_107
+         S1: Trader0 open limit order Long (4950, 5)
+         S2: Trader1 open market order Short (5)
+         S3: Trader2 open limit order Long (4900,10)
+         S4: Trader1 open 2 limit order Long (4940,3), (4890,5)
+         S5: Trader2 open market order Short (8)
+         S6: Trader1 open market order Short (10)
+         S7: Current price 4890
+         */
+        it('PS_FUTU_102: increase limit position quantity', async function () {
+            let response1Trader0 = (await openLimitPositionAndExpect({
+                limitPrice: 4950,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 5,
+                _trader: trader
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-5')
+                }
+            );
+
+            let response1Trader2 = (await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 10,
+                _trader: trader2
+            })) as unknown as PositionLimitOrderID
+
+            let response1Trader1 = (await openLimitPositionAndExpect({
+                limitPrice: 4940,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 3,
+                _trader: trader1
+            })) as unknown as PositionLimitOrderID
+
+            let response2Trader1 = (await openLimitPositionAndExpect({
+                limitPrice: 4890,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 5,
+                _trader: trader1
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('8'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-6')
+                }
+            );
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-6')
+                }
+            );
+
+            // UPDATE EXPECT
+            const positionNotionalAndPnLTrader0 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                positionManager.address,
+                trader.address,
+                1
+            )
+            const positionTrader0 = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData
+            expect(positionTrader0.openNotional.div((10000))).eq(74400);
+            expect(positionTrader0.margin.div((10000))).eq(7440);
+            expect(positionNotionalAndPnLTrader0.unrealizedPnl.div(10000)).eq(-900)
+
+            const positionNotionalAndPnLTrader1 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                positionManager.address,
+                trader1.address,
+                1
+            )
+            const positionTrader1 = (await positionHouse.getPosition(positionManager.address, trader1.address)) as unknown as PositionData
+            expect(positionTrader1.openNotional.div((10000))).eq(4900);
+            expect(positionTrader1.margin.div((10000))).eq(490);
+            expect(positionNotionalAndPnLTrader1.unrealizedPnl.div(10000)).eq(0)
+
+            const positionNotionalAndPnLTrader2 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                positionManager.address,
+                trader2.address,
+                1
+            )
+            const positionTrader2 = (await positionHouse.getPosition(positionManager.address, trader2.address)) as unknown as PositionData
+            expect(positionTrader2.openNotional.div((10000))).eq(59800);
+            expect(positionTrader2.margin.div((10000))).eq(5980);
+            expect(positionNotionalAndPnLTrader2.unrealizedPnl.div(10000)).eq(1000)
+        })
 
     })
 
