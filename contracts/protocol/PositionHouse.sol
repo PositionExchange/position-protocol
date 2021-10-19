@@ -70,6 +70,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     uint256 partialLiquidationRatioConst = 80;
     uint256 liquidationFeeRatio;
     uint256 liquidationFeeRatioConst = 3;
+    uint256 liquidationPenaltyRatio = 20;
 
     modifier whenNotPause(){
         //TODO implement
@@ -94,8 +95,12 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         IPositionManager positionManager
     );
 
-    event ChangeMaintenanceMarginRatio (
+    event UpdateMaintenanceMarginRatio (
         uint256 newMaintenanceMarginRatio
+    );
+
+    event UpdateLiquidationPenaltyRatio (
+        uint256 newLiquidationPenaltyRatio
     );
 
     event AddMargin(address trader, uint256 marginAdded, IPositionManager positionManager);
@@ -781,9 +786,16 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     }
 
 
-    function changeMaintenanceMarginRatio(uint256 newMaintenanceMarginRatio) external initializer {
+    function updateMaintenanceMarginRatio(uint256 newMaintenanceMarginRatio) external onlyOwner {
         maintenanceMarginRatio = newMaintenanceMarginRatio;
-        emit ChangeMaintenanceMarginRatio(newMaintenanceMarginRatio);
+        emit UpdateMaintenanceMarginRatio(newMaintenanceMarginRatio);
+    }
+
+    function updateLiquidationPenaltyRatio(uint256 newLiquidationPenaltyRatio) external onlyOwner {
+
+        liquidationPenaltyRatio = newLiquidationPenaltyRatio;
+        emit UpdateLiquidationPenaltyRatio(newLiquidationPenaltyRatio);
+
     }
 
 

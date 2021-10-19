@@ -18,6 +18,7 @@ import {
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import PositionManagerTestingTool from "../shared/positionManagerTestingTool";
 import PositionHouseTestingTool from "../shared/positionHouseTestingTool";
+
 const sideObj = {
     1: 'LONG',
     0: 'SHORT'
@@ -81,7 +82,7 @@ describe("PositionHouse_01", () => {
             quantity,
             leverage,
         )
-        console.log("GAS USED MARKET",(await tx.wait()).gasUsed.toString())
+        console.log("GAS USED MARKET", (await tx.wait()).gasUsed.toString())
 
         const positionInfo = await positionHouse.getPosition(_positionManager.address, trader) as unknown as PositionData;
         // console.log("positionInfo", positionInfo)
@@ -126,7 +127,7 @@ describe("PositionHouse_01", () => {
         if (!_positionManager) throw Error("No position manager")
         if (!_trader) throw Error("No trader")
         const tx = await positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(Number(limitPrice)), leverage, true)
-        console.log("GAS USED LIMIT",(await tx.wait()).gasUsed.toString())
+        console.log("GAS USED LIMIT", (await tx.wait()).gasUsed.toString())
         const receipt = await tx.wait()
         console.log("Gas used to open limit order", receipt.gasUsed.toString())
         const {orderId, priceLimit} = await getOrderIdByTx(tx)
@@ -1162,7 +1163,7 @@ describe("PositionHouse_01", () => {
                     expectedSize: BigNumber.from('100')
                 })
 
-                await expect( openMarketPosition({
+                await expect(openMarketPosition({
                     instanceTrader: trader2,
                     leverage: 10,
                     quantity: BigNumber.from('50'),
@@ -1759,8 +1760,6 @@ describe("PositionHouse_01", () => {
                         price: 4990,
                         expectedSize: BigNumber.from('-100')
                     })
-
-
 
 
                     let response2 = (await openLimitPositionAndExpect({
@@ -3253,6 +3252,35 @@ describe("PositionHouse_01", () => {
             expect(positionData1.margin.div(10000)).eq(0)
 
         });
+
+    })
+
+    describe('claim fund', async () => {
+
+        it('close position with PnL > 0, trader not claim fund yet and liquidate', async () => {
+
+            const response = (await openLimitPositionAndExpect({
+                limitPrice: 5005,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 100,
+                _trader: trader
+            })) as unknown as PositionLimitOrderID
+
+
+            await openMarketPosition({
+                quantity: BigNumber.from('1000'),
+                leverage: 20,
+                side: SIDE.SHORT,
+                trader: trader1.address,
+                instanceTrader: trader1,
+                _positionManager: positionManager,
+                price: 50,
+                expectedSize: BigNumber.from('-1000')
+            })
+
+
+        })
 
     })
 })

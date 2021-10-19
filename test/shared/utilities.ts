@@ -190,6 +190,20 @@ export interface LimitOrderReturns {
     pip: number
 }
 
+export interface ChangePriceParams {
+    limitPrice: number | string
+    toHigherPrice: boolean
+    _positionManager?: PositionManager
+}
+
+export interface ExpectTestCaseParams {
+    positionManagerAddress : string,
+    traderAddress : string,
+    expectedOpenNotional: number,
+    expectedMargin : number,
+    expectedPnl : number | undefined
+    expectedQuantity? : number
+}
 
 export interface MarketOrderReturns {
     size: BigNumber,
