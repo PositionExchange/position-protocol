@@ -15,6 +15,13 @@ library PositionLimitOrder {
         uint8 isSelfFilled;
     }
 
+    function checkFilledToSelfOrders(
+        mapping(address => mapping(address => PositionLimitOrder.Data[])) storage limitOrderMap,
+        int128 startPip,
+        int128 endPip,
+        uint8 side
+    ) internal {
 
+    }
 
 }
