@@ -90,13 +90,14 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         bool isBuy,
         uint256 size,
         uint256 partialFilled
-
     ){
         (isFilled, isBuy, size, partialFilled) = tickPosition[pip].getQueueOrder(orderId);
 
         if (!liquidityBitmap.hasLiquidity(pip)) {
             isFilled = true;
-            partialFilled = 0;
+            // Should return the latest partialFilled
+            // in order to know how many quantity amount is filled to the limit order by market order
+//            partialFilled = 0;
         }
         if (size != 0 && size == partialFilled) {
             isFilled = true;

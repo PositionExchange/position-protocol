@@ -26,8 +26,8 @@ contract PositionLimitOrderTest {
         }));
     }
 
-    function checkFilledToSelfOrders(address _positionManager, address _trader, int128 startPip, int128 endPip, uint8 side) public {
-        limitOrderMap.checkFilledToSelfOrders(_positionManager, _trader, startPip, endPip, side);
+    function checkFilledToSelfOrders(IPositionManager _positionManager, address _trader, int128 startPip, int128 endPip, uint8 side) public view returns (uint256) {
+        return limitOrderMap.checkFilledToSelfOrders(_positionManager, _trader, startPip, endPip, Position.Side(side));
     }
 
     function getLimitOrder(address _positionManager, address _trader, uint index) public view returns (PositionLimitOrder.Data memory) {

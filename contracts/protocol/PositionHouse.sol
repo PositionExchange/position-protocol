@@ -13,6 +13,7 @@ import "./libraries/position/PositionLimitOrder.sol";
 
 contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable
 {
+    using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
     using Quantity for int256;
     using Quantity for int128;
 
@@ -55,12 +56,17 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint24 blockNumber;
     }
 
+    struct UserInfo {
+        uint256 selfFilledQuantity;
+    }
+
     // Mapping from position manager address of each pair to position data of each trader
     mapping(address => mapping(address => Position.Data)) public positionMap;
 
 
     //can update with index => no need delete array when close all
     mapping(address => mapping(address => PositionLimitOrder.Data[])) public limitOrderMap;
+    mapping(address => mapping(address => UserInfo)) public userInfo;
 
     //    mapping(address => mapping(address => )  )
 
@@ -668,6 +674,8 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         console.log("positionData.quantity ", uint256(positionData.quantity));
         console.log("quantityMarket ", uint256(quantityMarket));
         positionData.sumQuantityLimitOrder = positionData.quantity - quantityMarket;
+        // TODO calculate notional and margin
+        positionData = positionData.accumulateLimitOrder(int256(userInfo[positionManager][_trader].selfFilledQuantity), 0, 0);
     }
 
 
@@ -810,10 +818,14 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     ) internal returns (int256 exchangedQuantity, uint256 openNotional){
         uint256 exchangedSize;
         address _trader = _msgSender();
-        int128 pipBefore = _positionManager.getCurrentPip();
+        int128 startPip = _positionManager.getCurrentPip();
         (exchangedSize, openNotional) = _positionManager.openMarketPosition(_quantity, _side == Position.Side.LONG);
-        int128 currentPip = _positionManager.getCurrentPip();
-
+        int128 endPip = _positionManager.getCurrentPip();
+        uint256 selfFilledQuantity = limitOrderMap.checkFilledToSelfOrders(_positionManager, _trader, startPip, endPip, _side);
+        console.log("selfFilledQuantity", selfFilledQuantity);
+        if(selfFilledQuantity > 0){
+            userInfo[address(_positionManager)][_trader].selfFilledQuantity += selfFilledQuantity;
+        }
         // TODO check if fill to self limit orders
         require(exchangedSize == _quantity, "not enough liquidity to fulfill the order");
         exchangedQuantity = _side == Position.Side.LONG ? int256(exchangedSize) : - int256(exchangedSize);
