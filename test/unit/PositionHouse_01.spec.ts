@@ -81,7 +81,7 @@ describe("PositionHouse_01", () => {
             quantity,
             leverage,
         )
-        console.log("GAs USED",(await tx.wait()).gasUsed.toString())
+        console.log("GAS USED MARKET",(await tx.wait()).gasUsed.toString())
 
         const positionInfo = await positionHouse.getPosition(_positionManager.address, trader) as unknown as PositionData;
         // console.log("positionInfo", positionInfo)
@@ -126,6 +126,7 @@ describe("PositionHouse_01", () => {
         if (!_positionManager) throw Error("No position manager")
         if (!_trader) throw Error("No trader")
         const tx = await positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(Number(limitPrice)), leverage, true)
+        console.log("GAS USED LIMIT",(await tx.wait()).gasUsed.toString())
         const receipt = await tx.wait()
         console.log("Gas used to open limit order", receipt.gasUsed.toString())
         const {orderId, priceLimit} = await getOrderIdByTx(tx)

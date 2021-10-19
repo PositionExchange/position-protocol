@@ -801,29 +801,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         int128 pipBefore = _positionManager.getCurrentPip();
         (exchangedSize, openNotional) = _positionManager.openMarketPosition(_quantity, _side == Position.Side.LONG);
         int128 currentPip = _positionManager.getCurrentPip();
-        console.log("current pip, before pip", uint256(uint128(currentPip)), uint256(uint128(pipBefore)), uint256(_side) );
-        uint256 gasBefore = gasleft();
-        if(currentPip != pipBefore){
-            // check if fill to self limit orders
-            PositionLimitOrder.Data[] memory listLimitOrder = limitOrderMap[address(_positionManager)][_trader];
-            // TODO set self filled quantity
-            for(uint256 i; i<listLimitOrder.length; i++){
-                PositionLimitOrder.Data memory limitOrder = listLimitOrder[i];
-//                (bool isFilled,,,) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
-                console.log("order pip", uint256(uint128(limitOrder.pip)));
-                if(limitOrder.isBuy == 1 && _side == Position.Side.SHORT){
-                    if(currentPip <= limitOrder.pip && pipBefore >= limitOrder.pip){
-                        limitOrderMap[address(_positionManager)][_trader][i].isSelfFilled = 1;
-                    }
-                }
-                if(limitOrder.isBuy == 2 && _side == Position.Side.LONG){
-                    if(currentPip >= limitOrder.pip){
-                        limitOrderMap[address(_positionManager)][_trader][i].isSelfFilled = 1;
-                    }
-                }
-            }
-        }
-        console.log("gas spent", gasBefore - gasleft());
+
         // TODO check if fill to self limit orders
         require(exchangedSize == _quantity, "not enough liquidity to fulfill the order");
         exchangedQuantity = _side == Position.Side.LONG ? int256(exchangedSize) : - int256(exchangedSize);

@@ -168,6 +168,7 @@ export interface ClaimFund {
     canClaim: boolean,
     amount: BigNumber
 }
+
 export interface PositionPendingOrder {
     limitPrice: BigNumber
     leverage: BigNumber,
@@ -187,6 +188,12 @@ export interface PendingOrder {
 export interface LimitOrderReturns {
     orderId: string;
     pip: number
+}
+
+
+export interface MarketOrderReturns {
+    size: BigNumber,
+    openNotional: BigNumber
 }
 
 export enum OrderType {

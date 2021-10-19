@@ -69,12 +69,13 @@ describe("PositionHouse_02", () => {
     }) => {
         trader = instanceTrader && instanceTrader.address || trader
         if (!trader) throw new Error("No trader")
-        await positionHouse.connect(instanceTrader).openMarketPosition(
+        const tx = await positionHouse.connect(instanceTrader).openMarketPosition(
             _positionManager.address,
             side,
             quantity,
             leverage,
         )
+        console.log("GAS USED MARKET", (await tx.wait()).gasUsed.toString())
 
         const positionInfo = await positionHouse.getPosition(_positionManager.address, trader) as unknown as PositionData;
         // console.log("positionInfo", positionInfo)
@@ -141,6 +142,7 @@ describe("PositionHouse_02", () => {
         if (!_positionManager) throw Error("No position manager")
         if (!_trader) throw Error("No trader")
         const tx = await positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(Number(limitPrice)), leverage, true)
+        console.log("GAS USED LIMIT", (await tx.wait()).gasUsed.toString())
         const {orderId, priceLimit} = await getOrderIdByTx(tx)
         console.log('orderId: ', orderId.toString())
         console.log('priceLimit: ', priceLimit.toString());
@@ -404,7 +406,7 @@ describe("PositionHouse_02", () => {
 
     })
 
-    describe('Market reverse Market; Limit reverse Limit', async () => {
+    describe('Market reverse Market > Limit reverse Limit', async () => {
 
         /**
          PS_FUTU_22
@@ -443,7 +445,7 @@ describe("PositionHouse_02", () => {
                     quantity: BigNumber.from('11'),
                     leverage: 10,
                     side: SIDE.SHORT,
-                    trader: trader.address,
+                    trader: trader1.address,
                     instanceTrader: trader1,
                     _positionManager: positionManager,
                     expectedSize: BigNumber.from('-11')
@@ -602,25 +604,184 @@ describe("PositionHouse_02", () => {
 
         })
 
-    })
-
-    describe('openReversePosition old Quantity > new quantity  (Market reverse Market; Limit reverse Limit)', async () => {
 
         /**
-         * Code: FS_FUTU_26
-         - S0: start price 5000
-         - S1: Trade1 open limit LONG with (4990,5)
-         - S2: Trade0 open MARKET SHORT (5)
-         - S3: Trader2 open limit SHORT with (5010, 1)
-         - S4: Trader3 open market LONG (1)
-         - S5: Trade0 open limit LONG (5005,2)
-         - S6: Trade1 open reverse MARKET position SHORT( 2)
+         PS_FUTU_24
+         -S1: Trade0 open Limit Long(4950,10)
+         -S2: Trade1 open Market Short(9)
+         -S3: Trade2 open Limit Short(5005,7)
+         -S4: Trade1 open Market LONG(3)
+         -S5: Trade0 open Limit Short(5010,2)
+         -S6: Trade1 open Market LONG(6)
+         -S7: Trade2 open Limit Long(5000,3)
+         -S8: Trade0 open Market Short(4)
+         -S9: Trade3 open Limit Long(4900,4)
+         -S10: Trade2 open Market SHORT(2)
+         -S11: Trade3 open MARKET SHORT(2)
 
-
-         - S7: Tradecp open Limit LONG(5000,2)
-         - S8: Tradecp open MARKET SHORT(2)
+         -S12: Trade(cp) open Limit short(5008,3)
+         -S13: Trade(cp1) open Market long(3)
          */
-        it('Limit reverse market', async () => {
+        it('PS_FUTU_24', async () => {
+
+            // ******************************
+            //-S1: Trade0 open Limit Long(4950,10)
+            //-S2: Trade1 open Market Short(9)
+            let response1 = (await openLimitPositionAndExpect({
+                limitPrice: 4950,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 10,
+                _trader: trader
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('9'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-9')
+                }
+            );
+
+
+            // ******************************
+            //-S3: Trade2 open Limit Short(5005,7)
+            //-S4: Trade1 open Market LONG(3)
+            let response2 = (await openLimitPositionAndExpect({
+                limitPrice: 5005,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 7,
+                _trader: trader2
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-8')
+                }
+            );
+
+
+            // ******************************
+            //-S5: Trade0 open Limit Short(5010,2)
+            //-S6: Trade1 open Market LONG(6)
+            let response3 = (await openLimitPositionAndExpect({
+                limitPrice: 5010,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 2,
+                _trader: trader
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('6'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-2')
+                }
+            );
+
+            // ******************************
+            //-S7: Trade2 open Limit Long(5000,3)
+            //-S8: Trade0 open Market Short(4)
+            let response4 = (await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 3,
+                _trader: trader2
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('4'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader.address,
+                    instanceTrader: trader,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('4')
+                }
+            );
+
+
+            // ******************************
+            //-S9: Trade3 open Limit Long(4900,4)
+            //-S10: Trade2 open Market SHORT(2)
+            //-S11: Trade3 open MARKET SHORT(2)
+            let response5 = (await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 4,
+                _trader: trader3
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('2'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-4')
+                }
+            );
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('2'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader3.address,
+                    instanceTrader: trader3,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-2')
+                }
+            );
+
+
+            await changePrice({limitPrice: 5008, toHigherPrice: true})
+
+
+
+
+        })
+
+
+    })
+
+    describe('openReversePosition old Quantity < new quantity  (Market reverse Market; Limit reverse Limit)', async () => {
+
+        /**
+         * PS_FUTU_23
+         -S1: Trade0 open Limit Long(4980,10)
+         -S2: Trade1 open Market SHORT(4)
+         -S3: Trade0 open Limit Short(5000,9)
+         -S4: Trade2 open MARKET LONG(6)
+
+         -S5: Trade3 open Limit short(5010,5)
+         -S6: Trade1 open MARKET LONG(8)
+         -S7: Trade0 open Limit Long(4990,6)
+         -S8: Trade1 open MARKET SHORT(5)
+
+         -S9: Trade2 open MARKET SHORT(7)
+         -S10: Trade3 open Limit long(4950,7)
+         -S11: Trade4 open Market SHORT(7)
+
+         - S12: Trade(ps1) open Limit SHORT (4970,2)
+         - S13: Trade(ps2) open Market LONG(2)
+         */
+        it('PS_FUTU_23', async () => {
 
             let response1 = (await openLimitPositionAndExpect({
                 limitPrice: 4990,
@@ -688,17 +849,200 @@ describe("PositionHouse_02", () => {
 
         })
 
+        /**
+         * PS_FUTU_25
+         -S1: Trade0 open Limit Long(4950,7) 3
+         -S2: Trade1 open Market Short(4)
+         -S3: Trade2 open Limit Short(5005,5)
+         -S4: Trade1 open Market LONG(5)
+         -S5: Trade0 open Limit Short(5010,7) 1
+         -S6: Trade1 open Market LONG(6)
+         -S7: Trade2 open Limit Long(5000,7)
+         -S8: Trade0 open Market short(5)
+         -S9: Trade3 open Limit Long(4990,4)
+         -S10: Trade2 open Market SHORT(2)
+         -S11: Trade3 open MARKET SHORT(4)
+
+         -S12: Trade(cp) open Limit short(5008,3)
+         -S13: Trade(cp1) open Market long(3)
+         */
+        it('PS_FUTU_25', async () => {
+
+            // *****************************
+            //-S1: Trade0 open Limit Long(4950,7) 3
+            //-S2: Trade1 open Market Short(4)
+            let response1 = (await openLimitPositionAndExpect({
+                limitPrice: 4950,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 7,
+                _trader: trader
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('4'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-4')
+                }
+            );
+
+
+            // *****************************
+            //-S3: Trade2 open Limit Short(5005,5)
+            //-S4: Trade1 open Market LONG(5)
+            let response2 = (await openLimitPositionAndExpect({
+                limitPrice: 5005,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 5,
+                _trader: trader2
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('1')
+                }
+            );
+
+
+            // *****************************
+            //-S5: Trade0 open Limit Short(5010,7) 1
+            //-S6: Trade1 open Market LONG(6)
+            let response3 = (await openLimitPositionAndExpect({
+                limitPrice: 5010,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 5,
+                _trader: trader2
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('1')
+                }
+            );
+
+            // *****************************
+            //-S7: Trade2 open Limit Long(5000,7)
+            //-S8: Trade0 open Market short(5)
+            let response4 = (await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 7,
+                _trader: trader2
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader.address,
+                    instanceTrader: trader,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('')
+                }
+            );
+
+            // *****************************
+            //-S9: Trade3 open Limit Long(4990,4)
+            //-S10: Trade2 open Market SHORT(2)
+            //-S11: Trade3 open MARKET SHORT(4)
+            let response5 = (await openLimitPositionAndExpect({
+                limitPrice: 4990,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 4,
+                _trader: trader3
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader.address,
+                    instanceTrader: trader,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('')
+                }
+            );
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader.address,
+                    instanceTrader: trader,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('')
+                }
+            );
+
+
+
+
+
+        })
+
     })
 
-    // describe('reduce size position', async function () {
-    //
-    //
-    //     it('reduce size by reverse limit order', async function () {
-    //
-    //
-    //     })
-    //
-    //
-    // })
+
+    describe('PS_FUTU_102', async function () {
+        /**
+         * PS_FUTU_102
+         -S1: Trade0 open Limit Long(4990,10)
+         -S2: Trade1 open Limit Long(4950,5)
+         -S3: Trade2 open Market Short(12)
+         -S4: Trade0 open Limit LONG(4900,5)
+
+         -S5: Trade1 open Market Short(8)
+         -S6: Price change to 4900
+         */
+        it('PS_FUTU_102: increase limit position quantity', async function () {
+            let response1Trader0 = (await openLimitPositionAndExpect({
+                limitPrice: 4990,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 10,
+                _trader: trader
+            })) as unknown as PositionLimitOrderID
+
+            let response1Trader1 = (await openLimitPositionAndExpect({
+                limitPrice: 4950,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 5,
+                _trader: trader1
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('12'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                }
+            );
+
+
+        })
+
+
+    })
 
 })
