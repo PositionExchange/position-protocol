@@ -30,7 +30,8 @@ export interface CloseLimitPositionParams {
 
 export interface CloseMarketPositionParams {
     trader: SignerWithAddress,
-    _positionManager?: any
+    _positionManager?: any,
+    _percentQuantity?: any
 }
 
 export interface BasicParam {
@@ -125,10 +126,9 @@ export default class PositionHouseTestingTool {
         } as LimitOrderReturns
     }
 
-    async closeMarketPosition({trader,}: CloseMarketPositionParams) {
+    async closeMarketPosition({trader, _percentQuantity}: CloseMarketPositionParams) {
         const positionData1 = (await this.positionHouse.connect(trader).getPosition(this.positionManager.address, trader.address)) as unknown as PositionData;
-        await this.positionHouse.connect(trader).closePosition(
-            this.positionManager.address);
+        await this.positionHouse.connect(trader).closePosition(this.positionManager.address, _percentQuantity);
 
         const positionData = (await this.positionHouse.getPosition(this.positionManager.address, trader.address)) as unknown as PositionData;
         expect(positionData.margin).eq(0);

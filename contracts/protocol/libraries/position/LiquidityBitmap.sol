@@ -90,23 +90,30 @@ library LiquidityBitmap {
         bool lte
     ) internal view returns (
         int128 next
+//    ,
+//        int128 nextWord
     ) {
         int128 startWord = pip >> 8;
         if (lte) {
             // TODO check overflow
             for (int128 i = startWord; i > startWord - maxWords; i--) {
                 if (self[i] != 0) {
-                    return findHasLiquidityInOneWords(self, i < startWord ? 256 * i + 255 : pip, true);
+//                    nextWord = i;
+                    next = findHasLiquidityInOneWords(self, i < startWord ? 256 * i + 255 : pip, true);
+                    if (next != 0) {
+                        return (next/**, nextWord*/);
+                    }
                 }
             }
         } else {
             for (int128 i = startWord; i < startWord + maxWords; i++) {
-                // DELETE LOG
-                console.log("self i", self[i]);
                 if (self[i] != 0) {
                     // avoid load in lte
-
-                    return findHasLiquidityInOneWords(self, i > startWord ? 256 * i : pip, false);
+//                    nextWord = i;
+                    next = findHasLiquidityInOneWords(self, i > startWord ? 256 * i : pip, false);
+                    if (next != 0) {
+                        return (next/**, nextWord*/);
+                    }
                 }
             }
         }

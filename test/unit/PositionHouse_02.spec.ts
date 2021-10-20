@@ -232,16 +232,17 @@ describe("PositionHouse_02", () => {
     const closePosition = async ({
                                      trader,
                                      instanceTrader,
-                                     _positionManager = positionManager
+                                     _positionManager = positionManager,
+                                     _percentQuantity = 100
                                  }: {
         trader: string,
         instanceTrader: any,
-        _positionManager?: any
+        _positionManager?: any,
+        _percentQuantity?: any
     }) => {
-        // console.log(t)
         const positionData1 = (await positionHouse.connect(instanceTrader).getPosition(_positionManager.address, trader)) as unknown as PositionData;
-        // await positionHouse.connect(instanceTrader).closePosition(_positionManager.address, BigNumber.from(positionData1.quantity.toString()));
-        await positionHouse.connect(instanceTrader).closePosition(_positionManager.address);
+        await positionHouse.connect(instanceTrader).closePosition(_positionManager.address, _percentQuantity);
+
         const positionData = (await positionHouse.getPosition(_positionManager.address, trader)) as unknown as PositionData;
         expect(positionData.margin).eq(0);
         expect(positionData.quantity).eq(0);
@@ -1990,29 +1991,28 @@ describe("PositionHouse_02", () => {
                 }
             );
 
-            // UPDATE EXPECT
             const expectTrader0 = await expectMarginPnlAndOP({
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader0.address,
-                expectedOpenNotional: 10000,
-                expectedMargin: 5000,
-                expectedPnl: 6000
+                expectedOpenNotional: 39450,
+                expectedMargin: 3945,
+                expectedPnl: -170
             });
 
             const expectTrader1 = await expectMarginPnlAndOP({
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader1.address,
-                expectedOpenNotional: 10000,
-                expectedMargin: 5000,
-                expectedPnl: 6000
+                expectedOpenNotional: 4900,
+                expectedMargin: 490,
+                expectedPnl: -10
             });
 
             const expectTrader2 = await expectMarginPnlAndOP({
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader2.address,
-                expectedOpenNotional: 10000,
-                expectedMargin: 5000,
-                expectedPnl: 6000
+                expectedOpenNotional: 34700,
+                expectedMargin: 3470,
+                expectedPnl: 330
             });
         })
 
@@ -2092,29 +2092,28 @@ describe("PositionHouse_02", () => {
                 }
             );
 
-            // UPDATE EXPECT
             const expectTrader0 = await expectMarginPnlAndOP({
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader0.address,
-                expectedOpenNotional: 74400,
-                expectedMargin: 7440,
-                expectedPnl: -900
+                expectedOpenNotional: 24750,
+                expectedMargin: 2475,
+                expectedPnl: -300
             });
 
             const expectTrader1 = await expectMarginPnlAndOP({
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader1.address,
-                expectedOpenNotional: 4900,
-                expectedMargin: 490,
-                expectedPnl: 0
+                expectedOpenNotional: 34400,
+                expectedMargin: 3440,
+                expectedPnl: 170
             });
 
             const expectTrader2 = await expectMarginPnlAndOP({
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader2.address,
-                expectedOpenNotional: 59800,
-                expectedMargin: 5980,
-                expectedPnl: 1000
+                expectedOpenNotional: 9800,
+                expectedMargin: 980,
+                expectedPnl: -20
             });
         })
 

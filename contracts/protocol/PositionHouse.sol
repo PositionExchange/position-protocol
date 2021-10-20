@@ -213,10 +213,12 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     /**
     * @notice close position with close market
     * @param _positionManager IPositionManager address
+    * @param _percentQuantity want to close
+
     */
     function closePosition(
-        IPositionManager _positionManager
-    // IMPORTANT update amount quantity want to close (can be 50%, 75%...)
+        IPositionManager _positionManager,
+        uint256 _percentQuantity
     ) public {
 
         // check conditions
@@ -224,13 +226,13 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
         address _trader = _msgSender();
         Position.Data memory positionData = getPosition(address(_positionManager), _trader);
-
+        // IMPORTANT UPDATE FORMULA WITH LEVERAGE
         uint256 oldPositionLeverage = positionData.openNotional / positionData.margin;
         PositionResp memory positionResp;
         if (positionData.quantity > 0) {
-            openMarketPosition(_positionManager, Position.Side.SHORT, uint256(positionData.quantity), oldPositionLeverage);
+            openMarketPosition(_positionManager, Position.Side.SHORT, uint256(positionData.quantity) * _percentQuantity / 100, oldPositionLeverage);
         } else {
-            openMarketPosition(_positionManager, Position.Side.LONG, uint256(- positionData.quantity), oldPositionLeverage);
+            openMarketPosition(_positionManager, Position.Side.LONG, uint256(-positionData.quantity) * _percentQuantity / 100, oldPositionLeverage);
         }
 
     }
@@ -240,9 +242,9 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     * @notice close position with close market
     * @param _positionManager IPositionManager address
     * @param _pip limit price want to close
-    * @param _quantity want to close
+    * @param _percentQuantity want to close
     */
-    function closeLimitPosition(IPositionManager _positionManager, int128 _pip, uint256 _quantity) public {
+    function closeLimitPosition(IPositionManager _positionManager, int128 _pip, uint256 _percentQuantity) public {
 
         // check conditions
         requirePositionManager(_positionManager, true);
@@ -253,10 +255,9 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint256 oldPositionLeverage = positionData.openNotional / positionData.margin;
 
         if (positionData.quantity > 0) {
-
-            openLimitOrder(_positionManager, Position.Side.SHORT, _quantity, _pip, oldPositionLeverage, false);
+            openLimitOrder(_positionManager, Position.Side.SHORT, uint256(positionData.quantity) * _percentQuantity / 100, _pip, oldPositionLeverage, false);
         } else {
-            openLimitOrder(_positionManager, Position.Side.LONG, _quantity, _pip, oldPositionLeverage, false);
+            openLimitOrder(_positionManager, Position.Side.LONG, uint256(-positionData.quantity) * _percentQuantity / 100, _pip, oldPositionLeverage, false);
         }
     }
 
@@ -482,8 +483,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, PnlCalcOption.SPOT_PRICE);
 
             // update positionResp
-            // IMPORTANT exchangedQuoteAssetAmount can't calculated by currentPrice because a marketOrder can match more than 1 price
-            //            positionResp.exchangedQuoteAssetAmount = (_quantity).abs() * _currentPrice;
             positionResp.unrealizedPnl = unrealizedPnl;
             positionResp.realizedPnl = 0;
             positionResp.marginToVault = int256(increaseMarginRequirement);
@@ -925,6 +924,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         } else if (!isFilled && partialFilled != 0) {// partial filled
             int256 _partialQuantity = isBuy ? int256(partialFilled) : - int256(partialFilled);
             uint256 _partialOpenNotional = partialFilled * _positionManager.pipToPrice(limitOrder.pip);
+            // IMPORTANT UPDATE FORMULA WITH LEVERAGE
             uint256 _partialMargin = _partialOpenNotional / limitOrder.leverage;
             positionData = positionData.accumulateLimitOrder(_partialQuantity, _partialMargin, _partialOpenNotional);
         }
@@ -948,7 +948,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             positionData.openNotional = (positionData.openNotional / uint256(- positionData.quantity)) * uint256(- positionData.quantity - int256(amountFilled));
             positionData.quantity = positionData.quantity + int256(amountFilled);
             positionData.margin = positionData.margin - uint256(realizedMargin);
-
         }
         return (amount, positionData);
     }

@@ -20,8 +20,8 @@ import PositionManagerTestingTool from "../shared/positionManagerTestingTool";
 import PositionHouseTestingTool from "../shared/positionHouseTestingTool";
 
 const sideObj = {
-    1: 'LONG',
-    0: 'SHORT'
+    0: 'LONG',
+    1: 'SHORT'
 }
 
 describe("PositionHouse_01", () => {
@@ -30,13 +30,14 @@ describe("PositionHouse_01", () => {
     let trader1: any;
     let trader2: any;
     let trader3: any;
+    let tradercp: any;
     let positionManager: PositionManager;
     let positionManagerFactory: ContractFactory;
     let positionManagerTestingTool: PositionManagerTestingTool
     let positionHouseTestingTool: PositionHouseTestingTool
 
     beforeEach(async () => {
-        [trader, trader1, trader2, trader3] = await ethers.getSigners()
+        [trader, trader1, trader2, trader3, tradercp] = await ethers.getSigners()
         positionManagerFactory = await ethers.getContractFactory("PositionManager")
         // BTC-USD Perpetual, initial price is 5000
         // each pip = 0.01
@@ -150,15 +151,16 @@ describe("PositionHouse_01", () => {
     const closePosition = async ({
                                      trader,
                                      instanceTrader,
-                                     _positionManager = positionManager
+                                     _positionManager = positionManager,
+                                    _percentQuantity = 100
                                  }: {
         trader: string,
         instanceTrader: any,
-        _positionManager?: any
+        _positionManager?: any,
+        _percentQuantity?: any
     }) => {
         const positionData1 = (await positionHouse.connect(instanceTrader).getPosition(_positionManager.address, trader)) as unknown as PositionData;
-        await positionHouse.connect(instanceTrader).closePosition(
-            _positionManager.address);
+        await positionHouse.connect(instanceTrader).closePosition(_positionManager.address, _percentQuantity);
 
         const positionData = (await positionHouse.getPosition(_positionManager.address, trader)) as unknown as PositionData;
         expect(positionData.margin).eq(0);
@@ -3269,15 +3271,99 @@ describe("PositionHouse_01", () => {
 
 
             await openMarketPosition({
-                quantity: BigNumber.from('1000'),
+                quantity: BigNumber.from('100'),
                 leverage: 20,
-                side: SIDE.SHORT,
+                side: SIDE.LONG,
                 trader: trader1.address,
                 instanceTrader: trader1,
                 _positionManager: positionManager,
-                price: 50,
-                expectedSize: BigNumber.from('-1000')
+                price: 5005,
+                expectedSize: BigNumber.from('100')
             })
+
+
+             {
+                let response1 = (await openLimitPositionAndExpect({
+                    limitPrice: 4900,
+                    side: SIDE.LONG,
+                    leverage: 10,
+                    quantity: 1,
+                    _trader: tradercp,
+                })) as unknown as PositionLimitOrderID
+
+                await openMarketPosition({
+                        quantity: BigNumber.from('1'),
+                        leverage: 10,
+                        side: SIDE.SHORT,
+                        trader: tradercp.address,
+                        instanceTrader: tradercp,
+                        _positionManager: positionManager,
+                        expectedSize: BigNumber.from(0)
+                    }
+                );
+            }
+
+
+            await positionHouse.closeLimitPosition(positionManager.address, 4850, 75);
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('75'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: tradercp.address,
+                    instanceTrader: tradercp,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from(-76)
+                }
+            );
+
+            //
+            // {
+            //     let response1 = (await openLimitPositionAndExpect({
+            //         limitPrice: 5500,
+            //         side: SIDE.SHORT,
+            //         leverage: 10,
+            //         quantity: 1,
+            //         _trader: tradercp,
+            //     })) as unknown as PositionLimitOrderID
+            //
+            //     await openMarketPosition({
+            //             quantity: BigNumber.from('1'),
+            //             leverage: 10,
+            //             side: SIDE.LONG,
+            //             trader: tradercp.address,
+            //             instanceTrader: tradercp,
+            //             _positionManager: positionManager,
+            //             expectedSize: BigNumber.from(-1)
+            //         }
+            //     );
+            // }
+            //
+            //
+            //
+            // await positionHouse.liquidate(positionManager.address, trader.address);
+            //
+            //
+            // const positionData1 = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData;
+            //
+            // console.log('quantity after liquidate ', positionData1.quantity.toString())
+            // console.log('margin after liquidate ', positionData1.margin.toString())
+
+            //
+            // expect(positionData1.quantity).eq(-80)
+            //
+            // expect(positionData1.margin.div(10000)).eq(24250)
+            //
+
+
+
+
+
+
+
+
+
+
 
 
         })
