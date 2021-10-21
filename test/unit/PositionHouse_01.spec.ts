@@ -187,10 +187,10 @@ describe("PositionHouse_01", () => {
                     quantity: BigNumber.from('100'),
                     leverage: leverage,
                     side: SIDE.SHORT,
-                    trader: trader.address,
-                    instanceTrader: trader,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
                     _positionManager: positionManager,
-                    expectedSize: BigNumber.from('0')
+                    expectedSize: BigNumber.from('-100')
                 }
             );
             await positionManagerTestingTool.debugPendingOrder(response1.pip, response1.orderId)
@@ -1083,7 +1083,7 @@ describe("PositionHouse_01", () => {
             expect(positionData.quantity.toNumber()).eq(100)
         });
 
-        it('should open limit and filled with market by self ', async () => {
+        it('should open limit and self filled by market  ', async () => {
 
             const {pip, orderId} = await openLimitPositionAndExpect({
                 limitPrice: 4990,

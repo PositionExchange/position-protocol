@@ -43,7 +43,7 @@ library PositionLimitOrder {
                 }
             }
         }
-        console.log("gas spent", gasBefore - gasleft());
+        console.log("gas spent checkFilledToSelfOrders", gasBefore - gasleft());
     }
 
 }

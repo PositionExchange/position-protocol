@@ -44,7 +44,7 @@
     "yaml": "^1.10.2"
   },
   "dependencies": {
-    "@chainlink/contracts": "^0.2.1",
+    "@chainlink/contracts": "^0.2.2",
     "@nomiclabs/buidler": "^1.4.8",
     "@nomiclabs/hardhat-etherscan": "^2.1.4",
     "@openzeppelin/contracts": "^4.2.0",

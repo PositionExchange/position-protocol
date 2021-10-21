@@ -546,10 +546,10 @@
     "lodash" "^4.17.19"
     "to-fast-properties" "^2.0.0"
 
-"@chainlink/contracts@^0.2.1":
-  "integrity" "sha512-mAQgPQKiqW3tLMlp31NgcnXpwG3lttgKU0izAqKiirJ9LH7rQ+O0oHIVR5Qp2yuqgmfbLsgfdLo4GcVC8IFz3Q=="
-  "resolved" "https://registry.npmjs.org/@chainlink/contracts/-/contracts-0.2.1.tgz"
-  "version" "0.2.1"
+"@chainlink/contracts@^0.2.2":
+  "integrity" "sha512-wxXPbt7O3aZaUSG34ufFASC5amRSL6eeYCqsa+2gpqbB8Hk7B7FydEDCI5dqvAC444TlFskPHcVbizCZkRHPpw=="
+  "resolved" "https://registry.npmjs.org/@chainlink/contracts/-/contracts-0.2.2.tgz"
+  "version" "0.2.2"
 
 "@cnakazawa/watch@^1.0.3":
   "integrity" "sha512-v9kIhKwjeZThiWrLmj0y17CWoyddASLj9O2yvbZkbvw/N3rWOYy9zkV66ursAoVr0mV15bL8g0c4QZUE6cdDoQ=="
