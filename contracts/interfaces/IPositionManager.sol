@@ -25,8 +25,11 @@ interface IPositionManager {
 
     function calcAdjustMargin(uint256 adjustMargin) external view returns (uint256);
 
+    function calcFee(uint256 _positionNotional) external view returns (uint256);
+
     function cancelLimitOrder(int128 pip, uint64 orderId) external returns (uint256);
 
     function closeLimitOrder(int128 pip, uint64 orderId, uint256 amountClose) external;
+
 
 }

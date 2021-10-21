@@ -80,7 +80,7 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed, Initializable, ReentrancyGua
         // 3 different timestamps, `previous`, `current`, `target`
         // `base` = now - _interval
         // `current` = current round timestamp from aggregator
-        // `previous` = previous round timestamp form aggregator
+        // `previous` = previous round timestamp from aggregator
         // now >= previous > current > = < base
         //
         //  while loop i = 0
@@ -99,7 +99,7 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed, Initializable, ReentrancyGua
             return formatDecimals(latestPrice, decimal);
         }
 
-        // rounds are like snapshots, latestRound means the latest price snapshot. follow chainlink naming
+        // rounds are like snapshots, latestRound means the latest price snapshot
         uint256 previousTimestamp = latestTimestamp;
         uint256 cumulativeTime = block.timestamp - previousTimestamp;
         uint256 weightedPrice = latestPrice * cumulativeTime;

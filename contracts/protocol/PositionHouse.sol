@@ -10,6 +10,9 @@ import "hardhat/console.sol";
 import "./PositionManager.sol";
 import "./libraries/helpers/Quantity.sol";
 import "./libraries/position/PositionLimitOrder.sol";
+import "../interfaces/IInsuranceFund.sol";
+import "../interfaces/IFeePool.sol";
+
 
 contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable
 {
@@ -68,7 +71,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         mapping(address => UserInfo) userInfo;
     }
 
-    mapping (address => PositionHouseData) public positionHouseMap;
+    mapping(address => PositionHouseData) public positionHouseMap;
     // Mapping from position manager address of each pair to position data of each trader
     mapping(address => mapping(address => Position.Data)) public positionMap;
 
@@ -86,6 +89,9 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     uint256 liquidationFeeRatio;
     uint256 liquidationFeeRatioConst = 3;
     uint256 liquidationPenaltyRatio = 20;
+
+    IInsuranceFund public insuranceFund;
+    IFeePool public feePool;
 
     modifier whenNotPause(){
         //TODO implement
@@ -518,7 +524,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         console.log("open reverse position _quantity ", _quantity.abs());
         console.log("open reverse position oldPosition.quantity", oldPosition.quantity.abs());
 
-        if (_quantity.abs() < oldPosition.quantity.abs()) {
+        if (_quantity.abs() <= oldPosition.quantity.abs()) {
             uint256 reduceMarginRequirement = oldPosition.margin * _quantity.abs() / oldPosition.quantity.abs();
             // reduce old position only
             (positionResp.exchangedPositionSize,) = openMarketOrder(_positionManager, _quantity.abs(), _side);
@@ -785,6 +791,38 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
     function payFunding(IPositionManager _positionManager) public onlyOwner {
 
+
+    }
+
+    function transferFee(
+        address _from,
+        IPositionManager _positionManager,
+        uint256 _positionNotional
+    ) internal returns (uint256) {
+        uint256 toll = _positionManager.calcFee(_positionNotional);
+        //        bool hasToll = toll.toUint() > 0;
+        //        bool hasSpread = spread.toUint() > 0;
+        if (toll > 0) {
+            IERC20 quoteAsset = _positionManager.getQuoteAsset();
+
+            transferFromTrader(quoteAsset, _from, address(feePool), toll);
+
+            //            // transfer spread to insurance fund
+            //            if (hasSpread) {
+            //                _transferFrom(quoteAsset, _from, address(insuranceFund), spread);
+            //            }
+            //
+            //            // transfer toll to feePool
+            //            if (hasToll) {
+            //                require(address(feePool) != address(0), "Invalid feePool");
+            //                _transferFrom(quoteAsset, _from, address(feePool), toll);
+            //            }
+
+            // fee = spread + toll
+            return toll;
+        }
+
+        return 0;
     }
 
 
@@ -807,8 +845,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint256 balanceSender = quoteToken.balanceOf(sender);
 
 
-
-        if ( balanceSender < amount) {
+        if (balanceSender < amount) {
             // TODO withdraw from InsuranceFund
         }
 
@@ -817,11 +854,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         address(quoteToken).call(abi.encodeWithSelector(quoteToken.transferFrom.selector, sender, receiver, amount));
 
     }
-
-
-
-
-
 
 
 
