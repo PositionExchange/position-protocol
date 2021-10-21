@@ -198,8 +198,8 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         pip : _initialSingleSlot.pip
         });
         int128 startPip;
-        int128 startWord = _initialSingleSlot.pip >> 8;
-        int128 wordIndex = startWord;
+//        int128 startWord = _initialSingleSlot.pip >> 8;
+//        int128 wordIndex = startWord;
         bool isPartialFill;
         uint8 isFullBuy = 0;
         bool isSkipFirstPip;
@@ -217,48 +217,48 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
             console.log("state pip", uint128(state.pip));
             StepComputations memory step;
             // find the next tick has liquidity
-            (step.pipNext) = liquidityBitmap[wordIndex] != 0 ? liquidityBitmap.findHasLiquidityInOneWords(
-                !isBuy ? (wordIndex < startWord ? 256 * wordIndex + 255 : state.pip) : (wordIndex > startWord ? 256 * wordIndex : state.pip),
-                !isBuy
-            ) : 0;
-            console.log(">> wordIndex | liquidity | pipNext", uint128(wordIndex), liquidityBitmap[wordIndex], uint128(step.pipNext));
-
-            if (step.pipNext == 0) {
-                if (isBuy ? wordIndex > startWord + maxFindingWordsIndex : wordIndex < startWord - maxFindingWordsIndex) {
-                    // no more next pip
-                    // state pip back 1 pip
-                    if (isBuy) {
-                        state.pip--;
-                    } else {
-                        state.pip++;
-                    }
-                    break;
-                }
-                // increase word
-                if (isBuy) {
-                    wordIndex++;
-                } else {
-                    wordIndex--;
-                }
-            }
-            // updated findHasLiquidityInMultipleWords, save more gas
-//             (step.pipNext) = liquidityBitmap.findHasLiquidityInMultipleWords(
-//                state.pip,
-//                maxFindingWordsIndex,
+//            (step.pipNext) = liquidityBitmap[wordIndex] != 0 ? liquidityBitmap.findHasLiquidityInOneWords(
+//                !isBuy ? (wordIndex < startWord ? 256 * wordIndex + 255 : state.pip) : (wordIndex > startWord ? 256 * wordIndex : state.pip),
 //                !isBuy
-//            );
-//            console.log("SWAP: state pip", uint128(state.pip));
-//            console.log("SWAP: next pip", uint256(uint128(step.pipNext)));
+//            ) : 0;
+//            console.log(">> wordIndex | liquidity | pipNext", uint128(wordIndex), liquidityBitmap[wordIndex], uint128(step.pipNext));
+//
 //            if (step.pipNext == 0) {
-//                // no more next pip
-//                // state pip back 1 pip
-//                if (isBuy) {
-//                    state.pip--;
-//                } else {
-//                    state.pip++;
+//                if (isBuy ? wordIndex > startWord + maxFindingWordsIndex : wordIndex < startWord - maxFindingWordsIndex) {
+//                    // no more next pip
+//                    // state pip back 1 pip
+//                    if (isBuy) {
+//                        state.pip--;
+//                    } else {
+//                        state.pip++;
+//                    }
+//                    break;
 //                }
-//                break;
+//                // increase word
+//                if (isBuy) {
+//                    wordIndex++;
+//                } else {
+//                    wordIndex--;
+//                }
 //            }
+            // updated findHasLiquidityInMultipleWords, save more gas
+             (step.pipNext) = liquidityBitmap.findHasLiquidityInMultipleWords(
+                state.pip,
+                maxFindingWordsIndex,
+                !isBuy
+            );
+            console.log("SWAP: state pip", uint128(state.pip));
+            console.log("SWAP: next pip", uint256(uint128(step.pipNext)));
+            if (step.pipNext == 0) {
+                // no more next pip
+                // state pip back 1 pip
+                if (isBuy) {
+                    state.pip--;
+                } else {
+                    state.pip++;
+                }
+                break;
+            }
             else {
                 if (!isSkipFirstPip) {
                     console.log("SWAP: state pip", uint128(state.pip));
@@ -288,7 +288,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                         //                        liquidityBitmap.toggleSingleBit(step.pipNext, false);
                         // increase pip
                         openNotional += liquidity * pipToPrice(step.pipNext);
-                        startWord = wordIndex;
+//                        startWord = wordIndex;
                         state.pip = state.remainingSize > 0 ? (isBuy ? step.pipNext + 1 : step.pipNext - 1) : step.pipNext;
                     } else {
                         // remaining size = liquidity
