@@ -56,27 +56,21 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint24 blockNumber;
     }
 
-    struct UserInfo {
-        uint256 selfFilledQuantity;
-    }
 
     struct PositionHouseData {
         uint24 blockNumber;
         int256 cumulativePremiumFraction;
         mapping(address => Position.Data) positionMap;
         mapping(address => PositionLimitOrder.Data[]) limitOrderMap;
-        mapping(address => UserInfo) userInfo;
     }
 
-    mapping (address => PositionHouseData) public positionHouseMap;
+    mapping(address => PositionHouseData) public positionHouseMap;
     // Mapping from position manager address of each pair to position data of each trader
     mapping(address => mapping(address => Position.Data)) public positionMap;
 
 
     //can update with index => no need delete array when close all
     mapping(address => mapping(address => PositionLimitOrder.Data[])) public limitOrderMap;
-    mapping(address => mapping(address => UserInfo)) public userInfo;
-
     //    mapping(address => mapping(address => )  )
 
     uint256 maintenanceMarginRatio;
@@ -155,7 +149,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             // TODO adjust old position
             positionResp = openReversePosition(_positionManager, _side, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage);
         }
-        console.log("before update open market");
         // update position sate
         positionMap[address(_positionManager)][_trader].update(
             positionResp.position
@@ -518,7 +511,9 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         console.log("open reverse position _quantity ", _quantity.abs());
         console.log("open reverse position oldPosition.quantity", oldPosition.quantity.abs());
 
-        if (_quantity.abs() < oldPosition.quantity.abs()) {
+        if (_quantity.abs() <= oldPosition.quantity.abs()) {
+
+            console.log("open reduce ");
             uint256 reduceMarginRequirement = oldPosition.margin * _quantity.abs() / oldPosition.quantity.abs();
             // reduce old position only
             (positionResp.exchangedPositionSize,) = openMarketOrder(_positionManager, _quantity.abs(), _side);
@@ -678,16 +673,13 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         int256 quantityMarket = positionData.quantity;
         PositionLimitOrder.Data[] memory listLimitOrder = limitOrderMap[positionManager][_trader];
         IPositionManager _positionManager = IPositionManager(positionManager);
-        console.log("limit order length", listLimitOrder.length);
+        console.log("> GET POSITION | limit order length", listLimitOrder.length);
         for (uint i = 0; i < listLimitOrder.length; i++) {
             positionData = _accumulateLimitOrderToPositionData(_positionManager, listLimitOrder[i], positionData);
         }
-        console.log("positionData.quantity ", uint256(positionData.quantity));
-        console.log("quantityMarket ", uint256(quantityMarket));
+        console.log("> GET POSITION | positionData.quantity ", uint256(positionData.quantity));
+        console.log("> GET POSITION | quantityMarket ", uint256(quantityMarket));
         positionData.sumQuantityLimitOrder = positionData.quantity - quantityMarket;
-        // TODO calculate notional and margin
-        positionData = positionData.accumulateLimitOrder(int256(userInfo[positionManager][_trader].selfFilledQuantity), 0, 0);
-
     }
 
 
@@ -780,7 +772,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         } else {
             marginRatio = maintenanceMargin * 100 / uint256(marginBalance);
         }
-
     }
 
     function payFunding(IPositionManager _positionManager) public onlyOwner {
@@ -807,8 +798,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint256 balanceSender = quoteToken.balanceOf(sender);
 
 
-
-        if ( balanceSender < amount) {
+        if (balanceSender < amount) {
             // TODO withdraw from InsuranceFund
         }
 
@@ -875,11 +865,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         int128 startPip = _positionManager.getCurrentPip();
         (exchangedSize, openNotional) = _positionManager.openMarketPosition(_quantity, _side == Position.Side.LONG);
         int128 endPip = _positionManager.getCurrentPip();
-        uint256 selfFilledQuantity = limitOrderMap.checkFilledToSelfOrders(_positionManager, _trader, startPip, endPip, _side);
-        console.log("selfFilledQuantity", selfFilledQuantity);
-        if (selfFilledQuantity > 0) {
-            userInfo[address(_positionManager)][_trader].selfFilledQuantity += selfFilledQuantity;
-        }
         // TODO check if fill to self limit orders
         require(exchangedSize == _quantity, "not enough liquidity to fulfill the order");
         exchangedQuantity = _side == Position.Side.LONG ? int256(exchangedSize) : - int256(exchangedSize);
