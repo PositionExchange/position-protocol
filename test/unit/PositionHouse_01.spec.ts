@@ -1,9 +1,11 @@
 import {BigNumber, BigNumberish, ContractFactory, Signer, Wallet} from 'ethers'
 import {ethers, waffle} from 'hardhat'
 import {loadFixture} from "ethereum-waffle";
+const {solidity} = waffle
 
 import {describe} from "mocha";
-import {expect} from 'chai'
+import {expect, use} from 'chai'
+
 import {PositionManager, PositionHouse} from "../../typeChain";
 import {
     ClaimFund, LimitOrderReturns,
@@ -18,6 +20,8 @@ import {
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import PositionManagerTestingTool from "../shared/positionManagerTestingTool";
 import PositionHouseTestingTool from "../shared/positionHouseTestingTool";
+
+use(solidity)
 
 const sideObj = {
     0: 'LONG',
@@ -60,7 +64,8 @@ describe("PositionHouse_01", () => {
                                           expectedNotional,
                                           expectedSize,
                                           price = 5000,
-                                          _positionManager = positionManager
+                                          _positionManager = positionManager,
+                                          expectRevertMsg
                                       }: {
         quantity: BigNumber,
         leverage: number,
@@ -71,30 +76,40 @@ describe("PositionHouse_01", () => {
         expectedNotional?: BigNumber | string,
         expectedSize?: BigNumber,
         price?: number,
-        _positionManager?: any
+        _positionManager?: any,
+        expectRevertMsg?: string
     }) => {
         // @ts-ignore
         console.group(`Open Market Order: ${sideObj[side.toString()]} ${quantity}`)
         trader = instanceTrader && instanceTrader.address || trader
         if (!trader) throw new Error("No trader")
-        const tx = await positionHouse.connect(instanceTrader).openMarketPosition(
+        const task = positionHouse.connect(instanceTrader).openMarketPosition(
             _positionManager.address,
             side,
             quantity,
             leverage,
         )
-        console.log("GAS USED MARKET", (await tx.wait()).gasUsed.toString())
+        if(expectRevertMsg){
+            await expect(task).to.be.revertedWith(expectRevertMsg)
+            return
+        }else{
+            const tx = await task
+            console.log("GAS USED MARKET", (await tx.wait()).gasUsed.toString())
+        }
+        console.log(`START GET POSITION FOR EXPECTING`, trader, instanceTrader.address)
 
         const positionInfo = await positionHouse.getPosition(_positionManager.address, trader) as unknown as PositionData;
         // console.log("positionInfo", positionInfo)
         const currentPrice = Number((await _positionManager.getPrice()).toString())
         const openNotional = positionInfo.openNotional.div('10000').toString()
         // expectedNotional = expectedNotional && expectedNotional.toString() || quantity.mul(price).toString()
+        console.log(`┌─────────┬──────────────┬──────────────────────┬──────────────┬──────────┐`)
         console.log(`Position Info of ${trader}`)
         console.table([
             {
                 openNotional: positionInfo.openNotional.toString(),
                 openNotionalFormated: openNotional,
+                margin: positionInfo.margin.div('10000').toString(),
                 currentPrice: currentPrice,
                 quantity: positionInfo.quantity.toString()
             }
@@ -327,15 +342,16 @@ describe("PositionHouse_01", () => {
             );
 
 
-            await expect(openMarketPosition({
+            await openMarketPosition({
                     quantity: BigNumber.from('10'),
                     leverage: leverage,
                     side: SIDE.SHORT,
                     trader: trader.address,
                     instanceTrader: trader,
-                    _positionManager: positionManager
+                    _positionManager: positionManager,
+                    expectRevertMsg: 'VM Exception while processing transaction: reverted with reason string \'not enough liquidity to fulfill the order\''
                 }
-            )).to.be.revertedWith('not enough liquidity to fulfill order');
+            );
 
             // const positionData = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData;
             //
@@ -1086,6 +1102,7 @@ describe("PositionHouse_01", () => {
         it('should open limit and self filled by market  ', async () => {
 
             const {pip, orderId} = await openLimitPositionAndExpect({
+                _trader: trader,
                 limitPrice: 4990,
                 side: SIDE.LONG,
                 leverage: 10,
@@ -1101,8 +1118,6 @@ describe("PositionHouse_01", () => {
                 price: 4990,
                 expectedSize: BigNumber.from('0')
             })
-
-
         });
 
         describe('it will error', async () => {
@@ -1172,7 +1187,7 @@ describe("PositionHouse_01", () => {
                     side: SIDE.SHORT,
                     price: 5010,
                     expectedSize: BigNumber.from('-50')
-                })).to.be.revertedWith('not enough liquidity to fulfill order');
+                })).to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'not enough liquidity to fulfill the order\'');
 
                 // const positionData1 = await positionHouse.getPosition(positionManager.address, trader.address)
                 // expect(positionData1.quantity.toNumber()).eq(-100)
@@ -2359,7 +2374,15 @@ describe("PositionHouse_01", () => {
                     await positionHouseTestingTool.expectPositionData(trader1, {
                         quantity: 150
                     })
-
+                    // await openMarketPosition({
+                    //     instanceTrader: trader1,
+                    //     trader: trader1.address,
+                    //     leverage: 10,
+                    //     quantity: BigNumber.from('50'),
+                    //     side: SIDE.SHORT,
+                    //     price: 4985,
+                    //     expectedSize: BigNumber.from('150')
+                    // })
                     await openMarketPosition({
                         instanceTrader: trader1,
                         trader: trader1.address,
@@ -2596,22 +2619,23 @@ describe("PositionHouse_01", () => {
                         expectedSize: BigNumber.from('30')
                     });
                 }
+                await positionHouseTestingTool.expectPositionData(trader, {
+                    margin: 15030
+                })
 
-                // TODO verify expected size
                 await openMarketPosition({
                     instanceTrader: trader,
                     leverage: 10,
                     quantity: BigNumber.from('40'),
                     side: SIDE.LONG,
                     price: 5015,
-                    expectedSize: BigNumber.from('0')
+                    expectedSize: BigNumber.from('10')
                 });
 
                 const pendingOrder = await positionHouse.getPendingOrder(positionManager.address, response1.pip, response1.orderId);
                 expect(pendingOrder.partialFilled).eq(70);
-
-
             })
+
             it('ERROR self filled market: open limit order has been filled and open market with reduce position', async () => {
                 let response1: any;
                 let response2: any;
@@ -2817,6 +2841,7 @@ describe("PositionHouse_01", () => {
 
 
             })
+
 
         })
     })
