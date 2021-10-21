@@ -23,13 +23,16 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     struct SingleSlot {
         // percentage in point
         int128 pip;
+        //0: not set
+        //1: buy
+        //2: sell
         uint8 isFullBuy;
     }
 
     IERC20 quoteAsset;
 
 
-    // Max finding word can be 3000
+    // Max finding word can be 3500
     int128 public maxFindingWordsIndex = 1000;
 
     SingleSlot public singleSlot;
@@ -149,6 +152,9 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
             // open limit only
 
         }
+        if(pip == _singleSlot.pip && _singleSlot.isFullBuy != (isBuy ? 1 : 2)){
+            singleSlot.isFullBuy = isBuy ? 1 : 2;
+        }
         //TODO validate pip
         // convert tick to price
         // save at that pip has how many liquidity
@@ -204,6 +210,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         uint8 isFullBuy = 0;
         bool isSkipFirstPip;
         CurrentLiquiditySide currentLiquiditySide = CurrentLiquiditySide(_initialSingleSlot.isFullBuy);
+        console.log("> SWAP: CurrentLiquiditySide:", uint256(currentLiquiditySide));
         if (currentLiquiditySide != CurrentLiquiditySide.NotSet) {
             if (isBuy)
             // if buy and latest liquidity is buy. skip current pip
@@ -214,7 +221,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         }
         while (state.remainingSize != 0) {
             console.log("while again");
-            console.log("state pip", uint128(state.pip));
+            console.log("state pip", uint128(state.pip), isSkipFirstPip);
             StepComputations memory step;
             // find the next tick has liquidity
 //            (step.pipNext) = liquidityBitmap[wordIndex] != 0 ? liquidityBitmap.findHasLiquidityInOneWords(

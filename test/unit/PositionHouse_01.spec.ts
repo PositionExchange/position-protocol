@@ -2733,6 +2733,7 @@ describe("PositionHouse_01", () => {
                     quantity: 200,
                     _trader: trader2
                 })) as unknown as PositionLimitOrderID
+                console.log("line 2736")
                 await openMarketPosition({
                     instanceTrader: trader1,
                     leverage: 10,
@@ -2748,6 +2749,7 @@ describe("PositionHouse_01", () => {
                     quantity: 200,
                     _trader: trader2
                 })) as unknown as PositionLimitOrderID
+                console.log("line 2752")
                 await openMarketPosition({
                     instanceTrader: trader,
                     leverage: 10,
@@ -2778,6 +2780,7 @@ describe("PositionHouse_01", () => {
 
                 await openMarketPosition({
                     instanceTrader: trader1,
+                    trader: trader1.address,
                     leverage: 20,
                     quantity: BigNumber.from('100'),
                     side: SIDE.LONG,
@@ -2795,6 +2798,7 @@ describe("PositionHouse_01", () => {
 
                 await openMarketPosition({
                     instanceTrader: trader2,
+                    trader: trader2.address,
                     leverage: 20,
                     quantity: BigNumber.from('100'),
                     side: SIDE.LONG,
@@ -2804,16 +2808,16 @@ describe("PositionHouse_01", () => {
 
 
                 const maintenanceDetail = (await positionHouse.getMaintenanceDetail(positionManager.address, trader.address)) as unknown as MaintenanceDetail;
-                const positionData = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData;
-                const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                const positionDataTrader0 = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData;
+                const positionNotionalAndPnLTrader0 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
                     positionManager.address,
                     trader.address,
                     1
                 )
 
 
-                console.log('margin ', positionData.margin.div(10000).toString());
-                console.log('Pnl :', positionNotionalAndPnL1.unrealizedPnl.div(10000).toString())
+                console.log('margin ', positionDataTrader0.margin.div(10000).toString());
+                console.log('Pnl :', positionNotionalAndPnLTrader0.unrealizedPnl.div(10000).toString())
 
                 console.log('margin maintenanceMargin: ', maintenanceDetail.maintenanceMargin.div(10000).toString());
                 console.log('margin balance: ', maintenanceDetail.marginBalance.div(10000).toString());

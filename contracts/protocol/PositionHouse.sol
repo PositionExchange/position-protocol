@@ -361,6 +361,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
                 // calculate amount quantity of position to reduce
                 int256 partiallyLiquidateQuantity = positionData.quantity * 20 / 100;
                 uint256 oldPositionLeverage = positionData.openNotional / positionData.margin;
+                console.log("quantity liquidate position house", partiallyLiquidateQuantity.abs());
                 // partially liquidate position by reduce position's quantity
                 if (positionData.quantity > 0) {
                     positionResp = partialLiquidate(_positionManager, Position.Side.SHORT, - partiallyLiquidateQuantity, oldPositionLeverage, _trader);
@@ -373,6 +374,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
                 feeToLiquidator = liquidationPenalty / 2;
                 feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
                 // update position after reduce quantity
+                console.log("liquidate position resp", positionResp.position.quantity.abs());
                 positionMap[address(_positionManager)][_trader].update(
                     positionResp.position
                 );
@@ -894,21 +896,25 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint256 _leverage,
         address _trader
     ) internal returns (PositionResp memory positionResp){
+        console.log("partialLiquidate quantity", _quantity.abs(), _quantity < 0);
         Position.Data memory oldPosition = getPosition(address(_positionManager), _trader);
         (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(_positionManager, _quantity.abs(), _side);
         //        uint256 _entryPrice = oldPosition.getEntryPrice();
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, PnlCalcOption.SPOT_PRICE);
         positionResp.realizedPnl = 0;
         uint256 remainMargin = oldPosition.margin * (100 - liquidationFeeRatioConst) / 100;
+        console.log("remainMargin", remainMargin);
         //        positionResp.exchangedQuoteAssetAmount = _quantity.abs() * _entryPrice;
         positionResp.fundingPayment = 0;
         positionResp.marginToVault = int256(remainMargin) - int256(oldPosition.margin);
         positionResp.unrealizedPnl = unrealizedPnl;
+        console.log("partial", oldPosition.quantity.abs());
+        console.log("_quantity afdter", (oldPosition.quantity + _quantity).abs());
         positionResp.position = Position.Data(
         // from oldPosition.quantity - _quantity to +
-            oldPosition.quantity + _quantity,
+            positionMap[address(_positionManager)][_trader].quantity + _quantity,
             0,
-            remainMargin,
+             remainMargin,
             oldPosition.openNotional - positionResp.exchangedQuoteAssetAmount,
             0,
             0
@@ -939,12 +945,14 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             uint256 _orderNotional = quantity * _positionManager.pipToPrice(limitOrder.pip);
             // IMPORTANT UPDATE FORMULA WITH LEVERAGE
             uint256 _orderMargin = _orderNotional / limitOrder.leverage;
+            console.log("accumulate limit order order margin", _orderMargin);
             positionData = positionData.accumulateLimitOrder(_orderQuantity, _orderMargin, _orderNotional);
         } else if (!isFilled && partialFilled != 0) {// partial filled
             int256 _partialQuantity = isBuy ? int256(partialFilled) : - int256(partialFilled);
             uint256 _partialOpenNotional = partialFilled * _positionManager.pipToPrice(limitOrder.pip);
             // IMPORTANT UPDATE FORMULA WITH LEVERAGE
             uint256 _partialMargin = _partialOpenNotional / limitOrder.leverage;
+            console.log("accumulate limit order partial margin", _partialMargin);
             positionData = positionData.accumulateLimitOrder(_partialQuantity, _partialMargin, _partialOpenNotional);
         }
         return positionData;
