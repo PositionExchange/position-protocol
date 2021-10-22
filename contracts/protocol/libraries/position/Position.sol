@@ -19,6 +19,23 @@ library Position {
         uint256 blockNumber;
     }
 
+    struct LiquidatedData {
+        int256 quantity;
+        uint256 margin;
+        uint256 notional;
+    }
+
+    function update(
+        Position.LiquidatedData storage self,
+        int256 _quantity,
+        uint256 _margin,
+        uint256 _notional
+    ) internal {
+        self.quantity += _quantity;
+        self.margin += _margin;
+        self.notional += _notional;
+    }
+
     function update(
         Position.Data storage self,
         Position.Data memory newPosition
@@ -39,6 +56,12 @@ library Position {
         self.openNotional -= newPosition.openNotional;
         self.lastUpdatedCumulativePremiumFraction += newPosition.lastUpdatedCumulativePremiumFraction;
         self.blockNumber += newPosition.blockNumber;
+    }
+
+    function clear(Position.LiquidatedData storage self) internal {
+        self.quantity = 0;
+        self.margin = 0;
+        self.notional = 0;
     }
 
     function clear(

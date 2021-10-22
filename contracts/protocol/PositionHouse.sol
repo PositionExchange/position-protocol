@@ -18,6 +18,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     using Quantity for int128;
 
     using Position for Position.Data;
+    using Position for Position.LiquidatedData;
     //    enum Side {LONG, SHORT}
 
     enum PnlCalcOption {
@@ -67,6 +68,8 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     mapping(address => PositionHouseData) public positionHouseMap;
     // Mapping from position manager address of each pair to position data of each trader
     mapping(address => mapping(address => Position.Data)) public positionMap;
+
+    mapping(address => mapping(address => Position.LiquidatedData)) public liquidatedPosition;
 
 
     //can update with index => no need delete array when close all
@@ -374,10 +377,10 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
                 feeToLiquidator = liquidationPenalty / 2;
                 feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
                 // update position after reduce quantity
-                console.log("liquidate position resp", positionResp.position.quantity.abs());
-                positionMap[address(_positionManager)][_trader].update(
-                    positionResp.position
-                );
+//                console.log("liquidate position resp", positionResp.position.quantity.abs());
+//                positionMap[address(_positionManager)][_trader].update(
+//                    positionResp.position
+//                );
                 // TODO take liquidation fee
 
             } else {
@@ -454,7 +457,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     // IMPORTANT UPDATE CLEAR LIMIT ORDER
     function clearPosition(IPositionManager _positionManager, address _trader) internal {
         positionMap[address(_positionManager)][_trader].clear();
-
+        liquidatedPosition[address(_positionManager)][_trader].clear();
         if (limitOrderMap[address(_positionManager)][_trader].length > 0) {
             delete limitOrderMap[address(_positionManager)][_trader];
         }
@@ -682,6 +685,10 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         console.log("> GET POSITION | positionData.quantity ", uint256(positionData.quantity));
         console.log("> GET POSITION | quantityMarket ", uint256(quantityMarket));
         positionData.sumQuantityLimitOrder = positionData.quantity - quantityMarket;
+        Position.LiquidatedData memory liquidatedData = liquidatedPosition[positionManager][_trader];
+        positionData.quantity += liquidatedData.quantity;
+        positionData.margin -= liquidatedData.margin;
+        positionData.openNotional -= liquidatedData.notional;
     }
 
 
@@ -896,29 +903,31 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint256 _leverage,
         address _trader
     ) internal returns (PositionResp memory positionResp){
-        console.log("partialLiquidate quantity", _quantity.abs(), _quantity < 0);
         Position.Data memory oldPosition = getPosition(address(_positionManager), _trader);
         (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(_positionManager, _quantity.abs(), _side);
-        //        uint256 _entryPrice = oldPosition.getEntryPrice();
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, PnlCalcOption.SPOT_PRICE);
-        positionResp.realizedPnl = 0;
         uint256 remainMargin = oldPosition.margin * (100 - liquidationFeeRatioConst) / 100;
         console.log("remainMargin", remainMargin);
         //        positionResp.exchangedQuoteAssetAmount = _quantity.abs() * _entryPrice;
-        positionResp.fundingPayment = 0;
         positionResp.marginToVault = int256(remainMargin) - int256(oldPosition.margin);
         positionResp.unrealizedPnl = unrealizedPnl;
         console.log("partial", oldPosition.quantity.abs());
         console.log("_quantity afdter", (oldPosition.quantity + _quantity).abs());
-        positionResp.position = Position.Data(
-        // from oldPosition.quantity - _quantity to +
-            positionMap[address(_positionManager)][_trader].quantity + _quantity,
-            0,
-             remainMargin,
-            oldPosition.openNotional - positionResp.exchangedQuoteAssetAmount,
-            0,
-            0
+        liquidatedPosition[address(_positionManager)][_trader].update(
+            _quantity,
+            oldPosition.margin - remainMargin,
+            positionResp.exchangedQuoteAssetAmount
         );
+
+//        positionResp.position = Position.Data(
+//        // from oldPosition.quantity - _quantity to +
+//            positionMap[address(_positionManager)][_trader].quantity + _quantity,
+//            0,
+//             remainMargin,
+//            oldPosition.openNotional - positionResp.exchangedQuoteAssetAmount,
+//            0,
+//            0
+//        );
         return positionResp;
     }
 
