@@ -30,6 +30,17 @@ library Position {
         self.blockNumber = newPosition.blockNumber;
     }
 
+    function updatePartialLiquidate(
+        Position.Data storage self,
+        Position.Data memory newPosition
+    ) internal {
+        self.quantity += newPosition.quantity;
+        self.margin -= newPosition.margin;
+        self.openNotional -= newPosition.openNotional;
+        self.lastUpdatedCumulativePremiumFraction += newPosition.lastUpdatedCumulativePremiumFraction;
+        self.blockNumber += newPosition.blockNumber;
+    }
+
     function clear(
         Position.Data storage self
     ) internal {
@@ -57,18 +68,23 @@ library Position {
     ) internal view returns (Position.Data memory positionData) {
         // same side
         if (self.quantity * quantity > 0) {
+            console.log("line 60 position.sol");
             positionData.margin = self.margin + orderMargin;
             positionData.openNotional = self.openNotional + orderNotional;
         } else {
-            if (self.quantity.abs() > quantity.abs()) {
-                positionData.margin = self.margin > orderMargin ? self.margin - orderMargin : orderMargin - self.margin;
-                positionData.openNotional = self.openNotional > orderNotional ? self.openNotional - orderNotional : orderNotional - self.openNotional;
-                //                positionData.margin = self.margin - orderMargin;
-                //                positionData.openNotional = self.openNotional - orderNotional;
-            } else {
-                positionData.margin = orderMargin - positionData.margin;
-                positionData.openNotional = orderNotional - positionData.openNotional;
-            }
+            positionData.margin = self.margin > orderMargin ? self.margin - orderMargin : orderMargin - self.margin;
+            positionData.openNotional = self.openNotional > orderNotional ? self.openNotional - orderNotional : orderNotional - self.openNotional;
+//            if (self.quantity.abs() > quantity.abs()) {
+//                console.log("line 64 position.sol");
+//                positionData.margin = self.margin > orderMargin ? self.margin - orderMargin : orderMargin - self.margin;
+//                positionData.openNotional = self.openNotional > orderNotional ? self.openNotional - orderNotional : orderNotional - self.openNotional;
+//                //                positionData.margin = self.margin - orderMargin;
+//                //                positionData.openNotional = self.openNotional - orderNotional;
+//            } else {
+//                console.log("line 70 position.sol", orderMargin, self.margin);
+//                positionData.margin = orderMargin - self.margin;
+//                positionData.openNotional = orderNotional - self.openNotional;
+//            }
         }
         positionData.quantity = self.quantity + quantity;
     }

@@ -158,7 +158,7 @@ export default class PositionHouseTestingTool {
         notional
     }: any) {
         const positionData = (await this.getPosition(trader))
-        margin && expect(positionData.margin.toString()).eq(margin.toString());
+        margin && expect(positionData.margin.div('10000').toString()).eq(margin.toString());
         quantity && expect(positionData.quantity.toString()).eq(quantity.toString());
         notional && expect(positionData.openNotional.div('10000').toString()).eq(notional.toString());
     }
