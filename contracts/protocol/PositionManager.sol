@@ -19,6 +19,8 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     using LiquidityBitmap for mapping(int128 => uint256);
     uint256 public basisPoint = 100; //0.01
     uint256 public constant BASE_BASIC_POINT = 10000;
+    // fee = quoteAssetAmount / tollRatio (means if fee = 0.001% then tollRatio = 100000)
+    uint256 tollRatio = 100000;
 
     struct SingleSlot {
         // percentage in point
@@ -46,6 +48,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     event LimitOrderCreated(uint64 orderId, int128 pip, uint128 size, bool isBuy);
     event UpdateMaxFindingWordsIndex(int128 newMaxFindingWordsIndex);
     event UpdateBasicPoint(uint256 newBasicPoint);
+    event UpdateTollRatio(uint256 newTollRatio);
 
 
 
@@ -101,11 +104,21 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
             isFilled = true;
             // Should return the latest partialFilled
             // in order to know how many quantity amount is filled to the limit order by market order
-//            partialFilled = 0;
+            //            partialFilled = 0;
         }
         if (size != 0 && size == partialFilled) {
             isFilled = true;
         }
+    }
+
+    /**
+     * @notice calculate total fee (including toll and spread) by input quoteAssetAmount
+     * @param _positionNotional quoteAssetAmount
+     * @return total tx fee
+     */
+    function calcFee(uint256 _positionNotional) external view returns (uint256)
+    {
+        return _positionNotional == 0 ? 0 : _positionNotional / tollRatio;
     }
 
     function currentPositionData(address _trader) external view returns (
@@ -204,8 +217,8 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         pip : _initialSingleSlot.pip
         });
         int128 startPip;
-//        int128 startWord = _initialSingleSlot.pip >> 8;
-//        int128 wordIndex = startWord;
+        //        int128 startWord = _initialSingleSlot.pip >> 8;
+        //        int128 wordIndex = startWord;
         bool isPartialFill;
         uint8 isFullBuy = 0;
         bool isSkipFirstPip;
@@ -224,32 +237,32 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
             console.log("state pip", uint128(state.pip), isSkipFirstPip);
             StepComputations memory step;
             // find the next tick has liquidity
-//            (step.pipNext) = liquidityBitmap[wordIndex] != 0 ? liquidityBitmap.findHasLiquidityInOneWords(
-//                !isBuy ? (wordIndex < startWord ? 256 * wordIndex + 255 : state.pip) : (wordIndex > startWord ? 256 * wordIndex : state.pip),
-//                !isBuy
-//            ) : 0;
-//            console.log(">> wordIndex | liquidity | pipNext", uint128(wordIndex), liquidityBitmap[wordIndex], uint128(step.pipNext));
-//
-//            if (step.pipNext == 0) {
-//                if (isBuy ? wordIndex > startWord + maxFindingWordsIndex : wordIndex < startWord - maxFindingWordsIndex) {
-//                    // no more next pip
-//                    // state pip back 1 pip
-//                    if (isBuy) {
-//                        state.pip--;
-//                    } else {
-//                        state.pip++;
-//                    }
-//                    break;
-//                }
-//                // increase word
-//                if (isBuy) {
-//                    wordIndex++;
-//                } else {
-//                    wordIndex--;
-//                }
-//            }
+            //            (step.pipNext) = liquidityBitmap[wordIndex] != 0 ? liquidityBitmap.findHasLiquidityInOneWords(
+            //                !isBuy ? (wordIndex < startWord ? 256 * wordIndex + 255 : state.pip) : (wordIndex > startWord ? 256 * wordIndex : state.pip),
+            //                !isBuy
+            //            ) : 0;
+            //            console.log(">> wordIndex | liquidity | pipNext", uint128(wordIndex), liquidityBitmap[wordIndex], uint128(step.pipNext));
+            //
+            //            if (step.pipNext == 0) {
+            //                if (isBuy ? wordIndex > startWord + maxFindingWordsIndex : wordIndex < startWord - maxFindingWordsIndex) {
+            //                    // no more next pip
+            //                    // state pip back 1 pip
+            //                    if (isBuy) {
+            //                        state.pip--;
+            //                    } else {
+            //                        state.pip++;
+            //                    }
+            //                    break;
+            //                }
+            //                // increase word
+            //                if (isBuy) {
+            //                    wordIndex++;
+            //                } else {
+            //                    wordIndex--;
+            //                }
+            //            }
             // updated findHasLiquidityInMultipleWords, save more gas
-             (step.pipNext) = liquidityBitmap.findHasLiquidityInMultipleWords(
+            (step.pipNext) = liquidityBitmap.findHasLiquidityInMultipleWords(
                 state.pip,
                 maxFindingWordsIndex,
                 !isBuy
@@ -295,7 +308,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                         //                        liquidityBitmap.toggleSingleBit(step.pipNext, false);
                         // increase pip
                         openNotional += liquidity * pipToPrice(step.pipNext);
-//                        startWord = wordIndex;
+                        //                        startWord = wordIndex;
                         state.pip = state.remainingSize > 0 ? (isBuy ? step.pipNext + 1 : step.pipNext - 1) : step.pipNext;
                     } else {
                         // remaining size = liquidity
@@ -346,5 +359,10 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     function updateBasicPoint(uint256 _newBasicPoint) public onlyOwner {
         basisPoint = _newBasicPoint;
         emit UpdateBasicPoint(_newBasicPoint);
+    }
+
+    function updateTollRatio(uint256 newTollRatio) public onlyOwner {
+        tollRatio = newTollRatio;
+        emit UpdateTollRatio(newTollRatio);
     }
 }
