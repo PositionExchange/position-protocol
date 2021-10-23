@@ -25,7 +25,7 @@ async function getOrderIdByTx(tx: any) {
 export interface CloseLimitPositionParams {
     trader: SignerWithAddress
     price: number | string
-    quantity: number | string
+    percentQuantity: number | string
 }
 
 export interface CloseMarketPositionParams {
@@ -95,7 +95,7 @@ export default class PositionHouseTestingTool {
         _trader = _trader || trader0;
         if (!_positionManager) throw Error("No position manager")
         if (!_trader) throw Error("No trader")
-        const tx = await this.positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(Number(limitPrice)), leverage, true)
+        const tx = await this.positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(Number(limitPrice)), leverage, )
         const {orderId, priceLimit} = await getOrderIdByTx(tx)
         const orderDetails = await this.getPendingOrder({orderId, pip: priceToPip(Number(limitPrice))})
         expect(orderDetails.isFilled).eq(false)
@@ -105,20 +105,20 @@ export default class PositionHouseTestingTool {
         } as LimitOrderReturns
     }
 
-    async closeLimitPosition({trader, price, quantity}: CloseLimitPositionParams) {
+    async closeLimitPosition({trader, price, percentQuantity}: CloseLimitPositionParams) {
         const tx = await this.positionHouse
             .connect(trader)
             .closeLimitPosition(
                 this.positionManager.address,
                 priceToPip(Number(price)),
-                quantity
+                percentQuantity
             );
         console.log("has liquidity",await this.positionManager.hasLiquidity(priceToPip(price)))
         const {orderId, priceLimit} = await getOrderIdByTx(tx)
         console.log("priceLimit", priceLimit)
         const orderDetails = await this.getPendingOrder({orderId, pip: priceToPip(Number(price))})
         expect(orderDetails.isFilled).eq(false)
-        expect(orderDetails.size).eq(quantity)
+        // expect(orderDetails.size).eq(quantity)
         expect(orderDetails.partialFilled).eq(0)
         return {
             orderId,
@@ -166,17 +166,19 @@ export default class PositionHouseTestingTool {
     async debugPosition(trader: SignerWithAddress){
         const positionInfo = await this.positionHouse.getPosition(this.positionManager.address, trader.address) as unknown as PositionData;
         // console.log("positionInfo", positionInfo)
-        const currentPrice = Number((await this.positionManager.getPrice()).toString())
+        const currentPrice = Number((await this.positionManager.getPrice()).div('10000').toString())
         const openNotional = positionInfo.openNotional.div('10000').toString()
         // expectedNotional = expectedNotional && expectedNotional.toString() || quantity.mul(price).toString()
-        console.log(`debugPosition Position Info of ${trader}`)
+        console.log(`debugPosition Position Info of ${trader.address}`)
+        const pnl = await this.positionHouse.getPositionNotionalAndUnrealizedPnl(this.positionManager.address, trader.address, 0)
         console.table([
             {
-                openNotional: positionInfo.openNotional.toString(),
-                openNotionalFormated: openNotional,
+                openNotional: openNotional,
                 currentPrice: currentPrice,
                 quantity: positionInfo.quantity.toString(),
-                margin: positionInfo.margin.div('10000').toString()
+                margin: positionInfo.margin.div('10000').toString(),
+                unrealizedPnl: pnl.unrealizedPnl.div('10000').toString(),
+                entryPrice: positionInfo.openNotional.div(positionInfo.quantity.abs()).div('10000').toString()
             }
         ])
     }
@@ -191,6 +193,23 @@ export default class PositionHouseTestingTool {
     async getPendingOrder({pip, orderId}: PendingOrderParam): Promise<PendingOrder> {
 
         return (await this.positionHouse.getPendingOrder(this.positionManager.address, pip.toString(), orderId.toString())) as unknown as PendingOrder;
+
+    }
+
+
+    /*
+     * Pump price when empty order book
+     */
+    async pumpPrice({toPrice, pumper} : any) {
+        await this.openLimitPositionAndExpect({
+            _trader: pumper, leverage: 10, limitPrice: toPrice, quantity: 1, side: 1
+        })
+        await this.openMarketPosition({
+            instanceTrader: pumper, leverage: 10, quantity: BigNumber.from('1'), side: 0, expectedSize: BigNumber.from('0')
+        })
+    }
+
+    async dumpPrice() {
 
     }
 

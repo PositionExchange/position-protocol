@@ -1,6 +1,7 @@
 import {BigNumber, BigNumberish, ContractFactory, Signer, Wallet} from 'ethers'
 import {ethers, waffle} from 'hardhat'
 import {loadFixture} from "ethereum-waffle";
+
 const {solidity} = waffle
 
 import {describe} from "mocha";
@@ -34,14 +35,15 @@ describe("PositionHouse_01", () => {
     let trader1: any;
     let trader2: any;
     let trader3: any;
-    let tradercp: any;
+    let trader4: any;
+    let trader5: SignerWithAddress
     let positionManager: PositionManager;
     let positionManagerFactory: ContractFactory;
     let positionManagerTestingTool: PositionManagerTestingTool
     let positionHouseTestingTool: PositionHouseTestingTool
 
     beforeEach(async () => {
-        [trader, trader1, trader2, trader3, tradercp] = await ethers.getSigners()
+        [trader, trader1, trader2, trader3, trader4, trader5] = await ethers.getSigners()
         positionManagerFactory = await ethers.getContractFactory("PositionManager")
         // BTC-USD Perpetual, initial price is 5000
         // each pip = 0.01
@@ -89,10 +91,10 @@ describe("PositionHouse_01", () => {
             quantity,
             leverage,
         )
-        if(expectRevertMsg){
+        if (expectRevertMsg) {
             await expect(task).to.be.revertedWith(expectRevertMsg)
             return
-        }else{
+        } else {
             const tx = await task
             console.log("GAS USED MARKET", (await tx.wait()).gasUsed.toString())
         }
@@ -142,7 +144,7 @@ describe("PositionHouse_01", () => {
         _trader = _trader || trader
         if (!_positionManager) throw Error("No position manager")
         if (!_trader) throw Error("No trader")
-        const tx = await positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(Number(limitPrice)), leverage, true)
+        const tx = await positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(Number(limitPrice)), leverage)
         console.log("GAS USED LIMIT", (await tx.wait()).gasUsed.toString())
         const receipt = await tx.wait()
         console.log("Gas used to open limit order", receipt.gasUsed.toString())
@@ -167,7 +169,7 @@ describe("PositionHouse_01", () => {
                                      trader,
                                      instanceTrader,
                                      _positionManager = positionManager,
-                                    _percentQuantity = 100
+                                     _percentQuantity = 100
                                  }: {
         trader: string,
         instanceTrader: any,
@@ -1931,7 +1933,7 @@ describe("PositionHouse_01", () => {
                     await positionHouseTestingTool.closeLimitPosition({
                         trader,
                         price: 5005,
-                        quantity: 100
+                        percentQuantity: 100
                     })
 
                     await openMarketPosition({
@@ -1944,7 +1946,8 @@ describe("PositionHouse_01", () => {
                     })
 
                     const dataClaim = (await positionHouse.canClaimFund(positionManager.address, trader.address)) as unknown as ClaimFund;
-                    expect(dataClaim.amount.div(10000)).eq(51400);
+                    expect(dataClaim.amount.div(10000)).eq(49900);
+                    expect(dataClaim.realPnL.div(10000)).eq(1500);
                     expect(dataClaim.canClaim).eq(true);
 
 
@@ -1989,7 +1992,7 @@ describe("PositionHouse_01", () => {
                     await positionHouseTestingTool.closeLimitPosition({
                         trader,
                         price: 4995,
-                        quantity: 100
+                        percentQuantity: 100
                     })
 
                     await openMarketPosition({
@@ -2002,7 +2005,8 @@ describe("PositionHouse_01", () => {
                     })
 
                     const dataClaim = (await positionHouse.canClaimFund(positionManager.address, trader.address)) as unknown as ClaimFund;
-                    expect(dataClaim.amount.div(10000)).eq(51600);
+                    expect(dataClaim.amount.div(10000)).eq(50100);
+                    expect(dataClaim.realPnL.div(10000)).eq(1500);
                     expect(dataClaim.canClaim).eq(true);
 
                 })
@@ -2046,7 +2050,7 @@ describe("PositionHouse_01", () => {
                     await positionHouseTestingTool.closeLimitPosition({
                         trader,
                         price: 5005,
-                        quantity: 100
+                        percentQuantity: 100
                     })
 
                     await openMarketPosition({
@@ -2059,7 +2063,8 @@ describe("PositionHouse_01", () => {
                     })
 
                     const dataClaim = (await positionHouse.canClaimFund(positionManager.address, trader.address)) as unknown as ClaimFund;
-                    expect(dataClaim.amount.div(10000)).eq(30840);
+                    expect(dataClaim.amount.div(10000)).eq(29940);
+                    expect(dataClaim.realPnL.div(10000)).eq(900);
                     expect(dataClaim.canClaim).eq(true);
 
 
@@ -2108,7 +2113,7 @@ describe("PositionHouse_01", () => {
                     await positionHouseTestingTool.closeLimitPosition({
                         trader,
                         price: 4995,
-                        quantity: 100
+                        percentQuantity: 100
                     })
 
                     await openMarketPosition({
@@ -2121,7 +2126,8 @@ describe("PositionHouse_01", () => {
                     })
 
                     const dataClaim = (await positionHouse.canClaimFund(positionManager.address, trader.address)) as unknown as ClaimFund;
-                    expect(dataClaim.amount.div(10000)).eq(41280);
+                    expect(dataClaim.amount.div(10000)).eq(40080);
+                    expect(dataClaim.realPnL.div(10000)).eq(1200);
                     expect(dataClaim.canClaim).eq(true);
 
                 })
@@ -2166,7 +2172,7 @@ describe("PositionHouse_01", () => {
                     await positionHouseTestingTool.closeLimitPosition({
                         trader,
                         price: 5015,
-                        quantity: 100
+                        percentQuantity: 100
                     })
 
                     await openMarketPosition({
@@ -2179,7 +2185,8 @@ describe("PositionHouse_01", () => {
                     })
 
                     const dataClaim = (await positionHouse.canClaimFund(positionManager.address, trader.address)) as unknown as ClaimFund;
-                    expect(dataClaim.amount.div(10000)).eq(38800);
+                    expect(dataClaim.amount.div(10000)).eq(40000);
+                    expect(dataClaim.realPnL.div(10000)).eq(-1200);
                     expect(dataClaim.canClaim).eq(true);
 
 
@@ -2226,7 +2233,7 @@ describe("PositionHouse_01", () => {
                     await positionHouseTestingTool.closeLimitPosition({
                         trader,
                         price: 4995,
-                        quantity: 100
+                        percentQuantity: 100
                     })
 
                     await openMarketPosition({
@@ -2239,7 +2246,8 @@ describe("PositionHouse_01", () => {
                     })
 
                     const dataClaim = (await positionHouse.canClaimFund(positionManager.address, trader.address)) as unknown as ClaimFund;
-                    expect(dataClaim.amount.div(10000)).eq(39600);
+                    expect(dataClaim.amount.div(10000)).eq(40000);
+                    expect(dataClaim.realPnL.div(10000)).eq(-400);
                     expect(dataClaim.canClaim).eq(true);
                 })
 
@@ -2268,7 +2276,7 @@ describe("PositionHouse_01", () => {
                     await positionHouseTestingTool.closeLimitPosition({
                         trader,
                         price: 4980,
-                        quantity: 100
+                        percentQuantity: 100
                     })
 
 
@@ -2342,7 +2350,7 @@ describe("PositionHouse_01", () => {
                     await positionHouseTestingTool.closeLimitPosition({
                         trader,
                         price: 4980,
-                        quantity: 100
+                        percentQuantity: 100
                     })
 
                     let response1 = (await openLimitPositionAndExpect({
@@ -2418,7 +2426,7 @@ describe("PositionHouse_01", () => {
                     await positionHouseTestingTool.closeLimitPosition({
                         trader,
                         price: 4980,
-                        quantity: 100
+                        percentQuantity: 100
                     })
 
                     let response1 = (await openLimitPositionAndExpect({
@@ -3310,41 +3318,62 @@ describe("PositionHouse_01", () => {
                 expectedSize: BigNumber.from('100')
             })
 
+            let response1 = (await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 1,
+                _trader: trader4,
+            })) as unknown as PositionLimitOrderID
 
-             {
-                let response1 = (await openLimitPositionAndExpect({
-                    limitPrice: 4900,
-                    side: SIDE.LONG,
+            await openMarketPosition({
+                    quantity: BigNumber.from('1'),
                     leverage: 10,
-                    quantity: 1,
-                    _trader: tradercp,
-                })) as unknown as PositionLimitOrderID
-
-                await openMarketPosition({
-                        quantity: BigNumber.from('1'),
-                        leverage: 10,
-                        side: SIDE.SHORT,
-                        trader: tradercp.address,
-                        instanceTrader: tradercp,
-                        _positionManager: positionManager,
-                        expectedSize: BigNumber.from(0)
-                    }
-                );
-            }
+                    side: SIDE.SHORT,
+                    trader: trader4.address,
+                    instanceTrader: trader4,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from(0),
+                    price: 4900
+                }
+            );
 
 
-            await positionHouse.closeLimitPosition(positionManager.address, 4850, 75);
+            await positionHouseTestingTool.debugPosition(trader)
+            await positionHouseTestingTool.expectPositionData(trader, {
+                notional: 5005 * 100
+            })
+            await positionHouseTestingTool.closeLimitPosition({
+                percentQuantity: 75,
+                price: 4850,
+                trader
+            });
+            //5005*100-75*4850
 
             await openMarketPosition({
                     quantity: BigNumber.from('75'),
                     leverage: 10,
-                    side: SIDE.LONG,
-                    trader: tradercp.address,
-                    instanceTrader: tradercp,
+                    side: SIDE.SHORT,
+                    trader: trader4.address,
+                    instanceTrader: trader4,
                     _positionManager: positionManager,
-                    expectedSize: BigNumber.from(-76)
+                    expectedSize: BigNumber.from(-75),
+                    price: 4850
                 }
             );
+
+            await positionHouseTestingTool.expectPositionData(trader, {
+                quantity: -25
+            })
+
+            // now price pump to 5015 and trader got liquidation
+            await positionHouseTestingTool.pumpPrice({
+                toPrice: 5015,
+                pumper: trader5
+            })
+
+            await positionHouseTestingTool.debugPosition(trader)
+
 
             //
             // {
@@ -3353,15 +3382,15 @@ describe("PositionHouse_01", () => {
             //         side: SIDE.SHORT,
             //         leverage: 10,
             //         quantity: 1,
-            //         _trader: tradercp,
+            //         _trader: trader4,
             //     })) as unknown as PositionLimitOrderID
             //
             //     await openMarketPosition({
             //             quantity: BigNumber.from('1'),
             //             leverage: 10,
             //             side: SIDE.LONG,
-            //             trader: tradercp.address,
-            //             instanceTrader: tradercp,
+            //             trader: trader4.address,
+            //             instanceTrader: trader4,
             //             _positionManager: positionManager,
             //             expectedSize: BigNumber.from(-1)
             //         }
@@ -3383,17 +3412,6 @@ describe("PositionHouse_01", () => {
             //
             // expect(positionData1.margin.div(10000)).eq(24250)
             //
-
-
-
-
-
-
-
-
-
-
-
 
         })
 

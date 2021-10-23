@@ -167,6 +167,7 @@ export interface PositionLimitOrderID {
 export interface ClaimFund {
     canClaim: boolean,
     amount: BigNumber
+    realPnL: BigNumber
 }
 
 export interface PositionPendingOrder {

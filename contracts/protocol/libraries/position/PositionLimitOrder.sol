@@ -14,7 +14,6 @@ library PositionLimitOrder {
         uint16 leverage;
         OrderType typeLimitOrder;
         uint8 isBuy;
-        uint8 isSelfFilled;
     }
 
     function checkFilledToSelfOrders(

@@ -25,7 +25,7 @@ library Position {
         uint256 notional;
     }
 
-    function update(
+    function updateDebt(
         Position.LiquidatedData storage self,
         int256 _quantity,
         uint256 _margin,
@@ -58,7 +58,7 @@ library Position {
         self.blockNumber += newPosition.blockNumber;
     }
 
-    function clear(Position.LiquidatedData storage self) internal {
+    function clearDebt(Position.LiquidatedData storage self) internal {
         self.quantity = 0;
         self.margin = 0;
         self.notional = 0;
@@ -91,7 +91,6 @@ library Position {
     ) internal view returns (Position.Data memory positionData) {
         // same side
         if (self.quantity * quantity > 0) {
-            console.log("line 60 position.sol");
             positionData.margin = self.margin + orderMargin;
             positionData.openNotional = self.openNotional + orderNotional;
         } else {
@@ -99,10 +98,8 @@ library Position {
             positionData.openNotional = self.openNotional > orderNotional ? self.openNotional - orderNotional : orderNotional - self.openNotional;
 //            if (self.quantity.abs() > quantity.abs()) {
 //                console.log("line 64 position.sol");
-//                positionData.margin = self.margin > orderMargin ? self.margin - orderMargin : orderMargin - self.margin;
-//                positionData.openNotional = self.openNotional > orderNotional ? self.openNotional - orderNotional : orderNotional - self.openNotional;
-//                //                positionData.margin = self.margin - orderMargin;
-//                //                positionData.openNotional = self.openNotional - orderNotional;
+//                positionData.margin = self.margin - orderMargin;
+//                positionData.openNotional = self.openNotional - orderNotional;
 //            } else {
 //                console.log("line 70 position.sol", orderMargin, self.margin);
 //                positionData.margin = orderMargin - self.margin;
