@@ -6,7 +6,7 @@ const {solidity} = waffle
 import {describe} from "mocha";
 import {expect, use} from 'chai'
 
-import {PositionManager, PositionHouse} from "../../typeChain";
+import {PositionManager, PositionHouse, ChainLinkPriceFeed} from "../../typeChain";
 import {
     ClaimFund, LimitOrderReturns,
     MaintenanceDetail, OpenLimitPositionAndExpectParams,

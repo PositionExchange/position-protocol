@@ -11,6 +11,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./libraries/position/TickPosition.sol";
 import "./libraries/position/LimitOrder.sol";
 import "./libraries/position/LiquidityBitmap.sol";
+import {IChainLinkPriceFeed} from "../interfaces/IChainLinkPriceFeed.sol";
 
 import "hardhat/console.sol";
 
@@ -21,6 +22,12 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     uint256 public constant BASE_BASIC_POINT = 10000;
     // fee = quoteAssetAmount / tollRatio (means if fee = 0.001% then tollRatio = 100000)
     uint256 tollRatio = 100000;
+
+    uint256 public fundingPeriod;
+    uint256 public nextFundingTime;
+    uint256 public spotPriceTwapInterval;
+    bytes32 public priceFeedKey;
+    IChainLinkPriceFeed public priceFeed;
 
     struct SingleSlot {
         // percentage in point
@@ -68,7 +75,6 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     ) {
         singleSlot.pip = initialPip;
         quoteAsset = IERC20(_quoteAsset);
-
     }
 
     function getCurrentPip() public view returns (int128) {
@@ -365,4 +371,15 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         tollRatio = newTollRatio;
         emit UpdateTollRatio(newTollRatio);
     }
+
+    /**
+     * @notice get underlying twap price provided by oracle
+     * @return underlying price
+     */
+    function getUnderlyingTwapPrice(uint256 _intervalInSeconds) public view returns (uint256) {
+        return priceFeed.getTwapPrice(priceFeedKey, _intervalInSeconds)*BASE_BASIC_POINT;
+    }
+
+
+
 }
