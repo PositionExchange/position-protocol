@@ -124,7 +124,7 @@ describe("PositionHouse_01", () => {
 
     async function getOrderIdByTx(tx: any) {
         const receipt = await tx.wait();
-        const orderId = ((receipt?.events || [])[1]?.args || [])['orderId']
+        const orderId = ((receipt?.events || [])[1]?.args || [])['orderId'] || ((receipt?.events || [])[2]?.args || [])['orderId']
         const priceLimit = ((receipt?.events || [])[1]?.args || [])['priceLimit']
         return {
             orderId,
@@ -2750,6 +2750,8 @@ describe("PositionHouse_01", () => {
                     price: 5000,
                     expectedSize: BigNumber.from('0')
                 });
+                // ERROR because this limit order separated into 2 order: market short 100 and limit short 100
+                // so the expect in functions openLimitPositionAndExpect is error because it only get quantity from limit order
                 response3 = (await openLimitPositionAndExpect({
                     limitPrice: 5000,
                     side: SIDE.SHORT,
@@ -2757,7 +2759,6 @@ describe("PositionHouse_01", () => {
                     quantity: 200,
                     _trader: trader2
                 })) as unknown as PositionLimitOrderID
-                console.log("line 2752")
                 await openMarketPosition({
                     instanceTrader: trader,
                     leverage: 10,
