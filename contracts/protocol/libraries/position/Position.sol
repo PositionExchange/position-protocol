@@ -19,6 +19,23 @@ library Position {
         uint256 blockNumber;
     }
 
+    struct LiquidatedData {
+        int256 quantity;
+        uint256 margin;
+        uint256 notional;
+    }
+
+    function updateDebt(
+        Position.LiquidatedData storage self,
+        int256 _quantity,
+        uint256 _margin,
+        uint256 _notional
+    ) internal {
+        self.quantity += _quantity;
+        self.margin += _margin;
+        self.notional += _notional;
+    }
+
     function update(
         Position.Data storage self,
         Position.Data memory newPosition
@@ -39,6 +56,12 @@ library Position {
         self.openNotional -= newPosition.openNotional;
         self.lastUpdatedCumulativePremiumFraction += newPosition.lastUpdatedCumulativePremiumFraction;
         self.blockNumber += newPosition.blockNumber;
+    }
+
+    function clearDebt(Position.LiquidatedData storage self) internal {
+        self.quantity = 0;
+        self.margin = 0;
+        self.notional = 0;
     }
 
     function clear(
@@ -68,7 +91,6 @@ library Position {
     ) internal view returns (Position.Data memory positionData) {
         // same side
         if (self.quantity * quantity > 0) {
-            console.log("line 60 position.sol");
             positionData.margin = self.margin + orderMargin;
             positionData.openNotional = self.openNotional + orderNotional;
         } else {
@@ -76,10 +98,8 @@ library Position {
             positionData.openNotional = self.openNotional > orderNotional ? self.openNotional - orderNotional : orderNotional - self.openNotional;
 //            if (self.quantity.abs() > quantity.abs()) {
 //                console.log("line 64 position.sol");
-//                positionData.margin = self.margin > orderMargin ? self.margin - orderMargin : orderMargin - self.margin;
-//                positionData.openNotional = self.openNotional > orderNotional ? self.openNotional - orderNotional : orderNotional - self.openNotional;
-//                //                positionData.margin = self.margin - orderMargin;
-//                //                positionData.openNotional = self.openNotional - orderNotional;
+//                positionData.margin = self.margin - orderMargin;
+//                positionData.openNotional = self.openNotional - orderNotional;
 //            } else {
 //                console.log("line 70 position.sol", orderMargin, self.margin);
 //                positionData.margin = orderMargin - self.margin;

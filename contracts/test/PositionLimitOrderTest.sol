@@ -21,8 +21,7 @@ contract PositionLimitOrderTest {
             orderId : _orderId,
             leverage : uint16(_leverage),
             typeLimitOrder : isOpenLimitOrder ? PositionLimitOrder.OrderType.OPEN_LIMIT : PositionLimitOrder.OrderType.CLOSE_LIMIT,
-            isBuy: uint8(_side),
-            isSelfFilled: 0
+            isBuy : uint8(_side)
         }));
     }
 
