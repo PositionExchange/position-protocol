@@ -2827,7 +2827,6 @@ describe("PositionHouse_01", () => {
 
                 console.log('margin ', positionDataTrader0.margin.div(10000).toString());
                 console.log('Pnl :', positionNotionalAndPnLTrader0.unrealizedPnl.div(10000).toString())
-
                 console.log('margin maintenanceMargin: ', maintenanceDetail.maintenanceMargin.div(10000).toString());
                 console.log('margin balance: ', maintenanceDetail.marginBalance.div(10000).toString());
                 console.log('margin marginRatio: ', maintenanceDetail.marginRatio.toString());
@@ -2841,17 +2840,27 @@ describe("PositionHouse_01", () => {
 
                 await positionHouse.liquidate(positionManager.address, trader.address);
 
+                const positionNotionalAndPnLTrader0AfterLiquidate = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                    positionManager.address,
+                    trader.address,
+                    1
+                )
+                const maintenanceDetailTrader0AfterLiquidate = (await positionHouse.getMaintenanceDetail(positionManager.address, trader.address)) as unknown as MaintenanceDetail;
 
-                const positionData1 = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData;
+                const positionDataTrader0AfterLiquidate = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData;
+                console.log("##### After liquidate")
+                console.log('Pnl :', positionNotionalAndPnLTrader0AfterLiquidate.unrealizedPnl.div(10000).toString())
+                console.log('margin maintenanceMargin: ', maintenanceDetailTrader0AfterLiquidate.maintenanceMargin.div(10000).toString());
+                console.log('margin balance: ', maintenanceDetailTrader0AfterLiquidate.marginBalance.div(10000).toString());
+                console.log('margin marginRatio: ', maintenanceDetailTrader0AfterLiquidate.marginRatio.toString());
+                console.log('quantity after liquidate ', positionDataTrader0AfterLiquidate.quantity.toString())
+                console.log('margin after liquidate ', positionDataTrader0AfterLiquidate.margin.toString())
+                console.log('openNotional after liquidate ', positionDataTrader0AfterLiquidate.openNotional.toString())
 
-                console.log('quantity after liquidate ', positionData1.quantity.toString())
-                console.log('margin after liquidate ', positionData1.margin.toString())
+                expect(positionDataTrader0AfterLiquidate.quantity).eq(-80)
 
-
-                expect(positionData1.quantity).eq(-80)
-
-                expect(positionData1.margin.div(10000)).eq(24250)
-
+                expect(positionDataTrader0AfterLiquidate.margin.div(10000)).eq(24250)
+                expect(positionDataTrader0AfterLiquidate.openNotional.div(10000)).eq(400000)
 
             })
 
@@ -3193,7 +3202,7 @@ describe("PositionHouse_01", () => {
             )
 
 
-            console.log('mmargin ', positionData.margin.div(10000).toString());
+            console.log('margin ', positionData.margin.div(10000).toString());
             console.log('Pnl :', positionNotionalAndPnL1.unrealizedPnl.div(10000).toString())
 
             console.log('margin maintenanceMargin: ', maintenanceDetail.maintenanceMargin.div(10000).toString());

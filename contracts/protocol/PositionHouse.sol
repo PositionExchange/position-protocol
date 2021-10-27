@@ -69,8 +69,11 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     }
 
     mapping(address => PositionHouseData) public positionHouseMap;
+
+    // Can join positionMap and cumulativePremiumFractionsMap into a map of struct with key is PositionManager's address
     // Mapping from position manager address of each pair to position data of each trader
     mapping(address => mapping(address => Position.Data)) public positionMap;
+    mapping(address => int256[]) public cumulativePremiumFractionsMap;
 
     mapping(address => mapping(address => Position.LiquidatedData)) public debtPosition;
 
@@ -118,6 +121,10 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint256 newMaintenanceMarginRatio
     );
 
+    event UpdateLiquidationFeeRatio (
+        uint256 newLiquidationFeeRatio
+    );
+
     event UpdateLiquidationPenaltyRatio (
         uint256 newLiquidationPenaltyRatio
     );
@@ -133,6 +140,45 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
     }
 
+    /**
+     * @notice set liquidation fee ratio
+     * @dev only owner can call
+     * @param _liquidationFeeRatio new liquidation fee ratio
+     */
+    function updateLiquidationFeeRatio(uint256 _liquidationFeeRatio) external onlyOwner {
+        liquidationFeeRatio = _liquidationFeeRatio;
+        emit UpdateLiquidationFeeRatio(liquidationFeeRatio);
+    }
+
+    /**
+     * @notice set maintenance margin ratio
+     * @dev only owner can call
+     * @param _maintenanceMarginRatio new maintenance margin ratio
+     */
+    function updateMaintenanceMarginRatio(uint256 _maintenanceMarginRatio) external onlyOwner {
+        maintenanceMarginRatio = _maintenanceMarginRatio;
+        emit UpdateMaintenanceMarginRatio(maintenanceMarginRatio);
+    }
+
+    /**
+     * @notice set liquidation penalty ratio
+     * @dev only owner can call
+     * @param _liquidationPenaltyRatio new liquidation penalty ratio
+     */
+    function updateLiquidationPenaltyRatio(uint256 _liquidationPenaltyRatio) external onlyOwner {
+        liquidationPenaltyRatio = _liquidationPenaltyRatio;
+        emit UpdateLiquidationPenaltyRatio(liquidationPenaltyRatio);
+    }
+
+    /**
+     * @notice set the margin ratio after deleveraging
+     * @dev only owner can call
+     */
+    function setPartialLiquidationRatio(uint256 _ratio) external onlyOwner {
+        // invalid partial liquidation ratio
+        require(_ratio > 0, "IPLR");
+        partialLiquidationRatio = _ratio;
+    }
 
     /**
     * @notice open position with price market
@@ -723,6 +769,10 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         address _trader
     ) public view returns (Position.Data memory positionData){
         uint256 gasStart = gasleft();
+        // Get total position is not in order, currently get marketOrder first, then increaseLimitOrder and finally reduceLimitOrder
+        // but when get entryPrice for reduceLimitOrder entryPrice might be wrong because entryPrice = totalNotional / totalQuantity
+        // EX: open limit order long (4900,10) => open limit order short (5100,5) (entryPrice when calculate should be 4900) => open market order long (4950,10)
+        // but in code entryPrice when reduce will be = (4900*10 + 4950*10)/20 = 4925
         positionData = positionMap[positionManager][_trader];
         int256 quantityMarket = positionData.quantity;
         PositionLimitOrder.Data[] memory _limitOrders = limitOrders[positionManager][_trader];
@@ -834,7 +884,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         }
     }
 
-    function payFunding(IPositionManager _positionManager) public onlyOwner {
+    function payFunding(IPositionManager _positionManager) external onlyOwner {
 
 
     }
@@ -926,20 +976,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         require(_quantity != 0, "positionSize is 0");
     }
 
-
-    function updateMaintenanceMarginRatio(uint256 newMaintenanceMarginRatio) external onlyOwner {
-        maintenanceMarginRatio = newMaintenanceMarginRatio;
-        emit UpdateMaintenanceMarginRatio(newMaintenanceMarginRatio);
-    }
-
-    function updateLiquidationPenaltyRatio(uint256 newLiquidationPenaltyRatio) external onlyOwner {
-
-        liquidationPenaltyRatio = newLiquidationPenaltyRatio;
-        emit UpdateLiquidationPenaltyRatio(newLiquidationPenaltyRatio);
-
-    }
-
-
     //
     // INTERNAL FUNCTION OF POSITION HOUSE
     //
@@ -984,11 +1020,12 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         address _trader
     ) internal returns (PositionResp memory positionResp){
         Position.Data memory oldPosition = getPosition(address(_positionManager), _trader);
-        (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(_positionManager, _quantity.abs(), _side);
+        // exchangedQuoteAssetAmount should be calculated by entryPrice of oldPosition instead of price when open liquidate market order
+        (positionResp.exchangedPositionSize,) = openMarketOrder(_positionManager, _quantity.abs(), _side);
+        positionResp.exchangedQuoteAssetAmount = _quantity.abs() * (oldPosition.openNotional / oldPosition.quantity.abs());
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, PnlCalcOption.SPOT_PRICE);
         uint256 remainMargin = oldPosition.margin * (100 - liquidationFeeRatioConst) / 100;
         console.log("remainMargin", remainMargin);
-        //        positionResp.exchangedQuoteAssetAmount = _quantity.abs() * _entryPrice;
         positionResp.marginToVault = int256(remainMargin) - int256(oldPosition.margin);
         positionResp.unrealizedPnl = unrealizedPnl;
         console.log("partial", oldPosition.quantity.abs());

@@ -23,10 +23,14 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     // fee = quoteAssetAmount / tollRatio (means if fee = 0.001% then tollRatio = 100000)
     uint256 tollRatio = 100000;
 
-    uint256 public fundingPeriod;
-    uint256 public nextFundingTime;
+    int256 public fundingRate;
+
     uint256 public spotPriceTwapInterval;
+    uint256 public fundingPeriod;
+    uint256 public fundingBufferPeriod;
+    uint256 public nextFundingTime;
     bytes32 public priceFeedKey;
+
     IChainLinkPriceFeed public priceFeed;
 
     struct SingleSlot {
@@ -40,6 +44,23 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
 
     IERC20 quoteAsset;
 
+    struct ReserveSnapshot {
+        // can be pip or price at that moment
+        int128 pip;
+        uint256 timestamp;
+        uint256 blockNumber;
+    }
+
+    enum TwapCalcOption { RESERVE_ASSET, INPUT_ASSET }
+
+    struct TwapPriceCalcParams {
+        TwapCalcOption opt;
+        uint256 snapshotIndex;
+//        TwapInputAsset asset;
+    }
+
+    // array of reserveSnapshots
+    ReserveSnapshot[] public reserveSnapshots;
 
     // Max finding word can be 3500
     int128 public maxFindingWordsIndex = 1000;
@@ -351,6 +372,46 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     }
 
     /**
+     * @notice update funding rate
+     * @dev only allow to update while reaching `nextFundingTime`
+     * @return premiumFraction of this period in 18 digits
+     */
+    function settleFunding() external returns (int256 premiumFraction) {
+        require(block.timestamp >= nextFundingTime, "settle funding too early");
+
+        // premium = twapMarketPrice - twapIndexPrice
+        // timeFraction = fundingPeriod(1 hour) / 1 day
+        // premiumFraction = premium * timeFraction
+        uint256 underlyingPrice = getUnderlyingTwapPrice(spotPriceTwapInterval);
+        int256 premium = int256(getTwapPrice(spotPriceTwapInterval)) - int256(underlyingPrice);
+        premiumFraction = premium * int256(fundingPeriod) / int256(1 days);
+
+        // update funding rate = premiumFraction / twapIndexPrice
+        updateFundingRate(premiumFraction, underlyingPrice);
+
+        // in order to prevent multiple funding settlement during very short time after network congestion
+        uint256 minNextValidFundingTime = block.timestamp + fundingBufferPeriod;
+
+        // floor((nextFundingTime + fundingPeriod) / 3600) * 3600
+        uint256 nextFundingTimeOnHourStart = (nextFundingTime + fundingPeriod) / (1 hours) * (1 hours);
+
+        // max(nextFundingTimeOnHourStart, minNextValidFundingTime)
+        nextFundingTime = nextFundingTimeOnHourStart > minNextValidFundingTime
+        ? nextFundingTimeOnHourStart
+        : minNextValidFundingTime;
+
+        return premiumFraction;
+    }
+
+    /**
+     * @notice get underlying price provided by oracle
+     * @return underlying price
+     */
+    function getUnderlyingPrice() public view returns (uint256) {
+        return priceFeed.getPrice(priceFeedKey)*BASE_BASIC_POINT;
+    }
+
+    /**
      * @notice get underlying twap price provided by oracle
      * @return underlying price
      */
@@ -358,6 +419,105 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         return priceFeed.getTwapPrice(priceFeedKey, _intervalInSeconds)*BASE_BASIC_POINT;
     }
 
+    /**
+     * @notice get twap price
+     */
+    function getTwapPrice(uint256 _intervalInSeconds) public view returns (uint256) {
+        return implGetReserveTwapPrice(_intervalInSeconds);
+    }
 
+    function implGetReserveTwapPrice(uint256 _intervalInSeconds) internal view returns (uint256) {
+        TwapPriceCalcParams memory params;
+        params.opt = TwapCalcOption.RESERVE_ASSET;
+        params.snapshotIndex = reserveSnapshots.length - 1;
+        return calcTwap(params, _intervalInSeconds);
+    }
+
+    function calcTwap(TwapPriceCalcParams memory _params, uint256 _intervalInSeconds)
+    internal
+    view
+    returns (uint256)
+    {
+        uint256 currentPrice = getPriceWithSpecificSnapshot(_params);
+        if (_intervalInSeconds == 0) {
+            return currentPrice;
+        }
+
+        uint256 baseTimestamp = block.timestamp - _intervalInSeconds;
+        ReserveSnapshot memory currentSnapshot = reserveSnapshots[_params.snapshotIndex];
+        // return the latest snapshot price directly
+        // if only one snapshot or the timestamp of latest snapshot is earlier than asking for
+        if (reserveSnapshots.length == 1 || currentSnapshot.timestamp <= baseTimestamp) {
+            return currentPrice;
+        }
+
+        uint256 previousTimestamp = currentSnapshot.timestamp;
+        // period same as cumulativeTime
+        uint256 period = block.timestamp - previousTimestamp;
+        uint256 weightedPrice = currentPrice * period;
+        while (true) {
+            // if snapshot history is too short
+            if (_params.snapshotIndex == 0) {
+                return weightedPrice / period;
+            }
+
+            _params.snapshotIndex = _params.snapshotIndex - 1;
+            currentSnapshot = reserveSnapshots[_params.snapshotIndex];
+            currentPrice = getPriceWithSpecificSnapshot(_params);
+
+            // check if current snapshot timestamp is earlier than target timestamp
+            if (currentSnapshot.timestamp <= baseTimestamp) {
+                // weighted time period will be (target timestamp - previous timestamp). For example,
+                // now is 1000, _intervalInSeconds is 100, then target timestamp is 900. If timestamp of current snapshot is 970,
+                // and timestamp of NEXT snapshot is 880, then the weighted time period will be (970 - 900) = 70,
+                // instead of (970 - 880)
+                weightedPrice = weightedPrice + (currentPrice * (previousTimestamp - baseTimestamp));
+                break;
+            }
+
+            uint256 timeFraction = previousTimestamp - currentSnapshot.timestamp;
+            weightedPrice = weightedPrice + (currentPrice * timeFraction);
+            period = period + timeFraction;
+            previousTimestamp = currentSnapshot.timestamp;
+        }
+        return weightedPrice / _intervalInSeconds;
+    }
+
+    function getPriceWithSpecificSnapshot(TwapPriceCalcParams memory params)
+        internal
+        view
+        virtual
+        returns (uint256)
+    {
+        return pipToPrice(reserveSnapshots[params.snapshotIndex].pip);
+    }
+
+    //
+    // INTERNAL FUNCTIONS
+    //
+    // update funding rate = premiumFraction / twapIndexPrice
+    function updateFundingRate(
+        int256  _premiumFraction,
+        uint256  _underlyingPrice
+    ) private {
+        fundingRate = _premiumFraction / int256(_underlyingPrice);
+        // TODO emit event funding rate updated
+//        emit FundingRateUpdated(fundingRate, _underlyingPrice);
+    }
+
+    function addReserveSnapshot() internal {
+        uint256 currentBlock = block.number;
+        ReserveSnapshot storage latestSnapshot = reserveSnapshots[reserveSnapshots.length - 1];
+        if (currentBlock == latestSnapshot.blockNumber) {
+            latestSnapshot.pip = singleSlot.pip;
+        } else {
+            reserveSnapshots.push(
+                ReserveSnapshot(singleSlot.pip, block.timestamp, currentBlock)
+            );
+        }
+        // TODO emit event ReserveSnapshotted
+//        emit ReserveSnapshotted(pip, _blockTimestamp());
+
+    }
 
 }

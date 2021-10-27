@@ -51,6 +51,14 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
         return priceFeedMap[_priceFeedKey];
     }
 
+    function getLatestRoundDataTest(AggregatorV3Interface _aggregator) public view returns (uint80 round, int256 latestPrice, uint256 latestTimestamp) {
+        (round, latestPrice, , latestTimestamp,) = _aggregator.latestRoundData();
+    }
+
+    function getRoundDataTest(AggregatorV3Interface _aggregator, uint80 _round) public view returns (int256 latestPrice, uint256 startedAt, uint256 latestTimestamp, uint80 answeredInRound) {
+        (, latestPrice, startedAt, latestTimestamp, answeredInRound) = _aggregator.getRoundData(_round);
+    }
+
     //
     // INTERFACE IMPLEMENTATION
     //
