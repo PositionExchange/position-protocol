@@ -770,9 +770,9 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     ) public view returns (Position.Data memory positionData){
         uint256 gasStart = gasleft();
         // Get total position is not in order, currently get marketOrder first, then increaseLimitOrder and finally reduceLimitOrder
-        // but when get entryPrice for reduceLimitOrder entryPrice might be wrong because entryPrice = totalNotional / totalQuantity
+        // but when get entryPrice for reduceLimitOrder, entryPrice might be wrong because entryPrice = totalNotional / totalQuantity
         // EX: open limit order long (4900,10) => open limit order short (5100,5) (entryPrice when calculate should be 4900) => open market order long (4950,10)
-        // but in code entryPrice when reduce will be = (4900*10 + 4950*10)/20 = 4925
+        // but in code entryPrice when reduce will be = (4900*10 - 4925 * 5 + 4950*10)/15 = 4925 ### correctEntryPrice = (4900*5 + 4950 * 10)/15 = 4933.333333333333
         positionData = positionMap[positionManager][_trader];
         int256 quantityMarket = positionData.quantity;
         PositionLimitOrder.Data[] memory _limitOrders = limitOrders[positionManager][_trader];

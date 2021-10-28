@@ -20,6 +20,7 @@ import {
     toWeiWithString, ExpectTestCaseParams
 } from "../shared/utilities";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
+import { CHAINLINK_ABI_TESTNET} from "../../constants";
 
 describe("PositionHouse_02", () => {
     let positionHouse: PositionHouse;
@@ -32,6 +33,7 @@ describe("PositionHouse_02", () => {
     let tradercp: any;
     let positionManager: PositionManager;
     let positionManagerFactory: ContractFactory;
+    let chainlinkContract : any;
 
     beforeEach(async () => {
         [trader0, trader1, trader2, trader3, trader4, trader5, tradercp] = await ethers.getSigners()
@@ -42,6 +44,8 @@ describe("PositionHouse_02", () => {
         //quoteAsset    BUSD_TestNet = 0x8301f2213c0eed49a7e28ae4c3e91722919b8b47
         positionManager = (await positionManagerFactory.deploy(500000, '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
         const factory = await ethers.getContractFactory("PositionHouse")
+        const provider = await ethers.getDefaultProvider('https://data-seed-prebsc-1-s1.binance.org:8545/')
+        chainlinkContract = new ethers.Contract('0xf805e852ef3794c6c3bf5ab4254f02e8906d8863', CHAINLINK_ABI_TESTNET, provider)
         positionHouse = (await factory.deploy()) as unknown as PositionHouse;
     })
 
@@ -2529,4 +2533,61 @@ describe("PositionHouse_02", () => {
             });
         })
     })
+
+    describe('Calc market twap', async function () {
+
+        /**
+         * PS_FUTU_200
+         S1: Current price 5000
+         S2: Price change to 5100
+         S3: Price change to 5200 after 5s
+         S4: Price change to 4800 after 5s
+         S5: Calc twap market price with interval = 100s
+         */
+        it('PS_FUTU_200: Calc market twap', async function () {
+            console.log("time after s0", Date.now())
+            await changePrice({
+                limitPrice : 5100,
+                toHigherPrice : true,
+            })
+
+            await changePrice({
+                limitPrice : 5200,
+                toHigherPrice : true,
+            })
+
+            await changePrice({
+                limitPrice : 4800,
+                toHigherPrice : false,
+            })
+
+            await changePrice({
+                limitPrice : 4900,
+                toHigherPrice : true,
+            })
+
+            await changePrice({
+                limitPrice : 4950,
+                toHigherPrice : true,
+            })
+
+            await changePrice({
+                limitPrice : 5000,
+                toHigherPrice : true,
+            })
+
+            await changePrice({
+                limitPrice : 4900,
+                toHigherPrice : false,
+            })
+
+            await positionManager.getAllReserveSnapshotTest();
+            console.log("price feed", (await chainlinkContract.getPrice('0x4254430000000000000000000000000000000000000000000000000000000000')).toString())
+
+            const twapMarketPrice = await positionManager.getTwapPrice(13);
+            console.log(twapMarketPrice)
+            expect(twapMarketPrice.div(10000)).eq(Math.floor((4800*2+5200*2+5100*2+5000*1+4900*2+4950*2+5000*2)/13))
+        })
+    })
+
 })

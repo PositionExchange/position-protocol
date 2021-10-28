@@ -95,6 +95,9 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         address _quoteAsset
     ) {
         singleSlot.pip = initialPip;
+        reserveSnapshots.push(
+            ReserveSnapshot(initialPip, block.timestamp, block.number)
+        );
         quoteAsset = IERC20(_quoteAsset);
     }
 
@@ -343,6 +346,8 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         singleSlot.pip = state.pip;
         singleSlot.isFullBuy = isFullBuy;
         sizeOut = size - state.remainingSize;
+        // TODO addReserveSnapshot when finish market order
+        addReserveSnapshot();
         console.log("********************************************************************************");
         console.log("Final size state: size, sizeOut, remainingSize", size, sizeOut, state.remainingSize);
         console.log("Final size state: openNotional", openNotional);
@@ -426,15 +431,16 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         return implGetReserveTwapPrice(_intervalInSeconds);
     }
 
-    function implGetReserveTwapPrice(uint256 _intervalInSeconds) internal view returns (uint256) {
+    function implGetReserveTwapPrice(uint256 _intervalInSeconds) public view returns (uint256) {
         TwapPriceCalcParams memory params;
+        // Can remove this line
         params.opt = TwapCalcOption.RESERVE_ASSET;
         params.snapshotIndex = reserveSnapshots.length - 1;
         return calcTwap(params, _intervalInSeconds);
     }
 
     function calcTwap(TwapPriceCalcParams memory _params, uint256 _intervalInSeconds)
-    internal
+    public
     view
     returns (uint256)
     {
@@ -483,6 +489,14 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         return weightedPrice / _intervalInSeconds;
     }
 
+    // test function
+    function getAllReserveSnapshotTest() public view returns (bool) {
+        for(uint256 i = 0; i <= reserveSnapshots.length - 1 ; i++){
+            console.log("reserve snapshot information", reserveSnapshots[i].blockNumber, reserveSnapshots[i].timestamp, uint128(reserveSnapshots[i].pip));
+        }
+        return true;
+    }
+
     function getPriceWithSpecificSnapshot(TwapPriceCalcParams memory params)
         internal
         view
@@ -507,9 +521,9 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
 
     function addReserveSnapshot() internal {
         uint256 currentBlock = block.number;
-        ReserveSnapshot storage latestSnapshot = reserveSnapshots[reserveSnapshots.length - 1];
+        ReserveSnapshot memory latestSnapshot = reserveSnapshots[reserveSnapshots.length - 1];
         if (currentBlock == latestSnapshot.blockNumber) {
-            latestSnapshot.pip = singleSlot.pip;
+            reserveSnapshots[reserveSnapshots.length - 1].pip = singleSlot.pip;
         } else {
             reserveSnapshots.push(
                 ReserveSnapshot(singleSlot.pip, block.timestamp, currentBlock)
