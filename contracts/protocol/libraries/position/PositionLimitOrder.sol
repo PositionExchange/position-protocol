@@ -12,7 +12,17 @@ library PositionLimitOrder {
         int128 pip;
         uint64 orderId;
         uint16 leverage;
-        OrderType typeLimitOrder;
+//        OrderType typeLimitOrder;
+        uint8 isBuy;
+        uint256 entryPrice;
+        uint256 reduceQuantity;
+    }
+
+    struct ReduceData {
+        int128 pip;
+        uint64 orderId;
+        uint16 leverage;
+//        OrderType typeLimitOrder;
         uint8 isBuy;
     }
 

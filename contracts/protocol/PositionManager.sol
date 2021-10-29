@@ -204,7 +204,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
             // convert tick to price
             // save at that pip has how many liquidity
             orderId = tickPosition[pip].insertLimitOrder(uint120(size - uint128(sizeOut)), hasLiquidity, isBuy);
-            console.log("pip, hasLiquidity", uint256(uint128(pip)), hasLiquidity);
+//            console.log("pip, hasLiquidity", uint256(uint128(pip)), hasLiquidity);
             if (!hasLiquidity) {
                 //set the bit to mark it has liquidity
                 liquidityBitmap.toggleSingleBit(pip, true);
@@ -242,7 +242,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         require(size != 0, "!S");
         // TODO lock
         // get current tick liquidity
-        console.log("start market order, size: ", size, "is buy: ", isBuy);
+//        console.log("start market order, size: ", size, "is buy: ", isBuy);
         SingleSlot memory _initialSingleSlot = singleSlot;
         //save gas
         SwapState memory state = SwapState({
@@ -256,7 +256,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         uint8 isFullBuy = 0;
         bool isSkipFirstPip;
         CurrentLiquiditySide currentLiquiditySide = CurrentLiquiditySide(_initialSingleSlot.isFullBuy);
-        console.log("> SWAP: CurrentLiquiditySide:", uint256(currentLiquiditySide));
+//        console.log("> SWAP: CurrentLiquiditySide:", uint256(currentLiquiditySide));
         if (currentLiquiditySide != CurrentLiquiditySide.NotSet) {
             if (isBuy)
             // if buy and latest liquidity is buy. skip current pip
@@ -266,8 +266,8 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                 isSkipFirstPip = currentLiquiditySide == CurrentLiquiditySide.Sell;
         }
         while (state.remainingSize != 0) {
-            console.log("while again");
-            console.log("state pip", uint128(state.pip), isSkipFirstPip);
+//            console.log("while again");
+//            console.log("state pip", uint128(state.pip), isSkipFirstPip);
             StepComputations memory step;
             // updated findHasLiquidityInMultipleWords, save more gas
             (step.pipNext) = liquidityBitmap.findHasLiquidityInMultipleWords(
@@ -275,8 +275,8 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                 maxFindingWordsIndex,
                 !isBuy
             );
-            console.log("SWAP: state pip", uint128(state.pip));
-            console.log("SWAP: next pip", uint256(uint128(step.pipNext)));
+//            console.log("SWAP: state pip", uint128(state.pip));
+//            console.log("SWAP: next pip", uint256(uint128(step.pipNext)));
             if (maxPip != 0 && uint128(step.pipNext) != maxPip) break;
             if (step.pipNext == 0) {
                 // no more next pip
@@ -294,12 +294,12 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
 
                     // get liquidity at a tick index
                     uint128 liquidity = tickPosition[step.pipNext].liquidity;
-                    console.log("SWAP: liquidity", uint256(liquidity));
-                    console.log("SWAP: state.remainingSize", uint256(state.remainingSize));
+//                    console.log("SWAP: liquidity", uint256(liquidity));
+//                    console.log("SWAP: state.remainingSize", uint256(state.remainingSize));
                     //                  if (_initialSingleSlot.isFullBuy == 0 || isBuy != (_initialSingleSlot.isFullBuy == 2)) {
                     if (liquidity > state.remainingSize) {
                         // pip position will partially filled and stop here
-                        console.log("partialFilled to pip | amount", uint256(uint128(step.pipNext)), uint256(state.remainingSize));
+//                        console.log("partialFilled to pip | amount", uint256(uint128(step.pipNext)), uint256(state.remainingSize));
                         tickPosition[step.pipNext].partiallyFill(uint120(state.remainingSize));
                         openNotional += state.remainingSize * pipToPrice(step.pipNext);
                         state.remainingSize = 0;
@@ -307,7 +307,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                         isPartialFill = true;
                         isFullBuy = uint8(!isBuy ? CurrentLiquiditySide.Buy : CurrentLiquiditySide.Sell);
                     } else if (state.remainingSize > liquidity) {
-                        console.log("remain size > liquidity");
+//                        console.log("remain size > liquidity");
                         // order in that pip will be fulfilled
                         state.remainingSize = state.remainingSize - liquidity;
                         // NOTICE toggle current state to uninitialized after fulfill liquidity
@@ -338,7 +338,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                 // example pip partiallyFill in pip 200
                 // current pip should be set to 200
                 // but should not marked pip 200 doesn't have liquidity
-                console.log("startPip > state.pip", uint256(uint128(startPip)), uint256(uint128(state.pip)));
+//                console.log("startPip > state.pip", uint256(uint128(startPip)), uint256(uint128(state.pip)));
                 liquidityBitmap.unsetBitsRange(startPip, isPartialFill ? (isBuy ? state.pip - 1 : state.pip + 1) : state.pip);
             }
             // TODO write a checkpoint that we shift a range of ticks
@@ -348,11 +348,11 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         sizeOut = size - state.remainingSize;
         // TODO addReserveSnapshot when finish market order
         addReserveSnapshot();
-        console.log("********************************************************************************");
-        console.log("Final size state: size, sizeOut, remainingSize", size, sizeOut, state.remainingSize);
-        console.log("Final size state: openNotional", openNotional);
-        console.log("SWAP: final pip", uint256(uint128(state.pip)));
-        console.log("********************************************************************************");
+//        console.log("********************************************************************************");
+//        console.log("Final size state: size, sizeOut, remainingSize", size, sizeOut, state.remainingSize);
+//        console.log("Final size state: openNotional", openNotional);
+//        console.log("SWAP: final pip", uint256(uint128(state.pip)));
+//        console.log("********************************************************************************");
         emit Swap(msg.sender, size, sizeOut);
     }
 
@@ -492,7 +492,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     // test function
     function getAllReserveSnapshotTest() public view returns (bool) {
         for(uint256 i = 0; i <= reserveSnapshots.length - 1 ; i++){
-            console.log("reserve snapshot information", reserveSnapshots[i].blockNumber, reserveSnapshots[i].timestamp, uint128(reserveSnapshots[i].pip));
+//            console.log("reserve snapshot information", reserveSnapshots[i].blockNumber, reserveSnapshots[i].timestamp, uint128(reserveSnapshots[i].pip));
         }
         return true;
     }

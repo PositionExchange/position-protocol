@@ -376,6 +376,7 @@ describe("PositionHouse_02", () => {
                 toHigherPrice: true
             })
 
+            console.log("before expect trader0");
             const expectTrader0 = await expectMarginPnlAndOP({
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader0.address,
@@ -384,6 +385,7 @@ describe("PositionHouse_02", () => {
                 expectedPnl: 760
             });
 
+            console.log("before expect trader1");
             const expectTrader1 = await expectMarginPnlAndOP({
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader1.address,
@@ -392,6 +394,7 @@ describe("PositionHouse_02", () => {
                 expectedPnl: -810
             });
 
+            console.log("before expect trader2");
             const expectTrader2 = await expectMarginPnlAndOP({
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader2.address,
@@ -400,6 +403,7 @@ describe("PositionHouse_02", () => {
                 expectedPnl: 650
             });
 
+            console.log("before expect trader3");
             const expectTrader3 = await expectMarginPnlAndOP({
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader3.address,
@@ -776,7 +780,7 @@ describe("PositionHouse_02", () => {
                 traderAddress: trader2.address,
                 expectedOpenNotional: 29820,
                 expectedMargin: 2982,
-                expectedPnl: 490,
+                expectedPnl: 420,
                 expectedQuantity: -6
             });
 
@@ -907,9 +911,9 @@ describe("PositionHouse_02", () => {
             const expectTrader0AfterS6 = await expectMarginPnlAndOP({
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader0.address,
-                expectedOpenNotional: 10000,
-                expectedMargin: 1000,
-                expectedPnl: 0,
+                expectedOpenNotional: 25000,
+                expectedMargin: 2500,
+                expectedPnl: -50,
                 expectedQuantity: -5
             });
 
@@ -979,9 +983,9 @@ describe("PositionHouse_02", () => {
             const expectTrader0End = await expectMarginPnlAndOP({
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader0.address,
-                expectedOpenNotional: 34920,
-                expectedMargin: 3492,
-                expectedPnl: -70,
+                expectedOpenNotional: 34870,
+                expectedMargin: 3487,
+                expectedPnl: -80,
                 expectedQuantity: 7
             });
 
@@ -1111,7 +1115,7 @@ describe("PositionHouse_02", () => {
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader1.address,
                 expectedOpenNotional: 35065,
-                expectedMargin: 3506.5,
+                expectedMargin: 3506,
                 expectedPnl: 5,
                 expectedQuantity: 7
             });
@@ -1146,7 +1150,7 @@ describe("PositionHouse_02", () => {
                 traderAddress: trader0.address,
                 expectedOpenNotional: 35020,
                 expectedMargin: 3502,
-                expectedPnl: -36,
+                expectedPnl: 20,
                 expectedQuantity: -7
             });
 
@@ -1487,7 +1491,7 @@ describe("PositionHouse_02", () => {
 
             let response3 = (await openLimitPositionAndExpect({
                 limitPrice: 5000,
-                side: SIDE.SHORT,
+                side: SIDE.LONG,
                 leverage: 10,
                 quantity: 6,
                 _trader: trader3
@@ -1664,21 +1668,20 @@ describe("PositionHouse_02", () => {
             //-S5: Trader0 open Limit Long(4990,8)
             //-S6: Trader1 open Market Short(5)
             let response3 = (await openLimitPositionAndExpect({
-                limitPrice: 5010,
-                side: SIDE.SHORT,
+                limitPrice: 4990,
+                side: SIDE.LONG,
                 leverage: 10,
                 quantity: 8,
-                _trader: trader1
+                _trader: trader0
             })) as unknown as PositionLimitOrderID
 
             await openMarketPosition({
-                    quantity: BigNumber.from('6'),
+                    quantity: BigNumber.from('5'),
                     leverage: 10,
                     side: SIDE.SHORT,
-                    trader: trader3.address,
-                    instanceTrader: trader3,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
                     _positionManager: positionManager,
-                    expectedSize: BigNumber.from('-6')
                 }
             );
 
@@ -1693,13 +1696,12 @@ describe("PositionHouse_02", () => {
                     trader: trader2.address,
                     instanceTrader: trader2,
                     _positionManager: positionManager,
-                    expectedSize: BigNumber.from('-1')
                 }
             );
 
             let response4 = (await openLimitPositionAndExpect({
                 limitPrice: 4980,
-                side: SIDE.SHORT,
+                side: SIDE.LONG,
                 leverage: 10,
                 quantity: 4,
                 _trader: trader3
@@ -1716,7 +1718,6 @@ describe("PositionHouse_02", () => {
                     trader: trader0.address,
                     instanceTrader: trader0,
                     _positionManager: positionManager,
-                    expectedSize: BigNumber.from('')
                 }
             );
 
@@ -1728,7 +1729,6 @@ describe("PositionHouse_02", () => {
                     trader: trader2.address,
                     instanceTrader: trader2,
                     _positionManager: positionManager,
-                    expectedSize: BigNumber.from('')
                 }
             );
 
@@ -1744,7 +1744,6 @@ describe("PositionHouse_02", () => {
                     trader: trader1.address,
                     instanceTrader: trader1,
                     _positionManager: positionManager,
-                    expectedSize: BigNumber.from('')
                 }
             );
 
@@ -1763,7 +1762,6 @@ describe("PositionHouse_02", () => {
                     trader: trader3.address,
                     instanceTrader: trader3,
                     _positionManager: positionManager,
-                    expectedSize: BigNumber.from('')
                 }
             );
 
@@ -1900,7 +1898,7 @@ describe("PositionHouse_02", () => {
         it('PS_FUTU_31', async () => {
 
             // *****************************
-            //-S1: Trader0 open Limit Short(4995,7)
+            //-S1: Trader0 open Limit LONG(4995,7)
             //-S2: Trader1 open Limit Short(5010,8)
             let response1 = (await openLimitPositionAndExpect({
                 limitPrice: 4995,
