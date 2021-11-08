@@ -15,7 +15,7 @@ library Position {
         int256 sumQuantityLimitOrder;
         uint256 margin;
         uint256 openNotional;
-        uint256 lastUpdatedCumulativePremiumFraction;
+        int256 lastUpdatedCumulativePremiumFraction;
         uint256 blockNumber;
     }
 
