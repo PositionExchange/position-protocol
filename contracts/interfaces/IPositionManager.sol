@@ -23,7 +23,7 @@ interface IPositionManager {
 
     function pipToPrice(int128 pip) external view returns (uint256);
 
-    function getQuoteAsset() external view returns (IERC20);
+    function getQuoteAsset() external view returns (address);
 
     function calcAdjustMargin(uint256 adjustMargin) external view returns (uint256);
 

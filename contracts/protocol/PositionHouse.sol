@@ -218,13 +218,14 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
         // TODO transfer money from trader or pay margin + profit to trader
 
-        console.log("margin to vault", positionResp.marginToVault > 0 ? uint256(positionResp.marginToVault) : uint256(- positionResp.marginToVault));
-        IERC20 quoteToken = _positionManager.getQuoteAsset();
+        address quoteToken = _positionManager.getQuoteAsset();
         if (positionResp.marginToVault > 0) {
-            //TODO transfer from trader to vault
+            //transfer from trader to vault
+            insuranceFund.deposit(quoteToken, _trader, positionResp.marginToVault);
 
         } else if (positionResp.marginToVault < 0) {
-            // TODO withdraw from vault to user
+            // withdraw from vault to user
+            insuranceFund.withdraw(quoteToken, _trader, -positionResp.marginToVault);
         }
         emit MarginToVault(positionResp.marginToVault);
         emit OpenMarket(_trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _side, _leverage, positionResp.exchangedQuoteAssetAmount / _quantity, _positionManager);
@@ -298,8 +299,10 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             }
         }
 
+        // transfer money from trader
+        insuranceFund.deposit(_positionManager.getQuoteAsset(), _msgSender, _quantity/_leverage);
+
         emit OpenLimit(openLimitResp.orderId, _trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _side, _leverage, _pip, _positionManager);
-        // TODO transfer money from trader
     }
 
     function cancelLimitOrder(IPositionManager _positionManager, int128 pip, uint64 orderId) external {
