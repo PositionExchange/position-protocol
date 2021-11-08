@@ -1,10 +1,15 @@
+// require("@nomiclabs/hardhat-waffle")
+// require('@nomiclabs/hardhat-ethers')
+// require('@nomiclabs/hardhat-etherscan')
 import "@nomiclabs/hardhat-waffle";
 import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-etherscan';
 import "@typechain/hardhat";
 import {task} from "hardhat/config";
 import {BSC_MAINNET_URL, BSC_TESTNET_URL, GAS_PRICE} from "./constants";
-
+// const BSC_TESTNET_URL =
+//     `${process.env["BSC_TESTNET_ENDPOINT"]}` || "https://data-seed-prebsc-1-s1.binance.org:8545/"
+// const BSC_MAINNET_URL = `${process.env["BSC_MAINNET_ENDPOINT"]}`
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
 task("accounts", "Prints the list of accounts", async (args, hre) => {
@@ -31,7 +36,7 @@ module.exports = {
             allowUnlimitedContractSize: true,
         },
         testnet: {
-            url: BSC_TESTNET_URL,
+            url: 'https://data-seed-prebsc-1-s1.binance.org:8545/',
             chainId: 97,
             gasPrice: 20000000000,
             accounts: ["e797cad59780e24c113373fc91345869d7eab37ea0e843117575854b01625df4"],
@@ -41,7 +46,8 @@ module.exports = {
             chainId: 56,
             gasPrice: 20000000000,
             accounts: ["e797cad59780e24c113373fc91345869d7eab37ea0e843117575854b01625df4"],
-        }
+        },
+
     },
 
     solidity: {
@@ -66,6 +72,9 @@ module.exports = {
             }
 
         ]
+    },
+    etherscan: {
+        apiKey: 'TEMK85WIQR8NGI74AZBCJ3J88FI49XRHJN',
     },
     typechain: {
         outDir: "typeChain",

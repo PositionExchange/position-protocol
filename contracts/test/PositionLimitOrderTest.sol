@@ -20,8 +20,10 @@ contract PositionLimitOrderTest {
             pip : _pip,
             orderId : _orderId,
             leverage : uint16(_leverage),
-            typeLimitOrder : isOpenLimitOrder ? PositionLimitOrder.OrderType.OPEN_LIMIT : PositionLimitOrder.OrderType.CLOSE_LIMIT,
-            isBuy : uint8(_side)
+//            typeLimitOrder : isOpenLimitOrder ? PositionLimitOrder.OrderType.OPEN_LIMIT : PositionLimitOrder.OrderType.CLOSE_LIMIT,
+            isBuy : uint8(_side),
+            entryPrice : 0,
+            reduceQuantity: 0
         }));
     }
 

@@ -21,7 +21,7 @@ export default class PositionManagerTestingTool {
         typeof isFilled != 'undefined' && expect(res.isFilled).eq(isFilled, `isFilled is not correct`)
         typeof isBuy != 'undefined' && expect(res.isBuy).eq(isBuy)
         typeof size != 'undefined' && expect(res.size.toString()).eq(size.toString(), `Size is not correct`)
-        typeof partialFilled != 'undefined' && expect(res.partialFilled.toString()).eq(partialFilled.toString(), `Partial filled nis not correct`)
+        typeof partialFilled != 'undefined' && expect(res.partialFilled.toString()).eq(partialFilled.toString(), `Partial filled is not correct`)
     }
 
     async debugPendingOrder(pip: any, orderId: any) {

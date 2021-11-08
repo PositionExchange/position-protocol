@@ -6,8 +6,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {IChainLinkPriceFeed} from '../interfaces/IChainLinkPriceFeed.sol';
-
-contract ChainLinkPriceFeed is IChainLinkPriceFeed, Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
+// , Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable
+contract ChainLinkPriceFeed is IChainLinkPriceFeed {
 
     uint256 private constant TOKEN_DIGIT = 10 ** 18;
 
@@ -16,17 +16,16 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed, Initializable, ReentrancyGua
     bytes32[] public priceFeedKeys;
     mapping(bytes32 => uint8) public priceFeedDecimalMap;
 
-
-    function addAggregator(bytes32 _priceFeedKey, address _aggregator) external onlyOwner {
+    function addAggregator(bytes32 _priceFeedKey, address _aggregator) public {
         requireNonEmptyAddress(_aggregator);
         if (address(priceFeedMap[_priceFeedKey]) == address(0)) {
             priceFeedKeys.push(_priceFeedKey);
         }
         priceFeedMap[_priceFeedKey] = AggregatorV3Interface(_aggregator);
-
+        priceFeedDecimalMap[_priceFeedKey] = AggregatorV3Interface(_aggregator).decimals();
     }
 
-    function removeAggregator(bytes32 _priceFeedKey) external onlyOwner {
+    function removeAggregator(bytes32 _priceFeedKey) external {
         requireNonEmptyAddress(address(getAggregator(_priceFeedKey)));
         delete priceFeedMap[_priceFeedKey];
         delete priceFeedDecimalMap[_priceFeedKey];
@@ -50,6 +49,14 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed, Initializable, ReentrancyGua
 
     function getAggregator(bytes32 _priceFeedKey) public view returns (AggregatorV3Interface) {
         return priceFeedMap[_priceFeedKey];
+    }
+
+    function getLatestRoundDataTest(AggregatorV3Interface _aggregator) public view returns (uint80 round, int256 latestPrice, uint256 latestTimestamp) {
+        (round, latestPrice, , latestTimestamp,) = _aggregator.latestRoundData();
+    }
+
+    function getRoundDataTest(AggregatorV3Interface _aggregator, uint80 _round) public view returns (int256 latestPrice, uint256 startedAt, uint256 latestTimestamp, uint80 answeredInRound) {
+        (, latestPrice, startedAt, latestTimestamp, answeredInRound) = _aggregator.getRoundData(_round);
     }
 
     //

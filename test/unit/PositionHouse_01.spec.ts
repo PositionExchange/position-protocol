@@ -7,7 +7,7 @@ const {solidity} = waffle
 import {describe} from "mocha";
 import {expect, use} from 'chai'
 
-import {PositionManager, PositionHouse} from "../../typeChain";
+import {PositionManager, PositionHouse, ChainLinkPriceFeed} from "../../typeChain";
 import {
     ClaimFund, LimitOrderReturns,
     MaintenanceDetail, OpenLimitPositionAndExpectParams,
@@ -124,7 +124,7 @@ describe("PositionHouse_01", () => {
 
     async function getOrderIdByTx(tx: any) {
         const receipt = await tx.wait();
-        const orderId = ((receipt?.events || [])[1]?.args || [])['orderId']
+        const orderId = ((receipt?.events || [])[1]?.args || [])['orderId'] || ((receipt?.events || [])[2]?.args || [])['orderId']
         const priceLimit = ((receipt?.events || [])[1]?.args || [])['priceLimit']
         return {
             orderId,
@@ -2750,6 +2750,8 @@ describe("PositionHouse_01", () => {
                     price: 5000,
                     expectedSize: BigNumber.from('0')
                 });
+                // ERROR because this limit order separated into 2 order: market short 100 and limit short 100
+                // so the expect in functions openLimitPositionAndExpect is error because it only get quantity from limit order
                 response3 = (await openLimitPositionAndExpect({
                     limitPrice: 5000,
                     side: SIDE.SHORT,
@@ -2757,7 +2759,6 @@ describe("PositionHouse_01", () => {
                     quantity: 200,
                     _trader: trader2
                 })) as unknown as PositionLimitOrderID
-                console.log("line 2752")
                 await openMarketPosition({
                     instanceTrader: trader,
                     leverage: 10,
@@ -2826,7 +2827,6 @@ describe("PositionHouse_01", () => {
 
                 console.log('margin ', positionDataTrader0.margin.div(10000).toString());
                 console.log('Pnl :', positionNotionalAndPnLTrader0.unrealizedPnl.div(10000).toString())
-
                 console.log('margin maintenanceMargin: ', maintenanceDetail.maintenanceMargin.div(10000).toString());
                 console.log('margin balance: ', maintenanceDetail.marginBalance.div(10000).toString());
                 console.log('margin marginRatio: ', maintenanceDetail.marginRatio.toString());
@@ -2840,17 +2840,27 @@ describe("PositionHouse_01", () => {
 
                 await positionHouse.liquidate(positionManager.address, trader.address);
 
+                const positionNotionalAndPnLTrader0AfterLiquidate = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                    positionManager.address,
+                    trader.address,
+                    1
+                )
+                const maintenanceDetailTrader0AfterLiquidate = (await positionHouse.getMaintenanceDetail(positionManager.address, trader.address)) as unknown as MaintenanceDetail;
 
-                const positionData1 = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData;
+                const positionDataTrader0AfterLiquidate = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData;
+                console.log("##### After liquidate")
+                console.log('Pnl :', positionNotionalAndPnLTrader0AfterLiquidate.unrealizedPnl.div(10000).toString())
+                console.log('margin maintenanceMargin: ', maintenanceDetailTrader0AfterLiquidate.maintenanceMargin.div(10000).toString());
+                console.log('margin balance: ', maintenanceDetailTrader0AfterLiquidate.marginBalance.div(10000).toString());
+                console.log('margin marginRatio: ', maintenanceDetailTrader0AfterLiquidate.marginRatio.toString());
+                console.log('quantity after liquidate ', positionDataTrader0AfterLiquidate.quantity.toString())
+                console.log('margin after liquidate ', positionDataTrader0AfterLiquidate.margin.toString())
+                console.log('openNotional after liquidate ', positionDataTrader0AfterLiquidate.openNotional.toString())
 
-                console.log('quantity after liquidate ', positionData1.quantity.toString())
-                console.log('margin after liquidate ', positionData1.margin.toString())
+                expect(positionDataTrader0AfterLiquidate.quantity).eq(-80)
 
-
-                expect(positionData1.quantity).eq(-80)
-
-                expect(positionData1.margin.div(10000)).eq(24250)
-
+                expect(positionDataTrader0AfterLiquidate.margin.div(10000)).eq(24250)
+                expect(positionDataTrader0AfterLiquidate.openNotional.div(10000)).eq(400000)
 
             })
 
@@ -3192,7 +3202,7 @@ describe("PositionHouse_01", () => {
             )
 
 
-            console.log('mmargin ', positionData.margin.div(10000).toString());
+            console.log('margin ', positionData.margin.div(10000).toString());
             console.log('Pnl :', positionNotionalAndPnL1.unrealizedPnl.div(10000).toString())
 
             console.log('margin maintenanceMargin: ', maintenanceDetail.maintenanceMargin.div(10000).toString());
