@@ -1270,7 +1270,6 @@ describe("PositionHouse_01", () => {
                 // margin = quantity * price / leverage = 4990 * 100 / 10
                 // expect(positionData.margin.toNumber()).eq(4990 * 100 / 10)
                 expect(positionData1.quantity.toNumber()).eq(100)
-                console.log(1270)
                 let response = (await openLimitPositionAndExpect({
                     limitPrice: 4990,
                     side: SIDE.LONG,
