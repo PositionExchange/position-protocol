@@ -17,6 +17,7 @@ export default class PositionManagerTestingTool {
     }
 
     async expectPendingOrder({ pip, orderId, isFilled, isBuy, size, partialFilled} : any){
+        console.log("line 20 expect pending", pip, orderId)
         const res = await this.positionManager.getPendingOrderDetail(pip, orderId)
         typeof isFilled != 'undefined' && expect(res.isFilled).eq(isFilled, `isFilled is not correct`)
         typeof isBuy != 'undefined' && expect(res.isBuy).eq(isBuy)

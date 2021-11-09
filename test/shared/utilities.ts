@@ -162,6 +162,7 @@ export interface MaintenanceDetail {
 export interface PositionLimitOrderID {
     pip: BigNumber,
     orderId: BigNumber
+    orderIdOfTrader: BigNumber
 }
 
 export interface ClaimFund {
@@ -188,7 +189,8 @@ export interface PendingOrder {
 
 export interface LimitOrderReturns {
     orderId: string;
-    pip: number
+    pip: number;
+    orderIdOfTrader: string;
 }
 
 export interface ChangePriceParams {
@@ -198,12 +200,12 @@ export interface ChangePriceParams {
 }
 
 export interface ExpectTestCaseParams {
-    positionManagerAddress : string,
-    traderAddress : string,
+    positionManagerAddress: string,
+    traderAddress: string,
     expectedOpenNotional: number,
-    expectedMargin : number,
-    expectedPnl : number | undefined
-    expectedQuantity? : number
+    expectedMargin: number,
+    expectedPnl: number | undefined
+    expectedQuantity?: number
 }
 
 export interface MarketOrderReturns {

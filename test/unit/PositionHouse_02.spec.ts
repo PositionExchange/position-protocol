@@ -150,8 +150,8 @@ describe("PositionHouse_02", () => {
         const tx = await positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(Number(limitPrice)), leverage)
         console.log("GAS USED LIMIT", (await tx.wait()).gasUsed.toString())
         const {orderId, priceLimit} = await getOrderIdByTx(tx)
-        console.log('orderId: ', orderId.toString())
-        console.log('priceLimit: ', priceLimit.toString());
+        // console.log('orderId: ', orderId.toString())
+        // console.log('priceLimit: ', priceLimit.toString());
         // const positionLimitInOrder = (await positionHouse["getPendingOrder(address,bytes)"](_positionManager.address, orderId)) as unknown as PendingOrder;
         // expect(positionLimitInOrder.size.toNumber()).eq(quantity);
 
@@ -2685,6 +2685,403 @@ describe("PositionHouse_02", () => {
 
 
         });
+
+
+        /**
+         Current price 4000
+         -S1:Trader0 open Limit short(4900,5)
+         -S2: Trader1 open Market long(5)
+         -S3: Trader1 open Limit long(4700,6)
+         -S4: Trader0 open Market short(6)
+         -S5: Tradercp open Limit Short(5015,7)
+         -S6: Tradercp open Market Long(7) => current price 5015
+
+         -S7: Trader2 open Limit Short(5015, 2)
+         -S8: Trader0 open Limit Long(5015, 4) => have 1
+
+         -S9: Tradercp open Limit Short(5020,7)
+         -S10: Tradercp open Market Long(7) => current price 5020
+
+         -S11: Trade3 open Limit Long(5015,1) => filled step 8
+
+         -S11: Trade2 open Limit Long(5020,3)
+         -S12: Trade1 open Limit Short(5020,4)
+         -S13: Trade3 open Limit Long(5020,1)
+
+         -S13: Tradercp open Limit Short(5025,4)
+         -S14: Tradercp open Market Long(4) => current price 5025
+         */
+        it('PS_FUTU_31', async function () {
+
+            await changePrice({limitPrice: 4000, toHigherPrice: false});
+
+            let response2Trader0 = (await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 5,
+                _trader: trader0
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('5')
+                }
+            );
+
+            let response2Trader1 = (await openLimitPositionAndExpect({
+                limitPrice: 4700,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 6,
+                _trader: trader1
+            })) as unknown as PositionLimitOrderID
+
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('6'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader0.address,
+                    instanceTrader: trader0,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-11')
+                }
+            );
+
+
+            await changePrice({limitPrice: 5015, toHigherPrice: true});
+
+
+            let response2Trader2 = (await openLimitPositionAndExpect({
+                limitPrice: 5015,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 2,
+                _trader: trader2
+            })) as unknown as PositionLimitOrderID
+
+            let response3Trader0 = (await openLimitPositionAndExpect({
+                limitPrice: 5015,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 4,
+                _trader: trader0
+            })) as unknown as PositionLimitOrderID
+
+            const expectTrader0End1 = await expectMarginPnlAndOP({
+                positionManagerAddress: positionManager.address,
+                traderAddress: trader0.address,
+                expectedOpenNotional: 43118.18,
+                expectedMargin: 4311.81,
+                expectedPnl: -2016.81,
+                expectedQuantity: 0,
+            })
+
+            await changePrice({limitPrice: 5020, toHigherPrice: true});
+
+            let response1Trader3 = (await openLimitPositionAndExpect({
+                limitPrice: 5015,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 1,
+                _trader: trader3
+            })) as unknown as PositionLimitOrderID
+
+            const expectTrader0End = await expectMarginPnlAndOP({
+                positionManagerAddress: positionManager.address,
+                traderAddress: trader0.address,
+                expectedOpenNotional: 38327.27,
+                expectedMargin: 3832.72,
+                expectedPnl: -1792.72,
+                expectedQuantity: 0,
+            })
+
+
+            let response1Trader2 = (await openLimitPositionAndExpect({
+                limitPrice: 5020,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 3,
+                _trader: trader2
+            })) as unknown as PositionLimitOrderID
+
+
+            let response1Trader1 = (await openLimitPositionAndExpect({
+                limitPrice: 5020,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 4,
+                _trader: trader1
+            })) as unknown as PositionLimitOrderID
+
+
+            const expectTrader1End = await expectMarginPnlAndOP({
+                positionManagerAddress: positionManager.address,
+                traderAddress: trader0.address,
+                expectedOpenNotional: 38327,
+                expectedMargin: 3832.7,
+                expectedPnl: 1792,
+                expectedQuantity: 0,
+            })
+
+
+            let response2Trader3 = (await openLimitPositionAndExpect({
+                limitPrice: 5020,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 1,
+                _trader: trader3
+            })) as unknown as PositionLimitOrderID
+
+
+            const expectTrader1End1 = await expectMarginPnlAndOP({
+                positionManagerAddress: positionManager.address,
+                traderAddress: trader0.address,
+                expectedOpenNotional: 33536,
+                expectedMargin: 3353,
+                expectedPnl: 1568,
+                expectedQuantity: 0,
+            })
+
+
+            await changePrice({limitPrice: 5025, toHigherPrice: true});
+
+        })
+
+
+        /***
+         Current price 4000
+         -S1:Trader0 open Limit short(4900,5)
+         -S2: Trader1 open Market long(5)
+         -S3: Trader1 open Limit long(4700,6)
+         -S4: Trader0 open Market short(6)
+         -S5: Tradercp open Limit Short(5015,7)
+         -S6: Tradercp open Market Long(7) => Current price 5015
+
+         -S7: Trader2 open Limit Short(5015, 7)
+         -S8: Trader0 open Limit Long(5015, 9)
+         -S9: Trade3 open MARKET SHORT(5015,2)
+
+         -S9: Tradercp open Limit Short(5020,7)
+         -S10: Tradercp open Market Long(7) => Current price 5020
+
+         -S11: Trade2 open Limit Long(5020,10)
+         -S12: Trade1 open Limit Short(5020,11)
+         -S13: Trade3 open Limit Long(5020,1)
+         -S13: Tradercp open Limit Short(5025,4)
+         -S14: Tradercp open Market Long(4) => current price 5025
+         */
+        it('PS_FUTU_32', async function () {
+
+            await changePrice({limitPrice: 4000, toHigherPrice: false});
+
+            let response2Trader0 = (await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 5,
+                _trader: trader0
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('5')
+                }
+            );
+
+            let response1Trader1 = (await openLimitPositionAndExpect({
+                limitPrice: 4700,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 6,
+                _trader: trader1
+            })) as unknown as PositionLimitOrderID
+
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('6'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader0.address,
+                    instanceTrader: trader0,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-11')
+                }
+            );
+
+            await changePrice({limitPrice: 5015, toHigherPrice: true});
+
+            let response1Trader2 = (await openLimitPositionAndExpect({
+                limitPrice: 5015,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 7,
+                _trader: trader2
+            })) as unknown as PositionLimitOrderID
+
+
+            let response1Trader0 = (await openLimitPositionAndExpect({
+                limitPrice: 5015,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 9,
+                _trader: trader0
+            })) as unknown as PositionLimitOrderID
+
+
+            // TODO confirm expect again with this test
+            const expectTrader0End1 = await expectMarginPnlAndOP({
+                positionManagerAddress: positionManager.address,
+                traderAddress: trader0.address,
+                expectedOpenNotional: 19163.63,
+                expectedMargin: 1916.36,
+                expectedPnl: -1120.45,
+                expectedQuantity: 0,
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('2'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader3.address,
+                    instanceTrader: trader3,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-2')
+                }
+            );
+
+
+            await changePrice({limitPrice: 5020, toHigherPrice: true});
+
+
+            let response2Trader2 = (await openLimitPositionAndExpect({
+                limitPrice: 5020,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 10,
+                _trader: trader2
+            })) as unknown as PositionLimitOrderID
+
+
+            let response2Trader1 = (await openLimitPositionAndExpect({
+                limitPrice: 5020,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 11,
+                _trader: trader1
+            })) as unknown as PositionLimitOrderID
+
+            let response2Trader3 = (await openLimitPositionAndExpect({
+                limitPrice: 5020,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 1,
+                _trader: trader3
+            })) as unknown as PositionLimitOrderID
+
+
+            await changePrice({limitPrice: 5020, toHigherPrice: true});
+
+        })
+
+        it('PS_FUTU_33', async function () {
+
+            await changePrice({limitPrice: 4000, toHigherPrice: false});
+
+
+            let response2Trader0 = (await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 5,
+                _trader: trader0
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('5')
+                }
+            );
+
+            let response2Trader1 = (await openLimitPositionAndExpect({
+                limitPrice: 4700,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 6,
+                _trader: trader1
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('6'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader0.address,
+                    instanceTrader: trader0,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-11')
+                }
+            );
+
+            await changePrice({limitPrice: 5015, toHigherPrice: true});
+
+
+            let response2Trader2 = (await openLimitPositionAndExpect({
+                limitPrice: 5015,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 15,
+                _trader: trader2
+            })) as unknown as PositionLimitOrderID
+
+            let response1Trader0 = (await openLimitPositionAndExpect({
+                limitPrice: 5015,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 15,
+                _trader: trader0
+            })) as unknown as PositionLimitOrderID
+
+            await changePrice({limitPrice: 5020, toHigherPrice: true});
+
+
+            let response1Trader2 = (await openLimitPositionAndExpect({
+                limitPrice: 5020,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 15,
+                _trader: trader2
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('15'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                    expectedSize: BigNumber.from('-4')
+                }
+            );
+
+            await changePrice({limitPrice: 5025, toHigherPrice: true});
+
+        })
 
     });
 

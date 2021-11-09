@@ -14,14 +14,9 @@ library TickPosition {
     using SafeMath for uint64;
     using LimitOrder for LimitOrder.Data;
     struct Data {
-        // IMPORTANT declare liquidity by uint120
-        uint120 liquidity;
+        uint128 liquidity;
         uint64 filledIndex;
         uint64 currentIndex;
-        // IMPORTANT can change bool to uint8
-        // add attribute isFullBuy means a pip could have just all buy or all sell order (not both at the same time)
-        // TODO remove isFullBuy
-        uint8 isFullBuy;
         // position at a certain tick
         // index => order data
         mapping(uint64 => LimitOrder.Data) orderQueue;
@@ -88,13 +83,15 @@ library TickPosition {
     function cancelLimitOrder(
         TickPosition.Data storage self,
         uint64 orderId
-    ) internal {
+    ) internal returns(uint256) {
         (bool isBuy,
         uint256 size,
         uint256 partialFilled) = self.orderQueue[orderId].getData();
         self.liquidity = self.liquidity - uint120(size - partialFilled);
 
         self.orderQueue[orderId].update(isBuy, partialFilled);
+
+        return size - partialFilled;
     }
 
     function closeLimitOrder(
