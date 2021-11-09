@@ -124,7 +124,7 @@ describe("PositionHouse_01", () => {
 
     async function getOrderIdByTx(tx: any) {
         const receipt = await tx.wait();
-        const orderId = ((receipt?.events || [])[1]?.args || [])['orderIdInPip'] || ((receipt?.events || [])[2]?.args || [])['orderIdInPip']
+        const orderId = ((receipt?.events || [])[1]?.args || [])['orderId'] || ((receipt?.events || [])[2]?.args || [])['orderId']
         const priceLimit = ((receipt?.events || [])[1]?.args || [])['priceLimit']
         const orderIdOfTrader = ((receipt?.events || [])[1]?.args || [])['orderIdOfTrader'] || ((receipt?.events || [])[2]?.args || [])['orderIdOfTrader']
         return {
