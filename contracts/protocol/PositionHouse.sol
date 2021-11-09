@@ -111,7 +111,15 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         address trader,
         int256 quantity,
         uint256 leverage,
-        int128 priceLimit,
+        int128 pip,
+        IPositionManager positionManager
+    );
+
+    event CancelLimit(
+        uint64 orderIdOfTrader,
+        uint64 orderId,
+        address trader,
+        int128 pip,
         IPositionManager positionManager
     );
 
@@ -308,7 +316,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
 
         uint256 refundMargin = refundQuantity * _positionManager.pipToPrice(pip) / uint256(leverage);
-
+        emit CancelLimit(orderIdOfTrader, orderId, _trader, pip, _positionManager);
         // TODO send back margin to trader
     }
 
