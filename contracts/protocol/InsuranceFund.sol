@@ -5,11 +5,11 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract InsuranceFund {
 
     modifier onlyCounterParty(){
-
+        _;
     }
 
     modifier onlyGovernance(){
-
+        _;
     }
 
     function deposit(address token, address trader, uint256 amount) public {

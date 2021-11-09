@@ -115,7 +115,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint64 orderId,
         address trader,
         int256 quantity,
-        Position.Side side,
         uint256 leverage,
         int128 priceLimit,
         IPositionManager positionManager
@@ -216,16 +215,13 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             positionResp.position
         );
 
-        // TODO transfer money from trader or pay margin + profit to trader
-
         address quoteToken = _positionManager.getQuoteAsset();
         if (positionResp.marginToVault > 0) {
             //transfer from trader to vault
-            insuranceFund.deposit(quoteToken, _trader, positionResp.marginToVault);
-
+            insuranceFund.deposit(quoteToken, _trader, positionResp.marginToVault.abs());
         } else if (positionResp.marginToVault < 0) {
             // withdraw from vault to user
-            insuranceFund.withdraw(quoteToken, _trader, -positionResp.marginToVault);
+            insuranceFund.withdraw(quoteToken, _trader, positionResp.marginToVault.abs());
         }
         emit MarginToVault(positionResp.marginToVault);
         emit OpenMarket(_trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _side, _leverage, positionResp.exchangedQuoteAssetAmount / _quantity, _positionManager);
@@ -267,42 +263,43 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 //        if (openLimitResp.sizeOut != 0) {
 ////            handleMarketQuantityInLimitOrder(openLimitResp.sizeOut, openLimitResp.openNotional, _leverage, _side);
 //        }
-        // There are 3 cases could happen:
-        //      1. newMarketOrder same side with oldMarketPosition => increase old position
-        //      2. newMarketOrder opposite with oldMarketPosition and smaller quantity => reduce old position
-        //      3. newMarketOrder opposite with oldMarketPosition and bigger quantity => close old position and open new
-        Position.Data memory _oldPosition = getPosition(address(_positionManager), _trader);
-        PositionLimitOrder.Data memory _newOrder = PositionLimitOrder.Data({
-        pip : _pip,
-        orderId : openLimitResp.orderId,
-        leverage : uint16(_leverage),
-        //        typeLimitOrder : PositionLimitOrder.OrderType.OPEN_LIMIT,
-        isBuy : _side == Position.Side.LONG ? 1 : 2,
-        entryPrice : 0,
-        reduceQuantity : 0
-        });
-        if (_oldPosition.quantity == 0 || _side == (_oldPosition.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT)) {
-            limitOrders[address(_positionManager)][_trader].push(_newOrder);
-        } else {
-            // if new limit order is smaller than old position then just reduce old position
-            if (_oldPosition.quantity.abs() >= _quantity) {
-                _newOrder.reduceQuantity = _quantity - openLimitResp.sizeOut;
-                _newOrder.entryPrice = _oldPosition.openNotional / _oldPosition.quantity.abs();
-                reduceLimitOrders[address(_positionManager)][_trader].push(_newOrder);
-            }
-            // else new limit order is larger than old position then close old position and open new opposite position
-            else {
-                _newOrder.reduceQuantity = _oldPosition.quantity.abs();
+        {
+            // There are 3 cases could happen:
+            //      1. newMarketOrder same side with oldMarketPosition => increase old position
+            //      2. newMarketOrder opposite with oldMarketPosition and smaller quantity => reduce old position
+            //      3. newMarketOrder opposite with oldMarketPosition and bigger quantity => close old position and open new
+            Position.Data memory _oldPosition = getPosition(address(_positionManager), _trader);
+            PositionLimitOrder.Data memory _newOrder = PositionLimitOrder.Data({
+            pip : _pip,
+            orderId : openLimitResp.orderId,
+            leverage : uint16(_leverage),
+            //        typeLimitOrder : PositionLimitOrder.OrderType.OPEN_LIMIT,
+            isBuy : _side == Position.Side.LONG ? 1 : 2,
+            entryPrice : 0,
+            reduceQuantity : 0
+            });
+            if (_oldPosition.quantity == 0 || _side == (_oldPosition.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT)) {
                 limitOrders[address(_positionManager)][_trader].push(_newOrder);
-                _newOrder.entryPrice = _oldPosition.openNotional / _oldPosition.quantity.abs();
-                reduceLimitOrders[address(_positionManager)][_trader].push(_newOrder);
+            } else {
+                // if new limit order is smaller than old position then just reduce old position
+                if (_oldPosition.quantity.abs() >= _quantity) {
+                    _newOrder.reduceQuantity = _quantity - openLimitResp.sizeOut;
+                    _newOrder.entryPrice = _oldPosition.openNotional / _oldPosition.quantity.abs();
+                    reduceLimitOrders[address(_positionManager)][_trader].push(_newOrder);
+                }
+                // else new limit order is larger than old position then close old position and open new opposite position
+                else {
+                    _newOrder.reduceQuantity = _oldPosition.quantity.abs();
+                    limitOrders[address(_positionManager)][_trader].push(_newOrder);
+                    _newOrder.entryPrice = _oldPosition.openNotional / _oldPosition.quantity.abs();
+                    reduceLimitOrders[address(_positionManager)][_trader].push(_newOrder);
+                }
             }
         }
 
         // transfer money from trader
-        insuranceFund.deposit(_positionManager.getQuoteAsset(), _msgSender, _quantity/_leverage);
-
-        emit OpenLimit(openLimitResp.orderId, _trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _side, _leverage, _pip, _positionManager);
+        insuranceFund.deposit(_positionManager.getQuoteAsset(), _trader, _quantity/_leverage);
+        emit OpenLimit(openLimitResp.orderId, _trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, _pip, _positionManager);
     }
 
     function cancelLimitOrder(IPositionManager _positionManager, int128 pip, uint64 orderId) external {
@@ -1060,9 +1057,9 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         //        bool hasToll = toll.toUint() > 0;
         //        bool hasSpread = spread.toUint() > 0;
         if (toll > 0) {
-            IERC20 quoteAsset = _positionManager.getQuoteAsset();
+            address quoteAsset = _positionManager.getQuoteAsset();
 
-            transferFromTrader(quoteAsset, _from, address(feePool), toll);
+//            transferFromTrader(quoteAsset, _from, address(feePool), toll);
 
             //            // transfer spread to insurance fund
             //            if (hasSpread) {
