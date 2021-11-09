@@ -107,7 +107,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     );
     event OpenLimit(
         uint64 orderIdOfTrader,
-        uint64 orderIdInPip,
+        uint64 orderId,
         address trader,
         int256 quantity,
         uint256 leverage,
