@@ -1,6 +1,9 @@
 import {ExecOptions} from "child_process"
 import {resolve} from "path"
-import {exec, mkdir, ShellString, test} from "shelljs"
+import { exec, mkdir, ShellString, test } from "shelljs"
+
+// const shell = require('shelljs');
+
 
 // import { EthereumMetadata } from "./common"
 

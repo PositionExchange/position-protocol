@@ -1,6 +1,8 @@
 // @ts-ignore
 import {ethers, upgrades} from "ethers";
-import {Datastore} from 'nedb';
+
+const Datastore = require('nedb');
+// import {Datastore} from 'nedb';
 
 
 const POSITION_MANAGER = './positionManager.db';
@@ -24,26 +26,31 @@ interface PositionManager {
 
 export class ContractWrapperFactory {
 
-    db = {};
+    db: typeof Datastore;
 
     constructor() {
+
+        // this.db = new Datastore({ filename: 'path/to/datafile', autoload: true });
+
 
         this.db = new Datastore({POSITION_MANAGER, autoload: true});
     }
 
     async createPositionManager(args: CreatePositionManagerInput) {
+        console.log('db: ', this.db);
         console.log(` into createPositionManager`);
         // @ts-ignore
         const PositionManager = await ethers.getContractFactory("PositionManager")
         const isContractExists = false; // TODO implement
         // upgrade
-        const contractAddress = ''
-        // @ts-ignore
-        this.db.find({symbol: `${args.quoteAsset.toLowerCase()}`}, function (error, docs) {
+        const contractAddress = '';
+
+        this.db.find({symbol: `${args.quoteAsset.toLowerCase()}`}, function (err: Error, docs: any) {
 
             if (docs) {
-                this.isContractExists = true;
-                this.contractAddress = ((docs as unknown) as PositionManager).address.toString();
+                console.log(`docs ${docs}`);
+                // this.isContractExists = true;
+                // this.contractAddress = ((docs as unknown) as PositionManager).address.toString();
             }
         })
 
@@ -55,7 +62,7 @@ export class ContractWrapperFactory {
             this.db.update({
                 symbol: `${args.quoteAsset.toLowerCase()}`,
                 address: upgraded.address
-            }, function (error, docs) {
+            }, function (err: Error, docs: any) {
 
             })
 
@@ -77,7 +84,10 @@ export class ContractWrapperFactory {
             const address = instance.address.toString().toLowerCase();
 
             // @ts-ignore
-            this.db.update({symbol: `${args.quoteAsset.toLowerCase()}`, address: address}, function (error, docs) {
+            this.db.update({
+                symbol: `${args.quoteAsset.toLowerCase()}`,
+                address: address
+            }, function (err: Error, docs: any) {
 
             })
             // TODO save contract instance by quote and base asset

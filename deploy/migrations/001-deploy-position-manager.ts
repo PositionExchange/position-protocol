@@ -16,6 +16,7 @@ const migrations: MigrationDefinition = {
              priceFeed: string;
              */
             const positionManager = new ContractWrapperFactory();
+            console.log('001');
 
             await positionManager.createPositionManager({
                 quoteAsset: '0xed24fc36d5ee211ea25a80239fb8c4cfd80f12ee',
@@ -32,5 +33,6 @@ const migrations: MigrationDefinition = {
         }
     })
 }
+
 
 export default migrations;
