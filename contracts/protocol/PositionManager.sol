@@ -18,10 +18,10 @@ import "hardhat/console.sol";
 contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
     using TickPosition for TickPosition.Data;
     using LiquidityBitmap for mapping(int128 => uint256);
-    uint256 public basisPoint = 100; //0.01
-    uint256 public constant BASE_BASIC_POINT = 10000;
+    uint256 public basisPoint; //0.01
+    uint256 public BASE_BASIC_POINT;
     // fee = quoteAssetAmount / tollRatio (means if fee = 0.001% then tollRatio = 100000)
-    uint256 tollRatio = 100000;
+    uint256 tollRatio;
 
     int256 public fundingRate;
 
@@ -30,6 +30,8 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     uint256 public fundingBufferPeriod;
     uint256 public nextFundingTime;
     bytes32 public priceFeedKey;
+    // Max finding word can be 3500
+    int128 public maxFindingWordsIndex;
 
     IChainLinkPriceFeed public priceFeed;
 
@@ -51,19 +53,19 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         uint256 blockNumber;
     }
 
-    enum TwapCalcOption { RESERVE_ASSET, INPUT_ASSET }
+    enum TwapCalcOption {RESERVE_ASSET, INPUT_ASSET}
 
     struct TwapPriceCalcParams {
         TwapCalcOption opt;
         uint256 snapshotIndex;
-//        TwapInputAsset asset;
+        //        TwapInputAsset asset;
     }
+
+
 
     // array of reserveSnapshots
     ReserveSnapshot[] public reserveSnapshots;
 
-    // Max finding word can be 3500
-    int128 public maxFindingWordsIndex = 1000;
 
     SingleSlot public singleSlot;
     mapping(int128 => TickPosition.Data) public tickPosition;
@@ -75,8 +77,11 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     event Swap(address account, uint256 indexed amountIn, uint256 indexed amountOut);
     event LimitOrderCreated(uint64 orderId, int128 pip, uint128 size, bool isBuy);
     event UpdateMaxFindingWordsIndex(int128 newMaxFindingWordsIndex);
-    event UpdateBasicPoint(uint256 newBasicPoint);
+    event UpdateBasisPoint(uint256 newBasicPoint);
+    event UpdateBaseBasicPoint(uint256 newBaseBasisPoint);
     event UpdateTollRatio(uint256 newTollRatio);
+    event UpdateSpotPriceTwapInterval(uint256 newSpotPriceTwapInterval);
+    event ReserveSnapshotted(int128 pip, uint256 timestamp);
 
 
 
@@ -90,16 +95,45 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         _;
     }
 
-    constructor(
-        int128 initialPip,
-        address _quoteAsset
-    ) {
-        singleSlot.pip = initialPip;
+
+    function initialize(
+        int128 _initialPip,
+        address _quoteAsset,
+        bytes32 _priceFeedKey,
+        uint256 _basisPoint,
+        uint256 _BASE_BASIC_POINT,
+        uint256 _tollRatio,
+        int128 _maxFindingWordsIndex,
+        uint256 _fundingPeriod,
+        IChainLinkPriceFeed _priceFeed
+    )
+    public initializer {
+        require(
+            _fundingPeriod != 0 &&
+            _quoteAsset != address(0) &&
+            address(_priceFeed) != address(0),
+            "invalid input"
+        );
+
+        priceFeedKey = _priceFeedKey;
+        singleSlot.pip = _initialPip;
         reserveSnapshots.push(
-            ReserveSnapshot(initialPip, block.timestamp, block.number)
+            ReserveSnapshot(_initialPip, block.timestamp, block.number)
         );
         quoteAsset = IERC20(_quoteAsset);
+        basisPoint = _basisPoint;
+        BASE_BASIC_POINT = _BASE_BASIC_POINT;
+        tollRatio = _tollRatio;
+        spotPriceTwapInterval = 1 hours;
+        fundingPeriod = _fundingPeriod;
+        fundingBufferPeriod = _fundingPeriod / 2;
+        maxFindingWordsIndex = _maxFindingWordsIndex;
+        priceFeed = _priceFeed;
+
+        emit ReserveSnapshotted(_initialPip, block.timestamp);
+
     }
+
 
     function getCurrentPip() public view returns (int128) {
         return singleSlot.pip;
@@ -117,6 +151,9 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         return uint256(uint128(pip)) * BASE_BASIC_POINT / basisPoint;
     }
 
+    function getLiquidityInPip(int128 pip) public view returns (uint128){
+        return liquidityBitmap.hasLiquidity(pip) ? tickPosition[pip].liquidity : 0;
+    }
 
     function calcAdjustMargin(uint256 adjustMargin) public view returns (uint256) {
         return adjustMargin * BASE_BASIC_POINT;
@@ -169,8 +206,9 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     }
 
     function cancelLimitOrder(int128 pip, uint64 orderId) external returns (uint256) {
-        tickPosition[pip].cancelLimitOrder(orderId);
-        return 1;
+
+        return tickPosition[pip].cancelLimitOrder(orderId);
+        //        return 1;
     }
 
     function closeLimitOrder(int128 pip, uint64 orderId, uint256 _amountClose) external returns (uint256 amountClose) {
@@ -187,20 +225,20 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         SingleSlot memory _singleSlot = singleSlot;
         bool hasLiquidity = liquidityBitmap.hasLiquidity(pip);
         //save gas
-        if (pip == _singleSlot.pip && hasLiquidity && _singleSlot.isFullBuy != (isBuy ? 1 : 2) ) {
+        if (pip == _singleSlot.pip && hasLiquidity && _singleSlot.isFullBuy != (isBuy ? 1 : 2)) {
             // open market
             (sizeOut, openNotional) = openMarketPositionWithMaxPip(size, isBuy, uint128(pip));
         }
-//        else if (!isBuy && pip <= _singleSlot.pip) {
-//            //open market sell
-//
-//        }
-//        else {
-//            // open limit only
-//
-//        }
-        if (size > sizeOut){
-            if(pip == _singleSlot.pip && _singleSlot.isFullBuy != (isBuy ? 1 : 2)){
+        //        else if (!isBuy && pip <= _singleSlot.pip) {
+        //            //open market sell
+        //
+        //        }
+        //        else {
+        //            // open limit only
+        //
+        //        }
+        if (size > sizeOut) {
+            if (pip == _singleSlot.pip && _singleSlot.isFullBuy != (isBuy ? 1 : 2)) {
                 singleSlot.isFullBuy = isBuy ? 1 : 2;
             }
             //TODO validate pip
@@ -369,14 +407,27 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         emit  UpdateMaxFindingWordsIndex(_newMaxFindingWordsIndex);
     }
 
-    function updateBasicPoint(uint256 _newBasicPoint) public onlyOwner {
-        basisPoint = _newBasicPoint;
-        emit UpdateBasicPoint(_newBasicPoint);
+    function updateBasisPoint(uint256 _newBasisPoint) public onlyOwner {
+        basisPoint = _newBasisPoint;
+        emit UpdateBasisPoint(_newBasisPoint);
+    }
+
+    function updateBaseBasicPoint(uint256 _newBaseBasisPoint) public onlyOwner {
+        BASE_BASIC_POINT = _newBaseBasisPoint;
+        emit UpdateBaseBasicPoint(_newBaseBasisPoint);
     }
 
     function updateTollRatio(uint256 newTollRatio) public onlyOwner {
         tollRatio = newTollRatio;
         emit UpdateTollRatio(newTollRatio);
+    }
+
+
+    function updateSpotPriceTwapInterval(uint256 _spotPriceTwapInterval) public onlyOwner {
+
+        spotPriceTwapInterval = _spotPriceTwapInterval;
+        emit UpdateSpotPriceTwapInterval(_spotPriceTwapInterval);
+
     }
 
     /**
@@ -416,7 +467,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
      * @return underlying price
      */
     function getUnderlyingPrice() public view returns (uint256) {
-        return priceFeed.getPrice(priceFeedKey)*BASE_BASIC_POINT;
+        return priceFeed.getPrice(priceFeedKey) * BASE_BASIC_POINT;
     }
 
     /**
@@ -424,7 +475,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
      * @return underlying price
      */
     function getUnderlyingTwapPrice(uint256 _intervalInSeconds) public view returns (uint256) {
-        return priceFeed.getTwapPrice(priceFeedKey, _intervalInSeconds)*BASE_BASIC_POINT;
+        return priceFeed.getTwapPrice(priceFeedKey, _intervalInSeconds) * BASE_BASIC_POINT;
     }
 
     /**
@@ -492,20 +543,11 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         return weightedPrice / _intervalInSeconds;
     }
 
-    // test function
-    // TODO delete this function when run main net
-    function getAllReserveSnapshotTest() public view returns (bool) {
-        for(uint256 i = 0; i <= reserveSnapshots.length - 1 ; i++){
-            console.log("reserve snapshot information", reserveSnapshots[i].blockNumber, reserveSnapshots[i].timestamp, uint128(reserveSnapshots[i].pip));
-        }
-        return true;
-    }
-
     function getPriceWithSpecificSnapshot(TwapPriceCalcParams memory params)
-        internal
-        view
-        virtual
-        returns (uint256)
+    internal
+    view
+    virtual
+    returns (uint256)
     {
         return pipToPrice(reserveSnapshots[params.snapshotIndex].pip);
     }
@@ -515,12 +557,12 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     //
     // update funding rate = premiumFraction / twapIndexPrice
     function updateFundingRate(
-        int256  _premiumFraction,
-        uint256  _underlyingPrice
+        int256 _premiumFraction,
+        uint256 _underlyingPrice
     ) private {
         fundingRate = _premiumFraction / int256(_underlyingPrice);
         // TODO emit event funding rate updated
-//        emit FundingRateUpdated(fundingRate, _underlyingPrice);
+        //        emit FundingRateUpdated(fundingRate, _underlyingPrice);
     }
 
     function addReserveSnapshot() internal {
@@ -534,7 +576,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
             );
         }
         // TODO emit event ReserveSnapshotted
-//        emit ReserveSnapshotted(pip, _blockTimestamp());
+        emit ReserveSnapshotted(singleSlot.pip, block.timestamp);
 
     }
 

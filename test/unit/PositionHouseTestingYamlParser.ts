@@ -151,7 +151,7 @@ describe('test position house using yaml', function () {
                 limitOrderRes = await positionHouseTestingTool.closeLimitPosition({
                     trader: traderInstance,
                     price,
-                    quantity
+                    percentQuantity : quantity.toString()
                 })
             }
             traderLimitOrderMap.push(traderInstance.address, limitOrderRes)

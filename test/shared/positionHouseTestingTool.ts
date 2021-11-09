@@ -14,7 +14,7 @@ import {expect} from "chai";
 
 async function getOrderIdByTx(tx: any) {
     const receipt = await tx.wait();
-    const orderId = ((receipt?.events || [])[1]?.args || [])['orderId']
+    const orderId = ((receipt?.events || [])[1]?.args || [])['orderIdInPip']
     const priceLimit = ((receipt?.events || [])[1]?.args || [])['priceLimit']
     return {
         orderId,

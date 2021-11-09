@@ -8,6 +8,8 @@ interface IPositionManager {
 
     function getCurrentSingleSlot() external view returns (int128, uint8);
 
+    function getLiquidityInPip(int128 pip) external view returns (uint128);
+
     function getPendingOrderDetail(int128 pip, uint64 orderId) external view returns (
         bool isFilled,
         bool isBuy,
