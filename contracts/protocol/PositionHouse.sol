@@ -132,7 +132,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
     event RemoveMargin(address trader, uint256 marginRemoved, IPositionManager positionManager);
 
-    event MarginToVault(int256 marginToVault);
 
     event Liquidate();
 
@@ -226,7 +225,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             // withdraw from vault to user
             insuranceFund.withdraw(quoteToken, _trader, positionResp.marginToVault.abs());
         }
-        emit MarginToVault(positionResp.marginToVault);
         emit OpenMarket(_trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _side, _leverage, positionResp.exchangedQuoteAssetAmount / _quantity, _positionManager);
     }
 
