@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface IPositionManager {
     function getCurrentPip() external view returns (int128);
 
+    function getBaseBasisPoint() public view returns (uint256);
+
     function getCurrentSingleSlot() external view returns (int128, uint8);
 
     function getLiquidityInPip(int128 pip) external view returns (uint128);
@@ -32,8 +34,6 @@ interface IPositionManager {
     function calcFee(uint256 _positionNotional) external view returns (uint256);
 
     function cancelLimitOrder(int128 pip, uint64 orderId) external returns (uint256);
-
-    function closeLimitOrder(int128 pip, uint64 orderId, uint256 amountClose) external;
 
     function settleFunding() external returns (int256 premiumFraction);
 }

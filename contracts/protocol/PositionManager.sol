@@ -129,6 +129,9 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         emit ReserveSnapshotted(_initialPip, block.timestamp);
     }
 
+    function getBaseBasisPoint() public view returns (uint256) {
+        return BASE_BASIC_POINT;
+    }
 
     function getCurrentPip() public view returns (int128) {
         return singleSlot.pip;
@@ -187,11 +190,6 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     function cancelLimitOrder(int128 pip, uint64 orderId) external returns (uint256) {
         return tickPosition[pip].cancelLimitOrder(orderId);
     }
-
-    function closeLimitOrder(int128 pip, uint64 orderId, uint256 _amountClose) external returns (uint256 amountClose) {
-        amountClose = tickPosition[pip].closeLimitOrder(orderId, _amountClose);
-    }
-
 
     function openLimitPosition(int128 pip, uint128 size, bool isBuy) external whenNotPause onlyCounterParty returns (uint64 orderId, uint256 sizeOut, uint256 openNotional) {
         if (isBuy && singleSlot.pip != 0) {
