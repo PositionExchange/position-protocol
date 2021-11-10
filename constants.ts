@@ -1,6 +1,6 @@
 import dotenv from "dotenv"
 import { join, resolve } from "path"
-dotenv.config({ path: resolve(__dirname, "..", "..", ".env") })
+dotenv.config()
 
 export const ROOT_DIR = __dirname
 export const SRC_DIR_NAME = "src"
@@ -8,9 +8,10 @@ const LEGACY_SRC_DIR_NAME = join(SRC_DIR_NAME, "legacy")
 
 export const COVERAGE_URL = "http://127.0.0.1:8555"
 export const LOCALHOST_URL = "http://127.0.0.1:8545"
-export const BSC_TESTNET_URL =
-    `${process.env["BSC_TESTNET_ENDPOINT"]}` || "https://data-seed-prebsc-1-s1.binance.org:8545/"
-export const BSC_MAINNET_URL = `${process.env["BSC_MAINNET_ENDPOINT"]}`
+export const BSC_TESTNET_URL = process.env["BSC_TESTNET_ENDPOINT"] || "https://data-seed-prebsc-1-s1.binance.org:8545/"
+export const BSC_MAINNET_URL = process.env["BSC_MAINNET_ENDPOINT"]
+export const PRIV_TESTNET_ACCOUNT = process.env["PRIV_TESTNET_ACCOUNT"] || ""
+export const PRIV_MAINNET_ACCOUNT = process.env["PRIV_MAINNET_ACCOUNT"] || ""
 
 // export const BSC_TESTNET_URL = `${process.env["BSC_TESTNET"]}
 // export const ROPSTEN_URL = `${process.env["WEB3_ENDPOINT"]}`

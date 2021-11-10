@@ -16,6 +16,7 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
     bytes32[] public priceFeedKeys;
     mapping(bytes32 => uint8) public priceFeedDecimalMap;
 
+    //TODO require permission
     function addAggregator(bytes32 _priceFeedKey, address _aggregator) public {
         requireNonEmptyAddress(_aggregator);
         if (address(priceFeedMap[_priceFeedKey]) == address(0)) {
@@ -25,6 +26,7 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
         priceFeedDecimalMap[_priceFeedKey] = AggregatorV3Interface(_aggregator).decimals();
     }
 
+    //TODO require permission
     function removeAggregator(bytes32 _priceFeedKey) external {
         requireNonEmptyAddress(address(getAggregator(_priceFeedKey)));
         delete priceFeedMap[_priceFeedKey];

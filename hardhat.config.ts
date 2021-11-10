@@ -1,12 +1,9 @@
-// require("@nomiclabs/hardhat-waffle")
-// require('@nomiclabs/hardhat-ethers')
-// require('@nomiclabs/hardhat-etherscan')
 import "@nomiclabs/hardhat-waffle";
 import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-etherscan';
 import "@typechain/hardhat";
 import {task} from "hardhat/config";
-import {BSC_MAINNET_URL, BSC_TESTNET_URL, GAS_PRICE} from "./constants";
+import {BSC_MAINNET_URL, BSC_TESTNET_URL, GAS_PRICE, PRIV_TESTNET_ACCOUNT, PRIV_MAINNET_ACCOUNT} from "./constants";
 // const BSC_TESTNET_URL =
 //     `${process.env["BSC_TESTNET_ENDPOINT"]}` || "https://data-seed-prebsc-1-s1.binance.org:8545/"
 // const BSC_MAINNET_URL = `${process.env["BSC_MAINNET_ENDPOINT"]}`
@@ -36,16 +33,16 @@ module.exports = {
             allowUnlimitedContractSize: true,
         },
         testnet: {
-            url: 'https://data-seed-prebsc-1-s1.binance.org:8545/',
+            url: BSC_TESTNET_URL,
             chainId: 97,
-            gasPrice: 20000000000,
-            accounts: ["e797cad59780e24c113373fc91345869d7eab37ea0e843117575854b01625df4"],
+            gasPrice: GAS_PRICE,
+            accounts: [PRIV_TESTNET_ACCOUNT],
         },
         mainnet: {
             url: BSC_MAINNET_URL,
             chainId: 56,
-            gasPrice: 20000000000,
-            accounts: ["e797cad59780e24c113373fc91345869d7eab37ea0e843117575854b01625df4"],
+            gasPrice: GAS_PRICE,
+            accounts: [PRIV_MAINNET_ACCOUNT],
         },
 
     },

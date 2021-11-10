@@ -379,6 +379,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
         if (canClaim) {
 
+
             // TODO transfer amount fund back to _trader and clean limitOrders of _trader
 
             // TODO check the case close limit partial, should we delete the limit order have been closed
