@@ -101,13 +101,13 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         uint256 _tollRatio,
         int128 _maxFindingWordsIndex,
         uint256 _fundingPeriod,
-        IChainLinkPriceFeed _priceFeed
+        address _priceFeed
     )
     public initializer {
         require(
             _fundingPeriod != 0 &&
             _quoteAsset != address(0) &&
-            address(_priceFeed) != address(0),
+            _priceFeed != address(0),
             "invalid input"
         );
 
@@ -124,7 +124,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         fundingPeriod = _fundingPeriod;
         fundingBufferPeriod = _fundingPeriod / 2;
         maxFindingWordsIndex = _maxFindingWordsIndex;
-        priceFeed = _priceFeed;
+        priceFeed = IChainLinkPriceFeed(_priceFeed);
 
         emit ReserveSnapshotted(_initialPip, block.timestamp);
     }

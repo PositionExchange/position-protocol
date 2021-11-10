@@ -1,97 +1,152 @@
 // @ts-ignore
-import {ethers, upgrades} from "ethers";
+import {ethers, upgrades, hre} from "hardhat";
+import {CreatePositionManagerInput, PositionManager, CreatePositionHouseInput, CreateInsuranceFund} from "./types";
+import {DatastorePosition} from "./DataStore";
 
-const Datastore = require('nedb');
+const Datastore = require('nedb-promises');
+
 // import {Datastore} from 'nedb';
 
 
 const POSITION_MANAGER = './positionManager.db';
+const POSITION_HOUSE = './positionHouse.db';
+const INSURANCE_FUND = './positionInsuranceFund.db';
 
-export interface CreatePositionManagerInput {
-    quoteAsset: string;
-    initialPrice: number;
-    priceFeedKey: string;
-    basisPoint: number;
-    baseBasisPoint: number;
-    tollRatio: number;
-    maxFindingWordsIndex: number;
-    fundingPeriod: number;
-    priceFeed: string;
-}
 
-interface PositionManager {
-    symbol: string,
-    address: string
-}
+//0x0353a27d26e4621740b47eff4dd315b5bf7afc15
 
 export class ContractWrapperFactory {
 
-    db: typeof Datastore;
+
+    db = (new DatastorePosition()).db;
+
 
     constructor() {
 
-        // this.db = new Datastore({ filename: 'path/to/datafile', autoload: true });
-
-
-        this.db = new Datastore({POSITION_MANAGER, autoload: true});
     }
 
     async createPositionManager(args: CreatePositionManagerInput) {
-        console.log('db: ', this.db);
-        console.log(` into createPositionManager`);
-        // @ts-ignore
+
+        const key = `${args.priceFeedKey}_${args.quote}`;
+
         const PositionManager = await ethers.getContractFactory("PositionManager")
-        const isContractExists = false; // TODO implement
-        // upgrade
-        const contractAddress = '';
+        let isContractExists = false;
 
-        this.db.find({symbol: `${args.quoteAsset.toLowerCase()}`}, function (err: Error, docs: any) {
 
-            if (docs) {
-                console.log(`docs ${docs}`);
-                // this.isContractExists = true;
-                // this.contractAddress = ((docs as unknown) as PositionManager).address.toString();
-            }
-        })
+        const dataPositionManager = (await this.db.find({symbol: `${args.quoteAsset.toLowerCase()}`}) as unknown) as PositionManager;
 
-        if (isContractExists) {
+        const contractAddress = dataPositionManager.address;
+
+
+        if (dataPositionManager !== undefined) {
 
             const upgraded = await upgrades.upgradeProxy(contractAddress, PositionManager);
 
-            // @ts-ignore
-            this.db.update({
-                symbol: `${args.quoteAsset.toLowerCase()}`,
-                address: upgraded.address
-            }, function (err: Error, docs: any) {
+            console.log(`Upgrade Position Manager ${key}`)
 
-            })
+            await this.db.update({
+                symbol: key
+            }, {address: upgraded.address})
 
 
         } else {
             const contractArgs = [
                 args.initialPrice,
                 args.quoteAsset,
-                args.priceFeed,
+                ethers.utils.formatBytes32String(args.priceFeedKey),
                 args.basisPoint,
                 args.baseBasisPoint,
                 args.tollRatio,
+                args.maxFindingWordsIndex,
                 args.fundingPeriod,
                 args.priceFeed];
 
-            const instance = await upgrades.deployProxy(PositionManager, [...contractArgs]);
+            //@ts-ignore
+            const instance = await upgrades.deployProxy(PositionManager, contractArgs);
+            console.log("wait for deploy")
             await instance.deployed();
 
             const address = instance.address.toString().toLowerCase();
+            console.log(`${key} positionManager address : ${address}`)
 
-            // @ts-ignore
-            this.db.update({
-                symbol: `${args.quoteAsset.toLowerCase()}`,
+            await this.db.insert({
+                symbol: key,
                 address: address
-            }, function (err: Error, docs: any) {
-
             })
-            // TODO save contract instance by quote and base asset
         }
+    }
+
+    async createPositionHouse(args: CreatePositionHouseInput) {
+        console.log(`into create PositionHouse`);
+        const PositionHouse = await ethers.getContractFactory("PositionHouse")
+
+
+        const positionHouse = await this.db.find({symbol: `PositionHouse}`});
+
+        if (positionHouse !== undefined) {
+
+            const upgraded = await upgrades.upgradeProxy(positionHouse.address, PositionHouse);
+
+            await this.db.insert({
+                symbol: `PositionHouse`,
+                address: upgraded.address
+            })
+        } else {
+            const contractArgs = [
+                args.maintenanceMarginRatio,
+                args.partialLiquidationRatio,
+                args.liquidationFeeRatio,
+                args.liquidationPenaltyRatio
+            ];
+
+            //@ts-ignore
+            const instance = await upgrades.deployProxy(PositionHouse, contractArgs);
+            console.log("wait for deploy")
+            await instance.deployed();
+
+            const address = instance.address.toString().toLowerCase();
+            console.log(`PositionHouse address : ${address}`)
+
+            await this.db.update({
+                symbol: `PositionHouse`
+
+            }, {address: address})
+
+        }
+    }
+
+    async createInsuranceFund(args: CreateInsuranceFund) {
+
+
+        const InsuranceFund = await ethers.getContractFactory("InsuranceFund");
+
+        if (true) {
+            // already stored in db
+            // TODO upgrade contract
+
+            // const upgraded = await upgrades.upgradeProxy('OLD ADDRESS', 'FACTORY');
+
+        } else {
+            // TODO deploy new contract
+
+            const contractArgs = [];
+
+            //@ts-ignore
+            const instance = await upgrades.deployProxy(InsuranceFund, contractArgs);
+            console.log("wait for deploy insurance fund");
+            await instance.deployed();
+
+            const address = instance.address.toString().toLowerCase();
+            console.log(`InsuranceFund address : ${address}`)
+
+            await this.db.update({
+                symbol: `PositionHouse`
+
+            }, {address: address})
+
+        }
+
+
     }
 
 }

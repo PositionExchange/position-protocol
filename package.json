@@ -19,6 +19,7 @@
   "devDependencies": {
     "@endemolshinegroup/git-author-check": "^1.0.1",
     "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-etherscan": "^2.1.7",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@typechain/ethers-v5": "^7.0.1",
     "@typechain/hardhat": "^2.3.0",
@@ -32,7 +33,7 @@
     "decimal.js": "^10.3.1",
     "ethereum-waffle": "^3.4.0",
     "ethers": "^5.4.5",
-    "hardhat": "^2.4.1",
+    "hardhat": "^2.6.8",
     "hardhat-deploy": "^0.8.9",
     "husky": "^7.0.1",
     "mocha": "^9.0.1",
@@ -47,14 +48,15 @@
   "dependencies": {
     "@chainlink/contracts": "^0.2.1",
     "@nomiclabs/buidler": "^1.4.8",
-    "@nomiclabs/hardhat-etherscan": "^2.1.4",
     "@openzeppelin/contracts": "^4.2.0",
     "@openzeppelin/contracts-ethereum-package": "^3.0.0",
     "@openzeppelin/contracts-upgradeable": "^4.3.2",
+    "@openzeppelin/hardhat-upgrades": "^1.12.0",
     "dotenv": "^10.0.0",
     "ethereumjs-util": "^7.1.0",
     "mocha-chai-jest-snapshot": "^1.1.2",
     "nedb": "^1.8.0",
+    "nedb-promises": "^5.0.1",
     "semaphore": "^1.1.0"
   },
   "scripts": {

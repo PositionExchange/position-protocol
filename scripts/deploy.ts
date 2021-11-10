@@ -1,13 +1,19 @@
+import { task } from "hardhat/config";
 import path = require("path");
-import {asyncExec} from "./helper";
 import {readdir} from "fs/promises";
 import {ExecOptions} from "child_process";
+import {Stage} from "../deploy/types";
+
+export const TASK_MIGRATE = "migrate"
 
 
-async function deploy(stage: string, options?: ExecOptions) {
+async function deploy(stage: Stage, options?: ExecOptions) {
 
     const basePath = path.join(__dirname, "../deploy/migrations")
     const filenames = await readdir(basePath)
+    const context = {
+
+    }
     for (const filename of filenames) {
         const migrationPath = path.join(basePath, filename)
         // const {batchIndex, layer, configPath} = await loadMigration(migrationPath)
@@ -19,21 +25,17 @@ async function deploy(stage: string, options?: ExecOptions) {
 
         console.info(`Start migration: ${filename}`)
         const network = 'testnet';//settings.getNetwork(layer)
+        const module = await import(path.join(basePath, filename))
+        console.log(module)
         // const configPathParam = configPath ? `--config ${configPath}` : ""
-        const cmd = `hardhat run --network ${network} ${migrationPath}`
-        console.log(cmd);
-        await asyncExec(cmd, options)
+
     }
 
 }
 
-async function main() {
-    await deploy('test');
+task('deploy', 'deploy contracts', async (taskArgs, hre, runSuper) => {
+    deploy(taskArgs.stage)
+}).addParam('stage', 'Stage', undefined, Stage)
 
 
-}
-
-main().then(() => process.exit(0)).catch((error) => {
-    console.error(error);
-    process.exit(1);
-})
+export default {}
