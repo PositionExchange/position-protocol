@@ -527,7 +527,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         positionMap[address(_positionManager)][_trader].update(
             positionData
         );
-
+        emit RemoveMargin(_trader, _marginRemoved, _positionManager);
 
         // TODO transfer money back to trader
 
@@ -670,7 +670,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         PositionResp memory closePositionResp = internalClosePosition(_positionManager, _trader, PnlCalcOption.SPOT_PRICE);
         // if remainQuantity == 0 means no more quantity to open reverse position
         if (_quantity - closePositionResp.exchangedPositionSize == 0) {
-            //        if (openNotional < _leverage) {
             positionResp = closePositionResp;
         } else {
             PositionResp memory increasePositionResp = increasePosition(_positionManager, _side, _quantity - closePositionResp.exchangedPositionSize, _leverage);
@@ -736,7 +735,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
                     handleNotionalInIncrease(address(_positionManager), _trader, _newNotional),
                 // TODO update latest cumulative premium fraction
                     0,
-                    0
+                    block.number
                 );
             } else {
                 newData = Position.Data(
@@ -746,7 +745,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
                     handleNotionalInIncrease(address(_positionManager), _trader, _newNotional),
                 // TODO update latest cumulative premium fraction
                     0,
-                    0
+                    block.number
                 );
             }
         } else {
@@ -758,7 +757,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
                     handleNotionalInOpenReverse(address(_positionManager), _trader, _newNotional),
                 // TODO update latest cumulative premium fraction
                     0,
-                    0
+                    block.number
                 );
             } else {
                 newData = Position.Data(
@@ -768,7 +767,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
                     handleNotionalInOpenReverse(address(_positionManager), _trader, _newNotional),
                 // TODO update latest cumulative premium fraction
                     0,
-                    0
+                    block.number
                 );
             }
         }
@@ -779,7 +778,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
     function openLimitIncludeMarket(IPositionManager _positionManager, address _trader, int128 _pip, uint128 _quantity, bool _isBuy, uint256 _leverage) internal returns (PositionResp memory positionResp, uint64 orderId, uint256 sizeOut){
         {
-            //            Position.Data memory marketPositionData = positionMap[address(_positionManager)][_trader];
             Position.Data memory totalPositionData = getPosition(address(_positionManager), _trader);
             (int128 currentPip, uint8 isFullBuy) = _positionManager.getCurrentSingleSlot();
             uint256 openNotional;
