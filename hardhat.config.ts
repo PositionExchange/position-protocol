@@ -3,6 +3,7 @@ import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-etherscan';
 import "@typechain/hardhat";
 import "@openzeppelin/hardhat-upgrades"
+import "hardhat-contract-sizer"
 import {task} from "hardhat/config";
 import "@nomiclabs/hardhat-etherscan";
 import {BSC_MAINNET_URL, BSC_TESTNET_URL, GAS_PRICE, PRIV_TESTNET_ACCOUNT, PRIV_MAINNET_ACCOUNT} from "./constants";
@@ -55,7 +56,7 @@ module.exports = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 1000,
+                        runs: 200,
                     },
                 },
             },
@@ -64,7 +65,7 @@ module.exports = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 1000,
+                        runs: 200,
                     },
                 },
             }
