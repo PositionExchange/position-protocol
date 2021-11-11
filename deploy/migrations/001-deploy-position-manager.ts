@@ -15,21 +15,20 @@ const migrations: MigrationDefinition = {
              fundingPeriod: number;
              priceFeed: string;
              */
-            const positionManager = new ContractWrapperFactory();
-            await positionManager.createPositionManager({
-                quoteAsset: '0xed24fc36d5ee211ea25a80239fb8c4cfd80f12ee',
-                initialPrice: 5000,
+            await context.factory.createPositionManager({
+                quoteAsset: await context.db.getMockContract(`BUSD`),
+                initialPrice: 6837500,
                 priceFeedKey: 'BTC',
                 basisPoint: 100,
                 baseBasisPoint: 10000,
                 tollRatio: 10000,
-                maxFindingWordsIndex: 1000,
+                maxFindingWordsIndex: 3000,
                 fundingPeriod: 1000,
                 priceFeed: '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(),
-                quote: 'USDT'
+                quote: 'BUSD'
             })
+        },
 
-        }
     })
 }
 

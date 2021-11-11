@@ -16,16 +16,17 @@ library PositionLimitOrder {
         uint8 isBuy;
         uint256 entryPrice;
         uint256 reduceQuantity;
+        uint256 blockNumber;
     }
 
-    struct ReduceData {
-        int128 pip;
-        uint64 orderId;
-        uint16 leverage;
-//        OrderType typeLimitOrder;
-        uint8 isBuy;
-    }
-
+//    struct ReduceData {
+//        int128 pip;
+//        uint64 orderId;
+//        uint16 leverage;
+////        OrderType typeLimitOrder;
+//        uint8 isBuy;
+//    }
+//
     function checkFilledToSelfOrders(
         mapping(address => mapping(address => PositionLimitOrder.Data[])) storage limitOrderMap,
         IPositionManager _positionManager,

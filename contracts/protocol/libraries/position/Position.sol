@@ -12,11 +12,11 @@ library Position {
         // TODO restruct data
         //        Position.Side side;
         int256 quantity;
-        int256 sumQuantityLimitOrder;
         uint256 margin;
         uint256 openNotional;
         int256 lastUpdatedCumulativePremiumFraction;
         uint256 blockNumber;
+        uint256 leverage;
     }
 
     struct LiquidatedData {
@@ -45,6 +45,7 @@ library Position {
         self.openNotional = newPosition.openNotional;
         self.lastUpdatedCumulativePremiumFraction = newPosition.lastUpdatedCumulativePremiumFraction;
         self.blockNumber = newPosition.blockNumber;
+        self.leverage = newPosition.leverage;
     }
 
     function updatePartialLiquidate(
@@ -56,6 +57,7 @@ library Position {
         self.openNotional -= newPosition.openNotional;
         self.lastUpdatedCumulativePremiumFraction += newPosition.lastUpdatedCumulativePremiumFraction;
         self.blockNumber += newPosition.blockNumber;
+        self.leverage = self.leverage;
     }
 
     function clearDebt(Position.LiquidatedData storage self) internal {
@@ -73,6 +75,7 @@ library Position {
         self.lastUpdatedCumulativePremiumFraction = 0;
         // TODO get current block number
         self.blockNumber = 0;
+        self.leverage = 0;
     }
 
     function side(Position.Data memory self) internal view returns (Position.Side) {
@@ -98,15 +101,6 @@ library Position {
         } else {
             positionData.margin = self.margin > orderMargin ? self.margin - orderMargin : orderMargin - self.margin;
             positionData.openNotional = self.openNotional > orderNotional ? self.openNotional - orderNotional : orderNotional - self.openNotional;
-//            if (self.quantity.abs() > quantity.abs()) {
-//                console.log("line 64 position.sol");
-//                positionData.margin = self.margin - orderMargin;
-//                positionData.openNotional = self.openNotional - orderNotional;
-//            } else {
-//                console.log("line 70 position.sol", orderMargin, self.margin);
-//                positionData.margin = orderMargin - self.margin;
-//                positionData.openNotional = orderNotional - self.openNotional;
-//            }
         }
         positionData.quantity = self.quantity + quantity;
     }

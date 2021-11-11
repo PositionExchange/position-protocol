@@ -1,15 +1,34 @@
 const Datastore = require('nedb-promises');
 
-
-const POSITION_MANAGER = './positionManager.db';
-const POSITION_HOUSE = './positionHouse.db';
-const INSURANCE_FUND = './positionInsuranceFund.db';
-
-export class DatastorePosition {
+export class DeployDataStore {
 
     db: typeof Datastore;
 
-    constructor() {
-        this.db = new Datastore({filename: POSITION_MANAGER, autoload: true});
+    constructor(filename = undefined) {
+        this.db = new Datastore({filename: filename || './deployData.db', autoload: true});
     }
+
+    async findAddressByKey(key: string): Promise<string | null> {
+        const data = await this.db.findOne({key: key})
+        if(data){
+            return data.address;
+        }
+        return null
+    }
+
+    async saveAddressByKey(key: string, address: string) {
+        return this.db.update({
+            key
+        }, {address, key}, {upsert: true})
+    }
+
+    async getMockContract(name){
+        return this.findAddressByKey(`Mock:${name}`)
+    }
+
+    async listAllContracts(){
+        return this.db.find()
+    }
+
+
 }

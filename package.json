@@ -61,6 +61,7 @@
   },
   "scripts": {
     "compile": "hardhat compile",
-    "test": "hardhat test"
+    "test": "hardhat test",
+    "deploy_testnet": "npx hardhat --network bsc_testnet deploy --stage test"
   }
 }

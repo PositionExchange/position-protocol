@@ -6,6 +6,7 @@ import "@openzeppelin/hardhat-upgrades"
 import {task} from "hardhat/config";
 import "@nomiclabs/hardhat-etherscan";
 import {BSC_MAINNET_URL, BSC_TESTNET_URL, GAS_PRICE, PRIV_TESTNET_ACCOUNT, PRIV_MAINNET_ACCOUNT} from "./constants";
+import "./scripts/deploy";
 // const BSC_TESTNET_URL =
 //     `${process.env["BSC_TESTNET_ENDPOINT"]}` || "https://data-seed-prebsc-1-s1.binance.org:8545/"
 // const BSC_MAINNET_URL = `${process.env["BSC_MAINNET_ENDPOINT"]}`
@@ -34,12 +35,12 @@ module.exports = {
         hardhat: {
             allowUnlimitedContractSize: true,
         },
-        testnet: {
+        bsc_testnet: {
             url: BSC_TESTNET_URL,
             chainId: 97,
             accounts: [PRIV_TESTNET_ACCOUNT],
         },
-        mainnet: {
+        bsc_mainnet: {
             url: BSC_MAINNET_URL,
             chainId: 56,
             accounts: [PRIV_MAINNET_ACCOUNT],

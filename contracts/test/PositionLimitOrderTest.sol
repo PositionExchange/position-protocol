@@ -23,7 +23,8 @@ contract PositionLimitOrderTest {
 //            typeLimitOrder : isOpenLimitOrder ? PositionLimitOrder.OrderType.OPEN_LIMIT : PositionLimitOrder.OrderType.CLOSE_LIMIT,
             isBuy : uint8(_side),
             entryPrice : 0,
-            reduceQuantity: 0
+            reduceQuantity: 0,
+            blockNumber : block.number
         }));
     }
 

@@ -1,4 +1,6 @@
 import {ContractWrapperFactory} from './ContractWrapperFactory'
+import {DeployDataStore} from "./DataStore";
+import {HardhatRuntimeEnvironment} from "hardhat/types";
 
 export type MigrationTask = () => Promise<void>
 
@@ -21,6 +23,8 @@ export interface MigrationContext {
     // externalContract: ExternalContracts
     // deployConfig: DeployConfig
     factory: ContractWrapperFactory
+    db: DeployDataStore
+    hre: HardhatRuntimeEnvironment
 }
 
 
@@ -41,11 +45,13 @@ export interface CreatePositionHouseInput {
     maintenanceMarginRatio: number,
     partialLiquidationRatio: number,
     liquidationFeeRatio: number,
-    liquidationPenaltyRatio: number
+    liquidationPenaltyRatio: number,
+    insuranceFund: string,
+    feePool: string
 }
 
 
-export  interface CreateInsuranceFund{
+export interface CreateInsuranceFund {
 
 }
 
