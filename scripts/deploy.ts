@@ -1,39 +1,44 @@
+import { task } from "hardhat/config";
 import path = require("path");
-import {asyncExec} from "./helper";
 import {readdir} from "fs/promises";
 import {ExecOptions} from "child_process";
+import {MigrationContext, Network, Stage} from "../deploy/types";
+import {ContractWrapperFactory} from "../deploy/ContractWrapperFactory";
+import {DeployDataStore} from "../deploy/DataStore";
 
 
-async function deploy(stage: string, options?: ExecOptions) {
-
+task('deploy', 'deploy contracts', async (taskArgs: {stage: Stage}, hre, runSuper) => {
     const basePath = path.join(__dirname, "../deploy/migrations")
     const filenames = await readdir(basePath)
+    const db = new DeployDataStore()
+    const context: MigrationContext = {
+        stage: taskArgs.stage,
+        network: hre.network.name as Network,
+        factory: new ContractWrapperFactory(db, hre),
+        db,
+        hre
+    }
     for (const filename of filenames) {
-        const migrationPath = path.join(basePath, filename)
-        // const {batchIndex, layer, configPath} = await loadMigration(migrationPath)
-
-        // if (batchIndex < nextMigration.batchIndex) {
-        //     console.info(`Skip migration: ${filename}`)
-        //     continue
-        // }
-
         console.info(`Start migration: ${filename}`)
-        const network = 'testnet';//settings.getNetwork(layer)
-        // const configPathParam = configPath ? `--config ${configPath}` : ""
-        const cmd = `hardhat run --network ${network} ${migrationPath}`
-        console.log(cmd);
-        await asyncExec(cmd, options)
+        const module = await import(path.join(basePath, filename))
+        const tasks = module.default.getTasks(context)
+        for(const key of Object.keys(tasks)){
+            console.group(`-- Start run task ${key}`)
+            await tasks[key]()
+            console.groupEnd()
+        }
+
     }
 
-}
+}).addParam('stage', 'Stage')
 
-async function main() {
-    await deploy('test');
-
-
-}
-
-main().then(() => process.exit(0)).catch((error) => {
-    console.error(error);
-    process.exit(1);
+task('listDeployedContract', 'list all deployed contracts', async () => {
+    const db = new DeployDataStore()
+    const data = await db.listAllContracts()
+    for(const obj of data){
+        console.log(obj.key, obj.address)
+    }
 })
+
+
+export default {}

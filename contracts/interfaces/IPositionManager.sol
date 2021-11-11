@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface IPositionManager {
     function getCurrentPip() external view returns (int128);
 
-    function getBaseBasisPoint() public view returns (uint256);
+    function getBaseBasisPoint() external view returns (uint256);
 
     function getCurrentSingleSlot() external view returns (int128, uint8);
 

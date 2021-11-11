@@ -58,6 +58,22 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         uint256 snapshotIndex;
     }
 
+    struct SwapState {
+        uint256 remainingSize;
+        // the tick associated with the current price
+        int128 pip;
+    }
+
+    struct StepComputations {
+        int128 pipNext;
+    }
+
+    enum CurrentLiquiditySide {
+        NotSet,
+        Buy,
+        Sell
+    }
+
 
 
     // array of reserveSnapshots
@@ -70,8 +86,11 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     // a packed array of bit, where liquidity is filled or not
     mapping(int128 => uint256) public liquidityBitmap;
 
-    event Swap(address account, uint256 indexed amountIn, uint256 indexed amountOut);
+    // Events that supports building order book
+    event MarketFilled(bool isBuy, uint256 indexed amount,int128 fromPip, int128 toPip, uint128 partialFilledQuantity);
     event LimitOrderCreated(uint64 orderId, int128 pip, uint128 size, bool isBuy);
+    event LimitOrderCancelled(uint64 orderId, int128 pip, uint256 size);
+
     event UpdateMaxFindingWordsIndex(int128 newMaxFindingWordsIndex);
     event UpdateBasisPoint(uint256 newBasicPoint);
     event UpdateBaseBasicPoint(uint256 newBaseBasisPoint);
@@ -101,13 +120,13 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         uint256 _tollRatio,
         int128 _maxFindingWordsIndex,
         uint256 _fundingPeriod,
-        IChainLinkPriceFeed _priceFeed
+        address _priceFeed
     )
     public initializer {
         require(
             _fundingPeriod != 0 &&
             _quoteAsset != address(0) &&
-            address(_priceFeed) != address(0),
+            _priceFeed != address(0),
             "invalid input"
         );
 
@@ -124,7 +143,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         fundingPeriod = _fundingPeriod;
         fundingBufferPeriod = _fundingPeriod / 2;
         maxFindingWordsIndex = _maxFindingWordsIndex;
-        priceFeed = _priceFeed;
+        priceFeed = IChainLinkPriceFeed(_priceFeed);
 
         emit ReserveSnapshotted(_initialPip, block.timestamp);
     }
@@ -187,8 +206,9 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         return _positionNotional == 0 ? 0 : _positionNotional / tollRatio;
     }
 
-    function cancelLimitOrder(int128 pip, uint64 orderId) external returns (uint256) {
-        return tickPosition[pip].cancelLimitOrder(orderId);
+    function cancelLimitOrder(int128 pip, uint64 orderId) external returns (uint256 size) {
+        size = tickPosition[pip].cancelLimitOrder(orderId);
+        emit LimitOrderCancelled(orderId, pip, size);
     }
 
     function openLimitPosition(int128 pip, uint128 size, bool isBuy) external whenNotPause onlyCounterParty returns (uint64 orderId, uint256 sizeOut, uint256 openNotional) {
@@ -221,21 +241,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         emit LimitOrderCreated(orderId, pip, size, isBuy);
     }
 
-    struct SwapState {
-        uint256 remainingSize;
-        // the tick associated with the current price
-        int128 pip;
-    }
 
-    struct StepComputations {
-        int128 pipNext;
-    }
-
-    enum CurrentLiquiditySide {
-        NotSet,
-        Buy,
-        Sell
-    }
 
     function openMarketPositionWithMaxPip(uint256 size, bool isBuy, uint128 maxPip) public whenNotPause onlyCounterParty returns (uint256 sizeOut, uint256 openNotional) {
         return _internalOpenMarketOrder(size, isBuy, maxPip);
@@ -258,7 +264,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         int128 startPip;
         //        int128 startWord = _initialSingleSlot.pip >> 8;
         //        int128 wordIndex = startWord;
-        bool isPartialFill;
+        uint128 partialFilledQuantity;
         uint8 isFullBuy = 0;
         bool isSkipFirstPip;
         CurrentLiquiditySide currentLiquiditySide = CurrentLiquiditySide(_initialSingleSlot.isFullBuy);
@@ -301,7 +307,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                         openNotional += state.remainingSize * pipToPrice(step.pipNext);
                         state.remainingSize = 0;
                         state.pip = step.pipNext;
-                        isPartialFill = true;
+                        partialFilledQuantity = liquidity - uint128(state.remainingSize);
                         isFullBuy = uint8(!isBuy ? CurrentLiquiditySide.Buy : CurrentLiquiditySide.Sell);
                     } else if (state.remainingSize > liquidity) {
                         // order in that pip will be fulfilled
@@ -325,8 +331,8 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         }
         if (_initialSingleSlot.pip != state.pip) {
             // all ticks in shifted range must be marked as filled
-            if (!(isPartialFill && startPip == state.pip)) {
-                liquidityBitmap.unsetBitsRange(startPip, isPartialFill ? (isBuy ? state.pip - 1 : state.pip + 1) : state.pip);
+            if (!(partialFilledQuantity > 0 && startPip == state.pip)) {
+                liquidityBitmap.unsetBitsRange(startPip, partialFilledQuantity  > 0 ? (isBuy ? state.pip - 1 : state.pip + 1) : state.pip);
             }
             // TODO write a checkpoint that we shift a range of ticks
         }
@@ -334,7 +340,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         singleSlot.isFullBuy = isFullBuy;
         sizeOut = size - state.remainingSize;
         addReserveSnapshot();
-        emit Swap(msg.sender, size, sizeOut);
+        emit MarketFilled(isBuy, sizeOut, _initialSingleSlot.pip, state.pip, partialFilledQuantity);
     }
 
     function getQuoteAsset() public view returns (IERC20) {

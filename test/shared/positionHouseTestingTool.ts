@@ -97,12 +97,12 @@ export default class PositionHouseTestingTool {
         if (!_trader) throw Error("No trader")
         const tx = await this.positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(Number(limitPrice)), leverage, )
         const {orderId, priceLimit} = await getOrderIdByTx(tx)
-        const orderDetails = await this.getPendingOrder({orderId, pip: priceToPip(Number(limitPrice))})
-        expect(orderDetails.isFilled).eq(false)
-        return {
-            orderId: orderId,
-            pip: priceToPip(Number(limitPrice))
-        } as LimitOrderReturns
+        // const orderDetails = await this.getPendingOrder({orderId, pip: priceToPip(Number(limitPrice))})
+        // expect(orderDetails.isFilled).eq(false)
+        // return {
+        //     orderId: orderId,
+        //     pip: priceToPip(Number(limitPrice))
+        // } as LimitOrderReturns
     }
 
     async closeLimitPosition({trader, price, percentQuantity}: CloseLimitPositionParams) {
@@ -116,10 +116,10 @@ export default class PositionHouseTestingTool {
         console.log("has liquidity",await this.positionManager.hasLiquidity(priceToPip(price)))
         const {orderId, priceLimit} = await getOrderIdByTx(tx)
         console.log("priceLimit", priceLimit)
-        const orderDetails = await this.getPendingOrder({orderId, pip: priceToPip(Number(price))})
-        expect(orderDetails.isFilled).eq(false)
-        // expect(orderDetails.size).eq(quantity)
-        expect(orderDetails.partialFilled).eq(0)
+        // const orderDetails = await this.getPendingOrder({orderId, pip: priceToPip(Number(price))})
+        // expect(orderDetails.isFilled).eq(false)
+        // // expect(orderDetails.size).eq(quantity)
+        // expect(orderDetails.partialFilled).eq(0)
         return {
             orderId,
             pip: priceToPip(Number(price))
@@ -140,11 +140,11 @@ export default class PositionHouseTestingTool {
 
     }
 
-    async canClaim({trader}: BasicParam): Promise<ClaimFund> {
-
-        return (await this.positionHouse.canClaimFund(this.positionManager.address, trader.address)) as unknown as ClaimFund
-
-    }
+    // async canClaim({trader}: BasicParam): Promise<ClaimFund> {
+    //
+    //     // return (await this.positionHouse.canClaimFund(this.positionManager.address, trader.address)) as unknown as ClaimFund
+    //
+    // }
 
     async getPosition(trader: SignerWithAddress): Promise<PositionData> {
 
@@ -190,11 +190,11 @@ export default class PositionHouseTestingTool {
 
     }
 
-    async getPendingOrder({pip, orderId}: PendingOrderParam): Promise<PendingOrder> {
-
-        return (await this.positionHouse.getPendingOrder(this.positionManager.address, pip.toString(), orderId.toString())) as unknown as PendingOrder;
-
-    }
+    // async getPendingOrder({pip, orderId}: PendingOrderParam): Promise<PendingOrder> {
+    //
+    //     return (await this.positionHouse.getPendingOrder(this.positionManager.address, pip.toString(), orderId.toString())) as unknown as PendingOrder;
+    //
+    // }
 
 
     /*

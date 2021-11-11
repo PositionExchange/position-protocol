@@ -45,6 +45,7 @@ library Position {
         self.openNotional = newPosition.openNotional;
         self.lastUpdatedCumulativePremiumFraction = newPosition.lastUpdatedCumulativePremiumFraction;
         self.blockNumber = newPosition.blockNumber;
+        self.leverage = newPosition.leverage;
     }
 
     function updatePartialLiquidate(
@@ -56,6 +57,7 @@ library Position {
         self.openNotional -= newPosition.openNotional;
         self.lastUpdatedCumulativePremiumFraction += newPosition.lastUpdatedCumulativePremiumFraction;
         self.blockNumber += newPosition.blockNumber;
+        self.leverage = self.leverage;
     }
 
     function clearDebt(Position.LiquidatedData storage self) internal {
@@ -83,6 +85,8 @@ library Position {
     function getEntryPrice(Position.Data memory self) internal view returns (uint256){
         return self.openNotional / self.quantity.abs();
     }
+
+
 
     function accumulateLimitOrder(
         Position.Data memory self,
