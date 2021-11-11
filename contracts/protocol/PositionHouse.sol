@@ -231,7 +231,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         address quoteToken = address(_positionManager.getQuoteAsset());
         if (positionResp.marginToVault > 0) {
             //transfer from trader to vault
-            //            insuranceFund.deposit(quoteToken, _trader, positionResp.marginToVault.abs());
+            insuranceFund.deposit(quoteToken, _trader, positionResp.marginToVault.abs());
         } else if (positionResp.marginToVault < 0) {
             // withdraw from vault to user
             insuranceFund.withdraw(quoteToken, _trader, positionResp.marginToVault.abs());
@@ -274,7 +274,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             });
             orderIdOfUser = handleLimitOrderInOpenLimit(openLimitResp, _newOrder, _positionManager, _trader, _quantity, _side);
         }
-        //        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, (_quantity * _positionManager.pipToPrice(_pip) / _leverage) / _positionManager.getBaseBasisPoint());
+        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, (_quantity * _positionManager.pipToPrice(_pip) / _leverage) / _positionManager.getBaseBasisPoint());
         emit OpenLimit(orderIdOfUser, openLimitResp.orderId, _trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, _pip, _positionManager);
     }
 
@@ -302,7 +302,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         }
     }
 
-    function cancelLimitOrder(IPositionManager _positionManager, uint64 orderIdOfTrader, int128 pip, uint64 orderId) public {
+    function cancelLimitOrder(IPositionManager _positionManager, uint64 orderIdOfTrader, int128 pip, uint64 orderId) public whenNotPause nonReentrant {
         address _trader = _msgSender();
         uint256 refundQuantity = _positionManager.cancelLimitOrder(pip, orderId);
         int128 oldOrderPip = limitOrders[address(_positionManager)][_trader][orderIdOfTrader].pip;
@@ -319,7 +319,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint256 refundMargin = refundQuantity * _positionManager.pipToPrice(pip) / uint256(leverage);
 
         // TODO send back margin to trader
-        // insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, refundMargin / _positionManager.getBaseBasisPoint());
+        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, refundMargin / _positionManager.getBaseBasisPoint());
 
 
         emit CancelLimitOrder(_trader, address(_positionManager), orderIdOfTrader, orderId);
@@ -333,7 +333,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     function closePosition(
         IPositionManager _positionManager,
         uint256 _percentQuantity
-    ) public {
+    ) public whenNotPause nonReentrant {
 
 
         // check conditions
@@ -359,7 +359,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     * @param _pip limit price want to close
     * @param _percentQuantity want to close
     */
-    function closeLimitPosition(IPositionManager _positionManager, int128 _pip, uint256 _percentQuantity) public {
+    function closeLimitPosition(IPositionManager _positionManager, int128 _pip, uint256 _percentQuantity) public whenNotPause nonReentrant {
 
         // check conditions
         //        requirePositionManager(_positionManager, true);
@@ -436,7 +436,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     function liquidate(
         IPositionManager _positionManager,
         address _trader
-    ) external {
+    ) external whenNotPause nonReentrant {
         //        requirePositionManager(_positionManager, true);
         (uint256 maintenanceMargin, int256 marginBalance, uint256 marginRatio) = getMaintenanceDetail(_positionManager, _trader);
 
@@ -490,7 +490,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
      * @param _positionManager IPositionManager address
      * @param _marginAdded added margin
      */
-    function addMargin(IPositionManager _positionManager, uint256 _marginAdded) external {
+    function addMargin(IPositionManager _positionManager, uint256 _marginAdded) external whenNotPause nonReentrant {
 
         address _trader = _msgSender();
         Position.Data memory positionData = getPosition(address(_positionManager), _trader);
@@ -502,7 +502,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
 
         // TODO check trader not enough money to transfer
-        //        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, _marginAdded);
+        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, _marginAdded);
 
 
         emit AddMargin(_trader, _marginAdded, _positionManager);
@@ -515,7 +515,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
      * @param _positionManager IPositionManager address
      * @param _marginRemoved added margin
      */
-    function removeMargin(IPositionManager _positionManager, uint256 _marginRemoved) external {
+    function removeMargin(IPositionManager _positionManager, uint256 _marginRemoved) external whenNotPause nonReentrant {
 
         address _trader = _msgSender();
 
@@ -533,7 +533,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         );
 
         // TODO check trader not enough money to transfer
-        //        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, _marginRemoved );
+        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, _marginRemoved);
     }
 
     /**
@@ -799,7 +799,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         Position.Data memory marketPositionData = positionMap[_positionManager][_trader];
         Position.Data memory totalPositionData = getPosition(_positionManager, _trader);
         openNotional = PositionHouseFunction.handleNotionalInOpenReverse(exchangedQuoteAmount, marketPositionData, totalPositionData);
-   
+
     }
 
     function handleMarginInOpenReverse(address _positionManager, address _trader, uint256 reduceMarginRequirement) internal returns (uint256 margin) {
