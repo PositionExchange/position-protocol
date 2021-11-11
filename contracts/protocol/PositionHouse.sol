@@ -12,6 +12,7 @@ import "./libraries/helpers/Quantity.sol";
 import "./libraries/position/PositionLimitOrder.sol";
 import "../interfaces/IInsuranceFund.sol";
 import "../interfaces/IFeePool.sol";
+import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.sol";
 
 
 contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable
@@ -231,7 +232,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         address quoteToken = address(_positionManager.getQuoteAsset());
         if (positionResp.marginToVault > 0) {
             //transfer from trader to vault
-            insuranceFund.deposit(quoteToken, _trader, positionResp.marginToVault.abs());
+//            insuranceFund.deposit(quoteToken, _trader, positionResp.marginToVault.abs());
         } else if (positionResp.marginToVault < 0) {
             // withdraw from vault to user
             insuranceFund.withdraw(quoteToken, _trader, positionResp.marginToVault.abs());
@@ -318,7 +319,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
 
         uint256 refundMargin = refundQuantity * _positionManager.pipToPrice(pip) / uint256(leverage);
-            insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, refundMargin / _positionManager.getBaseBasisPoint());
+        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, refundMargin / _positionManager.getBaseBasisPoint());
 
         // TODO send back margin to trader
 
@@ -817,31 +818,38 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     function handleMarginInOpenReverse(address _positionManager, address _trader, uint256 reduceMarginRequirement) internal returns (uint256 margin) {
         Position.Data memory marketPositionData = positionMap[_positionManager][_trader];
         Position.Data memory totalPositionData = getPosition(_positionManager, _trader);
-        int256 newPositionSide = totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
-        if (marketPositionData.quantity * totalPositionData.quantity < 0) {
-            if (marketPositionData.quantity * newPositionSide > 0) {
-                margin = marketPositionData.margin + reduceMarginRequirement;
-            } else {
-                margin = marketPositionData.margin - reduceMarginRequirement;
-            }
-        } else {
-            margin = reduceMarginRequirement > marketPositionData.margin ? reduceMarginRequirement - marketPositionData.margin : marketPositionData.margin - reduceMarginRequirement;
-        }
+
+        margin = PositionHouseFunction.handleMarginInOpenReverse(_positionManager, _trader, reduceMarginRequirement, marketPositionData, totalPositionData);
+
+
+        //        int256 newPositionSide = totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
+        //        if (marketPositionData.quantity * totalPositionData.quantity < 0) {
+        //            if (marketPositionData.quantity * newPositionSide > 0) {
+        //                margin = marketPositionData.margin + reduceMarginRequirement;
+        //            } else {
+        //                margin = marketPositionData.margin - reduceMarginRequirement;
+        //            }
+        //        } else {
+        //            margin = reduceMarginRequirement > marketPositionData.margin ? reduceMarginRequirement - marketPositionData.margin : marketPositionData.margin - reduceMarginRequirement;
+        //        }
     }
 
     function handleNotionalInIncrease(address _positionManager, address _trader, uint256 exchangedQuoteAmount) internal returns (uint256 openNotional) {
         Position.Data memory marketPositionData = positionMap[_positionManager][_trader];
         Position.Data memory totalPositionData = getPosition(_positionManager, _trader);
-        int256 newPositionSide = totalPositionData.quantity > 0 ? int256(1) : int256(- 1);
-        if (marketPositionData.quantity * totalPositionData.quantity < 0) {
-            if (marketPositionData.openNotional > exchangedQuoteAmount) {
-                openNotional = marketPositionData.openNotional - exchangedQuoteAmount;
-            } else {
-                openNotional = exchangedQuoteAmount - marketPositionData.openNotional;
-            }
-        } else {
-            openNotional = marketPositionData.openNotional + exchangedQuoteAmount;
-        }
+
+        openNotional = PositionHouseFunction.handleNotionalInIncrease(_positionManager, _trader, exchangedQuoteAmount, marketPositionData, totalPositionData);
+
+//        int256 newPositionSide = totalPositionData.quantity > 0 ? int256(1) : int256(- 1);
+        //        if (marketPositionData.quantity * totalPositionData.quantity < 0) {
+        //            if (marketPositionData.openNotional > exchangedQuoteAmount) {
+        //                openNotional = marketPositionData.openNotional - exchangedQuoteAmount;
+        //            } else {
+        //                openNotional = exchangedQuoteAmount - marketPositionData.openNotional;
+        //            }
+        //        } else {
+        //            openNotional = marketPositionData.openNotional + exchangedQuoteAmount;
+        //        }
     }
 
     function handleMarginInIncrease(address _positionManager, address _trader, uint256 increaseMarginRequirement) internal returns (uint256 margin) {
@@ -875,7 +883,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
                 pip : listLimitOrder[i].pip,
                 leverage : listLimitOrder[i].leverage,
                 blockNumber : listLimitOrder[i].blockNumber,
-                orderIdOfTrader: i,
+                orderIdOfTrader : i,
                 orderId : listLimitOrder[i].orderId
                 });
                 index++;
@@ -892,7 +900,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
                 pip : reduceLimitOrder[i].pip,
                 leverage : reduceLimitOrder[i].leverage,
                 blockNumber : listLimitOrder[i].blockNumber,
-                orderIdOfTrader: i,
+                orderIdOfTrader : i,
                 orderId : listLimitOrder[i].orderId
                 });
                 index++;
