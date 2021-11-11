@@ -41,6 +41,13 @@ library TickPosition {
         return self.currentIndex;
     }
 
+    function updateOrderWhenClose(
+        TickPosition.Data storage self,
+        uint64 orderId
+    ) internal returns (uint256) {
+        return self.orderQueue[orderId].updateWhenClose();
+    }
+
     function getQueueOrder(
         TickPosition.Data storage self,
         uint64 orderId

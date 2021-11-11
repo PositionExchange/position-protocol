@@ -48,6 +48,13 @@ library Position {
         self.leverage = newPosition.leverage;
     }
 
+    function updateMargin(
+        Position.Data storage self,
+        uint256 newMargin
+    ) internal {
+        self.margin = newMargin;
+    }
+
     function updatePartialLiquidate(
         Position.Data storage self,
         Position.Data memory newPosition

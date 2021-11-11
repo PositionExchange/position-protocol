@@ -39,6 +39,14 @@ library LimitOrder {
         self.partialFilled += self.size - remainSize;
     }
 
+    function updateWhenClose(
+        LimitOrder.Data storage self
+    ) internal returns (uint256) {
+        self.size -= self.partialFilled;
+        self.partialFilled = 0;
+        return (uint256(self.size));
+    }
+
     function getPartialFilled(
         LimitOrder.Data storage self
     ) internal view returns(bool isPartial, uint256 remainingSize) {

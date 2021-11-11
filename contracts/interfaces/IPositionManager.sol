@@ -12,6 +12,8 @@ interface IPositionManager {
 
     function getLiquidityInPip(int128 pip) external view returns (uint128);
 
+    function updatePartialFilledOrder(int128 pip, uint64 orderId) external;
+
     function getPendingOrderDetail(int128 pip, uint64 orderId) external view returns (
         bool isFilled,
         bool isBuy,

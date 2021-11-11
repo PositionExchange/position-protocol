@@ -98,7 +98,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     event UpdateSpotPriceTwapInterval(uint256 newSpotPriceTwapInterval);
     event ReserveSnapshotted(int128 pip, uint256 timestamp);
     event FundingRateUpdated(int256 fundingRate, uint256 underlyingPrice);
-
+    event LimitOrderUpdated(uint64 orderId, int128 pip, uint256 size);
 
     modifier whenNotPause(){
         //TODO implement
@@ -194,6 +194,11 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         if (size != 0 && size == partialFilled) {
             isFilled = true;
         }
+    }
+
+    function updatePartialFilledOrder(int128 pip, uint64 orderId) public {
+        uint256 newSize = tickPosition[pip].updateOrderWhenClose(orderId);
+        emit LimitOrderUpdated(orderId, pip, newSize);
     }
 
     /**
@@ -304,7 +309,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                     if (liquidity > state.remainingSize) {
                         // pip position will partially filled and stop here
                         tickPosition[step.pipNext].partiallyFill(uint120(state.remainingSize));
-                        openNotional += state.remainingSize * pipToPrice(step.pipNext);
+                        openNotional += (state.remainingSize * pipToPrice(step.pipNext) / BASE_BASIC_POINT);
                         state.remainingSize = 0;
                         state.pip = step.pipNext;
                         partialFilledQuantity = liquidity - uint128(state.remainingSize);
@@ -312,13 +317,13 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                     } else if (state.remainingSize > liquidity) {
                         // order in that pip will be fulfilled
                         state.remainingSize = state.remainingSize - liquidity;
-                        openNotional += liquidity * pipToPrice(step.pipNext);
+                        openNotional += (liquidity * pipToPrice(step.pipNext) / BASE_BASIC_POINT);
                         state.pip = state.remainingSize > 0 ? (isBuy ? step.pipNext + 1 : step.pipNext - 1) : step.pipNext;
                     } else {
                         // remaining size = liquidity
                         // only 1 pip should be toggled, so we call it directly here
                         liquidityBitmap.toggleSingleBit(step.pipNext, false);
-                        openNotional += state.remainingSize * pipToPrice(step.pipNext);
+                        openNotional += (state.remainingSize * pipToPrice(step.pipNext) / BASE_BASIC_POINT);
                         state.remainingSize = 0;
                         state.pip = step.pipNext;
                         isFullBuy = 0;
