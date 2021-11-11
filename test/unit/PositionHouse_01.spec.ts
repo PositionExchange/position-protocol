@@ -54,7 +54,7 @@ describe("PositionHouse_01", () => {
         const factory = await ethers.getContractFactory("PositionHouse")
         positionHouse = (await factory.deploy()) as unknown as PositionHouse;
         positionHouseTestingTool = new PositionHouseTestingTool(positionHouse, positionManager)
-        await positionManager.initialize(BigNumber.from(6837500), '0xd364238D7eC81547a38E3bF4CBB5206605A15Fee', ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase());
+        await positionManager.initialize(BigNumber.from(500000), '0xd364238D7eC81547a38E3bF4CBB5206605A15Fee', ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(1000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase());
         await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), '0xf1d0e7be179cb21f0e6bfe3616a3d7bce2f18aef'.toLowerCase(), '0x0000000000000000000000000000000000000000')
     })
 

@@ -13,8 +13,6 @@ library PositionHouseFunction {
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData) internal returns (uint256 margin) {
 
-        //        Position.Data memory marketPositionData = positionMap[_positionManager][_trader];
-        //        Position.Data memory totalPositionData = getPosition(_positionManager, _trader);
         int256 newPositionSide = totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
             if (marketPositionData.quantity * newPositionSide > 0) {
@@ -33,8 +31,7 @@ library PositionHouseFunction {
         uint256 exchangedQuoteAmount,
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData) internal returns (uint256 openNotional) {
-        //        Position.Data memory marketPositionData = positionMap[_positionManager][_trader];
-        //        Position.Data memory totalPositionData = getPosition(_positionManager, _trader);
+
         int256 newPositionSide = totalPositionData.quantity > 0 ? int256(1) : int256(- 1);
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
             if (marketPositionData.openNotional > exchangedQuoteAmount) {
@@ -44,6 +41,23 @@ library PositionHouseFunction {
             }
         } else {
             openNotional = marketPositionData.openNotional + exchangedQuoteAmount;
+        }
+    }
+
+    function handleMarginInIncrease(address _positionManager,
+        address _trader,
+        uint256 increaseMarginRequirement,
+        Position.Data memory marketPositionData,
+        Position.Data memory totalPositionData) internal returns (uint256 margin) {
+        int256 newPositionSide = totalPositionData.quantity > 0 ? int256(1) : int256(- 1);
+        if (marketPositionData.quantity * totalPositionData.quantity < 0) {
+            if (marketPositionData.quantity * newPositionSide > 0) {
+                margin = marketPositionData.margin + increaseMarginRequirement;
+            } else {
+                margin = increaseMarginRequirement > marketPositionData.margin ? increaseMarginRequirement - marketPositionData.margin : marketPositionData.margin - increaseMarginRequirement;
+            }
+        } else {
+            margin = marketPositionData.margin + increaseMarginRequirement;
         }
     }
 
