@@ -233,10 +233,10 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         address quoteToken = address(_positionManager.getQuoteAsset());
         if (positionResp.marginToVault > 0) {
             //transfer from trader to vault
-            insuranceFund.deposit(quoteToken, _trader, (positionResp.marginToVault.abs()));
+            insuranceFund.deposit(quoteToken, _trader, (positionResp.marginToVault.abs() / _positionManager.getBaseBasisPoint()));
         } else if (positionResp.marginToVault < 0) {
             // withdraw from vault to user
-            insuranceFund.withdraw(quoteToken, _trader, (positionResp.marginToVault.abs()));
+            insuranceFund.withdraw(quoteToken, _trader, (positionResp.marginToVault.abs() / _positionManager.getBaseBasisPoint()));
         }
         emit OpenMarket(_trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, positionResp.exchangedQuoteAssetAmount / _quantity, _positionManager);
     }
@@ -654,7 +654,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             positionResp.unrealizedPnl = unrealizedPnl - positionResp.realizedPnl;
             positionResp.position = Position.Data(
                 positionMap[address(_positionManager)][_trader].quantity + _quantity ,
-                0,
                 remainMargin,
             // NEW FUNCTION handleNotionalInOpenReverse
                 handleNotionalInOpenReverse(address(_positionManager), _trader, positionResp.exchangedQuoteAssetAmount),
@@ -740,7 +739,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             if (newPositionSide * marketPositionData.quantity >= 0) {
                 newData = Position.Data(
                     marketPositionData.quantity > 0 ? marketPositionData.quantity + int256(_newQuantity) : marketPositionData.quantity - int256(_newQuantity),
-                    0,
                     handleMarginInIncrease(address(_positionManager), _trader, _newNotional / _leverage),
                     handleNotionalInIncrease(address(_positionManager), _trader, _newNotional),
                 // TODO update latest cumulative premium fraction
@@ -751,7 +749,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             } else {
                 newData = Position.Data(
                     marketPositionData.quantity < 0 ? marketPositionData.quantity + int256(_newQuantity) : marketPositionData.quantity - int256(_newQuantity),
-                    0,
                     handleMarginInIncrease(address(_positionManager), _trader, _newNotional / _leverage),
                     handleNotionalInIncrease(address(_positionManager), _trader, _newNotional),
                 // TODO update latest cumulative premium fraction
@@ -764,7 +761,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             if (newPositionSide * marketPositionData.quantity >= 0) {
                 newData = Position.Data(
                     marketPositionData.quantity > 0 ? marketPositionData.quantity + int256(_newQuantity) : marketPositionData.quantity - int256(_newQuantity),
-                    0,
                     handleMarginInOpenReverse(address(_positionManager), _trader, totalPositionData.margin * _newQuantity / totalPositionData.quantity.abs()),
                     handleNotionalInOpenReverse(address(_positionManager), _trader, _newNotional),
                 // TODO update latest cumulative premium fraction
@@ -775,7 +771,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             } else {
                 newData = Position.Data(
                     marketPositionData.quantity < 0 ? marketPositionData.quantity + int256(_newQuantity) : marketPositionData.quantity - int256(_newQuantity),
-                    0,
                     handleMarginInOpenReverse(address(_positionManager), _trader, totalPositionData.margin * _newQuantity / totalPositionData.quantity.abs()),
                     handleNotionalInOpenReverse(address(_positionManager), _trader, _newNotional),
                 // TODO update latest cumulative premium fraction

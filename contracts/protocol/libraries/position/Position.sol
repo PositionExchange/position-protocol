@@ -12,7 +12,6 @@ library Position {
         // TODO restruct data
         //        Position.Side side;
         int256 quantity;
-//        int256 sumQuantityLimitOrder;
         uint256 margin;
         uint256 openNotional;
         int256 lastUpdatedCumulativePremiumFraction;
