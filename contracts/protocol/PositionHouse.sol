@@ -241,10 +241,10 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         address quoteToken = address(_positionManager.getQuoteAsset());
         if (positionResp.marginToVault > 0) {
             //transfer from trader to vault
-            insuranceFund.deposit(quoteToken, _trader, (positionResp.marginToVault.abs() / _positionManager.getBaseBasisPoint()));
+//            insuranceFund.deposit(quoteToken, _trader, (positionResp.marginToVault.abs() / _positionManager.getBaseBasisPoint()));
         } else if (positionResp.marginToVault < 0) {
             // withdraw from vault to user
-            insuranceFund.withdraw(quoteToken, _trader, (positionResp.marginToVault.abs() / _positionManager.getBaseBasisPoint()));
+//            insuranceFund.withdraw(quoteToken, _trader, (positionResp.marginToVault.abs() / _positionManager.getBaseBasisPoint()));
         }
         emit OpenMarket(_trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, positionResp.exchangedQuoteAssetAmount / _quantity, _positionManager);
     }
@@ -284,7 +284,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             });
             orderIdOfUser = handleLimitOrderInOpenLimit(openLimitResp, _newOrder, _positionManager, _trader, _quantity, _side);
         }
-        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, (_quantity * _positionManager.pipToPrice(_pip) / _leverage) / _positionManager.getBaseBasisPoint());
+//        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, (_quantity * _positionManager.pipToPrice(_pip) / _leverage) / _positionManager.getBaseBasisPoint());
         emit OpenLimit(orderIdOfUser, openLimitResp.orderId, _trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, _pip, _positionManager);
     }
 
@@ -328,7 +328,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
 
         uint256 refundMargin = refundQuantity * _positionManager.pipToPrice(pip) / uint256(leverage);
-        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, refundMargin / _positionManager.getBaseBasisPoint());
+//        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, refundMargin / _positionManager.getBaseBasisPoint());
 
         // TODO send back margin to trader
 
@@ -513,7 +513,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
 
         // TODO check trader not enough money to transfer
-        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, _marginAdded / _positionManager.getBaseBasisPoint());
+//        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, _marginAdded / _positionManager.getBaseBasisPoint());
 
 
         emit AddMargin(_trader, _marginAdded, _positionManager);
@@ -531,11 +531,10 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         address _trader = _msgSender();
 
         Position.Data memory positionData = getPosition(address(_positionManager), _trader);
-
+        require (_marginRemoved < (positionData.margin * 25 / 100), "margin remove amount must smaller than 1/4 margin");
         _marginRemoved = _positionManager.calcAdjustMargin(_marginRemoved);
         require(positionData.margin > _marginRemoved, "Margin remove not than old margin");
         (uint256 remainMargin,,) =
-
         calcRemainMarginWithFundingPayment(positionData.margin - _marginRemoved);
 
         positionData.margin = remainMargin;
@@ -544,7 +543,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             positionData
         );
 
-        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, _marginRemoved / _positionManager.getBaseBasisPoint());
+//        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, _marginRemoved / _positionManager.getBaseBasisPoint());
 
         emit RemoveMargin(_trader, _marginRemoved, _positionManager);
 
@@ -802,7 +801,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
                 if (totalPositionData.quantity.abs() <= liquidityInCurrentPip && totalPositionData.quantity.abs() <= _quantity && totalPositionData.quantity.abs() != 0) {
                     {
                         PositionResp memory closePositionResp = internalClosePosition(_positionManager, _trader, PnlCalcOption.SPOT_PRICE);
-                        if (_quantity - closePositionResp.exchangedPositionSize == 0) {
+                        if (int256(_quantity) - closePositionResp.exchangedPositionSize == 0) {
                             positionResp = closePositionResp;
                         } else {
                             (orderId, sizeOut, openNotional) = _positionManager.openLimitPosition(_pip, _quantity - (closePositionResp.exchangedPositionSize).abs128(), _isBuy);
@@ -953,8 +952,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             positionData.margin -= _debtPosition.margin;
             positionData.openNotional -= _debtPosition.notional;
         }
-        positionData.margin = positionData.margin / _positionManager.getBaseBasisPoint();
-        positionData.openNotional = positionData.openNotional / _positionManager.getBaseBasisPoint();
     }
 
 
@@ -1049,7 +1046,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
         if (toll > 0) {
 
-            insuranceFund.transferFeeFromTrader(quoteToken, _trader, toll);
+//            insuranceFund.transferFeeFromTrader(quoteToken, _trader, toll);
             return toll;
         }
 

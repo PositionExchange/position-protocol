@@ -17,10 +17,12 @@ import {
     ChangePriceParams,
     priceToPip, SIDE,
     toWeiBN,
-    toWeiWithString, ExpectTestCaseParams
+    toWeiWithString, ExpectTestCaseParams, ExpectMaintenanceDetail
 } from "../shared/utilities";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import {CHAINLINK_ABI_TESTNET} from "../../constants";
+import PositionManagerTestingTool from "../shared/positionManagerTestingTool";
+import PositionHouseTestingTool from "../shared/positionHouseTestingTool";
 
 describe("PositionHouse_02", () => {
     let positionHouse: PositionHouse;
@@ -33,20 +35,15 @@ describe("PositionHouse_02", () => {
     let tradercp: any;
     let positionManager: PositionManager;
     let positionManagerFactory: ContractFactory;
-    let chainlinkContract: any;
 
     beforeEach(async () => {
         [trader0, trader1, trader2, trader3, trader4, trader5, tradercp] = await ethers.getSigners()
         positionManagerFactory = await ethers.getContractFactory("PositionManager")
-        // BTC-USD Perpetual, initial price is 5000
-        // each pip = 0.01
-        // => initial pip = 500000
-        //quoteAsset    BUSD_TestNet = 0x8301f2213c0eed49a7e28ae4c3e91722919b8b47
-        positionManager = (await positionManagerFactory.deploy(500000, '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
+        positionManager = (await positionManagerFactory.deploy()) as unknown as PositionManager;
         const factory = await ethers.getContractFactory("PositionHouse")
-        const provider = await ethers.getDefaultProvider('https://data-seed-prebsc-1-s1.binance.org:8545/')
-        chainlinkContract = new ethers.Contract('0xf805e852ef3794c6c3bf5ab4254f02e8906d8863', CHAINLINK_ABI_TESTNET, provider)
         positionHouse = (await factory.deploy()) as unknown as PositionHouse;
+        await positionManager.initialize(BigNumber.from(500000), '0xd364238D7eC81547a38E3bF4CBB5206605A15Fee', ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase());
+        await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), '0xf1d0e7be179cb21f0e6bfe3616a3d7bce2f18aef'.toLowerCase(), '0x0000000000000000000000000000000000000000')
     })
 
     const openMarketPosition = async ({
@@ -81,24 +78,6 @@ describe("PositionHouse_02", () => {
             leverage,
         )
         console.log("GAS USED MARKET", (await tx.wait()).gasUsed.toString())
-        const receipt = await tx.wait()
-        // console.log("$$$$$$$", receipt?.events?[1].marginToVault?.toString())
-        const positionInfo = await positionHouse.getPosition(_positionManager.address, trader) as unknown as PositionData;
-        // console.log("positionInfo", positionInfo)
-        const currentPrice = Number((await _positionManager.getPrice()).toString())
-        const openNotional = positionInfo.openNotional.div('10000').toString()
-        expectedNotional = expectedNotional && expectedNotional.toString() || quantity.mul(price).toString()
-        // console.table([
-        //     {
-        //         openNotional: positionInfo.openNotional.toString(),
-        //         openNotionalFormated: openNotional,
-        //         currentPrice: currentPrice,
-        //         quantity: positionInfo.quantity.toString()
-        //     }
-        // ])
-        // expect(positionInfo.quantity.toString()).eq(expectedSize || quantity.toString())
-        // expect(openNotional).eq(expectedNotional)
-        // expectedMargin && expect(positionInfo.margin.div('10000').toString()).eq(expectedMargin.toString())
     }
 
     interface OpenLimitPositionAndExpectParams {
@@ -108,21 +87,6 @@ describe("PositionHouse_02", () => {
         quantity: number
         side: number
         _positionManager?: PositionManager
-    }
-
-
-    async function debugPendingOrder(pip: any, orderId: any) {
-        const res = await positionManager.getPendingOrderDetail(pip, orderId)
-        console.table([
-            {
-                pip,
-                orderId: orderId.toString(),
-                isFilled: res.isFilled,
-                isBuy: res.isBuy,
-                size: res.size.toString(),
-                partialFilled: res.partialFilled.toString(),
-            }
-        ])
     }
 
     async function getOrderIdByTx(tx: any) {
@@ -150,16 +114,23 @@ describe("PositionHouse_02", () => {
         const tx = await positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(Number(limitPrice)), leverage)
         console.log("GAS USED LIMIT", (await tx.wait()).gasUsed.toString())
         const {orderId, priceLimit} = await getOrderIdByTx(tx)
-        // console.log('orderId: ', orderId.toString())
-        // console.log('priceLimit: ', priceLimit.toString());
-        // const positionLimitInOrder = (await positionHouse["getPendingOrder(address,bytes)"](_positionManager.address, orderId)) as unknown as PendingOrder;
-        // expect(positionLimitInOrder.size.toNumber()).eq(quantity);
 
         return {
             orderId: orderId,
             pip: priceToPip(Number(limitPrice))
         } as LimitOrderReturns
         // expect(positionLimitInOrder..div(10000)).eq(limitPrice);
+    }
+
+    async function liquidate(_positionManagerAddress, _traderAddress) {
+        await positionHouse.liquidate(_positionManagerAddress, _traderAddress)
+    }
+
+    async function getMaintenanceDetailAndExpect({positionManagerAddress, traderAddress, expectedMarginRatio, expectedMaintenanceMargin, expectedMarginBalance} : ExpectMaintenanceDetail){
+        const maintenanceData = await positionHouse.getMaintenanceDetail(positionManagerAddress, traderAddress);
+        expect(maintenanceData.marginRatio).eq(expectedMarginRatio);
+        expect(maintenanceData.maintenanceMargin).eq(expectedMaintenanceMargin);
+        expect(maintenanceData.marginBalance).eq(expectedMarginBalance);
     }
 
 
@@ -222,7 +193,7 @@ describe("PositionHouse_02", () => {
             1
         )
         const positionTrader = (await positionHouse.getPosition(positionManagerAddress, traderAddress)) as unknown as PositionData
-        console.log("expect all: openNotional, positionNotional, margin, unrealizedPnl", Number(positionTrader.openNotional.div(10000)), Number(positionNotionalAndPnLTrader.positionNotional.div(10000)), Number(positionTrader.margin.div(10000)), Number(positionNotionalAndPnLTrader.unrealizedPnl.div(10000)))
+        console.log("expect all: quantity, openNotional, positionNotional, margin, unrealizedPnl",Number(positionTrader.quantity), Number(positionTrader.openNotional.div(10000)), Number(positionNotionalAndPnLTrader.positionNotional.div(10000)), Number(positionTrader.margin.div(10000)), Number(positionNotionalAndPnLTrader.unrealizedPnl.div(10000)))
         if (expectedQuantity != 0) {
             expect(positionTrader.quantity).eq(expectedQuantity);
         }
@@ -2452,97 +2423,60 @@ describe("PositionHouse_02", () => {
         })
     })
 
-    describe('Calc market twap', async function () {
-
-        /**
-         * PS_FUTU_200
-         S1: Current price 5000
-         S2: Price change to 5100
-         S3: Price change to 5200 after 5s
-         S4: Price change to 4800 after 5s
-         S5: Calc twap market price with interval = 100s
-         */
-        it('PS_FUTU_200: Calc market twap', async function () {
-            console.log("time after s0", Date.now())
-            await changePrice({
-                limitPrice: 5100,
-                toHigherPrice: true,
-            })
-
-            await changePrice({
-                limitPrice: 5200,
-                toHigherPrice: true,
-            })
-
-            await changePrice({
-                limitPrice: 4800,
-                toHigherPrice: false,
-            })
-
-            await changePrice({
-                limitPrice: 4900,
-                toHigherPrice: true,
-            })
-
-            await changePrice({
-                limitPrice: 4950,
-                toHigherPrice: true,
-            })
-
-            await changePrice({
-                limitPrice: 5000,
-                toHigherPrice: true,
-            })
-
-            await changePrice({
-                limitPrice: 4900,
-                toHigherPrice: false,
-            })
-
-            await positionManager.getAllReserveSnapshotTest();
-            console.log("price feed", (await chainlinkContract.getPrice('0x4254430000000000000000000000000000000000000000000000000000000000')).toString())
-
-            const twapMarketPrice = await positionManager.getTwapPrice(13);
-            console.log(twapMarketPrice)
-            expect(twapMarketPrice.div(10000)).eq(Math.floor((4800 * 2 + 5200 * 2 + 5100 * 2 + 5000 * 1 + 4900 * 2 + 4950 * 2 + 5000 * 2) / 13))
-        })
-    })
-
-    describe('Partial liquidate', async function () {
-
-        /**
-         * PS_FUTU_34
-         - S0: Trader0 open Limit Long (4900,10)
-         - S1: Trader1 open Market Short (10)
-         - S2: Trader2 open Limit Long (4425,5)
-         - S3: Trader3 open Market Short (5)
-         - S4: Call function getMaintenanceDetail of Trader0
-         - S5: Trader4 open Limit LONG (4425,2) => LONG
-         - S6: Call function liquidate Trader0
-
-         - S7: Trader2 open Limit SHORT (4853,4)
-         - S8: Trader4 open Market LONG(4)
-
-         - S9: Call function getMaintenanceDetail of Trader3 (partial liquidate)
-         - S10: Trader4 open Limit SHORT (4853,1)
-         - S11: Call function liquidate Trader3
-
-         - S12: Trader0 open Limit Short(5375,3)
-         - S13: Trader3 open Market long(3)
-         - S14: Call function getMaintenanceDetail of Trader1
-         - S15: Trader4 open Limit SHORT (5375,2)
-         - S16: Call function liquidate Trader1
-
-         - S17: Trader2 open Limit Long (4900,5)
-         - S18: Trader4 open Market Short(5)
-         - S19: Trader1 open Limit Short(5000,5)
-         - S20: Trader2 open Market long(5)
-         */
-        it('PS_FUTU_33: Calc market twap', async function () {
-
-        })
-    })
-
+    // describe('Calc market twap', async function () {
+    //
+    //     /**
+    //      * PS_FUTU_200
+    //      S1: Current price 5000
+    //      S2: Price change to 5100
+    //      S3: Price change to 5200 after 5s
+    //      S4: Price change to 4800 after 5s
+    //      S5: Calc twap market price with interval = 100s
+    //      */
+    //     it('PS_FUTU_200: Calc market twap', async function () {
+    //         console.log("time after s0", Date.now())
+    //         await changePrice({
+    //             limitPrice: 5100,
+    //             toHigherPrice: true,
+    //         })
+    //
+    //         await changePrice({
+    //             limitPrice: 5200,
+    //             toHigherPrice: true,
+    //         })
+    //
+    //         await changePrice({
+    //             limitPrice: 4800,
+    //             toHigherPrice: false,
+    //         })
+    //
+    //         await changePrice({
+    //             limitPrice: 4900,
+    //             toHigherPrice: true,
+    //         })
+    //
+    //         await changePrice({
+    //             limitPrice: 4950,
+    //             toHigherPrice: true,
+    //         })
+    //
+    //         await changePrice({
+    //             limitPrice: 5000,
+    //             toHigherPrice: true,
+    //         })
+    //
+    //         await changePrice({
+    //             limitPrice: 4900,
+    //             toHigherPrice: false,
+    //         })
+    //
+    //         console.log("price feed", (await chainlinkContract.getPrice('0x4254430000000000000000000000000000000000000000000000000000000000')).toString())
+    //
+    //         const twapMarketPrice = await positionManager.getTwapPrice(13);
+    //         console.log(twapMarketPrice)
+    //         expect(twapMarketPrice.div(10000)).eq(Math.floor((4800 * 2 + 5200 * 2 + 5100 * 2 + 5000 * 1 + 4900 * 2 + 4950 * 2 + 5000 * 2) / 13))
+    //     })
+    // })
 
     describe('Filled in same price', async function () {
 
@@ -2562,9 +2496,9 @@ describe("PositionHouse_02", () => {
          -S8:Tradercp open Limit Short(5020,7)
          -S9:Tradercp open Market Long(7) => current price 5020
 
-         -S10:Trade2 open Limit short(5020,3)
-         -S11:Trade1 open Limit long(5020,4)
-         -S12: Trade3 open Limit Short(1)
+         -S10:Trader2 open Limit short(5020,3)
+         -S11:Trader1 open Limit long(5020,4)
+         -S12: Trader3 open Limit Short(1)
          -S12:Tradercp open Limit Short(5025,4)
          -S13:Tradercp open Market Long(4) => current price 5025
          */
@@ -3034,7 +2968,6 @@ describe("PositionHouse_02", () => {
                     trader: trader0.address,
                     instanceTrader: trader0,
                     _positionManager: positionManager,
-                    expectedSize: BigNumber.from('-11')
                 }
             );
 
@@ -3075,14 +3008,254 @@ describe("PositionHouse_02", () => {
                     trader: trader1.address,
                     instanceTrader: trader1,
                     _positionManager: positionManager,
-                    expectedSize: BigNumber.from('-4')
                 }
             );
 
             await changePrice({limitPrice: 5025, toHigherPrice: true});
 
+
         })
 
     });
+
+    describe('Partial liquidate', async function () {
+
+        /**
+         * PS_FUTU_38
+         - S0: Trader0 open Limit Long (4900,10)
+         - S1: Trader1 open Market Short (10)
+         - S2: Trader2 open Limit Long (4425,5)
+         - S3: Trader3 open Market Short (5)
+         - S4: Call function getMaintenanceDetail of Trader0
+         - S5: Trader4 open Limit LONG (4425,2) => LONG
+         - S6: Call function liquidate Trader0
+
+         - S7: Tradercp open Limit SHORT (4853,4)
+         - S8: Tradercp open Market LONG(4)
+
+         - S9: Call function getMaintenanceDetail of Trader3 (partial liquidate)
+         - S10: Trader4 open Limit SHORT (4853,1)
+         - S11: Call function liquidate Trader3
+
+         - S12: Trader0 open Limit Short(5375,3)
+         - S13: Trader3 open Market long(3)
+         - S14: Call function getMaintenanceDetail of Trader1
+         - S15: Trader4 open Limit SHORT (5375,2)
+         - S16: Call function liquidate Trader1
+
+         - S17: Tradercp open Limit Long (4900,5)
+         - S18: Tradercp open Market Short(5)
+         - S19: Trader1 open Limit Short(5000,5)
+         - S20: Trader2 open Market long(5)
+         */
+        it('PS_FUTU_38: partial liquidate position and Revert size', async function () {
+            await changePrice({limitPrice: 5000, toHigherPrice: false});
+
+            //* - S0: Trader0 open Limit Long (4900,10)
+            //  - S1: Trader1 open Market Short (10)
+            let response0Trader0 = (await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 10,
+                _trader: trader0
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager
+                }
+            );
+
+            /*   - S2: Trader2 open Limit Long (4425,5)
+                 - S3: Trader3 open Market Short (5)*/
+
+            let response0Trader2 = (await openLimitPositionAndExpect({
+                limitPrice: 4425,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 5,
+                _trader: trader2
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader3.address,
+                    instanceTrader: trader3,
+                    _positionManager: positionManager
+                }
+            );
+
+            //  - S4: Call function getMaintenanceDetail of Trader0
+            //  - S5: Trader4 open Limit LONG (4425,2) => LONG
+            //  - S6: Call function liquidate Trader0
+            await getMaintenanceDetailAndExpect({
+                positionManagerAddress : positionManager.address,
+                traderAddress : trader0.address,
+                expectedMarginRatio : 98,
+                expectedMaintenanceMargin : 147 * 10000,
+                expectedMarginBalance : 150 * 10000
+            })
+            let response0Trader4 = (await openLimitPositionAndExpect({
+                limitPrice: 4425,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 2,
+                _trader: trader4
+            })) as unknown as PositionLimitOrderID
+            await liquidate(positionManager.address, trader0.address)
+
+            const expectTrader0EndAfterLiquidate = await expectMarginPnlAndOP({
+                positionManagerAddress: positionManager.address,
+                traderAddress: trader0.address,
+                expectedOpenNotional: 39200,
+                expectedMargin: 4753,
+                expectedPnl: -3800,
+                expectedQuantity: 8
+            });
+
+            //- S7: Tradercp open Limit SHORT (4853,4)
+            //- S8: Tradercp open Market LONG(4)
+
+            await changePrice({limitPrice: 4853, toHigherPrice: true});
+
+            // - S9: Call function getMaintenanceDetail of Trader3 (partial liquidate)
+            // - S10: Trader4 open Limit SHORT (4853,1)
+            // - S11: Call function liquidate Trader3
+            await getMaintenanceDetailAndExpect({
+                positionManagerAddress : positionManager.address,
+                traderAddress : trader3.address,
+                expectedMarginRatio : 91,
+                expectedMaintenanceMargin : 66.375 * 10000,
+                expectedMarginBalance : 72.5 * 10000
+            })
+            let response1Trader4 = (await openLimitPositionAndExpect({
+                limitPrice: 4853,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 1,
+                _trader: trader4
+            })) as unknown as PositionLimitOrderID
+            await liquidate(positionManager.address, trader3.address)
+
+             const expectTrader3EndAfterLiquidate = await expectMarginPnlAndOP({
+                positionManagerAddress: positionManager.address,
+                traderAddress: trader3.address,
+                expectedOpenNotional: 17700,
+                expectedMargin: 2146,
+                expectedPnl: -1712,
+                expectedQuantity: -4
+            });
+
+            //   - S12: Trader0 open Limit Short(5375,3)
+            //   - S13: Trader3 open Market long(3)
+            let response2Trader0 = (await openLimitPositionAndExpect({
+                limitPrice: 5375,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 3,
+                _trader: trader0
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader3.address,
+                    instanceTrader: trader3,
+                    _positionManager: positionManager
+                }
+            );
+
+            //  - S14: Call function getMaintenanceDetail of Trader1
+            //  - S15: Trader4 open Limit SHORT (5375,2)
+            //  - S16: Call function liquidate Trader1
+            await getMaintenanceDetailAndExpect({
+                positionManagerAddress : positionManager.address,
+                traderAddress : trader1.address,
+                expectedMarginRatio : 98,
+                expectedMaintenanceMargin : 147 * 10000,
+                expectedMarginBalance : 150 * 10000
+            })
+            let response2Trader4 = (await openLimitPositionAndExpect({
+                limitPrice: 5375,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 2,
+                _trader: trader4
+            })) as unknown as PositionLimitOrderID
+            await liquidate(positionManager.address, trader1.address)
+
+            const expectTrader1EndAfterLiquidate = await expectMarginPnlAndOP({
+                positionManagerAddress: positionManager.address,
+                traderAddress: trader1.address,
+                expectedOpenNotional: 39200,
+                expectedMargin: 4753,
+                expectedPnl: -3800,
+                expectedQuantity: -8
+            });
+
+            // - S17: Tradercp open Limit Long (4900,5)
+            // - S18: Tradercp open Market Short(5)
+            await changePrice({limitPrice: 4900, toHigherPrice: false});
+
+            // - S19: Trader1 open Limit Short(5000,5)
+            // - S20: Trader2 open Market long(5)
+            let response0Trader1 = (await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 5,
+                _trader: trader1
+            })) as unknown as PositionLimitOrderID
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager
+                }
+            );
+
+            //expect in S20
+            const expectTrader0End = await expectMarginPnlAndOP({
+                positionManagerAddress: positionManager.address,
+                traderAddress: trader0.address,
+                expectedOpenNotional: 24500,
+                expectedMargin: 2970,
+                expectedPnl: 2375,
+                expectedQuantity: 5
+            });
+
+            const expectTrader1End = await expectMarginPnlAndOP({
+                positionManagerAddress: positionManager.address,
+                traderAddress: trader1.address,
+                expectedOpenNotional: 14700,
+                expectedMargin: 1782,
+                expectedPnl: -300,
+                expectedQuantity: 3
+            });
+
+            const expectTrader3End = await expectMarginPnlAndOP({
+                positionManagerAddress: positionManager.address,
+                traderAddress: trader3.address,
+                expectedOpenNotional: 4425,
+                expectedMargin: 536,
+                expectedPnl: -300,
+                expectedQuantity: -1
+            });
+
+        })
+
+
+    })
 
 })

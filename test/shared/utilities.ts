@@ -208,6 +208,14 @@ export interface ExpectTestCaseParams {
     expectedQuantity?: number
 }
 
+export interface ExpectMaintenanceDetail {
+    positionManagerAddress: string,
+    traderAddress: string,
+    expectedMarginRatio: number,
+    expectedMaintenanceMargin: number,
+    expectedMarginBalance: number,
+}
+
 export interface MarketOrderReturns {
     size: BigNumber,
     openNotional: BigNumber
