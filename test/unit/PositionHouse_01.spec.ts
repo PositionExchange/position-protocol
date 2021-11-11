@@ -788,197 +788,197 @@ describe("PositionHouse_01", () => {
 
         describe('should reduce current position with PnL', async function () {
 
-            // it('should pnl > 0 and reduce position', async function () {
-            //     const positionManager2 = (await positionManagerFactory.deploy(priceToPip(50), '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
-            //     await positionManager2.connect(trader1).openLimitPosition(
-            //         priceToPip(50),
-            //         '1000',
-            //         true
-            //     );
-            //
-            //     console.log("open market 1")
-            //     // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000= 50000, margin = openNotional / leverage = 50000 / 20 = 250
-            //     await openMarketPosition({
-            //         quantity: BigNumber.from('1000'),
-            //         leverage: 20,
-            //         side: SIDE.SHORT,
-            //         trader: trader.address,
-            //         instanceTrader: trader,
-            //         _positionManager: positionManager2,
-            //         price: 50,
-            //         expectedSize: BigNumber.from('-1000')
-            //     })
-            //
-            //     // trader1 openLimit at price 49
-            //     // quantity 1000 LONG
-            //     await positionManager2.connect(trader1).openLimitPosition(
-            //         priceToPip(49),
-            //         '1000',
-            //         true,
-            //     );
-            //
-            //     console.log("open market 2")
-            //
-            //     // trader2 short at price 49, quantity 1000 TRB, openNotional = 49*1000 = 49000
-            //     await openMarketPosition({
-            //         quantity: BigNumber.from('1000'),
-            //         leverage: 20,
-            //         side: SIDE.SHORT,
-            //         trader: trader2.address,
-            //         instanceTrader: trader2,
-            //         price: Number('49'),
-            //         expectedSize: BigNumber.from('-1000'),
-            //         expectedNotional: BigNumber.from('49000'),
-            //         _positionManager: positionManager2
-            //     });
-            //     // trader0 should get profit
-            //     // openNotional = 50*1000 = 50000
-            //     // => profit = openNotional - currentNotional = 50000 - quantity*currentPrice = 5000 - 49*1000 = 1000
-            //     const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
-            //         positionManager2.address,
-            //         trader.address,
-            //         1
-            //     )
-            //     console.log(' positionNotionalAndPnL1 ', positionNotionalAndPnL1.unrealizedPnl.toString())
-            //
-            //     expect(positionNotionalAndPnL1.unrealizedPnl.div(10000)).eq(1000)
-            //
-            //     await positionManager2.connect(trader2).openLimitPosition(
-            //         priceToPip(49.5),
-            //         '500',
-            //         false
-            //     );
-            //
-            //     console.log("open market 3")
-            //
-            //     // trader0 long at price 50.5, quantity 500 TRB, new openNotional = 50.5*500 = 25250
-            //     // trader0 position should be modified as following:
-            //     // current PNL = 1000*(50-49.5) = 500
-            //     // openNotional = oldNotional - newNotional = 50*1000 (short before) - 50*500 (this long) = 25000
-            //     await openMarketPosition({
-            //         quantity: BigNumber.from('500'),
-            //         leverage: 20,
-            //         side: SIDE.LONG,
-            //         trader: trader.address,
-            //         instanceTrader: trader,
-            //         price: Number('49.5'),
-            //         expectedSize: BigNumber.from('-500'),
-            //         expectedNotional: BigNumber.from('25000'),
-            //         _positionManager: positionManager2
-            //     })
-            //
-            //     const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnl(
-            //         positionManager2.address,
-            //         trader.address,
-            //         1
-            //     )
-            //     console.log(await positionHouse.getPosition(positionManager2.address, trader.address))
-            //     console.log((await positionManager2.getPrice()).toString())
-            //     // pnl after = currentSize*(entryPrice - currentPrice) = 500*(50 - 49.5) = 250
-            //     // trader's total receive will be = reducedMargin + pnl before - pnl after
-            //     // = oldMargin - newSize / oldSize * oldMargin + pnl before - pnl after = 1250 + 250 = 1500
-            //     expect(positionNotionalAndPnL.positionNotional.div(10000)).eq(24750)
-            //     expect(positionNotionalAndPnL.unrealizedPnl).gte(0)
-            //     console.log('positionNotionalAndPnL ', positionNotionalAndPnL.unrealizedPnl.toString())
-            //     expect(positionNotionalAndPnL.unrealizedPnl.div(10000).toNumber()).eq(250)
-            // });
+            it('should pnl > 0 and reduce position', async function () {
+                const positionManager2 = (await positionManagerFactory.deploy(priceToPip(50), '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
+                await positionManager2.connect(trader1).openLimitPosition(
+                    priceToPip(50),
+                    '1000',
+                    true
+                );
 
-            // it('should pnl < 0 and reduce position', async function () {
-            //     const positionManager2 = (await positionManagerFactory.deploy(priceToPip(50), '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
-            //     await positionManager2.connect(trader1).openLimitPosition(
-            //         priceToPip(50),
-            //         '1000',
-            //         false
-            //     );
-            //
-            //     console.log("open market 1")
-            //
-            //     // trader0 long at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000, margin = openNotional / leverage = 50000 / 20 = 250
-            //     await openMarketPosition({
-            //         quantity: BigNumber.from('1000'),
-            //         leverage: 10,
-            //         side: SIDE.LONG,
-            //         trader: trader.address,
-            //         instanceTrader: trader,
-            //         _positionManager: positionManager2,
-            //         price: 50
-            //     })
-            //
-            //     // trader1 openLimit at price 49
-            //     // quantity 1000 LONG
-            //     await positionManager2.connect(trader1).openLimitPosition(
-            //         priceToPip(49.9),
-            //         '1000',
-            //         true
-            //     );
-            //
-            //     console.log("open market 2");
-            //
-            //     // trader2 short at price 49, quantity 1000 TRB, openNotional = 49.9 * 1000 = 49900
-            //     await openMarketPosition({
-            //         quantity: BigNumber.from('1000'),
-            //         leverage: 10,
-            //         side: SIDE.SHORT,
-            //         trader: trader2.address,
-            //         instanceTrader: trader2,
-            //         price: Number('49.9'),
-            //         expectedSize: BigNumber.from('-1000'),
-            //         expectedNotional: BigNumber.from('49900'),
-            //         _positionManager: positionManager2
-            //     });
-            //
-            //     // trader0 should be loss
-            //     // openNotional = 50*1000 = 50000
-            //     // => profit of long position = currentNotional - openNotional = quantity*currentPrice - 50000 = 1000*49.9 - 50000 = 100
-            //     const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
-            //         positionManager2.address,
-            //         trader.address,
-            //         1
-            //     )
-            //
-            //     expect(positionNotionalAndPnL1.unrealizedPnl.div(10000)).eq(-100)
-            //
-            //     await positionManager2.connect(trader2).openLimitPosition(
-            //         priceToPip(49.8),
-            //         '500',
-            //         true
-            //     )
-            //
-            //     console.log("open market 3")
-            //
-            //     // trader0 short at price 49.8, quantity 500 TRB, new openNotional = 49.8 * 500 = 24900
-            //     // trader0 position should be modified as following:
-            //     // currentPnl = 1000*(49.8-50) = -200
-            //     // openNotional = oldNotional - newNotional = 50 * 1000 (long before) - 50 * 500 (this short) = 25000
-            //     await openMarketPosition({
-            //         quantity: BigNumber.from('500'),
-            //         leverage: 20,
-            //         side: SIDE.SHORT,
-            //         trader: trader.address,
-            //         instanceTrader: trader,
-            //         price: Number('49.8'),
-            //         expectedSize: BigNumber.from('500'),
-            //         expectedNotional: BigNumber.from('25000'),
-            //         _positionManager: positionManager2
-            //     })
-            //
-            //     const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnl(
-            //         positionManager2.address,
-            //         trader.address,
-            //         1
-            //     )
-            //     console.log(await positionHouse.getPosition(positionManager2.address, trader.address))
-            //     console.log((await positionManager2.getPrice()).toString())
-            //     // pnl after (for long position) = currentSize*(currentPrice - entryPrice) = 500*(49.8 - 50) = 100
-            //     // trader's total receive will be = reducedMargin + pnl before - pnl after
-            //     // = oldMargin - newSize / oldSize * oldMargin + pnl before - pnl after = 1250 - 100 = 1150
-            //     // IMPORTANT check total amount trader will receive (suppose to = 1150)
-            //     expect(positionNotionalAndPnL.positionNotional.div(10000)).eq(24900)
-            //     expect(positionNotionalAndPnL.unrealizedPnl).lte(0)
-            //     console.log('positionNotionalAndPnL ', positionNotionalAndPnL.unrealizedPnl.toString())
-            //     expect(positionNotionalAndPnL.unrealizedPnl.div(10000).toNumber()).eq(-100)
-            //
-            // });
+                console.log("open market 1")
+                // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000= 50000, margin = openNotional / leverage = 50000 / 20 = 250
+                await openMarketPosition({
+                    quantity: BigNumber.from('1000'),
+                    leverage: 20,
+                    side: SIDE.SHORT,
+                    trader: trader.address,
+                    instanceTrader: trader,
+                    _positionManager: positionManager2,
+                    price: 50,
+                    expectedSize: BigNumber.from('-1000')
+                })
+
+                // trader1 openLimit at price 49
+                // quantity 1000 LONG
+                await positionManager2.connect(trader1).openLimitPosition(
+                    priceToPip(49),
+                    '1000',
+                    true,
+                );
+
+                console.log("open market 2")
+
+                // trader2 short at price 49, quantity 1000 TRB, openNotional = 49*1000 = 49000
+                await openMarketPosition({
+                    quantity: BigNumber.from('1000'),
+                    leverage: 20,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    price: Number('49'),
+                    expectedSize: BigNumber.from('-1000'),
+                    expectedNotional: BigNumber.from('49000'),
+                    _positionManager: positionManager2
+                });
+                // trader0 should get profit
+                // openNotional = 50*1000 = 50000
+                // => profit = openNotional - currentNotional = 50000 - quantity*currentPrice = 5000 - 49*1000 = 1000
+                const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                    positionManager2.address,
+                    trader.address,
+                    1
+                )
+                console.log(' positionNotionalAndPnL1 ', positionNotionalAndPnL1.unrealizedPnl.toString())
+
+                expect(positionNotionalAndPnL1.unrealizedPnl.div(10000)).eq(1000)
+
+                await positionManager2.connect(trader2).openLimitPosition(
+                    priceToPip(49.5),
+                    '500',
+                    false
+                );
+
+                console.log("open market 3")
+
+                // trader0 long at price 50.5, quantity 500 TRB, new openNotional = 50.5*500 = 25250
+                // trader0 position should be modified as following:
+                // current PNL = 1000*(50-49.5) = 500
+                // openNotional = oldNotional - newNotional = 50*1000 (short before) - 50*500 (this long) = 25000
+                await openMarketPosition({
+                    quantity: BigNumber.from('500'),
+                    leverage: 20,
+                    side: SIDE.LONG,
+                    trader: trader.address,
+                    instanceTrader: trader,
+                    price: Number('49.5'),
+                    expectedSize: BigNumber.from('-500'),
+                    expectedNotional: BigNumber.from('25000'),
+                    _positionManager: positionManager2
+                })
+
+                const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                    positionManager2.address,
+                    trader.address,
+                    1
+                )
+                console.log(await positionHouse.getPosition(positionManager2.address, trader.address))
+                console.log((await positionManager2.getPrice()).toString())
+                // pnl after = currentSize*(entryPrice - currentPrice) = 500*(50 - 49.5) = 250
+                // trader's total receive will be = reducedMargin + pnl before - pnl after
+                // = oldMargin - newSize / oldSize * oldMargin + pnl before - pnl after = 1250 + 250 = 1500
+                expect(positionNotionalAndPnL.positionNotional.div(10000)).eq(24750)
+                expect(positionNotionalAndPnL.unrealizedPnl).gte(0)
+                console.log('positionNotionalAndPnL ', positionNotionalAndPnL.unrealizedPnl.toString())
+                expect(positionNotionalAndPnL.unrealizedPnl.div(10000).toNumber()).eq(250)
+            });
+
+            it('should pnl < 0 and reduce position', async function () {
+                const positionManager2 = (await positionManagerFactory.deploy(priceToPip(50), '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
+                await positionManager2.connect(trader1).openLimitPosition(
+                    priceToPip(50),
+                    '1000',
+                    false
+                );
+
+                console.log("open market 1")
+
+                // trader0 long at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000, margin = openNotional / leverage = 50000 / 20 = 250
+                await openMarketPosition({
+                    quantity: BigNumber.from('1000'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader.address,
+                    instanceTrader: trader,
+                    _positionManager: positionManager2,
+                    price: 50
+                })
+
+                // trader1 openLimit at price 49
+                // quantity 1000 LONG
+                await positionManager2.connect(trader1).openLimitPosition(
+                    priceToPip(49.9),
+                    '1000',
+                    true
+                );
+
+                console.log("open market 2");
+
+                // trader2 short at price 49, quantity 1000 TRB, openNotional = 49.9 * 1000 = 49900
+                await openMarketPosition({
+                    quantity: BigNumber.from('1000'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    price: Number('49.9'),
+                    expectedSize: BigNumber.from('-1000'),
+                    expectedNotional: BigNumber.from('49900'),
+                    _positionManager: positionManager2
+                });
+
+                // trader0 should be loss
+                // openNotional = 50*1000 = 50000
+                // => profit of long position = currentNotional - openNotional = quantity*currentPrice - 50000 = 1000*49.9 - 50000 = 100
+                const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                    positionManager2.address,
+                    trader.address,
+                    1
+                )
+
+                expect(positionNotionalAndPnL1.unrealizedPnl.div(10000)).eq(-100)
+
+                await positionManager2.connect(trader2).openLimitPosition(
+                    priceToPip(49.8),
+                    '500',
+                    true
+                )
+
+                console.log("open market 3")
+
+                // trader0 short at price 49.8, quantity 500 TRB, new openNotional = 49.8 * 500 = 24900
+                // trader0 position should be modified as following:
+                // currentPnl = 1000*(49.8-50) = -200
+                // openNotional = oldNotional - newNotional = 50 * 1000 (long before) - 50 * 500 (this short) = 25000
+                await openMarketPosition({
+                    quantity: BigNumber.from('500'),
+                    leverage: 20,
+                    side: SIDE.SHORT,
+                    trader: trader.address,
+                    instanceTrader: trader,
+                    price: Number('49.8'),
+                    expectedSize: BigNumber.from('500'),
+                    expectedNotional: BigNumber.from('25000'),
+                    _positionManager: positionManager2
+                })
+
+                const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                    positionManager2.address,
+                    trader.address,
+                    1
+                )
+                console.log(await positionHouse.getPosition(positionManager2.address, trader.address))
+                console.log((await positionManager2.getPrice()).toString())
+                // pnl after (for long position) = currentSize*(currentPrice - entryPrice) = 500*(49.8 - 50) = 100
+                // trader's total receive will be = reducedMargin + pnl before - pnl after
+                // = oldMargin - newSize / oldSize * oldMargin + pnl before - pnl after = 1250 - 100 = 1150
+                // IMPORTANT check total amount trader will receive (suppose to = 1150)
+                expect(positionNotionalAndPnL.positionNotional.div(10000)).eq(24900)
+                expect(positionNotionalAndPnL.unrealizedPnl).lte(0)
+                console.log('positionNotionalAndPnL ', positionNotionalAndPnL.unrealizedPnl.toString())
+                expect(positionNotionalAndPnL.unrealizedPnl.div(10000).toNumber()).eq(-100)
+
+            });
 
         });
         describe('close and open reverse', function () {
@@ -2946,370 +2946,370 @@ describe("PositionHouse_01", () => {
 
     describe('close position', async function () {
 
-        // it('should close position with close Market', async function () {
-        //     const positionManager2 = (await positionManagerFactory.deploy(priceToPip(50), '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
-        //     await positionManager2.connect(trader1).openLimitPosition(
-        //         priceToPip(50),
-        //         '1000',
-        //         true
-        //     );
-        //
-        //     console.log("open market 1");
-        //     // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000,
-        //     // margin = openNotional / leverage = 50000 / 20 = 250
-        //     await openMarketPosition({
-        //         quantity: BigNumber.from('1000'),
-        //         leverage: 20,
-        //         side: SIDE.SHORT,
-        //         trader: trader.address,
-        //         instanceTrader: trader,
-        //         _positionManager: positionManager2,
-        //         price: 50,
-        //         expectedSize: BigNumber.from('-1000')
-        //     })
-        //
-        //     // trader1 openLimit at price 50
-        //     // quantity 1000 SHORT
-        //     await positionManager2.connect(trader1).openLimitPosition(
-        //         priceToPip(51),
-        //         '1000',
-        //         false
-        //     );
-        //
-        //
-        //     // const positionData = positionHouse.
-        //
-        //     console.log("close position")
-        //     await closePosition({
-        //         trader: trader.address,
-        //         instanceTrader: trader,
-        //         _positionManager: positionManager2
-        //     });
-        //
-        // })
+        it('should close position with close Market', async function () {
+            const positionManager2 = (await positionManagerFactory.deploy(priceToPip(50), '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
+            await positionManager2.connect(trader1).openLimitPosition(
+                priceToPip(50),
+                '1000',
+                true
+            );
+
+            console.log("open market 1");
+            // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000,
+            // margin = openNotional / leverage = 50000 / 20 = 250
+            await openMarketPosition({
+                quantity: BigNumber.from('1000'),
+                leverage: 20,
+                side: SIDE.SHORT,
+                trader: trader.address,
+                instanceTrader: trader,
+                _positionManager: positionManager2,
+                price: 50,
+                expectedSize: BigNumber.from('-1000')
+            })
+
+            // trader1 openLimit at price 50
+            // quantity 1000 SHORT
+            await positionManager2.connect(trader1).openLimitPosition(
+                priceToPip(51),
+                '1000',
+                false
+            );
+
+
+            // const positionData = positionHouse.
+
+            console.log("close position")
+            await closePosition({
+                trader: trader.address,
+                instanceTrader: trader,
+                _positionManager: positionManager2
+            });
+
+        })
 
 
     })
 
-    // describe('liquidate position', async function () {
-    //
-    //     it('should liquidate partial position with SHORT', async function () {
-    //         const positionManager2 = (await positionManagerFactory.deploy(priceToPip(5000), '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
-    //
-    //         await positionManager2.connect(trader1).openLimitPosition(
-    //             priceToPip(5000),
-    //             '100',
-    //             true
-    //         );
-    //
-    //         console.log("open market 1");
-    //         // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000,
-    //         // margin = openNotional / leverage = 500000 / 20 = 25000
-    //         await openMarketPosition({
-    //             quantity: BigNumber.from('100'),
-    //             leverage: 20,
-    //             side: SIDE.SHORT,
-    //             trader: trader.address,
-    //             instanceTrader: trader,
-    //             _positionManager: positionManager2,
-    //             price: 5000,
-    //             expectedSize: BigNumber.from('-100')
-    //         })
-    //
-    //         await positionManager2.connect(trader1).openLimitPosition(
-    //             priceToPip(5242),
-    //             '100',
-    //             false
-    //         );
-    //
-    //         console.log("open market 2");
-    //         // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000,
-    //         // margin = openNotional / leverage = 50000 / 20 = 2500
-    //         await openMarketPosition({
-    //             quantity: BigNumber.from('100'),
-    //             leverage: 20,
-    //             side: SIDE.LONG,
-    //             trader: trader2.address,
-    //             instanceTrader: trader2,
-    //             _positionManager: positionManager2,
-    //             price: 5242
-    //         })
-    //
-    //         const maintenanceDetail = (await positionHouse.getMaintenanceDetail(positionManager2.address, trader.address)) as unknown as MaintenanceDetail;
-    //         const positionData = (await positionHouse.getPosition(positionManager2.address, trader.address)) as unknown as PositionData;
-    //         const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
-    //             positionManager2.address,
-    //             trader.address,
-    //             1
-    //         )
-    //
-    //
-    //         console.log('mmargin ', positionData.margin.div(10000).toString());
-    //         console.log('Pnl :', positionNotionalAndPnL1.unrealizedPnl.div(10000).toString())
-    //
-    //         console.log('margin maintenanceMargin: ', maintenanceDetail.maintenanceMargin.div(10000).toString());
-    //         console.log('margin balance: ', maintenanceDetail.marginBalance.div(10000).toString());
-    //         console.log('margin marginRatio: ', maintenanceDetail.marginRatio.toString());
-    //         console.log("start liquidate");
-    //
-    //
-    //         await positionManager2.connect(trader1).openLimitPosition(
-    //             priceToPip(5242),
-    //             '20',
-    //             false
-    //         );
-    //
-    //         await positionHouse.liquidate(positionManager2.address, trader.address);
-    //
-    //
-    //         const positionData1 = (await positionHouse.getPosition(positionManager2.address, trader.address)) as unknown as PositionData;
-    //
-    //         console.log('quantity after liquidate ', positionData1.quantity.toString())
-    //         console.log('margin after liquidate ', positionData1.margin.toString())
-    //
-    //
-    //         expect(positionData1.quantity).eq(-80)
-    //
-    //         expect(positionData1.margin.div(10000)).eq(24250)
-    //
-    //     });
-    //
-    //     it('should liquidate partial position with LONG', async function () {
-    //         const positionManager2 = (await positionManagerFactory.deploy(priceToPip(5000), '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
-    //         await positionManager2.connect(trader1).openLimitPosition(
-    //             priceToPip(5000),
-    //             '100',
-    //             false
-    //         );
-    //
-    //         console.log("open market 1");
-    //         // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000,
-    //         // margin = openNotional / leverage = 500000 / 20 = 25000
-    //         await openMarketPosition({
-    //             quantity: BigNumber.from('100'),
-    //             leverage: 20,
-    //             side: SIDE.LONG,
-    //             trader: trader.address,
-    //             instanceTrader: trader,
-    //             _positionManager: positionManager2,
-    //             price: 5000,
-    //             expectedSize: BigNumber.from('100')
-    //         })
-    //
-    //
-    //         await positionManager2.connect(trader1).openLimitPosition(
-    //             priceToPip(4758),
-    //             '100',
-    //             true
-    //         );
-    //
-    //         console.log("open market 2");
-    //         // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000,
-    //         // margin = openNotional / leverage = 50000 / 20 = 2500
-    //         await openMarketPosition({
-    //             quantity: BigNumber.from('100'),
-    //             leverage: 20,
-    //             side: SIDE.SHORT,
-    //             trader: trader2.address,
-    //             instanceTrader: trader2,
-    //             _positionManager: positionManager2,
-    //             price: 4758,
-    //             expectedSize: BigNumber.from('-100')
-    //             // expect().eq()
-    //         })
-    //
-    //         const maintenanceDetail = (await positionHouse.getMaintenanceDetail(positionManager2.address, trader.address)) as unknown as MaintenanceDetail;
-    //         const positionData = (await positionHouse.getPosition(positionManager2.address, trader.address)) as unknown as PositionData;
-    //         const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
-    //             positionManager2.address,
-    //             trader.address,
-    //             1
-    //         )
-    //
-    //
-    //         console.log('margin ', positionData.margin.div(10000).toString());
-    //         console.log('Pnl :', positionNotionalAndPnL1.unrealizedPnl.div(10000).toString())
-    //
-    //         console.log('margin maintenanceMargin: ', maintenanceDetail.maintenanceMargin.div(10000).toString());
-    //         console.log('margin balance: ', maintenanceDetail.marginBalance.div(10000).toString());
-    //         console.log('margin marginRatio: ', maintenanceDetail.marginRatio.toString());
-    //         console.log("start liquidate");
-    //
-    //
-    //         await positionManager2.connect(trader1).openLimitPosition(
-    //             priceToPip(4758),
-    //             '20',
-    //             true
-    //         );
-    //
-    //         await positionHouse.liquidate(positionManager2.address, trader.address);
-    //
-    //
-    //         const positionData1 = (await positionHouse.getPosition(positionManager2.address, trader.address)) as unknown as PositionData;
-    //
-    //         console.log('quantity after liquidate ', positionData1.quantity.toString())
-    //         console.log('margin after liquidate ', positionData1.margin.toString())
-    //
-    //
-    //         expect(positionData1.quantity).eq(80)
-    //
-    //         expect(positionData1.margin.div(10000)).eq(24250)
-    //
-    //     });
-    //
-    //     it('should liquidate full position with SHORT', async function () {
-    //         const positionManager2 = (await positionManagerFactory.deploy(priceToPip(5000), '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
-    //         await positionManager2.connect(trader1).openLimitPosition(
-    //             priceToPip(5000),
-    //             '100',
-    //             true
-    //         );
-    //
-    //         console.log("open market 1");
-    //         // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000,
-    //         // margin = openNotional / leverage = 500000 / 20 = 25000
-    //         await openMarketPosition({
-    //             quantity: BigNumber.from('100'),
-    //             leverage: 20,
-    //             side: SIDE.SHORT,
-    //             trader: trader.address,
-    //             instanceTrader: trader,
-    //             _positionManager: positionManager2,
-    //             price: 5000,
-    //             expectedSize: BigNumber.from('-100')
-    //         })
-    //
-    //
-    //         await positionManager2.connect(trader1).openLimitPosition(
-    //             priceToPip(5245),
-    //             '100',
-    //             false
-    //         );
-    //
-    //         console.log("open market 2");
-    //         // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000,
-    //         // margin = openNotional / leverage = 50000 / 20 = 2500
-    //         await openMarketPosition({
-    //             quantity: BigNumber.from('100'),
-    //             leverage: 20,
-    //             side: SIDE.LONG,
-    //             trader: trader2.address,
-    //             instanceTrader: trader2,
-    //             _positionManager: positionManager2,
-    //             price: 5245
-    //         })
-    //
-    //         const maintenanceDetail = (await positionHouse.getMaintenanceDetail(positionManager2.address, trader.address)) as unknown as MaintenanceDetail;
-    //
-    //         const positionData = (await positionHouse.getPosition(positionManager2.address, trader.address)) as unknown as PositionData;
-    //         const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
-    //             positionManager2.address,
-    //             trader.address,
-    //             1
-    //         )
-    //
-    //
-    //         console.log('margin ', positionData.margin.div(10000).toString());
-    //         console.log('Pnl :', positionNotionalAndPnL1.unrealizedPnl.div(10000).toString())
-    //
-    //         console.log('margin maintenanceMargin: ', maintenanceDetail.maintenanceMargin.div(10000).toString());
-    //         console.log('margin balance: ', maintenanceDetail.marginBalance.div(10000).toString());
-    //         console.log('margin marginRatio: ', maintenanceDetail.marginRatio.toString());
-    //         console.log("start liquidate");
-    //
-    //         await positionHouse.liquidate(positionManager2.address, trader.address);
-    //
-    //
-    //         const positionData1 = (await positionHouse.getPosition(positionManager2.address, trader.address)) as unknown as PositionData;
-    //
-    //         console.log('quantity after liquidate ', positionData1.quantity.toString())
-    //         console.log('margin after liquidate ', positionData1.margin.toString())
-    //
-    //
-    //         expect(positionData1.quantity).eq(0)
-    //
-    //         expect(positionData1.margin.div(10000)).eq(0)
-    //
-    //     });
-    //
-    //
-    //     it('should liquidate full position with LONG', async function () {
-    //         const positionManager2 = (await positionManagerFactory.deploy(priceToPip(5000), '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
-    //         await positionManager2.connect(trader1).openLimitPosition(
-    //             priceToPip(5000),
-    //             '100',
-    //             false
-    //         );
-    //
-    //         console.log("open market 1");
-    //         // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000,
-    //         // margin = openNotional / leverage = 500000 / 20 = 25000
-    //         await openMarketPosition({
-    //             quantity: BigNumber.from('100'),
-    //             leverage: 20,
-    //             side: SIDE.LONG,
-    //             trader: trader.address,
-    //             instanceTrader: trader,
-    //             _positionManager: positionManager2,
-    //             price: 5000,
-    //             expectedSize: BigNumber.from('100')
-    //         })
-    //
-    //
-    //         await positionManager2.connect(trader1).openLimitPosition(
-    //             priceToPip(4755),
-    //             '100',
-    //             true
-    //         );
-    //
-    //         console.log("open market 2");
-    //         // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000,
-    //         // margin = openNotional / leverage = 50000 / 20 = 2500
-    //         await openMarketPosition({
-    //             quantity: BigNumber.from('100'),
-    //             leverage: 20,
-    //             side: SIDE.SHORT,
-    //             trader: trader2.address,
-    //             instanceTrader: trader2,
-    //             _positionManager: positionManager2,
-    //             price: 4755,
-    //             expectedSize: BigNumber.from('-100')
-    //         })
-    //
-    //         const maintenanceDetail = (await positionHouse.getMaintenanceDetail(positionManager2.address, trader.address)) as unknown as MaintenanceDetail;
-    //
-    //         const positionData = (await positionHouse.getPosition(positionManager2.address, trader.address)) as unknown as PositionData;
-    //         const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
-    //             positionManager2.address,
-    //             trader.address,
-    //             1
-    //         )
-    //
-    //
-    //         console.log('mmargin ', positionData.margin.div(10000).toString());
-    //         console.log('Pnl :', positionNotionalAndPnL1.unrealizedPnl.div(10000).toString())
-    //
-    //         console.log('margin maintenanceMargin: ', maintenanceDetail.maintenanceMargin.div(10000).toString());
-    //         console.log('margin balance: ', maintenanceDetail.marginBalance.div(10000).toString());
-    //         console.log('margin marginRatio: ', maintenanceDetail.marginRatio.toString());
-    //         console.log("start liquidate");
-    //
-    //         await positionHouse.liquidate(positionManager2.address, trader.address);
-    //
-    //
-    //         const positionData1 = (await positionHouse.getPosition(positionManager2.address, trader.address)) as unknown as PositionData;
-    //
-    //         console.log('quantity after liquidate ', positionData1.quantity.toString())
-    //         console.log('margin after liquidate ', positionData1.margin.toString())
-    //
-    //
-    //         expect(positionData1.quantity).eq(0)
-    //
-    //         expect(positionData1.margin.div(10000)).eq(0)
-    //
-    //     });
-    //
-    // })
+    describe('liquidate position', async function () {
+
+        it('should liquidate partial position with SHORT', async function () {
+            const positionManager2 = (await positionManagerFactory.deploy(priceToPip(5000), '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
+
+            await positionManager2.connect(trader1).openLimitPosition(
+                priceToPip(5000),
+                '100',
+                true
+            );
+
+            console.log("open market 1");
+            // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000,
+            // margin = openNotional / leverage = 500000 / 20 = 25000
+            await openMarketPosition({
+                quantity: BigNumber.from('100'),
+                leverage: 20,
+                side: SIDE.SHORT,
+                trader: trader.address,
+                instanceTrader: trader,
+                _positionManager: positionManager2,
+                price: 5000,
+                expectedSize: BigNumber.from('-100')
+            })
+
+            await positionManager2.connect(trader1).openLimitPosition(
+                priceToPip(5242),
+                '100',
+                false
+            );
+
+            console.log("open market 2");
+            // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000,
+            // margin = openNotional / leverage = 50000 / 20 = 2500
+            await openMarketPosition({
+                quantity: BigNumber.from('100'),
+                leverage: 20,
+                side: SIDE.LONG,
+                trader: trader2.address,
+                instanceTrader: trader2,
+                _positionManager: positionManager2,
+                price: 5242
+            })
+
+            const maintenanceDetail = (await positionHouse.getMaintenanceDetail(positionManager2.address, trader.address)) as unknown as MaintenanceDetail;
+            const positionData = (await positionHouse.getPosition(positionManager2.address, trader.address)) as unknown as PositionData;
+            const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                positionManager2.address,
+                trader.address,
+                1
+            )
+
+
+            console.log('mmargin ', positionData.margin.div(10000).toString());
+            console.log('Pnl :', positionNotionalAndPnL1.unrealizedPnl.div(10000).toString())
+
+            console.log('margin maintenanceMargin: ', maintenanceDetail.maintenanceMargin.div(10000).toString());
+            console.log('margin balance: ', maintenanceDetail.marginBalance.div(10000).toString());
+            console.log('margin marginRatio: ', maintenanceDetail.marginRatio.toString());
+            console.log("start liquidate");
+
+
+            await positionManager2.connect(trader1).openLimitPosition(
+                priceToPip(5242),
+                '20',
+                false
+            );
+
+            await positionHouse.liquidate(positionManager2.address, trader.address);
+
+
+            const positionData1 = (await positionHouse.getPosition(positionManager2.address, trader.address)) as unknown as PositionData;
+
+            console.log('quantity after liquidate ', positionData1.quantity.toString())
+            console.log('margin after liquidate ', positionData1.margin.toString())
+
+
+            expect(positionData1.quantity).eq(-80)
+
+            expect(positionData1.margin.div(10000)).eq(24250)
+
+        });
+
+        it('should liquidate partial position with LONG', async function () {
+            const positionManager2 = (await positionManagerFactory.deploy(priceToPip(5000), '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
+            await positionManager2.connect(trader1).openLimitPosition(
+                priceToPip(5000),
+                '100',
+                false
+            );
+
+            console.log("open market 1");
+            // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000,
+            // margin = openNotional / leverage = 500000 / 20 = 25000
+            await openMarketPosition({
+                quantity: BigNumber.from('100'),
+                leverage: 20,
+                side: SIDE.LONG,
+                trader: trader.address,
+                instanceTrader: trader,
+                _positionManager: positionManager2,
+                price: 5000,
+                expectedSize: BigNumber.from('100')
+            })
+
+
+            await positionManager2.connect(trader1).openLimitPosition(
+                priceToPip(4758),
+                '100',
+                true
+            );
+
+            console.log("open market 2");
+            // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000,
+            // margin = openNotional / leverage = 50000 / 20 = 2500
+            await openMarketPosition({
+                quantity: BigNumber.from('100'),
+                leverage: 20,
+                side: SIDE.SHORT,
+                trader: trader2.address,
+                instanceTrader: trader2,
+                _positionManager: positionManager2,
+                price: 4758,
+                expectedSize: BigNumber.from('-100')
+                // expect().eq()
+            })
+
+            const maintenanceDetail = (await positionHouse.getMaintenanceDetail(positionManager2.address, trader.address)) as unknown as MaintenanceDetail;
+            const positionData = (await positionHouse.getPosition(positionManager2.address, trader.address)) as unknown as PositionData;
+            const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                positionManager2.address,
+                trader.address,
+                1
+            )
+
+
+            console.log('margin ', positionData.margin.div(10000).toString());
+            console.log('Pnl :', positionNotionalAndPnL1.unrealizedPnl.div(10000).toString())
+
+            console.log('margin maintenanceMargin: ', maintenanceDetail.maintenanceMargin.div(10000).toString());
+            console.log('margin balance: ', maintenanceDetail.marginBalance.div(10000).toString());
+            console.log('margin marginRatio: ', maintenanceDetail.marginRatio.toString());
+            console.log("start liquidate");
+
+
+            await positionManager2.connect(trader1).openLimitPosition(
+                priceToPip(4758),
+                '20',
+                true
+            );
+
+            await positionHouse.liquidate(positionManager2.address, trader.address);
+
+
+            const positionData1 = (await positionHouse.getPosition(positionManager2.address, trader.address)) as unknown as PositionData;
+
+            console.log('quantity after liquidate ', positionData1.quantity.toString())
+            console.log('margin after liquidate ', positionData1.margin.toString())
+
+
+            expect(positionData1.quantity).eq(80)
+
+            expect(positionData1.margin.div(10000)).eq(24250)
+
+        });
+
+        it('should liquidate full position with SHORT', async function () {
+            const positionManager2 = (await positionManagerFactory.deploy(priceToPip(5000), '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
+            await positionManager2.connect(trader1).openLimitPosition(
+                priceToPip(5000),
+                '100',
+                true
+            );
+
+            console.log("open market 1");
+            // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000,
+            // margin = openNotional / leverage = 500000 / 20 = 25000
+            await openMarketPosition({
+                quantity: BigNumber.from('100'),
+                leverage: 20,
+                side: SIDE.SHORT,
+                trader: trader.address,
+                instanceTrader: trader,
+                _positionManager: positionManager2,
+                price: 5000,
+                expectedSize: BigNumber.from('-100')
+            })
+
+
+            await positionManager2.connect(trader1).openLimitPosition(
+                priceToPip(5245),
+                '100',
+                false
+            );
+
+            console.log("open market 2");
+            // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000,
+            // margin = openNotional / leverage = 50000 / 20 = 2500
+            await openMarketPosition({
+                quantity: BigNumber.from('100'),
+                leverage: 20,
+                side: SIDE.LONG,
+                trader: trader2.address,
+                instanceTrader: trader2,
+                _positionManager: positionManager2,
+                price: 5245
+            })
+
+            const maintenanceDetail = (await positionHouse.getMaintenanceDetail(positionManager2.address, trader.address)) as unknown as MaintenanceDetail;
+
+            const positionData = (await positionHouse.getPosition(positionManager2.address, trader.address)) as unknown as PositionData;
+            const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                positionManager2.address,
+                trader.address,
+                1
+            )
+
+
+            console.log('margin ', positionData.margin.div(10000).toString());
+            console.log('Pnl :', positionNotionalAndPnL1.unrealizedPnl.div(10000).toString())
+
+            console.log('margin maintenanceMargin: ', maintenanceDetail.maintenanceMargin.div(10000).toString());
+            console.log('margin balance: ', maintenanceDetail.marginBalance.div(10000).toString());
+            console.log('margin marginRatio: ', maintenanceDetail.marginRatio.toString());
+            console.log("start liquidate");
+
+            await positionHouse.liquidate(positionManager2.address, trader.address);
+
+
+            const positionData1 = (await positionHouse.getPosition(positionManager2.address, trader.address)) as unknown as PositionData;
+
+            console.log('quantity after liquidate ', positionData1.quantity.toString())
+            console.log('margin after liquidate ', positionData1.margin.toString())
+
+
+            expect(positionData1.quantity).eq(0)
+
+            expect(positionData1.margin.div(10000)).eq(0)
+
+        });
+
+
+        it('should liquidate full position with LONG', async function () {
+            const positionManager2 = (await positionManagerFactory.deploy(priceToPip(5000), '0x8301f2213c0eed49a7e28ae4c3e91722919b8b47')) as unknown as PositionManager;
+            await positionManager2.connect(trader1).openLimitPosition(
+                priceToPip(5000),
+                '100',
+                false
+            );
+
+            console.log("open market 1");
+            // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000,
+            // margin = openNotional / leverage = 500000 / 20 = 25000
+            await openMarketPosition({
+                quantity: BigNumber.from('100'),
+                leverage: 20,
+                side: SIDE.LONG,
+                trader: trader.address,
+                instanceTrader: trader,
+                _positionManager: positionManager2,
+                price: 5000,
+                expectedSize: BigNumber.from('100')
+            })
+
+
+            await positionManager2.connect(trader1).openLimitPosition(
+                priceToPip(4755),
+                '100',
+                true
+            );
+
+            console.log("open market 2");
+            // trader0 short at price 50, quantity 1000 TRB, openNotional = 50*1000 = 50000,
+            // margin = openNotional / leverage = 50000 / 20 = 2500
+            await openMarketPosition({
+                quantity: BigNumber.from('100'),
+                leverage: 20,
+                side: SIDE.SHORT,
+                trader: trader2.address,
+                instanceTrader: trader2,
+                _positionManager: positionManager2,
+                price: 4755,
+                expectedSize: BigNumber.from('-100')
+            })
+
+            const maintenanceDetail = (await positionHouse.getMaintenanceDetail(positionManager2.address, trader.address)) as unknown as MaintenanceDetail;
+
+            const positionData = (await positionHouse.getPosition(positionManager2.address, trader.address)) as unknown as PositionData;
+            const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+                positionManager2.address,
+                trader.address,
+                1
+            )
+
+
+            console.log('mmargin ', positionData.margin.div(10000).toString());
+            console.log('Pnl :', positionNotionalAndPnL1.unrealizedPnl.div(10000).toString())
+
+            console.log('margin maintenanceMargin: ', maintenanceDetail.maintenanceMargin.div(10000).toString());
+            console.log('margin balance: ', maintenanceDetail.marginBalance.div(10000).toString());
+            console.log('margin marginRatio: ', maintenanceDetail.marginRatio.toString());
+            console.log("start liquidate");
+
+            await positionHouse.liquidate(positionManager2.address, trader.address);
+
+
+            const positionData1 = (await positionHouse.getPosition(positionManager2.address, trader.address)) as unknown as PositionData;
+
+            console.log('quantity after liquidate ', positionData1.quantity.toString())
+            console.log('margin after liquidate ', positionData1.margin.toString())
+
+
+            expect(positionData1.quantity).eq(0)
+
+            expect(positionData1.margin.div(10000)).eq(0)
+
+        });
+
+    })
 
     describe('claim fund', async () => {
 
@@ -3439,7 +3439,7 @@ describe("PositionHouse_01", () => {
         it('should get list pending order', async () => {
 
             const response = (await openLimitPositionAndExpect({
-                limitPrice: 4900,
+                limitPrice: 69000,
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: 100,
@@ -3447,7 +3447,7 @@ describe("PositionHouse_01", () => {
             })) as unknown as PositionLimitOrderID
 
             const response1 = (await openLimitPositionAndExpect({
-                limitPrice: 4800,
+                limitPrice: 70000,
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: 100,
@@ -3455,7 +3455,7 @@ describe("PositionHouse_01", () => {
             })) as unknown as PositionLimitOrderID
 
             const response2 = (await openLimitPositionAndExpect({
-                limitPrice: 4700,
+                limitPrice: 71000,
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: 100,
@@ -3463,7 +3463,7 @@ describe("PositionHouse_01", () => {
             })) as unknown as PositionLimitOrderID
 
             const response3 = (await openLimitPositionAndExpect({
-                limitPrice: 5100,
+                limitPrice: 65000,
                 side: SIDE.LONG,
                 leverage: 15,
                 quantity: 100,
@@ -3471,7 +3471,7 @@ describe("PositionHouse_01", () => {
             })) as unknown as PositionLimitOrderID
 
             const response4 = (await openLimitPositionAndExpect({
-                limitPrice: 5200,
+                limitPrice: 64000,
                 side: SIDE.LONG,
                 leverage: 15,
                 quantity: 100,

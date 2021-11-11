@@ -173,7 +173,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     }
 
     function calcAdjustMargin(uint256 adjustMargin) public view returns (uint256) {
-        return adjustMargin * BASE_BASIC_POINT;
+        return adjustMargin;
     }
 
     function hasLiquidity(int128 pip) public view returns (bool) {
