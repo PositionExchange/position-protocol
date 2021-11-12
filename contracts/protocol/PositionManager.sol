@@ -87,7 +87,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     mapping(int128 => uint256) public liquidityBitmap;
 
     // Events that supports building order book
-    event MarketFilled(bool isBuy, uint256 indexed amount,int128 fromPip, int128 toPip, uint128 partialFilledQuantity);
+    event MarketFilled(bool isBuy, uint256 indexed amount, int128 toPip, uint256 passedPipcount, uint128 partialFilledQuantity);
     event LimitOrderCreated(uint64 orderId, int128 pip, uint128 size, bool isBuy);
     event LimitOrderCancelled(uint64 orderId, int128 pip, uint256 size);
 
@@ -218,9 +218,9 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
 
     function openLimitPosition(int128 pip, uint128 size, bool isBuy) external whenNotPause onlyCounterParty returns (uint64 orderId, uint256 sizeOut, uint256 openNotional) {
         if (isBuy && singleSlot.pip != 0) {
-            require(pip <= singleSlot.pip, "!B");
+            require(pip <= singleSlot.pip && pip >= (singleSlot.pip - maxFindingWordsIndex*150), "!B");
         } else {
-            require(pip >= singleSlot.pip, "!S");
+            require(pip >= singleSlot.pip && pip <= (singleSlot.pip + maxFindingWordsIndex*150), "!S");
         }
         SingleSlot memory _singleSlot = singleSlot;
         bool hasLiquidity = liquidityBitmap.hasLiquidity(pip);
@@ -272,6 +272,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         uint128 partialFilledQuantity;
         uint8 isFullBuy = 0;
         bool isSkipFirstPip;
+        uint256 passedPipCount = 0;
         CurrentLiquiditySide currentLiquiditySide = CurrentLiquiditySide(_initialSingleSlot.isFullBuy);
         if (currentLiquiditySide != CurrentLiquiditySide.NotSet) {
             if (isBuy)
@@ -310,15 +311,17 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                         // pip position will partially filled and stop here
                         tickPosition[step.pipNext].partiallyFill(uint120(state.remainingSize));
                         openNotional += (state.remainingSize * pipToPrice(step.pipNext) / BASE_BASIC_POINT);
+                        // remaining liquidity at current pip
+                        partialFilledQuantity = liquidity - uint128(state.remainingSize);
                         state.remainingSize = 0;
                         state.pip = step.pipNext;
-                        partialFilledQuantity = liquidity - uint128(state.remainingSize);
                         isFullBuy = uint8(!isBuy ? CurrentLiquiditySide.Buy : CurrentLiquiditySide.Sell);
                     } else if (state.remainingSize > liquidity) {
                         // order in that pip will be fulfilled
                         state.remainingSize = state.remainingSize - liquidity;
                         openNotional += (liquidity * pipToPrice(step.pipNext) / BASE_BASIC_POINT);
                         state.pip = state.remainingSize > 0 ? (isBuy ? step.pipNext + 1 : step.pipNext - 1) : step.pipNext;
+                        passedPipCount++;
                     } else {
                         // remaining size = liquidity
                         // only 1 pip should be toggled, so we call it directly here
@@ -327,6 +330,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                         state.remainingSize = 0;
                         state.pip = step.pipNext;
                         isFullBuy = 0;
+                        passedPipCount++;
                     }
                 } else {
                     isSkipFirstPip = false;
@@ -345,7 +349,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         singleSlot.isFullBuy = isFullBuy;
         sizeOut = size - state.remainingSize;
         addReserveSnapshot();
-        emit MarketFilled(isBuy, sizeOut, _initialSingleSlot.pip, state.pip, partialFilledQuantity);
+        emit MarketFilled(isBuy, sizeOut, state.pip, passedPipCount, partialFilledQuantity);
     }
 
     function getQuoteAsset() public view returns (IERC20) {

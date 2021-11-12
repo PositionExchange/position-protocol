@@ -28,8 +28,8 @@ library PositionHouseFunction {
         uint256 sizeOut;
     }
 
-    function handleNotionalInOpenReverse( 
-        uint256 exchangedQuoteAmount, 
+    function handleNotionalInOpenReverse(
+        uint256 exchangedQuoteAmount,
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData
     ) internal pure returns (uint256 openNotional) {
@@ -102,7 +102,7 @@ library PositionHouseFunction {
         }
     }
 
-    function clearAllFilledOrder (
+    function clearAllFilledOrder(
         IPositionManager _positionManager,
         address _trader,
         PositionLimitOrder.Data[] memory listLimitOrder,
@@ -110,9 +110,9 @@ library PositionHouseFunction {
     ) internal returns (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) {
         if (listLimitOrder.length > 0) {
             uint256 index = 0;
-            for (uint256 i = 0; i < listLimitOrder.length; i++){
+            for (uint256 i = 0; i < listLimitOrder.length; i++) {
                 (bool isFilled,,
-                , ) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
+                ,) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
                 if (isFilled != true) {
                     subListLimitOrder[index] = listLimitOrder[i];
                     _positionManager.updatePartialFilledOrder(listLimitOrder[i].pip, listLimitOrder[i].orderId);
@@ -122,9 +122,9 @@ library PositionHouseFunction {
         }
         if (reduceLimitOrder.length > 0) {
             uint256 index = 0;
-            for (uint256 i = 0; i < reduceLimitOrder.length; i++){
+            for (uint256 i = 0; i < reduceLimitOrder.length; i++) {
                 (bool isFilled,,
-                , ) = _positionManager.getPendingOrderDetail(reduceLimitOrder[i].pip, reduceLimitOrder[i].orderId);
+                ,) = _positionManager.getPendingOrderDetail(reduceLimitOrder[i].pip, reduceLimitOrder[i].orderId);
                 if (isFilled != true) {
                     subReduceLimitOrder[index] = reduceLimitOrder[i];
                     _positionManager.updatePartialFilledOrder(reduceLimitOrder[i].pip, reduceLimitOrder[i].orderId);
@@ -132,5 +132,57 @@ library PositionHouseFunction {
                 }
             }
         }
+    }
+
+
+    function accumulateLimitOrderToPositionData(
+        Position.Data memory positionData,
+        uint256 leverage,
+        uint256 priceDivBaseBasisPoint,
+        uint256 entryPrice,
+        uint256 reduceQuantity,
+        bool isFilled,
+        bool isBuy,
+        uint256 quantity,
+        uint256 partialFilled) internal view returns (Position.Data memory) {
+        if (isFilled) {
+            int256 _orderQuantity;
+
+            if (reduceQuantity == 0 && entryPrice == 0) {
+                _orderQuantity = isBuy ? int256(quantity) : - int256(quantity);
+            } else if (reduceQuantity != 0 && entryPrice == 0) {
+                _orderQuantity = isBuy ? int256(quantity - reduceQuantity) : - int256(quantity - reduceQuantity);
+            } else {
+                _orderQuantity = isBuy ? int256(reduceQuantity) : - int256(reduceQuantity);
+            }
+            {
+                uint256 _orderNotional = _orderQuantity.abs() * (entryPrice == 0 ? priceDivBaseBasisPoint : entryPrice);
+                // IMPORTANT UPDATE FORMULA WITH LEVERAGE
+                //                uint256 _orderMargin = _orderNotional / leverage;
+                positionData = positionData.accumulateLimitOrder(_orderQuantity, _orderNotional / leverage, _orderNotional);
+            }
+        }
+        else if (!isFilled && partialFilled != 0) {// partial filled
+            int256 _partialQuantity;
+            {
+                if (reduceQuantity == 0 && entryPrice == 0) {
+                    _partialQuantity = isBuy ? int256(partialFilled) : - int256(partialFilled);
+                } else if (reduceQuantity != 0 && entryPrice == 0) {
+
+                    int256 _partialQuantityTemp = partialFilled > reduceQuantity ? int256(partialFilled - reduceQuantity) : 0;
+                    _partialQuantity = isBuy ? _partialQuantityTemp : - _partialQuantityTemp;
+                } else {
+                    int256 _partialQuantityTemp = partialFilled > reduceQuantity ? int256(reduceQuantity) : int256(partialFilled);
+                    _partialQuantity = isBuy ? _partialQuantityTemp : - _partialQuantityTemp;
+                }
+                uint256 _partialOpenNotional = _partialQuantity.abs() * (entryPrice == 0 ? priceDivBaseBasisPoint : entryPrice);
+                // IMPORTANT UPDATE FORMULA WITH LEVERAGE
+                // uint256 _partialMargin = _partialOpenNotional / leverage;
+                positionData = positionData.accumulateLimitOrder(_partialQuantity, _partialOpenNotional / leverage, _partialOpenNotional);
+            }
+
+        }
+        positionData.leverage = positionData.leverage >= leverage ? positionData.leverage : leverage;
+        return positionData;
     }
 }
