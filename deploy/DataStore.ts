@@ -5,7 +5,7 @@ export class DeployDataStore {
     db: typeof Datastore;
 
     constructor(filename = undefined) {
-        this.db = new Datastore({filename: filename || './deployData_server_test.db', autoload: true});
+        this.db = new Datastore({filename: filename || './deployData.db', autoload: true});
     }
 
     async findAddressByKey(key: string): Promise<string | null> {

@@ -41,7 +41,7 @@ export class ContractWrapperFactory {
         console.log("contractAddress", contractAddress)
         if (contractAddress) {
             const upgraded = await this.hre.upgrades.upgradeProxy(contractAddress, PositionManager);
-            console.log(`Starting verift upgrade Position Manager ${symbol}`)
+            console.log(`Starting verify upgrade Position Manager ${symbol}`)
             await this.verifyImplContract(upgraded.deployTransaction)
             console.log(`Upgrade Position Manager ${symbol}`)
         } else {

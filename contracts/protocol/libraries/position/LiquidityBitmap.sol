@@ -83,6 +83,7 @@ library LiquidityBitmap {
         }
     }
 
+    // find nearest pip has liquidity in multiple word
     function findHasLiquidityInMultipleWords(
         mapping(int128 => uint256) storage self,
         int128 pip,
@@ -110,6 +111,43 @@ library LiquidityBitmap {
                 if (self[i] != 0) {
                     // avoid load in lte
 //                    nextWord = i;
+                    next = findHasLiquidityInOneWords(self, i > startWord ? 256 * i : pip, false);
+                    if (next != 0) {
+                        return (next/**, nextWord*/);
+                    }
+                }
+            }
+        }
+    }
+
+    // find all pip has liquidity in multiple word
+    function findAllLiquidityInMultipleWords(
+        mapping(int128 => uint256) storage self,
+        int128 pip,
+        int128 maxWords,
+        bool lte
+    ) internal view returns (
+        int128 next
+    //    ,
+    //        int128 nextWord
+    ) {
+        int128 startWord = pip >> 8;
+        if (lte) {
+            // TODO check overflow
+            for (int128 i = startWord; i > startWord - maxWords; i--) {
+                if (self[i] != 0) {
+                    //                    nextWord = i;
+                    next = findHasLiquidityInOneWords(self, i < startWord ? 256 * i + 255 : pip, true);
+                    if (next != 0) {
+                        return (next/**, nextWord*/);
+                    }
+                }
+            }
+        } else {
+            for (int128 i = startWord; i < startWord + maxWords; i++) {
+                if (self[i] != 0) {
+                    // avoid load in lte
+                    //                    nextWord = i;
                     next = findHasLiquidityInOneWords(self, i > startWord ? 256 * i : pip, false);
                     if (next != 0) {
                         return (next/**, nextWord*/);

@@ -218,9 +218,9 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
 
     function openLimitPosition(int128 pip, uint128 size, bool isBuy) external whenNotPause onlyCounterParty returns (uint64 orderId, uint256 sizeOut, uint256 openNotional) {
         if (isBuy && singleSlot.pip != 0) {
-            require(pip <= singleSlot.pip && pip >= (singleSlot.pip - maxFindingWordsIndex*150), "!B");
+            require(pip <= singleSlot.pip && pip >= (singleSlot.pip - maxFindingWordsIndex*250), "!B");
         } else {
-            require(pip >= singleSlot.pip && pip <= (singleSlot.pip + maxFindingWordsIndex*150), "!S");
+            require(pip >= singleSlot.pip && pip <= (singleSlot.pip + maxFindingWordsIndex*250), "!S");
         }
         SingleSlot memory _singleSlot = singleSlot;
         bool hasLiquidity = liquidityBitmap.hasLiquidity(pip);
@@ -352,10 +352,13 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         emit MarketFilled(isBuy, sizeOut, state.pip, passedPipCount, partialFilledQuantity);
     }
 
+    function getLiquidityInPipRange(int128 from, int128 to) public view {
+
+    }
+
     function getQuoteAsset() public view returns (IERC20) {
         return quoteAsset;
     }
-
 
     function updateMaxFindingWordsIndex(int128 _newMaxFindingWordsIndex) public onlyOwner {
         maxFindingWordsIndex = _newMaxFindingWordsIndex;
