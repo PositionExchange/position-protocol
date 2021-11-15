@@ -117,32 +117,60 @@ library LiquidityBitmap {
     // find all pip has liquidity in multiple word
     function findAllLiquidityInMultipleWords(
         mapping(int128 => uint256) storage self,
-        int128 pip,
-        bool lte
+        int128 currentPip,
+        int128 targetPip
     ) internal view returns (
-        int128[] allPip
+        int128[] memory,
+        uint128
     ) {
-        int128 startWord = pip >> 8;
-        if (lte) {
-            // TODO check overflow
-            for (int128 i = startWord; i > startWord - maxWords; i--) {
+        int128 startWord = currentPip >> 8;
+        int128 targetWord = targetPip >> 8;
+        uint128 index = 0;
+        int128[] memory allPip = new int128[](uint128(targetPip > currentPip ? targetPip - currentPip : currentPip - targetPip));
+        if (targetPip < currentPip) {
+            for (int128 i = startWord; i >= targetWord; i--) {
                 if (self[i] != 0) {
-                    next = findHasLiquidityInOneWords(self, i < startWord ? 256 * i + 255 : pip, true);
+                    int128 biggestPipInWord = 256*i + 255;
+                    int128 next;
+                    next = findHasLiquidityInOneWords(self, i < startWord ? biggestPipInWord : currentPip, true);
                     if (next != 0) {
-                        allPip.push[i];
+                        allPip[index] = next;
+                        index ++;
+                    }
+                    while(true){
+                        next = findHasLiquidityInOneWords(self, next-1, true);
+                        if (next != 0 && next > targetPip) {
+                            allPip[index] = next;
+                            index ++;
+                        } else {
+                            break;
+                        }
                     }
                 }
             }
         } else {
-            for (int128 i = startWord; i < startWord + maxWords; i++) {
+            for (int128 i = startWord; i <= targetWord; i++) {
                 if (self[i] != 0) {
-                    next = findHasLiquidityInOneWords(self, i > startWord ? 256 * i : pip, false);
+                    int128 smallestPipInWord = 256 * i;
+                    int128 next;
+                    next = findHasLiquidityInOneWords(self, i > startWord ? smallestPipInWord : currentPip, false);
                     if (next != 0) {
-                        allPip.push[i];
+                        allPip[index] = next;
+                        index ++;
+                    }
+                    while(true){
+                        next = findHasLiquidityInOneWords(self, next+1, false);
+                        if (next != 0 && next < targetPip) {
+                            allPip[index] = next;
+                            index ++;
+                        } else {
+                            break;
+                        }
                     }
                 }
             }
         }
+        return (allPip, index);
     }
 
     function hasLiquidity(

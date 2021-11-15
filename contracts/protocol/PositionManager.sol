@@ -216,9 +216,9 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
 
     function openLimitPosition(int128 pip, uint128 size, bool isBuy) external whenNotPause onlyCounterParty returns (uint64 orderId, uint256 sizeOut, uint256 openNotional) {
         if (isBuy && singleSlot.pip != 0) {
-            require(pip <= singleSlot.pip && pip >= (singleSlot.pip - maxFindingWordsIndex*250), "!B");
+            require(pip <= singleSlot.pip && pip >= (singleSlot.pip - maxFindingWordsIndex * 250), "!B");
         } else {
-            require(pip >= singleSlot.pip && pip <= (singleSlot.pip + maxFindingWordsIndex*250), "!S");
+            require(pip >= singleSlot.pip && pip <= (singleSlot.pip + maxFindingWordsIndex * 250), "!S");
         }
         SingleSlot memory _singleSlot = singleSlot;
         bool hasLiquidity = liquidityBitmap.hasLiquidity(pip);
@@ -243,7 +243,6 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         // TODO update emit event
         emit LimitOrderCreated(orderId, pip, size, isBuy);
     }
-
 
 
     function openMarketPositionWithMaxPip(uint256 size, bool isBuy, uint128 maxPip) public whenNotPause onlyCounterParty returns (uint256 sizeOut, uint256 openNotional) {
@@ -339,7 +338,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         if (_initialSingleSlot.pip != state.pip) {
             // all ticks in shifted range must be marked as filled
             if (!(partialFilledQuantity > 0 && startPip == state.pip)) {
-                liquidityBitmap.unsetBitsRange(startPip, partialFilledQuantity  > 0 ? (isBuy ? state.pip - 1 : state.pip + 1) : state.pip);
+                liquidityBitmap.unsetBitsRange(startPip, partialFilledQuantity > 0 ? (isBuy ? state.pip - 1 : state.pip + 1) : state.pip);
             }
             // TODO write a checkpoint that we shift a range of ticks
         }
@@ -355,8 +354,18 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         uint256 liquidity;
     }
 
-    function getLiquidityInPipRange(int128 from, int128 to ) public view returns (LiquidityOfEachPip[] allLiquidity) {
-        liquidityBitmap.findAllLiquidityInMultipleWords();
+    function getLiquidityInPipRange(int128 toPip) public view returns (LiquidityOfEachPip[] memory) {
+        int128[] memory allInitializedPip = new int128[](uint128(toPip > singleSlot.pip ? toPip - singleSlot.pip : singleSlot.pip - toPip));
+        uint length;
+        (allInitializedPip, length) = liquidityBitmap.findAllLiquidityInMultipleWords(singleSlot.pip, toPip);
+        LiquidityOfEachPip[] memory allLiquidity = new LiquidityOfEachPip[](length);
+
+        for (uint i = 0; i < length; i++) {
+            allLiquidity[i] = LiquidityOfEachPip({
+            pip : allInitializedPip[i],
+            liquidity : tickPosition[allInitializedPip[i]].liquidity
+            });
+        }
         return allLiquidity;
     }
 

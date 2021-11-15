@@ -44,6 +44,8 @@ describe("PositionHouse_01", () => {
 
     beforeEach(async () => {
         [trader, trader1, trader2, trader3, trader4, trader5] = await ethers.getSigners()
+        const positionHouseFunction = await ethers.getContractFactory('PositionHouseFunction')
+        const libraryIns = (await positionHouseFunction.deploy())
         positionManagerFactory = await ethers.getContractFactory("PositionManager")
         // BTC-USD Perpetual, initial price is 5000
         // each pip = 0.01
@@ -51,10 +53,19 @@ describe("PositionHouse_01", () => {
         //quoteAsset    BUSD_TestNet = 0x8301f2213c0eed49a7e28ae4c3e91722919b8b47
         positionManager = (await positionManagerFactory.deploy()) as unknown as PositionManager;
         positionManagerTestingTool = new PositionManagerTestingTool(positionManager)
-        const factory = await ethers.getContractFactory("PositionHouse")
+        const factory = await ethers.getContractFactory("PositionHouse", {
+            libraries: {
+                PositionHouseFunction: libraryIns.address
+            }
+        })
         positionHouse = (await factory.deploy()) as unknown as PositionHouse;
         positionHouseTestingTool = new PositionHouseTestingTool(positionHouse, positionManager)
-        await positionManager.initialize(BigNumber.from(500000), '0xd364238D7eC81547a38E3bF4CBB5206605A15Fee', ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase());
+        await positionManager.initialize(BigNumber.from(500000),
+        '0xd364238D7eC81547a38E3bF4CBB5206605A15Fee',
+        ethers.utils.formatBytes32String('BTC'),
+        BigNumber.from(100),
+        BigNumber.from(10000),
+            BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase());
         await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), '0xf1d0e7be179cb21f0e6bfe3616a3d7bce2f18aef'.toLowerCase(), '0x0000000000000000000000000000000000000000')
     })
 
@@ -165,7 +176,7 @@ describe("PositionHouse_01", () => {
         return {
             orderId: orderId,
             pip,
-            orderIdOfTrader : orderIdOfTrader
+            orderIdOfTrader: orderIdOfTrader
         } as LimitOrderReturns
         // expect(positionLimitInOrder..div(10000)).eq(limitPrice);
     }
@@ -1220,7 +1231,7 @@ describe("PositionHouse_01", () => {
                     expectedSize: BigNumber.from('-60')
                 })
 
-                await positionHouse.cancelLimitOrder(positionManager.address,orderIdOfTrader, pip, orderId);
+                await positionHouse.cancelLimitOrder(positionManager.address, orderIdOfTrader, pip, orderId);
 
                 const positionData = await positionHouse.getPosition(positionManager.address, trader.address)
                 expect(positionData.quantity).eq(60);
@@ -1234,7 +1245,7 @@ describe("PositionHouse_01", () => {
                     quantity: 100
                 })
 
-                await positionHouse.cancelLimitOrder(positionManager.address,orderIdOfTrader, pip, orderId);
+                await positionHouse.cancelLimitOrder(positionManager.address, orderIdOfTrader, pip, orderId);
                 const positionData = await positionHouse.getPosition(positionManager.address, trader.address)
                 // margin = quantity * price / leverage = 4990 * 100 / 10
                 // expect(positionData.margin.toNumber()).eq(4990 * 100 / 10)
@@ -1347,7 +1358,7 @@ describe("PositionHouse_01", () => {
                 })) as unknown as PositionLimitOrderID
 
                 console.log("response pip", response2.pip, Number(response2.orderId))
-                await positionHouse.cancelLimitOrder(positionManager.address,response2.orderIdOfTrader, response2.pip, response2.orderId);
+                await positionHouse.cancelLimitOrder(positionManager.address, response2.orderIdOfTrader, response2.pip, response2.orderId);
                 const positionData2 = await positionHouse.getPosition(positionManager.address, trader.address)
                 // margin = quantity * price / leverage = 4990 * 100 / 10
                 // NEED UPDATE can't get margin, need leverage in limit order to calculate margin
@@ -1379,7 +1390,7 @@ describe("PositionHouse_01", () => {
                     quantity: 100
                 })) as unknown as PositionLimitOrderID
 
-                await positionHouse.cancelLimitOrder(positionManager.address,response2.orderIdOfTrader, response2.pip, response2.orderId);
+                await positionHouse.cancelLimitOrder(positionManager.address, response2.orderIdOfTrader, response2.pip, response2.orderId);
 
                 // const pendingOrder1 = await positionHouse.getPendingOrder(positionManager.address, response1.pip, response1.orderId);
                 // expect(pendingOrder1.isFilled).eq(false)
@@ -1427,7 +1438,7 @@ describe("PositionHouse_01", () => {
                 })) as unknown as PositionLimitOrderID
 
                 // cancel order #1
-                await positionHouse.cancelLimitOrder(positionManager.address,response1.orderIdOfTrader, response1.pip, response1.orderId);
+                await positionHouse.cancelLimitOrder(positionManager.address, response1.orderIdOfTrader, response1.pip, response1.orderId);
                 console.log(`STRAT MARKET ORDER`)
 
                 await openMarketPosition({

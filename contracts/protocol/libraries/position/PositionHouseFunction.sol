@@ -27,6 +27,7 @@ library PositionHouseFunction {
         // Position.Data memory totalPositionData = getPosition(_positionManager, _trader);
         int256 newPositionSide = totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
+//            if (marketPositionData.quantity * newPositionSide > 0) {
             if (marketPositionData.quantity * newPositionSide > 0) {
                 openNotional = marketPositionData.openNotional + exchangedQuoteAmount;
             } else {
@@ -63,7 +64,6 @@ library PositionHouseFunction {
         Position.Data memory totalPositionData
     ) internal pure returns (uint256 openNotional) {
 
-        int256 newPositionSide = totalPositionData.quantity > 0 ? int256(1) : int256(- 1);
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
             if (marketPositionData.openNotional > exchangedQuoteAmount) {
                 openNotional = marketPositionData.openNotional - exchangedQuoteAmount;
@@ -222,5 +222,35 @@ library PositionHouseFunction {
             return blankListPendingOrderData;
         }
         return listPendingOrderData;
+    }
+
+    function getPositionNotionalAndUnrealizedPnl(
+        address addressPositionManager,
+        address _trader,
+        PositionHouse.PnlCalcOption _pnlCalcOption,
+        Position.Data memory position
+    ) public view returns
+    (
+        uint256 positionNotional,
+        int256 unrealizedPnl
+    ){
+        IPositionManager positionManager = IPositionManager(addressPositionManager);
+        uint256 oldPositionNotional = position.openNotional;
+        if (_pnlCalcOption == PositionHouse.PnlCalcOption.SPOT_PRICE) {
+            positionNotional = positionManager.getPrice() * position.quantity.abs() / positionManager.getBaseBasisPoint();
+        }
+        else if (_pnlCalcOption == PositionHouse.PnlCalcOption.TWAP) {
+            // TODO get twap price
+        }
+        else {
+            // TODO get oracle price
+        }
+
+        if (position.side() == Position.Side.LONG) {
+            unrealizedPnl = int256(positionNotional) - int256(oldPositionNotional);
+        } else {
+            unrealizedPnl = int256(oldPositionNotional) - int256(positionNotional);
+        }
+
     }
 }
