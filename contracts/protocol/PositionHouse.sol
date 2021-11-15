@@ -235,6 +235,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         emit OpenLimit(orderIdOfUser, openLimitResp.orderId, _trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, _pip, _positionManager);
     }
 
+    // check the new limit order is fully reduce, increase or both reduce and increase
     function handleLimitOrderInOpenLimit(OpenLimitResp memory openLimitResp, PositionLimitOrder.Data memory _newOrder, IPositionManager _positionManager, address _trader, uint256 _quantity, Position.Side _side) internal returns (uint64 orderIdOfUser) {
         Position.Data memory _oldPosition = getPosition(address(_positionManager), _trader);
         if (_oldPosition.quantity == 0 || _side == (_oldPosition.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT)) {
@@ -696,6 +697,8 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         );
     }
 
+    // work when open limit order at the same pip and a part of it become market order
+    //
     function openLimitIncludeMarket(IPositionManager _positionManager, address _trader, int128 _pip, uint128 _quantity, bool _isBuy, uint256 _leverage) internal returns (PositionResp memory positionResp, uint64 orderId, uint256 sizeOut){
         {
             Position.Data memory totalPositionData = getPosition(address(_positionManager), _trader);

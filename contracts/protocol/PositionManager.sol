@@ -74,8 +74,6 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         Sell
     }
 
-
-
     // array of reserveSnapshots
     ReserveSnapshot[] public reserveSnapshots;
 
@@ -352,8 +350,14 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         emit MarketFilled(isBuy, sizeOut, state.pip, passedPipCount, partialFilledQuantity);
     }
 
-    function getLiquidityInPipRange(int128 from, int128 to) public view {
+    struct LiquidityOfEachPip {
+        int128 pip;
+        uint256 liquidity;
+    }
 
+    function getLiquidityInPipRange(int128 from, int128 to ) public view returns (LiquidityOfEachPip[] allLiquidity) {
+        liquidityBitmap.findAllLiquidityInMultipleWords();
+        return allLiquidity;
     }
 
     function getQuoteAsset() public view returns (IERC20) {
