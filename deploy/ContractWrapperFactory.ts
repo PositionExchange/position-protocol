@@ -1,4 +1,10 @@
-import {CreatePositionManagerInput, PositionManager, CreatePositionHouseInput, CreateInsuranceFund} from "./types";
+import {
+    CreatePositionManagerInput,
+    PositionManager,
+    CreatePositionHouseInput,
+    CreateInsuranceFund,
+    CreatePositionHouseFunction
+} from "./types";
 import {DeployDataStore} from "./DataStore";
 import {verifyContract} from "../scripts/utils";
 import {TransactionResponse} from "@ethersproject/abstract-provider";
@@ -70,12 +76,18 @@ export class ContractWrapperFactory {
 
     async createPositionHouse(args: CreatePositionHouseInput) {
         console.log(`into create PositionHouse`);
-        const PositionHouse = await this.hre.ethers.getContractFactory("PositionHouse")
+        const positionHouseFunctionContractAddress = await this.db.findAddressByKey(`PositionHouseFunction`);
+        console.log(`positionHouseFunctionContractAddress ${positionHouseFunctionContractAddress}`);
+        const PositionHouse = await this.hre.ethers.getContractFactory("PositionHouse", {
+            libraries: {
+                PositionHouseFunction: positionHouseFunctionContractAddress
+            }
+        })
         const positionHouseContractAddress = await this.db.findAddressByKey(`PositionHouse`);
 
         if (positionHouseContractAddress) {
             console.log('Start upgrade position house')
-            const upgraded = await this.hre.upgrades.upgradeProxy(positionHouseContractAddress, PositionHouse);
+            const upgraded = await this.hre.upgrades.upgradeProxy(positionHouseContractAddress, PositionHouse, {unsafeAllowLinkedLibraries: true});
             console.log('Starting verify upgrade PositionHouse');
             await this.verifyImplContract(upgraded.deployTransaction);
 
@@ -90,7 +102,7 @@ export class ContractWrapperFactory {
             ];
 
             //@ts-ignore
-            const instance = await upgrades.deployProxy(PositionHouse, contractArgs);
+            const instance = await upgrades.deployProxy(PositionHouse, contractArgs, {unsafeAllowLinkedLibraries: true});
             console.log("wait for deploy")
             await instance.deployed();
 
@@ -121,6 +133,29 @@ export class ContractWrapperFactory {
             await this.db.saveAddressByKey('InsuranceFund', address);
 
         }
+
+    }
+
+    async createPositionHouseFunctionLibrary(args: CreatePositionHouseFunction) {
+        const PositionHouseFunction = await this.hre.ethers.getContractFactory("PositionHouseFunction");
+        const positionHouseFunctionContractAddress = await this.db.findAddressByKey(`PositionHouseFunction`);
+
+
+        // if (!positionHouseFunctionContractAddress) {
+        const contractArgs = [];
+        const deployTx = await PositionHouseFunction.deploy();
+        await deployTx.deployTransaction.wait(3)
+        console.log("wait for deploy position house function fund");
+        // await instance.deployed();
+        // // console.log(instance.deployTransaction)
+        // const address = instance.address.toString().toLowerCase();
+        // console.log(`InsuranceFund address : ${address}`)
+        // // console.log('Starting verify Insurance Fund');
+        // // await this.verifyImplContract(instance.deployTransaction);
+        await this.db.saveAddressByKey('PositionHouseFunction', deployTx.address.toLowerCase());
+
+        // }
+
 
     }
 

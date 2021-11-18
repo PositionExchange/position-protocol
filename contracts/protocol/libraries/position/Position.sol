@@ -93,8 +93,6 @@ library Position {
         return self.openNotional / self.quantity.abs();
     }
 
-
-
     function accumulateLimitOrder(
         Position.Data memory self,
         int256 quantity,

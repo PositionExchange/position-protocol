@@ -13,8 +13,12 @@ library Quantity {
         return uint128(abs(quantity));
     }
 
-    function sumWithUnit256(int256 a, uint256 b) internal pure returns (int256) {
+    function sumWithUint256(int256 a, uint256 b) internal pure returns (int256) {
         return a > 0 ? a + int256(b) : a - int256(b);
+    }
+
+    function minusWithUint256(int256 a, uint256 b) internal pure returns (int256) {
+        return a < 0 ? a + int256(b) : a - int256(b);
     }
 
 

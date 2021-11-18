@@ -46,6 +46,7 @@ describe("PositionHouse_02", () => {
         const factory = await ethers.getContractFactory("PositionHouse", {
             libraries: {
                 PositionHouseFunction: libraryIns.address
+                // unsafeAllowLinkedLibraries : true
             }
         })
         positionHouse = (await factory.deploy()) as unknown as PositionHouse;
@@ -203,7 +204,15 @@ describe("PositionHouse_02", () => {
         const positionNotionalAndPnLTrader = await positionHouse.getPositionNotionalAndUnrealizedPnl(
             positionManagerAddress,
             traderAddress,
-            1
+            1,
+            {
+                quantity: 0,
+                margin: 0,
+                openNotional: 0,
+                lastUpdatedCumulativePremiumFraction: 0,
+                blockNumber: 0,
+                leverage: 0,
+            }
         )
         const positionTrader = (await positionHouse.getPosition(positionManagerAddress, traderAddress)) as unknown as PositionData
         console.log("expect all: quantity, openNotional, positionNotional, margin, unrealizedPnl", Number(positionTrader.quantity), Number(positionTrader.openNotional), Number(positionNotionalAndPnLTrader.positionNotional), Number(positionTrader.margin), Number(positionNotionalAndPnLTrader.unrealizedPnl))
@@ -608,7 +617,7 @@ describe("PositionHouse_02", () => {
          -S12: Trade(cp) open Limit short(5008,3)
          -S13: Trade(cp1) open Market long(3)
          */
-        it( 'PS_FUTU_24', async () => {
+        it('PS_FUTU_24', async () => {
 
             // ******************************
             //-S1: Trade0 open Limit Long(4950,10)
@@ -3809,8 +3818,8 @@ describe("PositionHouse_02", () => {
         })
     })
 
-    describe('get order book', async function () {
-        it ('should get all pip and liquidity', async function () {
+    describe('debug DTP', async function () {
+        it('should get all pip and liquidity', async function () {
             await openLimitPositionAndExpect({
                 limitPrice: 4990,
                 side: SIDE.LONG,
@@ -3844,7 +3853,7 @@ describe("PositionHouse_02", () => {
             })
 
             await openLimitPositionAndExpect({
-                limitPrice: 5020,
+                limitPrice: 5199,
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: 80900,
@@ -3859,8 +3868,36 @@ describe("PositionHouse_02", () => {
                 _trader: trader0
             })
 
-            console.log((await positionManager.getLiquidityInPipRange(510000)))
-            console.log((await positionManager.getLiquidityInPipRange(490000)))
+            console.log((await positionManager.getLiquidityInPipRange(500000, 3, true))[0])
+            console.log((await positionManager.getLiquidityInPipRange(500000, 3, false))[0])
+        })
+
+        it('should got execution revert', async function () {
+            await openLimitPositionAndExpect({
+                limitPrice: 5010,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 35100,
+                _trader: trader0
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5199,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 80900,
+                _trader: trader0
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5050,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 82600,
+                _trader: trader0
+            })
+
+            console.log((await positionHouse.getListOrderPending(positionManager.address, trader0.address)))
         })
     })
 

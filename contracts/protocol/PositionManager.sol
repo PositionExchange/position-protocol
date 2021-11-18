@@ -166,8 +166,8 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         return uint256(uint128(pip)) * BASE_BASIC_POINT / basisPoint;
     }
 
-    function getLiquidityInPip(int128 pip) public view returns (uint128){
-        return liquidityBitmap.hasLiquidity(pip) ? tickPosition[pip].liquidity : 0;
+    function getLiquidityInCurrentPip() public view returns (uint128){
+        return liquidityBitmap.hasLiquidity(singleSlot.pip) ? tickPosition[singleSlot.pip].liquidity : 0;
     }
 
     function calcAdjustMargin(uint256 adjustMargin) public view returns (uint256) {
@@ -354,19 +354,19 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         uint256 liquidity;
     }
 
-    function getLiquidityInPipRange(int128 toPip) public view returns (LiquidityOfEachPip[] memory) {
-        int128[] memory allInitializedPip = new int128[](uint128(toPip > singleSlot.pip ? toPip - singleSlot.pip : singleSlot.pip - toPip));
-        uint length;
-        (allInitializedPip, length) = liquidityBitmap.findAllLiquidityInMultipleWords(singleSlot.pip, toPip);
-        LiquidityOfEachPip[] memory allLiquidity = new LiquidityOfEachPip[](length);
+    function getLiquidityInPipRange(int128 fromPip, uint256 dataLength, bool toHigher) public view returns (LiquidityOfEachPip[] memory, int128) {
+        int128[] memory allInitializedPip = new int128[](uint128(dataLength));
+        allInitializedPip = liquidityBitmap.findAllLiquidityInMultipleWords(fromPip, dataLength, toHigher);
+        LiquidityOfEachPip[] memory allLiquidity = new LiquidityOfEachPip[](dataLength);
 
-        for (uint i = 0; i < length; i++) {
+
+        for (uint i = 0; i < dataLength; i++) {
             allLiquidity[i] = LiquidityOfEachPip({
             pip : allInitializedPip[i],
             liquidity : tickPosition[allInitializedPip[i]].liquidity
             });
         }
-        return allLiquidity;
+        return (allLiquidity, allInitializedPip[dataLength-1]);
     }
 
     function getQuoteAsset() public view returns (IERC20) {

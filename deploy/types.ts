@@ -55,6 +55,10 @@ export interface CreateInsuranceFund {
 
 }
 
+export interface CreatePositionHouseFunction {
+
+}
+
 
 export interface PositionManager {
     symbol: string,

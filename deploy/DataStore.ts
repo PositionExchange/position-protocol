@@ -3,9 +3,9 @@ const Datastore = require('nedb-promises');
 export class DeployDataStore {
 
     db: typeof Datastore;
-
+    // TODO change file deploy db
     constructor(filename = undefined) {
-        this.db = new Datastore({filename: filename || './deployData.db', autoload: true});
+        this.db = new Datastore({filename: filename || './deployData_develop_test.db', autoload: true});
     }
 
     async findAddressByKey(key: string): Promise<string | null> {
