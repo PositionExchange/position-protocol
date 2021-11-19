@@ -38,4 +38,6 @@ interface IPositionManager {
     function cancelLimitOrder(int128 pip, uint64 orderId) external returns (uint256);
 
     function settleFunding() external returns (int256 premiumFraction);
+
+    function open() external view returns (bool);
 }

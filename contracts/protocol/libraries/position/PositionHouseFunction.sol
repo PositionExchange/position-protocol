@@ -286,13 +286,14 @@ library PositionHouseFunction {
     ) external returns (PositionHouse.PositionResp memory positionResp) {
 
         IPositionManager _positionManager = IPositionManager(addressPositionManager);
+        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(addressPositionManager, _trader, _pnlCalcOption, oldPosition);
 
         if (oldPosition.quantity > 0) {
             // sell
-            (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(_positionManager, quantity, Position.Side.SHORT, _trader);
+            (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(addressPositionManager, quantity, Position.Side.SHORT, _trader);
         } else {
             // buy
-            (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(_positionManager, quantity, Position.Side.LONG, _trader);
+            (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(addressPositionManager, quantity, Position.Side.LONG, _trader);
         }
 
         uint256 remainMargin = oldPosition.margin;
@@ -305,11 +306,13 @@ library PositionHouseFunction {
     }
 
     function openMarketOrder(
-        IPositionManager _positionManager,
+        address addressPositionManager,
         uint256 _quantity,
         Position.Side _side,
         address _trader
     ) internal returns (int256 exchangedQuantity, uint256 openNotional) {
+        IPositionManager _positionManager = IPositionManager(addressPositionManager);
+
         uint256 exchangedSize;
         (exchangedSize, openNotional) = _positionManager.openMarketPosition(_quantity, _side == Position.Side.LONG);
         require(exchangedSize == _quantity, "NELQ");
@@ -328,21 +331,21 @@ library PositionHouseFunction {
 
         positionMapData.clear();
         debtPositionData.clearDebt();
-//        PositionLimitOrder.Data[] memory listLimitOrder = limitOrders;
-//        PositionLimitOrder.Data[] memory reduceLimitOrder = reduceLimitOrders;
-//        (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) = clearAllFilledOrder(_positionManager, _trader, listLimitOrder, reduceLimitOrder);
+        //        PositionLimitOrder.Data[] memory listLimitOrder = limitOrders;
+        //        PositionLimitOrder.Data[] memory reduceLimitOrder = reduceLimitOrders;
+        //        (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) = clearAllFilledOrder(_positionManager, _trader, listLimitOrder, reduceLimitOrder);
         (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) = clearAllFilledOrder(_positionManager, _trader, limitOrders, reduceLimitOrders);
 
         if (limitOrders.length > 0) {
             limitOrders.pop();
-//                        delete limitOrders;
+            //                        delete limitOrders;
         }
         for (uint256 i = 0; i < subListLimitOrder.length; i++) {
             limitOrders.push(subListLimitOrder[i]);
         }
         if (reduceLimitOrders.length > 0) {
             limitOrders.pop();
-//                    delete reduceLimitOrders;
+            //                    delete reduceLimitOrders;
         }
         for (uint256 i = 0; i < subReduceLimitOrder.length; i++) {
             reduceLimitOrders.push(subReduceLimitOrder[i]);
@@ -384,9 +387,5 @@ library PositionHouseFunction {
                 reduceLimitOrders.push(_newOrder);
             }
         }
-    }
-
-    function functionTest() public{
-        uint256 x = 1;
     }
 }

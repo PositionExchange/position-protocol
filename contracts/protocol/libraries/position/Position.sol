@@ -2,6 +2,7 @@ pragma solidity ^0.8.0;
 
 import "../helpers/Quantity.sol";
 import "hardhat/console.sol";
+import "../../../interfaces/IPositionManager.sol";
 
 
 library Position {
@@ -89,8 +90,12 @@ library Position {
         return self.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT;
     }
 
-    function getEntryPrice(Position.Data memory self) internal view returns (uint256){
-        return self.openNotional / self.quantity.abs();
+    function getEntryPrice(
+        Position.Data memory self,
+        address addressPositionManager
+    ) internal view returns (uint256){
+        IPositionManager _positionManager = IPositionManager(addressPositionManager);
+        return self.openNotional / self.quantity.abs() * _positionManager.getBaseBasisPoint();
     }
 
     function accumulateLimitOrder(

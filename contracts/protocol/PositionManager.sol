@@ -33,6 +33,8 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     // Max finding word can be 3500
     int128 public maxFindingWordsIndex;
 
+    bool public isOpen;
+
     IChainLinkPriceFeed public priceFeed;
 
     struct SingleSlot {
@@ -142,6 +144,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         fundingBufferPeriod = _fundingPeriod / 2;
         maxFindingWordsIndex = _maxFindingWordsIndex;
         priceFeed = IChainLinkPriceFeed(_priceFeed);
+        isOpen = true;
 
         emit ReserveSnapshotted(_initialPip, block.timestamp);
     }
@@ -206,7 +209,10 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
      */
     function calcFee(uint256 _positionNotional) external view returns (uint256)
     {
-        return _positionNotional == 0 ? 0 : _positionNotional / tollRatio;
+        if (tollRatio != 0) {
+            return _positionNotional == 0 ? 0 : _positionNotional / tollRatio;
+        }
+        return 0;
     }
 
     function cancelLimitOrder(int128 pip, uint64 orderId) external returns (uint256 size) {
@@ -366,7 +372,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
             liquidity : tickPosition[allInitializedPip[i]].liquidity
             });
         }
-        return (allLiquidity, allInitializedPip[dataLength-1]);
+        return (allLiquidity, allInitializedPip[dataLength - 1]);
     }
 
     function getQuoteAsset() public view returns (IERC20) {
@@ -393,6 +399,14 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         emit UpdateTollRatio(newTollRatio);
     }
 
+    function setOpen(bool _open) public onlyOwner {
+        if (isOpen == _open) return;
+        isOpen = _open;
+    }
+
+    function open() public view  returns (bool) {
+        return isOpen;
+    }
 
     function updateSpotPriceTwapInterval(uint256 _spotPriceTwapInterval) public onlyOwner {
 
@@ -546,7 +560,6 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
             );
         }
         emit ReserveSnapshotted(singleSlot.pip, block.timestamp);
-
     }
 
 }
