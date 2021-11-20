@@ -95,7 +95,7 @@ library Position {
         address addressPositionManager
     ) internal view returns (uint256){
         IPositionManager _positionManager = IPositionManager(addressPositionManager);
-        return self.openNotional / self.quantity.abs() * _positionManager.getBaseBasisPoint();
+        return self.openNotional * _positionManager.getBaseBasisPoint() / self.quantity.abs() ;
     }
 
     function accumulateLimitOrder(
