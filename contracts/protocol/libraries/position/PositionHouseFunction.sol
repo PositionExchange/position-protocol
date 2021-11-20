@@ -220,10 +220,10 @@ library PositionHouseFunction {
                     index++;
                 }
             }
-            if (listPendingOrderData[0].quantity == 0 && listPendingOrderData[listPendingOrderData.length - 1].quantity == 0) {
-                PositionHouse.LimitOrderPending[] memory blankListPendingOrderData;
-                return blankListPendingOrderData;
-            }
+//            if (listPendingOrderData[0].quantity == 0 && listPendingOrderData[listPendingOrderData.length - 1].quantity == 0) {
+//                PositionHouse.LimitOrderPending[] memory blankListPendingOrderData;
+//                return blankListPendingOrderData;
+//            }
             return listPendingOrderData;
         } else {
             PositionHouse.LimitOrderPending[] memory blankListPendingOrderData;
