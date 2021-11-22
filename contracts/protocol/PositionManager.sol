@@ -260,7 +260,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     }
 
     function _internalOpenMarketOrder(uint256 size, bool isBuy, uint128 maxPip) internal returns (uint256 sizeOut, uint256 openNotional) {
-        require(size != 0, "!S");
+        require(size != 0, "!Size");
         // TODO lock
         // get current tick liquidity
         SingleSlot memory _initialSingleSlot = singleSlot;
@@ -352,7 +352,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         singleSlot.isFullBuy = isFullBuy;
         sizeOut = size - state.remainingSize;
         addReserveSnapshot();
-        emit MarketFilled(isBuy, sizeOut, state.pip, passedPipCount, partialFilledQuantity);
+        emit MarketFilled(isBuy, sizeOut, _initialSingleSlot.pip, passedPipCount, partialFilledQuantity);
     }
 
     struct LiquidityOfEachPip {

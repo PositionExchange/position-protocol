@@ -15,6 +15,7 @@ library PositionLimitOrder {
 //        OrderType typeLimitOrder;
         uint8 isBuy;
         uint256 entryPrice;
+        uint256 pnlCalcPrice;
         uint256 reduceQuantity;
         uint256 blockNumber;
     }
@@ -27,6 +28,14 @@ library PositionLimitOrder {
 //        uint8 isBuy;
 //    }
 //
+//    function clearLimitOrder(
+//        PositionLimitOrder.Data self
+//    ) internal {
+//        self.pip = 0;
+//        self.orderId = 0;
+//        self.leverage = 0;
+//    }
+
     function checkFilledToSelfOrders(
         mapping(address => mapping(address => PositionLimitOrder.Data[])) storage limitOrderMap,
         IPositionManager _positionManager,
