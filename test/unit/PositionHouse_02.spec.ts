@@ -4113,5 +4113,65 @@ describe("PositionHouse_02", () => {
             // })
 
         })
+
+        it('open limit order, reverse then close and claim', async function () {
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4990,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 10000,
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('10000'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4990,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 20000,
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('20000'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4980,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 10000,
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('10000'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            console.log((await positionHouse.getClaimAmount(positionManager.address, trader0.address)).toString())
+
+        })
     })
 })
