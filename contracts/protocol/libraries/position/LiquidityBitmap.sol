@@ -50,7 +50,6 @@ library LiquidityBitmap {
 
         } else {
             // start from the word of the next tick, since the current tick state doesn't matter
-            console.log("find pip", uint256(uint128(pip)));
             (int128 wordPos, uint8 bitPos) = position(pip);
             // all the 1s at or to the left of the bitPos
             uint256 mask = ~((1 << bitPos) - 1);
@@ -250,23 +249,15 @@ library LiquidityBitmap {
         int128 pip,
         bool isSet
     ) internal {
-        console.log("pip", uint128(pip));
         (int128 mapIndex, uint8 bitPos) = position(pip);
         if (isSet) {
             self[mapIndex] |= 1 << bitPos;
         } else {
-            // DELETE LOG
-            console.log("toggle");
-            console.log("self map index before", self[mapIndex]);
-            console.log("bit pos", bitPos);
             self[mapIndex] &= ~(1 << bitPos);
-            //            self[mapIndex] ^= 1 << bitPos;
-            console.log("self map index", self[mapIndex]);
         }
     }
 
     function toggleBitsFromLToR(uint256 n, uint8 l, uint8 r) private returns (uint256) {
-        console.log("l: ", l, "r: ", r);
         // calculating a number 'num'
         // having 'r' number of bits
         // and bits in the range l

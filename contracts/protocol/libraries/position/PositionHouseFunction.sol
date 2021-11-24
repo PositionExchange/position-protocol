@@ -283,6 +283,60 @@ library PositionHouseFunction {
         }
     }
 
+    function getClaimAmount(
+        address _positionManagerAddress,
+        address _trader,
+        Position.Data memory positionData,
+        PositionLimitOrder.Data[] memory _limitOrders,
+        PositionLimitOrder.Data[] memory _reduceOrders,
+        Position.Data memory positionMapData,
+        uint256 canClaimAmountInMap,
+        int256 manualMarginInMap
+    ) public view returns (int256 totalClaimableAmount){
+        IPositionManager _positionManager = IPositionManager(_positionManagerAddress);
+        uint256 indexReduce = 0;
+//        if (_limitOrders.length != 0) {
+            bool skipIf;
+            uint256 indexLimit = 0;
+            for (indexLimit; indexLimit < _limitOrders.length; indexLimit++) {
+                if (_limitOrders[indexLimit].pip == 0 && _limitOrders[indexLimit].orderId == 0) continue;
+//                    if ((_limitOrders[indexLimit].reduceQuantity != 0 || indexLimit == _limitOrders.length - 1) && !skipIf) {
+                if (_limitOrders[indexLimit].reduceQuantity != 0 || indexLimit == _limitOrders.length - 1) {
+                    {
+                        for (indexReduce; indexReduce < _reduceOrders.length; indexReduce++) {
+                            int256 realizedPnl = int256(_reduceOrders[indexReduce].reduceQuantity * _positionManager.pipToPrice(_reduceOrders[indexReduce].pip) / _positionManager.getBaseBasisPoint())
+                            - int256((positionData.openNotional != 0 ? positionData.openNotional : positionMapData.openNotional) * _reduceOrders[indexReduce].reduceQuantity / (positionData.quantity.abs() != 0 ? positionData.quantity.abs() : positionMapData.quantity.abs()));
+                            // if limit order is short then return realizedPnl, else return -realizedPnl because of realizedPnl's formula
+                            totalClaimableAmount += _limitOrders[indexLimit].isBuy == 2 ? realizedPnl : - realizedPnl;
+                            positionData = accumulateLimitOrderToPositionData(_positionManagerAddress, _reduceOrders[indexReduce], positionData, _reduceOrders[indexReduce].entryPrice, _reduceOrders[indexReduce].reduceQuantity);
+                            if(_reduceOrders[indexReduce].pnlCalcPrice == 1) {
+                                indexReduce++;
+                                break;
+                            }
+                        }
+                    }
+//                        if (indexLimit == _limitOrders.length -1) {
+//                            skipIf = true;
+//                        }
+                    positionData = accumulateLimitOrderToPositionData(_positionManagerAddress, _limitOrders[indexLimit], positionData, _limitOrders[indexLimit].entryPrice, _limitOrders[indexLimit].reduceQuantity);
+                } else {
+                    positionData = accumulateLimitOrderToPositionData(_positionManagerAddress, _limitOrders[indexLimit], positionData, _limitOrders[indexLimit].entryPrice, _limitOrders[indexLimit].reduceQuantity);
+                }
+
+                //                (bool isFilled, bool isBuy,
+                //                uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(_limitOrders[indexLimit].pip, _limitOrders[indexLimit].orderId);
+                //                if (!isFilled) {
+                //                    totalClaimableAmount -= int256((quantity - partialFilled) * _positionManager.pipToPrice(_limitOrders[indexLimit].pip) / _positionManager.getBaseBasisPoint() / _limitOrders[indexLimit].leverage);
+                //                }
+            }
+//        }
+
+        totalClaimableAmount = totalClaimableAmount + int256(canClaimAmountInMap) + manualMarginInMap + int256(positionMapData.margin);
+//        totalClaimableAmount = (manualMargin[address(_positionManager)][_trader]);
+        if (totalClaimableAmount <= 0) {
+                totalClaimableAmount = 0;
+        }
+    }
 
 //    function internalClosePosition(
 //        address addressPositionManager,

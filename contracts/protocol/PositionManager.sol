@@ -217,6 +217,9 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
 
     function cancelLimitOrder(int128 pip, uint64 orderId) external returns (uint256 size) {
         size = tickPosition[pip].cancelLimitOrder(orderId);
+        if (orderId == tickPosition[pip].currentIndex && orderId <= tickPosition[pip].filledIndex){
+            liquidityBitmap.toggleSingleBit(pip, false);
+        }
         emit LimitOrderCancelled(orderId, pip, size);
     }
 
