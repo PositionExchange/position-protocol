@@ -942,6 +942,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     function deposit(IPositionManager _positionManager, address _trader, uint256 amount) internal {
         insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, amount);
 
+
 //        insuranceFund.updateTotalFee(fee);
     }
 

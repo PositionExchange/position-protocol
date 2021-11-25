@@ -234,7 +234,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         //save gas
         if (pip == _singleSlot.pip && hasLiquidity && _singleSlot.isFullBuy != (isBuy ? 1 : 2)) {
             // open market
-            (sizeOut, openNotional) = openMarketPositionWithMaxPip(size, isBuy, uint128(pip));
+            (sizeOut, openNotional) = openMarketPositionWithMaxPip(size, isBuy, pip);
         }
         if (size > sizeOut) {
             if (pip == _singleSlot.pip && _singleSlot.isFullBuy != (isBuy ? 1 : 2)) {
@@ -254,7 +254,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     }
 
 
-    function openMarketPositionWithMaxPip(uint256 size, bool isBuy, uint128 maxPip) public whenNotPause onlyCounterParty returns (uint256 sizeOut, uint256 openNotional) {
+    function openMarketPositionWithMaxPip(uint256 size, bool isBuy, int128 maxPip) public whenNotPause onlyCounterParty returns (uint256 sizeOut, uint256 openNotional) {
         return _internalOpenMarketOrder(size, isBuy, maxPip);
     }
 
@@ -262,7 +262,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         return _internalOpenMarketOrder(size, isBuy, 0);
     }
 
-    function _internalOpenMarketOrder(uint256 size, bool isBuy, uint128 maxPip) internal returns (uint256 sizeOut, uint256 openNotional) {
+    function _internalOpenMarketOrder(uint256 size, bool isBuy, int128 maxPip) internal returns (uint256 sizeOut, uint256 openNotional) {
         require(size != 0, "!Size");
         // TODO lock
         // get current tick liquidity
@@ -296,7 +296,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
                 maxFindingWordsIndex,
                 !isBuy
             );
-            if (maxPip != 0 && uint128(step.pipNext) != maxPip) break;
+            if (maxPip != 0 && step.pipNext != maxPip) break;
             if (step.pipNext == 0) {
                 // no more next pip
                 // state pip back 1 pip
@@ -351,11 +351,11 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
             }
             // TODO write a checkpoint that we shift a range of ticks
         }
-        singleSlot.pip = state.pip;
+        singleSlot.pip = maxPip != 0 ? maxPip : state.pip;
         singleSlot.isFullBuy = isFullBuy;
         sizeOut = size - state.remainingSize;
         addReserveSnapshot();
-        emit MarketFilled(isBuy, sizeOut, state.pip, passedPipCount, partialFilledQuantity);
+        emit MarketFilled(isBuy, sizeOut, maxPip != 0 ? maxPip : state.pip, passedPipCount, partialFilledQuantity);
     }
 
     struct LiquidityOfEachPip {

@@ -52,7 +52,7 @@ describe("PositionHouse_02", () => {
             }
         })
         positionHouse = (await factory.deploy()) as unknown as PositionHouse;
-        await positionManager.initialize(BigNumber.from(500000), '0xd364238D7eC81547a38E3bF4CBB5206605A15Fee', ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase());
+        await positionManager.initialize(BigNumber.from(3512), '0xd364238D7eC81547a38E3bF4CBB5206605A15Fee', ethers.utils.formatBytes32String('BTC'), BigNumber.from(1000), BigNumber.from(1000000), BigNumber.from(10000), BigNumber.from(80), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase());
         await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), '0xf1d0e7be179cb21f0e6bfe3616a3d7bce2f18aef'.toLowerCase(), '0x0000000000000000000000000000000000000000')
     })
 
@@ -4380,6 +4380,27 @@ describe("PositionHouse_02", () => {
             await positionHouse.connect(trader1).liquidate(positionManager.address, trader0.address)
         })
 
+        it("close limit order in posi pair", async function () {
+            await openLimitPositionAndExpect({
+                limitPrice: 0.5,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 10,
+                _trader: trader0
+            })
 
+            await openMarketPosition({
+                    quantity: BigNumber.from('4'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await positionHouse.connect(trader0).cancelLimitOrder(positionManager.address, 0, 500, 1);
+
+        })
     })
 })
