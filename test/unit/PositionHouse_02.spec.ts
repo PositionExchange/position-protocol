@@ -4175,7 +4175,6 @@ describe("PositionHouse_02", () => {
         })
 
         it('get claim amount of partial filled', async function () {
-            console.log(4178)
             await openLimitPositionAndExpect({
                 limitPrice: 4990,
                 side: SIDE.LONG,
@@ -4183,7 +4182,6 @@ describe("PositionHouse_02", () => {
                 quantity: 10000,
                 _trader: trader0
             })
-            console.log(4186)
 
             await openMarketPosition({
                     quantity: BigNumber.from('2000'),
@@ -4194,7 +4192,6 @@ describe("PositionHouse_02", () => {
                     _positionManager: positionManager,
                 }
             );
-            console.log(4197)
 
             await openLimitPositionAndExpect({
                 limitPrice: 4980,
@@ -4337,5 +4334,52 @@ describe("PositionHouse_02", () => {
             console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).toString())
             console.log((await positionHouse.getClaimAmount(positionManager.address, trader0.address)).toString())
         })
+
+        it("partial close and got liquidated, transfer claimable amount to trader was liquidated", async function () {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 10000,
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('10000'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5010,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 5000,
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5000'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await changePrice({
+                limitPrice : 4000,
+                toHigherPrice : false
+            })
+
+            await positionHouse.connect(trader1).liquidate(positionManager.address, trader0.address)
+        })
+
+
     })
 })

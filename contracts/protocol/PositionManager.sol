@@ -355,7 +355,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         singleSlot.isFullBuy = isFullBuy;
         sizeOut = size - state.remainingSize;
         addReserveSnapshot();
-        emit MarketFilled(isBuy, sizeOut, _initialSingleSlot.pip, passedPipCount, partialFilledQuantity);
+        emit MarketFilled(isBuy, sizeOut, state.pip, passedPipCount, partialFilledQuantity);
     }
 
     struct LiquidityOfEachPip {

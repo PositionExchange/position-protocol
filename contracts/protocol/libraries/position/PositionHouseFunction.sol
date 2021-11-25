@@ -300,14 +300,13 @@ library PositionHouseFunction {
             uint256 indexLimit = 0;
             for (indexLimit; indexLimit < _limitOrders.length; indexLimit++) {
                 if (_limitOrders[indexLimit].pip == 0 && _limitOrders[indexLimit].orderId == 0) continue;
-//                    if ((_limitOrders[indexLimit].reduceQuantity != 0 || indexLimit == _limitOrders.length - 1) && !skipIf) {
                 if (_limitOrders[indexLimit].reduceQuantity != 0 || indexLimit == _limitOrders.length - 1) {
                     {
                         for (indexReduce; indexReduce < _reduceOrders.length; indexReduce++) {
                             int256 realizedPnl = int256(_reduceOrders[indexReduce].reduceQuantity * _positionManager.pipToPrice(_reduceOrders[indexReduce].pip) / _positionManager.getBaseBasisPoint())
                             - int256((positionData.openNotional != 0 ? positionData.openNotional : positionMapData.openNotional) * _reduceOrders[indexReduce].reduceQuantity / (positionData.quantity.abs() != 0 ? positionData.quantity.abs() : positionMapData.quantity.abs()));
                             // if limit order is short then return realizedPnl, else return -realizedPnl because of realizedPnl's formula
-                            totalClaimableAmount += _limitOrders[indexLimit].isBuy == 2 ? realizedPnl : - realizedPnl;
+                            totalClaimableAmount += _reduceOrders[indexReduce].isBuy == 2 ? realizedPnl : (-realizedPnl);
                             positionData = accumulateLimitOrderToPositionData(_positionManagerAddress, _reduceOrders[indexReduce], positionData, _reduceOrders[indexReduce].entryPrice, _reduceOrders[indexReduce].reduceQuantity);
                             if(_reduceOrders[indexReduce].pnlCalcPrice == 1) {
                                 indexReduce++;
@@ -315,9 +314,6 @@ library PositionHouseFunction {
                             }
                         }
                     }
-//                        if (indexLimit == _limitOrders.length -1) {
-//                            skipIf = true;
-//                        }
                     positionData = accumulateLimitOrderToPositionData(_positionManagerAddress, _limitOrders[indexLimit], positionData, _limitOrders[indexLimit].entryPrice, _limitOrders[indexLimit].reduceQuantity);
                 } else {
                     positionData = accumulateLimitOrderToPositionData(_positionManagerAddress, _limitOrders[indexLimit], positionData, _limitOrders[indexLimit].entryPrice, _limitOrders[indexLimit].reduceQuantity);
@@ -332,7 +328,6 @@ library PositionHouseFunction {
 //        }
 
         totalClaimableAmount = totalClaimableAmount + int256(canClaimAmountInMap) + manualMarginInMap + int256(positionMapData.margin);
-//        totalClaimableAmount = (manualMargin[address(_positionManager)][_trader]);
         if (totalClaimableAmount <= 0) {
                 totalClaimableAmount = 0;
         }
