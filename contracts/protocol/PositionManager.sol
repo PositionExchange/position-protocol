@@ -33,6 +33,8 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     // Max finding word can be 3500
     int128 public maxFindingWordsIndex;
 
+    address private counterParty;
+
     bool public isOpen;
 
     IChainLinkPriceFeed public priceFeed;
@@ -106,7 +108,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
     }
 
     modifier onlyCounterParty(){
-        //TODO implement
+        require(counterParty == _msgSender(), "caller is not counterParty");
         _;
     }
 
@@ -120,13 +122,15 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         uint256 _tollRatio,
         int128 _maxFindingWordsIndex,
         uint256 _fundingPeriod,
-        address _priceFeed
+        address _priceFeed,
+        address _counterParty
     )
     public initializer {
         require(
             _fundingPeriod != 0 &&
             _quoteAsset != address(0) &&
-            _priceFeed != address(0),
+            _priceFeed != address(0) &&
+            _counterParty != address(0),
             "invalid input"
         );
 
@@ -145,6 +149,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         maxFindingWordsIndex = _maxFindingWordsIndex;
         priceFeed = IChainLinkPriceFeed(_priceFeed);
         isOpen = true;
+        counterParty = _counterParty;
 
         emit ReserveSnapshotted(_initialPip, block.timestamp);
     }
@@ -215,9 +220,9 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         return 0;
     }
 
-    function cancelLimitOrder(int128 pip, uint64 orderId) external returns (uint256 size) {
+    function cancelLimitOrder(int128 pip, uint64 orderId) external onlyCounterParty returns (uint256 size) {
         size = tickPosition[pip].cancelLimitOrder(orderId);
-        if (orderId == tickPosition[pip].currentIndex && orderId <= tickPosition[pip].filledIndex){
+        if (orderId == tickPosition[pip].currentIndex && orderId <= tickPosition[pip].filledIndex) {
             liquidityBitmap.toggleSingleBit(pip, false);
         }
         emit LimitOrderCancelled(orderId, pip, size);
@@ -407,8 +412,13 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         isOpen = _open;
     }
 
-    function open() public view  returns (bool) {
+    function open() public view returns (bool) {
         return isOpen;
+    }
+
+    function setCounterParty(address _counterParty) public onlyOwner {
+        require(_counterParty != address(0), "Invalid address");
+        counterParty = _counterParty;
     }
 
     function updateSpotPriceTwapInterval(uint256 _spotPriceTwapInterval) public onlyOwner {
@@ -423,7 +433,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
      * @dev only allow to update while reaching `nextFundingTime`
      * @return premiumFraction of this period in 18 digits
      */
-    function settleFunding() external returns (int256 premiumFraction) {
+    function settleFunding() external onlyCounterParty returns (int256 premiumFraction) {
         require(block.timestamp >= nextFundingTime, "settle funding too early");
 
         // premium = twapMarketPrice - twapIndexPrice
