@@ -30,5 +30,4 @@ export class DeployDataStore {
         return this.db.find()
     }
 
-
 }
