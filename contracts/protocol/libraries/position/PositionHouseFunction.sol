@@ -5,6 +5,7 @@ import "../../../interfaces/IPositionManager.sol";
 import "./PositionLimitOrder.sol";
 import "../../libraries/helpers/Quantity.sol";
 import "../../PositionHouse.sol";
+import "../../PositionHouseStorage.sol";
 
 
 library PositionHouseFunction {
@@ -94,6 +95,13 @@ library PositionHouseFunction {
         }
     }
 
+    function handleQuantity (int256 oldMarketQuantity, uint256 newQuantity) internal pure returns (int256 quantity) {
+        if (oldMarketQuantity >= 0) {
+            return oldMarketQuantity.sumWithUint256(newQuantity);
+        }
+        return oldMarketQuantity.minusWithUint256(newQuantity);
+    }
+
     function clearAllFilledOrder(
         IPositionManager _positionManager,
         address _trader,
@@ -179,18 +187,18 @@ library PositionHouseFunction {
         address addressPositionManager,
         address _trader,
         PositionLimitOrder.Data[] memory listLimitOrder,
-        PositionLimitOrder.Data[] memory reduceLimitOrder) public view returns (PositionHouse.LimitOrderPending[] memory){
+        PositionLimitOrder.Data[] memory reduceLimitOrder) public view returns (PositionHouseStorage.LimitOrderPending[] memory){
 
         IPositionManager _positionManager = IPositionManager(addressPositionManager);
-        //                PositionHouse.LimitOrderPending[] memory listPendingOrderData = new PositionHouse.LimitOrderPending[](listLimitOrder.length + reduceLimitOrder.length);
+        //                PositionHouseStorage.LimitOrderPending[] memory listPendingOrderData = new PositionHouseStorage.LimitOrderPending[](listLimitOrder.length + reduceLimitOrder.length);
         if (listLimitOrder.length + reduceLimitOrder.length > 0) {
-            PositionHouse.LimitOrderPending[] memory listPendingOrderData = new PositionHouse.LimitOrderPending[](listLimitOrder.length + reduceLimitOrder.length + 1);
+            PositionHouseStorage.LimitOrderPending[] memory listPendingOrderData = new PositionHouseStorage.LimitOrderPending[](listLimitOrder.length + reduceLimitOrder.length + 1);
             uint256 index = 0;
             for (uint256 i = 0; i < listLimitOrder.length; i++) {
                 (bool isFilled, bool isBuy,
                 uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
                 if (!isFilled && listLimitOrder[i].reduceQuantity == 0) {
-                    listPendingOrderData[index] = PositionHouse.LimitOrderPending({
+                    listPendingOrderData[index] = PositionHouseStorage.LimitOrderPending({
                     isBuy : isBuy,
                     quantity : quantity,
                     partialFilled : partialFilled,
@@ -207,7 +215,7 @@ library PositionHouseFunction {
                 (bool isFilled, bool isBuy,
                 uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(reduceLimitOrder[i].pip, reduceLimitOrder[i].orderId);
                 if (!isFilled) {
-                    listPendingOrderData[index] = PositionHouse.LimitOrderPending({
+                    listPendingOrderData[index] = PositionHouseStorage.LimitOrderPending({
                     isBuy : isBuy,
                     quantity : quantity,
                     partialFilled : partialFilled,
@@ -225,14 +233,14 @@ library PositionHouseFunction {
                     return listPendingOrderData;
                 }
             }
-            PositionHouse.LimitOrderPending[] memory blankListPendingOrderData;
+            PositionHouseStorage.LimitOrderPending[] memory blankListPendingOrderData;
             return blankListPendingOrderData;
 //            if (listPendingOrderData[0].quantity == 0 && listPendingOrderData[listPendingOrderData.length - 1].quantity == 0) {
-//                PositionHouse.LimitOrderPending[] memory blankListPendingOrderData;
+//                PositionHouseStorage.LimitOrderPending[] memory blankListPendingOrderData;
 //                return blankListPendingOrderData;
 //            }
         } else {
-            PositionHouse.LimitOrderPending[] memory blankListPendingOrderData;
+            PositionHouseStorage.LimitOrderPending[] memory blankListPendingOrderData;
             return blankListPendingOrderData;
         }
     }
@@ -240,7 +248,7 @@ library PositionHouseFunction {
     function getPositionNotionalAndUnrealizedPnl(
         address addressPositionManager,
         address _trader,
-        PositionHouse.PnlCalcOption _pnlCalcOption,
+        PositionHouseStorage.PnlCalcOption _pnlCalcOption,
         Position.Data memory position
     ) public view returns
     (
@@ -250,10 +258,10 @@ library PositionHouseFunction {
         IPositionManager positionManager = IPositionManager(addressPositionManager);
 
         uint256 oldPositionNotional = position.openNotional;
-        if (_pnlCalcOption == PositionHouse.PnlCalcOption.SPOT_PRICE) {
+        if (_pnlCalcOption == PositionHouseStorage.PnlCalcOption.SPOT_PRICE) {
             positionNotional = positionManager.getPrice() * position.quantity.abs() / positionManager.getBaseBasisPoint();
         }
-        else if (_pnlCalcOption == PositionHouse.PnlCalcOption.TWAP) {
+        else if (_pnlCalcOption == PositionHouseStorage.PnlCalcOption.TWAP) {
             // TODO get twap price
         }
         else {
@@ -295,31 +303,30 @@ library PositionHouseFunction {
     ) public view returns (int256 totalClaimableAmount){
         IPositionManager _positionManager = IPositionManager(_positionManagerAddress);
         uint256 indexReduce = 0;
-//        if (_limitOrders.length != 0) {
-            bool skipIf;
-            uint256 indexLimit = 0;
-            for (indexLimit; indexLimit < _limitOrders.length; indexLimit++) {
-                {
-                    if (_limitOrders[indexLimit].pip == 0 && _limitOrders[indexLimit].orderId == 0) continue;
-                    if (_limitOrders[indexLimit].reduceQuantity != 0 || indexLimit == _limitOrders.length - 1) {
-                        {
-                            for (indexReduce; indexReduce < _reduceOrders.length; indexReduce++) {
-                                int256 realizedPnl = int256(_reduceOrders[indexReduce].reduceQuantity * _positionManager.pipToPrice(_reduceOrders[indexReduce].pip) / _positionManager.getBaseBasisPoint())
-                                - int256((positionData.openNotional != 0 ? positionData.openNotional : positionMapData.openNotional) * _reduceOrders[indexReduce].reduceQuantity / (positionData.quantity.abs() != 0 ? positionData.quantity.abs() : positionMapData.quantity.abs()));
-                                // if limit order is short then return realizedPnl, else return -realizedPnl because of realizedPnl's formula
-                                totalClaimableAmount += _reduceOrders[indexReduce].isBuy == 2 ? realizedPnl : (- realizedPnl);
-                                positionData = accumulateLimitOrderToPositionData(_positionManagerAddress, _reduceOrders[indexReduce], positionData, _reduceOrders[indexReduce].entryPrice, _reduceOrders[indexReduce].reduceQuantity);
-                                if (_reduceOrders[indexReduce].pnlCalcPrice == 1) {
-                                    indexReduce++;
-                                    break;
-                                }
+        bool skipIf;
+        uint256 indexLimit = 0;
+        for (indexLimit; indexLimit < _limitOrders.length; indexLimit++) {
+            {
+                if (_limitOrders[indexLimit].pip == 0 && _limitOrders[indexLimit].orderId == 0) continue;
+                if (_limitOrders[indexLimit].reduceQuantity != 0 || indexLimit == _limitOrders.length - 1) {
+                    {
+                        for (indexReduce; indexReduce < _reduceOrders.length; indexReduce++) {
+                            int256 realizedPnl = int256(_reduceOrders[indexReduce].reduceQuantity * _positionManager.pipToPrice(_reduceOrders[indexReduce].pip) / _positionManager.getBaseBasisPoint())
+                            - int256((positionData.openNotional != 0 ? positionData.openNotional : positionMapData.openNotional) * _reduceOrders[indexReduce].reduceQuantity / (positionData.quantity.abs() != 0 ? positionData.quantity.abs() : positionMapData.quantity.abs()));
+                            // if limit order is short then return realizedPnl, else return -realizedPnl because of realizedPnl's formula
+                            totalClaimableAmount += _reduceOrders[indexReduce].isBuy == 2 ? realizedPnl : (- realizedPnl);
+                            positionData = accumulateLimitOrderToPositionData(_positionManagerAddress, _reduceOrders[indexReduce], positionData, _reduceOrders[indexReduce].entryPrice, _reduceOrders[indexReduce].reduceQuantity);
+                            if (_reduceOrders[indexReduce].pnlCalcPrice == 1) {
+                                indexReduce++;
+                                break;
                             }
                         }
-                        positionData = accumulateLimitOrderToPositionData(_positionManagerAddress, _limitOrders[indexLimit], positionData, _limitOrders[indexLimit].entryPrice, _limitOrders[indexLimit].reduceQuantity);
-                    } else {
-                        positionData = accumulateLimitOrderToPositionData(_positionManagerAddress, _limitOrders[indexLimit], positionData, _limitOrders[indexLimit].entryPrice, _limitOrders[indexLimit].reduceQuantity);
                     }
+                    positionData = accumulateLimitOrderToPositionData(_positionManagerAddress, _limitOrders[indexLimit], positionData, _limitOrders[indexLimit].entryPrice, _limitOrders[indexLimit].reduceQuantity);
+                } else {
+                    positionData = accumulateLimitOrderToPositionData(_positionManagerAddress, _limitOrders[indexLimit], positionData, _limitOrders[indexLimit].entryPrice, _limitOrders[indexLimit].reduceQuantity);
                 }
+            }
 
 //                {
 //                    (bool isFilled, bool isBuy,
@@ -328,8 +335,7 @@ library PositionHouseFunction {
 //                        totalClaimableAmount -= int256((quantity - partialFilled) * _positionManager.pipToPrice(_limitOrders[indexLimit].pip) / _positionManager.getBaseBasisPoint() / _limitOrders[indexLimit].leverage);
 //                    }
 //                }
-            }
-//        }
+        }
 
         totalClaimableAmount = totalClaimableAmount + int256(canClaimAmountInMap) + manualMarginInMap + int256(positionMapData.margin);
         if (totalClaimableAmount <= 0) {
@@ -340,10 +346,10 @@ library PositionHouseFunction {
 //    function internalClosePosition(
 //        address addressPositionManager,
 //        address _trader,
-//        PositionHouse.PnlCalcOption _pnlCalcOption,
+//        PositionHouseStorage.PnlCalcOption _pnlCalcOption,
 //        Position.Data memory oldPosition,
 //        uint256 quantity
-//    ) external returns (PositionHouse.PositionResp memory positionResp) {
+//    ) external returns (PositionHouseStorage.PositionResp memory positionResp) {
 //
 //        IPositionManager _positionManager = IPositionManager(addressPositionManager);
 //        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(addressPositionManager, _trader, _pnlCalcOption, oldPosition);
