@@ -110,7 +110,7 @@ export function pipToPrice(pip: number, basicPoint = 0.01): number | string {
     return pip * basicPoint;
 }
 
-export function priceToPip(price: number | string, basicPoint = 0.001): string | number {
+export function priceToPip(price: number | string, basicPoint = 0.01): string | number {
 
     return Number(price) / basicPoint;
 

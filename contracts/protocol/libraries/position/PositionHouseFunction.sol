@@ -309,7 +309,7 @@ library PositionHouseFunction {
                                 // if limit order is short then return realizedPnl, else return -realizedPnl because of realizedPnl's formula
                                 totalClaimableAmount += _reduceOrders[indexReduce].isBuy == 2 ? realizedPnl : (- realizedPnl);
                                 positionData = accumulateLimitOrderToPositionData(_positionManagerAddress, _reduceOrders[indexReduce], positionData, _reduceOrders[indexReduce].entryPrice, _reduceOrders[indexReduce].reduceQuantity);
-                                if (_reduceOrders[indexReduce].pnlCalcPrice == 1) {
+                                if (_reduceOrders[indexReduce].reduceLimitOrderId != 0) {
                                     indexReduce++;
                                     break;
                                 }

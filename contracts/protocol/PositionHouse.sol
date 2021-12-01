@@ -169,7 +169,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint256 _leverage
     ) public whenNotPause nonReentrant {
         // TODO update require quantity > minimum amount of each pair
-        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
+//        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
         //        requirePositionManager(_positionManager);
 
         address _trader = _msgSender();
@@ -217,12 +217,13 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         int128 _pip,
         uint256 _leverage
     ) public whenNotPause nonReentrant {
-        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
+//        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
         require(_pip > 0, "IP");
         //        requirePositionManager(_positionManager);
         address _trader = _msgSender();
         uint64 orderIdOfUser;
         OpenLimitResp memory openLimitResp;
+        console.log("position house line 226");
         (, openLimitResp.orderId, openLimitResp.sizeOut) = openLimitIncludeMarket(_positionManager, _trader, _pip, int256(_quantity).abs128(), _side == Position.Side.LONG ? true : false, _leverage);
         {
             PositionLimitOrder.Data memory _newOrder = PositionLimitOrder.Data({
@@ -231,13 +232,13 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             leverage : uint16(_leverage),
             isBuy : _side == Position.Side.LONG ? 1 : 2,
             entryPrice : 0,
-            pnlCalcPrice : 0,
+            reduceLimitOrderId : 0,
             reduceQuantity : 0,
             blockNumber : block.number
             });
+            console.log("position house line 239");
             orderIdOfUser = handleLimitOrderInOpenLimit(openLimitResp, _newOrder, _positionManager, _trader, _quantity, _side);
         }
-
         uint256 depositAmount = _quantity * _positionManager.pipToPrice(_pip) / _leverage / _positionManager.getBaseBasisPoint();
         deposit(_positionManager, _trader, depositAmount);
         canClaimAmountMap[address(_positionManager)][_trader] += depositAmount;
@@ -287,24 +288,30 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         Position.Data memory _oldPosition = getPosition(address(_positionManager), _trader);
 
         if (_oldPosition.quantity == 0 || _side == (_oldPosition.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT)) {
+            console.log("position house line 291");
             limitOrders[address(_positionManager)][_trader].push(_newOrder);
+            console.log("position house line 293");
             orderIdOfUser = uint64(limitOrders[address(_positionManager)][_trader].length - 1);
         } else {
             // if new limit order is smaller than old position then just reduce old position
             if (_oldPosition.quantity.abs() > _quantity) {
                 _newOrder.reduceQuantity = _quantity - openLimitResp.sizeOut;
                 _newOrder.entryPrice = _oldPosition.openNotional * _positionManager.getBaseBasisPoint() / _oldPosition.quantity.abs();
-//                _newOrder.pnlCalcPrice = _positionManager.pipToPrice(_newOrder.pip);
+                console.log("position house line 301");
                 reduceLimitOrders[address(_positionManager)][_trader].push(_newOrder);
+                console.log("position house line 303");
                 orderIdOfUser = uint64(reduceLimitOrders[address(_positionManager)][_trader].length - 1);
             }
             // else new limit order is larger than old position then close old position and open new opposite position
             else {
                 _newOrder.reduceQuantity = _oldPosition.quantity.abs();
+                console.log("position house line 309");
+                _newOrder.reduceLimitOrderId = reduceLimitOrders[address(_positionManager)][_trader].length;
                 limitOrders[address(_positionManager)][_trader].push(_newOrder);
+                console.log("position house line 311");
                 orderIdOfUser = uint64(limitOrders[address(_positionManager)][_trader].length - 1);
                 _newOrder.entryPrice = _oldPosition.openNotional * _positionManager.getBaseBasisPoint() / _oldPosition.quantity.abs();
-                _newOrder.pnlCalcPrice = 1;
+
                 reduceLimitOrders[address(_positionManager)][_trader].push(_newOrder);
             }
         }
@@ -319,10 +326,16 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint16 leverage;
         PositionLimitOrder.Data memory blankLimitOrderData;
         if (pip == oldOrderPip && orderId == oldOrderId) {
+
             leverage = limitOrders[address(_positionManager)][_trader][orderIdOfTrader].leverage;
             (,,, uint256 partialFilled) = _positionManager.getPendingOrderDetail(pip, orderId);
             if (partialFilled == 0){
+                uint256 reduceLimitOrderId = limitOrders[address(_positionManager)][_trader][orderIdOfTrader].reduceLimitOrderId;
+                if (reduceLimitOrderId != 0) {
+                    reduceLimitOrders[address(_positionManager)][_trader][reduceLimitOrderId] = blankLimitOrderData;
+                }
                 limitOrders[address(_positionManager)][_trader][orderIdOfTrader] = blankLimitOrderData;
+
             }
         } else {
             leverage = reduceLimitOrders[address(_positionManager)][_trader][orderIdOfTrader].leverage;
@@ -936,11 +949,11 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     }
 
     function withdraw(IPositionManager _positionManager, address _trader, uint256 amount) internal {
-        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, amount);
+//        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, amount);
     }
 
     function deposit(IPositionManager _positionManager, address _trader, uint256 amount) internal {
-        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, amount);
+//        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, amount);
 
 
 //        insuranceFund.updateTotalFee(fee);
