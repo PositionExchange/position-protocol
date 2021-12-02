@@ -38,7 +38,8 @@ export interface CreatePositionManagerInput {
     maxFindingWordsIndex: number;
     fundingPeriod: number;
     priceFeed: string;
-    quote: string
+    quote: string;
+    counterParty : string
 }
 
 export interface CreatePositionHouseInput {
