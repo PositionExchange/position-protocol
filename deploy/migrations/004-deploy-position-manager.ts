@@ -45,12 +45,12 @@ const migrations: MigrationDefinition = {
             const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouse');
             await context.factory.createPositionManager({
                 quoteAsset: await context.db.getMockContract(`BUSD`),
-                initialPrice: 3512,
+                initialPrice: 4000,
                 priceFeedKey: 'POSI',
                 basisPoint: 1000,
                 baseBasisPoint: 1000000,
                 tollRatio: 10000,
-                maxFindingWordsIndex: 80,
+                maxFindingWordsIndex: 10,
                 fundingPeriod: 1000,
                 priceFeed: '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(),
                 quote: 'BUSD',

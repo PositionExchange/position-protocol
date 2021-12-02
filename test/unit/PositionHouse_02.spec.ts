@@ -52,7 +52,7 @@ describe("PositionHouse_02", () => {
             }
         })
         positionHouse = (await factory.deploy()) as unknown as PositionHouse;
-        await positionManager.initialize(BigNumber.from(3512), '0xd364238D7eC81547a38E3bF4CBB5206605A15Fee', ethers.utils.formatBytes32String('BTC'), BigNumber.from(1000), BigNumber.from(1000000), BigNumber.from(10000), BigNumber.from(80), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase());
+        await positionManager.initialize(BigNumber.from(500000), '0xd364238D7eC81547a38E3bF4CBB5206605A15Fee', ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase());
         await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), '0xf1d0e7be179cb21f0e6bfe3616a3d7bce2f18aef'.toLowerCase(), '0x0000000000000000000000000000000000000000')
     })
 
@@ -4380,17 +4380,19 @@ describe("PositionHouse_02", () => {
             await positionHouse.connect(trader1).liquidate(positionManager.address, trader0.address)
         })
 
-        it("close limit order in posi pair", async function () {
+        it("cancel close position limit order 100% then open new limit order", async function () {
+            console.log(4384)
             await openLimitPositionAndExpect({
-                limitPrice: 0.5,
+                limitPrice: 4990,
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: 10,
                 _trader: trader0
             })
 
+            console.log(4393)
             await openMarketPosition({
-                    quantity: BigNumber.from('4'),
+                    quantity: BigNumber.from(10),
                     leverage: 10,
                     side: SIDE.SHORT,
                     trader: trader1.address,
@@ -4399,8 +4401,20 @@ describe("PositionHouse_02", () => {
                 }
             );
 
-            await positionHouse.connect(trader0).cancelLimitOrder(positionManager.address, 0, 500, 1);
+            console.log(4404)
+            await positionHouse.connect(trader0).closeLimitPosition(positionManager.address, 499000, 10)
 
+            console.log(4407)
+            await positionHouse.connect(trader0).cancelLimitOrder(positionManager.address, 1, 499000, 2)
+
+            console.log(4410)
+            await openLimitPositionAndExpect({
+                limitPrice: 4980,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 10,
+                _trader: trader0
+            })
         })
     })
 })
