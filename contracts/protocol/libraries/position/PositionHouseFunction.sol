@@ -24,7 +24,7 @@ library PositionHouseFunction {
         uint256 exchangedQuoteAmount,
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData
-    ) internal pure returns (uint256 openNotional) {
+    ) public pure returns (uint256 openNotional) {
         // Position.Data memory marketPositionData = positionMap[_positionManager][_trader];
         // Position.Data memory totalPositionData = getPosition(_positionManager, _trader);
         int256 newPositionSide = totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
@@ -46,7 +46,7 @@ library PositionHouseFunction {
         uint256 reduceMarginRequirement,
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData
-    ) internal pure returns (uint256 margin) {
+    ) public pure returns (uint256 margin) {
         int256 newPositionSide = totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
             if (marketPositionData.quantity * newPositionSide > 0) {
@@ -64,7 +64,7 @@ library PositionHouseFunction {
         uint256 exchangedQuoteAmount,
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData
-    ) internal pure returns (uint256 openNotional) {
+    ) public pure returns (uint256 openNotional) {
 
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
             if (marketPositionData.openNotional > exchangedQuoteAmount) {
@@ -81,7 +81,7 @@ library PositionHouseFunction {
         uint256 increaseMarginRequirement,
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData
-    ) internal pure returns (uint256 margin) {
+    ) public pure returns (uint256 margin) {
         int256 newPositionSide = totalPositionData.quantity > 0 ? int256(1) : int256(- 1);
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
             if (marketPositionData.quantity * newPositionSide > 0) {
@@ -99,7 +99,7 @@ library PositionHouseFunction {
         address _trader,
         PositionLimitOrder.Data[] memory listLimitOrder,
         PositionLimitOrder.Data[] memory reduceLimitOrder
-    ) internal returns (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) {
+    ) public returns (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) {
         if (listLimitOrder.length > 0) {
             uint256 index = 0;
             for (uint256 i = 0; i < listLimitOrder.length; i++) {
@@ -132,7 +132,7 @@ library PositionHouseFunction {
         PositionLimitOrder.Data memory limitOrder,
         Position.Data memory positionData,
         uint256 entryPrice,
-        uint256 reduceQuantity) internal view returns (Position.Data memory) {
+        uint256 reduceQuantity) public view returns (Position.Data memory) {
 
         IPositionManager _positionManager = IPositionManager(addressPositionManager);
 
