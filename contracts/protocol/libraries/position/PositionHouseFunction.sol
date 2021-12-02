@@ -187,9 +187,11 @@ library PositionHouseFunction {
             PositionHouse.LimitOrderPending[] memory listPendingOrderData = new PositionHouse.LimitOrderPending[](listLimitOrder.length + reduceLimitOrder.length + 1);
             uint256 index = 0;
             for (uint256 i = 0; i < listLimitOrder.length; i++) {
+
                 (bool isFilled, bool isBuy,
                 uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
-                if (!isFilled && listLimitOrder[i].reduceQuantity == 0) {
+//                if (!isFilled && listLimitOrder[i].reduceQuantity == 0) {
+                if (!isFilled ) {
                     listPendingOrderData[index] = PositionHouse.LimitOrderPending({
                     isBuy : isBuy,
                     quantity : quantity,
@@ -206,7 +208,7 @@ library PositionHouseFunction {
             for (uint256 i = 0; i < reduceLimitOrder.length; i++) {
                 (bool isFilled, bool isBuy,
                 uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(reduceLimitOrder[i].pip, reduceLimitOrder[i].orderId);
-                if (!isFilled) {
+                if (!isFilled && reduceLimitOrder[i].reduceLimitOrderId == 0) {
                     listPendingOrderData[index] = PositionHouse.LimitOrderPending({
                     isBuy : isBuy,
                     quantity : quantity,
@@ -225,16 +227,17 @@ library PositionHouseFunction {
                     return listPendingOrderData;
                 }
             }
-            PositionHouse.LimitOrderPending[] memory blankListPendingOrderData;
-            return blankListPendingOrderData;
+//            PositionHouse.LimitOrderPending[] memory blankListPendingOrderData;
+//            return blankListPendingOrderData;
 //            if (listPendingOrderData[0].quantity == 0 && listPendingOrderData[listPendingOrderData.length - 1].quantity == 0) {
 //                PositionHouse.LimitOrderPending[] memory blankListPendingOrderData;
 //                return blankListPendingOrderData;
 //            }
-        } else {
-            PositionHouse.LimitOrderPending[] memory blankListPendingOrderData;
-            return blankListPendingOrderData;
         }
+//        else {
+        PositionHouse.LimitOrderPending[] memory blankListPendingOrderData;
+        return blankListPendingOrderData;
+//        }
     }
 
     function getPositionNotionalAndUnrealizedPnl(

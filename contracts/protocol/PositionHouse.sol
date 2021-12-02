@@ -113,7 +113,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         IPositionManager positionManager
     );
     event OpenLimit(
-        uint64 orderIdOfTrader,
         uint64 orderId,
         address trader,
         int256 quantity,
@@ -146,6 +145,8 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         address _insuranceFund,
         address _feePool
     ) public initializer {
+        __ReentrancyGuard_init();
+        __Ownable_init();
         maintenanceMarginRatio = _maintenanceMarginRatio;
         partialLiquidationRatio = _partialLiquidationRatio;
         liquidationFeeRatio = _liquidationFeeRatio;
@@ -221,9 +222,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         require(_pip > 0, "IP");
         //        requirePositionManager(_positionManager);
         address _trader = _msgSender();
-        uint64 orderIdOfUser;
         OpenLimitResp memory openLimitResp;
-        console.log("position house line 226");
         (, openLimitResp.orderId, openLimitResp.sizeOut) = openLimitIncludeMarket(_positionManager, _trader, _pip, int256(_quantity).abs128(), _side == Position.Side.LONG ? true : false, _leverage);
         {
             PositionLimitOrder.Data memory _newOrder = PositionLimitOrder.Data({
@@ -236,13 +235,12 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             reduceQuantity : 0,
             blockNumber : block.number
             });
-            console.log("position house line 239");
-            orderIdOfUser = handleLimitOrderInOpenLimit(openLimitResp, _newOrder, _positionManager, _trader, _quantity, _side);
+            handleLimitOrderInOpenLimit(openLimitResp, _newOrder, _positionManager, _trader, _quantity, _side);
         }
         uint256 depositAmount = _quantity * _positionManager.pipToPrice(_pip) / _leverage / _positionManager.getBaseBasisPoint();
         deposit(_positionManager, _trader, depositAmount);
         canClaimAmountMap[address(_positionManager)][_trader] += depositAmount;
-        emit OpenLimit(orderIdOfUser, openLimitResp.orderId, _trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, _pip, _positionManager);
+        emit OpenLimit(openLimitResp.orderId, _trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, _pip, _positionManager);
     }
 
     function openLimitIncludeMarket(IPositionManager _positionManager, address _trader, int128 _pip, uint128 _quantity, bool _isBuy, uint256 _leverage) internal returns (PositionResp memory positionResp, uint64 orderId, uint256 sizeOut){
@@ -270,7 +268,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
                 handleMarketQuantityInLimitOrder(address(_positionManager), _trader, sizeOut, openNotional, _leverage, _isBuy);
             } else {
                 (orderId, sizeOut, openNotional) = _positionManager.openLimitPosition(_pip, _quantity, _isBuy);
-                handleMarketQuantityInLimitOrder(address(_positionManager), _trader, sizeOut, openNotional, _leverage, _isBuy);
+//                handleMarketQuantityInLimitOrder(address(_positionManager), _trader, sizeOut, openNotional, _leverage, _isBuy);
             }
         }
 
@@ -284,34 +282,24 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         address _trader,
         uint256 _quantity,
         Position.Side _side
-    ) internal returns (uint64 orderIdOfUser) {
+    ) internal {
         Position.Data memory _oldPosition = getPosition(address(_positionManager), _trader);
 
         if (_oldPosition.quantity == 0 || _side == (_oldPosition.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT)) {
-            console.log("position house line 291");
             limitOrders[address(_positionManager)][_trader].push(_newOrder);
-            console.log("position house line 293");
-            orderIdOfUser = uint64(limitOrders[address(_positionManager)][_trader].length - 1);
         } else {
             // if new limit order is smaller than old position then just reduce old position
             if (_oldPosition.quantity.abs() > _quantity) {
                 _newOrder.reduceQuantity = _quantity - openLimitResp.sizeOut;
                 _newOrder.entryPrice = _oldPosition.openNotional * _positionManager.getBaseBasisPoint() / _oldPosition.quantity.abs();
-                console.log("position house line 301");
                 reduceLimitOrders[address(_positionManager)][_trader].push(_newOrder);
-                console.log("position house line 303");
-                orderIdOfUser = uint64(reduceLimitOrders[address(_positionManager)][_trader].length - 1);
             }
             // else new limit order is larger than old position then close old position and open new opposite position
             else {
                 _newOrder.reduceQuantity = _oldPosition.quantity.abs();
-                console.log("position house line 309");
                 _newOrder.reduceLimitOrderId = reduceLimitOrders[address(_positionManager)][_trader].length;
                 limitOrders[address(_positionManager)][_trader].push(_newOrder);
-                console.log("position house line 311");
-                orderIdOfUser = uint64(limitOrders[address(_positionManager)][_trader].length - 1);
                 _newOrder.entryPrice = _oldPosition.openNotional * _positionManager.getBaseBasisPoint() / _oldPosition.quantity.abs();
-
                 reduceLimitOrders[address(_positionManager)][_trader].push(_newOrder);
             }
         }
