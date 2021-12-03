@@ -52,7 +52,7 @@ describe("PositionHouse_02", () => {
             }
         })
         positionHouse = (await factory.deploy()) as unknown as PositionHouse;
-        await positionManager.initialize(BigNumber.from(500000), '0xd364238D7eC81547a38E3bF4CBB5206605A15Fee', ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase());
+        await positionManager.initialize(BigNumber.from(500000), '0xd364238D7eC81547a38E3bF4CBB5206605A15Fee', ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
         await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), '0xf1d0e7be179cb21f0e6bfe3616a3d7bce2f18aef'.toLowerCase(), '0x0000000000000000000000000000000000000000')
     })
 
@@ -4390,6 +4390,8 @@ describe("PositionHouse_02", () => {
                 _trader: trader0
             })
 
+            console.log(await positionHouse.getListOrderPending(positionManager.address, trader0.address))
+
             console.log(4393)
             await openMarketPosition({
                     quantity: BigNumber.from(10),
@@ -4401,8 +4403,13 @@ describe("PositionHouse_02", () => {
                 }
             );
 
+            console.log(await positionHouse.getListOrderPending(positionManager.address, trader0.address))
+
+
             console.log(4404)
             await positionHouse.connect(trader0).closeLimitPosition(positionManager.address, 499000, 10)
+
+            console.log(await positionHouse.getListOrderPending(positionManager.address, trader0.address))
 
             console.log(4407)
             await positionHouse.connect(trader0).cancelLimitOrder(positionManager.address, 1, 499000, 2)

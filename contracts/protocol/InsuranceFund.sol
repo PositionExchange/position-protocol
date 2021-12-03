@@ -31,20 +31,21 @@ contract InsuranceFund  is Initializable, ReentrancyGuardUpgradeable, OwnableUpg
         _;
     }
 
-    //    function initialize(address _counterParty) public initializer {
-    //
-    //        require(_counterParty != address(0),
-    //            "invalid input");
-    //        __ReentrancyGuard_init();
-    //        __Ownable_init();
-    //
-    //        counterParty = _counterParty;
-    //        posi = IERC20(0x5CA42204cDaa70d5c773946e69dE942b85CA6706);
-    //        busd = IERC20(0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56);
-    //        router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
-    //        factory = IUniswapV2Factory(0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73);
 
-    //    }
+    function initialize() public initializer {
+
+//            require(_counterParty != address(0),
+//                "invalid input");
+        __ReentrancyGuard_init();
+        __Ownable_init();
+
+//            counterParty = _counterParty;
+//            posi = IERC20(0x5CA42204cDaa70d5c773946e69dE942b85CA6706);
+//            busd = IERC20(0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56);
+//            router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
+//            factory = IUniswapV2Factory(0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73);
+
+    }
 
 
     function deposit(address token, address trader, uint256 amount) public {
@@ -106,7 +107,7 @@ contract InsuranceFund  is Initializable, ReentrancyGuardUpgradeable, OwnableUpg
     //        paths[1] = address(busd);
     //    }
 
-    function setCounterParty(address _counterParty)public onlyOwner {
+    function setCounterParty(address _counterParty) public onlyOwner {
         require(_counterParty != address(0), "Invalid address");
         counterParty = _counterParty;
     }

@@ -134,6 +134,9 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
             "invalid input"
         );
 
+        __ReentrancyGuard_init();
+        __Ownable_init();
+
         priceFeedKey = _priceFeedKey;
         singleSlot.pip = _initialPip;
         reserveSnapshots.push(
