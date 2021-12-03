@@ -15,7 +15,7 @@ library PositionLimitOrder {
 //        OrderType typeLimitOrder;
         uint8 isBuy;
         uint256 entryPrice;
-        uint256 pnlCalcPrice;
+        uint256 reduceLimitOrderId;
         uint256 reduceQuantity;
         uint256 blockNumber;
     }

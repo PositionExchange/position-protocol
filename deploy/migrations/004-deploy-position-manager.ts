@@ -15,6 +15,7 @@ const migrations: MigrationDefinition = {
              fundingPeriod: number;
              priceFeed: string;
              */
+            const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouse');
             await context.factory.createPositionManager({
                 quoteAsset: await context.db.getMockContract(`BUSD`),
                 initialPrice: 6350000,
@@ -25,7 +26,8 @@ const migrations: MigrationDefinition = {
                 maxFindingWordsIndex: 1800,
                 fundingPeriod: 1000,
                 priceFeed: '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(),
-                quote: 'BUSD'
+                quote: 'BUSD',
+                counterParty: positionHouseFunctionContractAddress
             })
         },
         'deploy POSIBUSD position manager': async () => {
@@ -40,6 +42,7 @@ const migrations: MigrationDefinition = {
              fundingPeriod: number;
              priceFeed: string;
              */
+            const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouse');
             await context.factory.createPositionManager({
                 quoteAsset: await context.db.getMockContract(`BUSD`),
                 initialPrice: 4000,
@@ -50,7 +53,8 @@ const migrations: MigrationDefinition = {
                 maxFindingWordsIndex: 10,
                 fundingPeriod: 1000,
                 priceFeed: '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(),
-                quote: 'BUSD'
+                quote: 'BUSD',
+                counterParty: positionHouseFunctionContractAddress
             })
         }
 

@@ -60,7 +60,9 @@ export class ContractWrapperFactory {
                 args.tollRatio,
                 args.maxFindingWordsIndex,
                 args.fundingPeriod,
-                args.priceFeed];
+                args.priceFeed,
+                args.counterParty
+            ];
 
             //@ts-ignore
             const instance = await upgrades.deployProxy(PositionManager, contractArgs);
