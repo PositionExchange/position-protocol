@@ -216,7 +216,7 @@ library PositionHouseFunction {
                 uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
 //                if (!isFilled && listLimitOrder[i].reduceQuantity == 0) {
                 if (!isFilled ) {
-                    listPendingOrderData[index] = PositionHouse.LimitOrderPending({
+                    listPendingOrderData[index] = PositionHouseStorage.LimitOrderPending({
                     isBuy : isBuy,
                     quantity : quantity,
                     partialFilled : partialFilled,
@@ -233,7 +233,7 @@ library PositionHouseFunction {
                 (bool isFilled, bool isBuy,
                 uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(reduceLimitOrder[i].pip, reduceLimitOrder[i].orderId);
                 if (!isFilled && reduceLimitOrder[i].reduceLimitOrderId == 0) {
-                    listPendingOrderData[index] = PositionHouse.LimitOrderPending({
+                    listPendingOrderData[index] = PositionHouseStorage.LimitOrderPending({
                     isBuy : isBuy,
                     quantity : quantity,
                     partialFilled : partialFilled,
@@ -338,6 +338,13 @@ library PositionHouseFunction {
                     positionData = accumulateLimitOrderToPositionData(_positionManagerAddress, _limitOrders[indexLimit], positionData, _limitOrders[indexLimit].entryPrice, _limitOrders[indexLimit].reduceQuantity);
                 }
             }
+//            {
+//                (bool isFilled, bool isBuy,
+//                uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(_limitOrders[indexLimit].pip, _limitOrders[indexLimit].orderId);
+//                if (!isFilled) {
+//                    totalClaimableAmount -= int256((quantity - partialFilled) * _positionManager.pipToPrice(_limitOrders[indexLimit].pip) / _positionManager.getBaseBasisPoint() / _limitOrders[indexLimit].leverage);
+//                }
+//            }
         }
 
         totalClaimableAmount = totalClaimableAmount + int256(canClaimAmountInMap) + manualMarginInMap + int256(positionMapData.margin);
