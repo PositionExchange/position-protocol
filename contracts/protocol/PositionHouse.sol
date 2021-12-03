@@ -285,24 +285,37 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     ) internal returns (uint64 orderIdOfUser) {
         Position.Data memory _oldPosition = getPosition(address(_positionManager), _trader);
 
+        //                {
+        //                    orderIdOfUser = PositionHouseFunction.handleLimitOrderInOpenLimit(
+        //                        openLimitResp,
+        //                        _newOrder,
+        //                        address(_positionManager),
+        //                        _trader,
+        //                        _quantity,
+        //                        _side,
+        //                        limitOrders[address(_positionManager)][_trader],
+        //                        reduceLimitOrders[address(_positionManager)][_trader],
+        //                        _oldPosition
+        //                    );
+        //
+        //                }
+
+        //
         if (_oldPosition.quantity == 0 || _side == (_oldPosition.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT)) {
-            console.log("position house line 291");
             limitOrders[address(_positionManager)][_trader].push(_newOrder);
-            console.log("position house line 293");
             orderIdOfUser = uint64(limitOrders[address(_positionManager)][_trader].length - 1);
         } else {
             // if new limit order is smaller than old position then just reduce old position
             if (_oldPosition.quantity.abs() > _quantity) {
                 _newOrder.reduceQuantity = _quantity - openLimitResp.sizeOut;
                 _newOrder.entryPrice = _oldPosition.openNotional * _positionManager.getBaseBasisPoint() / _oldPosition.quantity.abs();
-//                _newOrder.pnlCalcPrice = _positionManager.pipToPrice(_newOrder.pip);
+                //                _newOrder.pnlCalcPrice = _positionManager.pipToPrice(_newOrder.pip);
                 reduceLimitOrders[address(_positionManager)][_trader].push(_newOrder);
                 orderIdOfUser = uint64(reduceLimitOrders[address(_positionManager)][_trader].length - 1);
             }
             // else new limit order is larger than old position then close old position and open new opposite position
             else {
                 _newOrder.reduceQuantity = _oldPosition.quantity.abs();
-                console.log("position house line 309");
                 _newOrder.reduceLimitOrderId = reduceLimitOrders[address(_positionManager)][_trader].length;
                 limitOrders[address(_positionManager)][_trader].push(_newOrder);
                 orderIdOfUser = uint64(limitOrders[address(_positionManager)][_trader].length - 1);
@@ -324,7 +337,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         if (pip == oldOrderPip && orderId == oldOrderId) {
             leverage = limitOrders[address(_positionManager)][_trader][orderIdOfTrader].leverage;
             (,,, uint256 partialFilled) = _positionManager.getPendingOrderDetail(pip, orderId);
-            if (partialFilled == 0){
+            if (partialFilled == 0) {
                 uint256 reduceLimitOrderId = limitOrders[address(_positionManager)][_trader][orderIdOfTrader].reduceLimitOrderId;
                 if (reduceLimitOrderId != 0) {
                     reduceLimitOrders[address(_positionManager)][_trader][reduceLimitOrderId] = blankLimitOrderData;
@@ -335,7 +348,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         } else {
             leverage = reduceLimitOrders[address(_positionManager)][_trader][orderIdOfTrader].leverage;
             (,,, uint256 partialFilled) = _positionManager.getPendingOrderDetail(pip, orderId);
-            if (partialFilled == 0){
+            if (partialFilled == 0) {
                 reduceLimitOrders[address(_positionManager)][_trader][orderIdOfTrader] = blankLimitOrderData;
             }
         }
@@ -405,7 +418,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         }
 
 
-
         if (positionData.quantity > 0) {
             //            openLimitOrder(_positionManager, Position.Side.SHORT, uint256(positionData.quantity) * _percentQuantity / 100, _pip, positionData.leverage);
             openLimitOrder(_positionManager, Position.Side.SHORT, _quantity, _pip, positionData.leverage);
@@ -417,7 +429,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
     function getClaimAmount(IPositionManager _positionManager, address _trader) public view returns (int256 totalClaimableAmount) {
         Position.Data memory positionData = getPosition(address(_positionManager), _trader);
-        return PositionHouseFunction.getClaimAmount(address(_positionManager), _trader, positionData, limitOrders[address(_positionManager)][_trader], reduceLimitOrders[address(_positionManager)][_trader], positionMap[address(_positionManager)][_trader], canClaimAmountMap[address(_positionManager)][_trader], manualMargin[address(_positionManager)][_trader]);
+        return PositionHouseFunction.getClaimAmount(address(_positionManager), positionData, limitOrders[address(_positionManager)][_trader], reduceLimitOrders[address(_positionManager)][_trader], positionMap[address(_positionManager)][_trader], canClaimAmountMap[address(_positionManager)][_trader], manualMargin[address(_positionManager)][_trader]);
     }
 
     function claimFund(IPositionManager _positionManager) public whenNotPause nonReentrant {
@@ -501,7 +513,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             manualMargin[address(_positionManager)][_trader] += int256(_marginAdded);
         }
 
-        deposit(_positionManager, _trader, _marginAdded);
+        deposit(_positionManager, _trader, _marginAdded, 0);
 
         emit AddMargin(_trader, _marginAdded, _positionManager);
     }
@@ -545,6 +557,8 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
      */
     // IMPORTANT UPDATE CLEAR LIMIT ORDER
     function clearPosition(IPositionManager _positionManager, address _trader) internal {
+
+
         positionMap[address(_positionManager)][_trader].clear();
         debtPosition[address(_positionManager)][_trader].clearDebt();
         manualMargin[address(_positionManager)][_trader] = 0;
@@ -552,20 +566,17 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 //        PositionLimitOrder.Data[] memory listLimitOrder = limitOrders[address(_positionManager)][_trader];
 //        PositionLimitOrder.Data[] memory reduceLimitOrder = reduceLimitOrders[address(_positionManager)][_trader];
 //        (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) = PositionHouseFunction.clearAllFilledOrder(_positionManager, _trader, listLimitOrder, reduceLimitOrder);
-        //        PositionLimitOrder.Data[] memory listLimitOrder = limitOrders[address(_positionManager)][_trader];
-        //        PositionLimitOrder.Data[] memory reduceLimitOrder = reduceLimitOrders[address(_positionManager)][_trader];
-        //        (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) = PositionHouseFunction.clearAllFilledOrder(_positionManager, _trader, listLimitOrder, reduceLimitOrder);
 
         if (limitOrders[address(_positionManager)][_trader].length > 0) {
             delete limitOrders[address(_positionManager)][_trader];
         }
-        //        for (uint256 i = 0; i < subListLimitOrder.length; i++) {
-        //            limitOrders[address(_positionManager)][_trader][i] = (subListLimitOrder[i]);
-        //        }
+//        for (uint256 i = 0; i < subListLimitOrder.length; i++) {
+//            limitOrders[address(_positionManager)][_trader][i] = (subListLimitOrder[i]);
+//        }
         if (reduceLimitOrders[address(_positionManager)][_trader].length > 0) {
             delete reduceLimitOrders[address(_positionManager)][_trader];
         }
-        //        for (uint256 i = 0; i < subReduceLimitOrder.length; i++) {
+//        for (uint256 i = 0; i < subReduceLimitOrder.length; i++) {
         //            reduceLimitOrders[address(_positionManager)][_trader][i] = (subReduceLimitOrder[i]);
         //        }
     }
@@ -991,12 +1002,12 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     ) internal returns (int256 exchangedQuantity, uint256 openNotional) {
         address _trader = _msgSender();
 
-        //        (int256 exchangedQuantity, uint256 openNotional) = PositionHouseFunction.openMarketOrder(address(_positionManager), _quantity, _side, _trader);
-        uint256 exchangedSize;
-
-        (exchangedSize, openNotional) = _positionManager.openMarketPosition(_quantity, _side == Position.Side.LONG);
-        require(exchangedSize == _quantity, "NELQ");
-        exchangedQuantity = _side == Position.Side.LONG ? int256(exchangedSize) : - int256(exchangedSize);
+        (int256 exchangedQuantity, uint256 openNotional) = PositionHouseFunction.openMarketOrder(address(_positionManager), _quantity, _side, _trader);
+        //        uint256 exchangedSize;
+        //
+        //        (exchangedSize, openNotional) = _positionManager.openMarketPosition(_quantity, _side == Position.Side.LONG);
+        //        require(exchangedSize == _quantity, "NELQ");
+        //        exchangedQuantity = _side == Position.Side.LONG ? int256(exchangedSize) : - int256(exchangedSize);
     }
 
 
