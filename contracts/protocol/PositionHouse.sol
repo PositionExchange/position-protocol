@@ -285,22 +285,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     ) internal returns (uint64 orderIdOfUser) {
         Position.Data memory _oldPosition = getPosition(address(_positionManager), _trader);
 
-        //                {
-        //                    orderIdOfUser = PositionHouseFunction.handleLimitOrderInOpenLimit(
-        //                        openLimitResp,
-        //                        _newOrder,
-        //                        address(_positionManager),
-        //                        _trader,
-        //                        _quantity,
-        //                        _side,
-        //                        limitOrders[address(_positionManager)][_trader],
-        //                        reduceLimitOrders[address(_positionManager)][_trader],
-        //                        _oldPosition
-        //                    );
-        //
-        //                }
-
-        //
         if (_oldPosition.quantity == 0 || _side == (_oldPosition.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT)) {
             limitOrders[address(_positionManager)][_trader].push(_newOrder);
             orderIdOfUser = uint64(limitOrders[address(_positionManager)][_trader].length - 1);
