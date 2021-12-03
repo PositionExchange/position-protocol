@@ -20,52 +20,62 @@ library PositionHouseFunction {
         uint256 sizeOut;
     }
 
+    // There are 4 cases could happen:
+    //      1. oldPosition created by limitOrder, new marketOrder reversed it => ON = positionResp.exchangedQuoteAssetAmount
+    //      2. oldPosition created by marketOrder, new marketOrder reversed it => ON = oldPosition.openNotional - positionResp.exchangedQuoteAssetAmount
+    //      3. oldPosition created by both marketOrder and limitOrder, new marketOrder reversed it => ON = oldPosition.openNotional (of marketPosition only) - positionResp.exchangedQuoteAssetAmount
+    //      4. oldPosition increased by limitOrder and reversed by marketOrder, new MarketOrder reversed it => ON = oldPosition.openNotional (of marketPosition only) + positionResp.exchangedQuoteAssetAmount
     function handleNotionalInOpenReverse(
         uint256 exchangedQuoteAmount,
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData
     ) internal pure returns (uint256 openNotional) {
-        // Position.Data memory marketPositionData = positionMap[_positionManager][_trader];
-        // Position.Data memory totalPositionData = getPosition(_positionManager, _trader);
-        int256 newPositionSide = totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
+//        int256 newPositionSide = totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
-            //            if (marketPositionData.quantity * newPositionSide > 0) {
-            if (marketPositionData.quantity * newPositionSide > 0) {
-                openNotional = marketPositionData.openNotional + exchangedQuoteAmount;
-            } else {
-                openNotional = marketPositionData.openNotional - exchangedQuoteAmount;
-            }
-        } else if (marketPositionData.quantity == 0) {
-            openNotional = exchangedQuoteAmount;
+            openNotional = marketPositionData.openNotional + exchangedQuoteAmount;
         } else {
-            openNotional = marketPositionData.openNotional > exchangedQuoteAmount ? marketPositionData.openNotional - exchangedQuoteAmount : exchangedQuoteAmount - marketPositionData.openNotional;
+            if (marketPositionData.openNotional > exchangedQuoteAmount) {
+                openNotional = marketPositionData.openNotional - exchangedQuoteAmount;
+            } else {
+                openNotional = exchangedQuoteAmount - marketPositionData.openNotional;
+            }
         }
     }
 
+    // There are 5 cases could happen:
+    //      1. Old position created by long limit and short market, reverse position is short => margin = oldMarketMargin + reduceMarginRequirement
+    //      2. Old position created by long limit and long market, reverse position is short and < old long market => margin = oldMarketMargin - reduceMarginRequirement
+    //      3. Old position created by long limit and long market, reverse position is short and > old long market => margin = reduceMarginRequirement - oldMarketMargin
+    //      4. Old position created by long limit and no market, reverse position is short => margin = reduceMarginRequirement - oldMarketMargin
+    //      5. Old position created by short limit and long market, reverse position is short => margin = oldMarketMargin - reduceMarginRequirement
     function handleMarginInOpenReverse(
         uint256 reduceMarginRequirement,
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData
     ) internal pure returns (uint256 margin) {
-        int256 newPositionSide = totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
+//        int256 newPositionSide = totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
-            if (marketPositionData.quantity * newPositionSide > 0) {
-                margin = marketPositionData.margin + reduceMarginRequirement;
-            } else {
-                margin = marketPositionData.margin - reduceMarginRequirement;
-            }
+            margin = marketPositionData.margin + reduceMarginRequirement;
         } else {
-            margin = reduceMarginRequirement > marketPositionData.margin ? reduceMarginRequirement - marketPositionData.margin : marketPositionData.margin - reduceMarginRequirement;
+            if (marketPositionData.margin > reduceMarginRequirement) {
+                margin = marketPositionData.margin - reduceMarginRequirement;
+            } else {
+                margin = reduceMarginRequirement - marketPositionData.margin;
+            }
         }
     }
 
-
+    // There are 5 cases could happen:
+    //      1. Old position created by long limit and long market, increase position is long => notional = oldNotional + exchangedQuoteAssetAmount
+    //      2. Old position created by long limit and short market, increase position is long and < old short market => notional = oldNotional - exchangedQuoteAssetAmount
+    //      3. Old position created by long limit and short market, increase position is long and > old short market => notional = exchangedQuoteAssetAmount - oldNotional
+    //      4. Old position created by long limit and no market, increase position is long => notional = oldNotional + exchangedQuoteAssetAmount
+    //      5. Old position created by short limit and long market, increase position is long => notional = oldNotional + exchangedQuoteAssetAmount
     function handleNotionalInIncrease(
         uint256 exchangedQuoteAmount,
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData
     ) internal pure returns (uint256 openNotional) {
-
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
             if (marketPositionData.openNotional > exchangedQuoteAmount) {
                 openNotional = marketPositionData.openNotional - exchangedQuoteAmount;
@@ -77,17 +87,23 @@ library PositionHouseFunction {
         }
     }
 
+    // There are 6 cases could happen:
+    //      1. Old position created by long limit and long market, increase position is long market => margin = oldMarketMargin + increaseMarginRequirement
+    //      2. Old position created by long limit and short market, increase position is long market and < old short market => margin = oldMarketMargin - increaseMarginRequirement
+    //      3. Old position created by long limit and short market, increase position is long market and > old short market => margin = increaseMarginRequirement - oldMarketMargin
+    //      4. Old position created by long limit and no market, increase position is long market => margin = increaseMarginRequirement - oldMarketMargin
+    //      5. Old position created by short limit and long market, increase position is long market => margin = oldMarketMargin + increaseMarginRequirement
+    //      6. Old position created by no limit and long market, increase position is long market => margin = oldMarketMargin + increaseMarginRequirement
     function handleMarginInIncrease(
         uint256 increaseMarginRequirement,
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData
     ) internal pure returns (uint256 margin) {
-        int256 newPositionSide = totalPositionData.quantity > 0 ? int256(1) : int256(- 1);
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
-            if (marketPositionData.quantity * newPositionSide > 0) {
-                margin = marketPositionData.margin + increaseMarginRequirement;
+            if (marketPositionData.margin > increaseMarginRequirement) {
+                margin = marketPositionData.margin - increaseMarginRequirement;
             } else {
-                margin = increaseMarginRequirement > marketPositionData.margin ? increaseMarginRequirement - marketPositionData.margin : marketPositionData.margin - increaseMarginRequirement;
+                margin = increaseMarginRequirement - marketPositionData.margin;
             }
         } else {
             margin = marketPositionData.margin + increaseMarginRequirement;

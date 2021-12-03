@@ -243,6 +243,11 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         emit OpenLimit(openLimitResp.orderId, _trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, _pip, _positionManager);
     }
 
+    // There are 4 cases could happen:
+    //      1. Old position created by limit Long and market Long, new limit order has market is Long => increase old quantity
+    //      2. Old position created by limit Long and market Long, new limit order has market is Short and quantity < old market part Long => reduce old quantity
+    //      3. Old position created by limit Long and market Long, new limit order has market is Short and quantity > old market part Long => close and open reverse old market
+    //      4. Old position created by limit Long and market Long, new limit order has market is Short and quantity > old position Long => close and open reverse old position
     function openLimitIncludeMarket(IPositionManager _positionManager, address _trader, int128 _pip, uint128 _quantity, bool _isBuy, uint256 _leverage) internal returns (PositionResp memory positionResp, uint64 orderId, uint256 sizeOut){
         {
             Position.Data memory totalPositionData = getPosition(address(_positionManager), _trader);
@@ -781,7 +786,6 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         Position.Data memory marketPositionData = positionMap[_positionManager][_trader];
         Position.Data memory totalPositionData = getPosition(_positionManager, _trader);
         openNotional = PositionHouseFunction.handleNotionalInOpenReverse(exchangedQuoteAmount, marketPositionData, totalPositionData);
-
     }
 
     function handleMarginInOpenReverse(address _positionManager, address _trader, uint256 reduceMarginRequirement) internal returns (uint256 margin) {
