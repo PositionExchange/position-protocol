@@ -302,7 +302,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             // else new limit order is larger than old position then close old position and open new opposite position
             else {
                 _newOrder.reduceQuantity = _oldPosition.quantity.abs();
-                _newOrder.reduceLimitOrderId = reduceLimitOrders[address(_positionManager)][_trader].length;
+                _newOrder.reduceLimitOrderId = reduceLimitOrders[address(_positionManager)][_trader].length + 1;
                 limitOrders[address(_positionManager)][_trader].push(_newOrder);
                 _newOrder.entryPrice = _oldPosition.openNotional * _positionManager.getBaseBasisPoint() / _oldPosition.quantity.abs();
                 reduceLimitOrders[address(_positionManager)][_trader].push(_newOrder);
@@ -325,7 +325,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             if (partialFilled == 0){
                 uint256 reduceLimitOrderId = limitOrders[address(_positionManager)][_trader][orderIdOfTrader].reduceLimitOrderId;
                 if (reduceLimitOrderId != 0) {
-                    reduceLimitOrders[address(_positionManager)][_trader][reduceLimitOrderId] = blankLimitOrderData;
+                    reduceLimitOrders[address(_positionManager)][_trader][reduceLimitOrderId - 1] = blankLimitOrderData;
                 }
                 limitOrders[address(_positionManager)][_trader][orderIdOfTrader] = blankLimitOrderData;
 
