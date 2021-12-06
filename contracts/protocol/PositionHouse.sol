@@ -183,10 +183,10 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         PositionResp memory positionResp;
         // check if old position quantity is same side with new
         if (oldPosition.quantity == 0 || oldPosition.side() == _side) {
-            positionResp = increasePosition(_positionManager, _side, int256(_quantity), _leverage);
+            positionResp = increasePosition(_positionManager, _side, int256(_quantity), _leverage, _trader);
         } else {
             // TODO adjust old position
-            positionResp = openReversePosition(_positionManager, _side, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage);
+            positionResp = openReversePosition(_positionManager, _side, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, _trader);
         }
         // update position sate
         positionMap[address(_positionManager)][_trader].update(
@@ -195,7 +195,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
         if (positionResp.marginToVault > 0) {
             //transfer from trader to vault
-            deposit(_positionManager, _trader, positionResp.marginToVault.abs());
+            deposit(_positionManager, _trader, positionResp.marginToVault.abs(), positionResp.position.openNotional);
         } else if (positionResp.marginToVault < 0) {
             // withdraw from vault to user
             withdraw(_positionManager, _trader, positionResp.marginToVault.abs());
@@ -275,7 +275,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
                 handleMarketQuantityInLimitOrder(address(_positionManager), _trader, sizeOut, openNotional, _leverage, _isBuy);
             } else {
                 (orderId, sizeOut, openNotional) = _positionManager.openLimitPosition(_pip, _quantity, _isBuy);
-//                handleMarketQuantityInLimitOrder(address(_positionManager), _trader, sizeOut, openNotional, _leverage, _isBuy);
+                //                handleMarketQuantityInLimitOrder(address(_positionManager), _trader, sizeOut, openNotional, _leverage, _isBuy);
             }
         }
 
@@ -324,7 +324,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
             leverage = limitOrders[address(_positionManager)][_trader][orderIdOfTrader].leverage;
             (,,, uint256 partialFilled) = _positionManager.getPendingOrderDetail(pip, orderId);
-            if (partialFilled == 0){
+            if (partialFilled == 0) {
                 uint256 reduceLimitOrderId = limitOrders[address(_positionManager)][_trader][orderIdOfTrader].reduceLimitOrderId;
                 if (reduceLimitOrderId != 0) {
                     reduceLimitOrders[address(_positionManager)][_trader][reduceLimitOrderId - 1] = blankLimitOrderData;
@@ -565,7 +565,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             // TODO update function latestCumulativePremiumFraction
 
             Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
-            Position.Data memory marketPosition = positionMap[address (_positionManager)][_trader];
+            Position.Data memory marketPosition = positionMap[address(_positionManager)][_trader];
             (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, totalPosition);
 
             positionResp.unrealizedPnl = unrealizedPnl;
@@ -687,25 +687,25 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         Position.Data memory totalPositionData = getPosition(_positionManager, _trader);
         int256 newPositionSide = _isBuy == true ? int256(1) : int256(- 1);
         if (newPositionSide * totalPositionData.quantity >= 0) {
-                newData = Position.Data(
-                    PositionHouseFunction.handleQuantity(marketPositionData.quantity, _newQuantity),
-                    PositionHouseFunction.handleMarginInIncrease(_newNotional / _leverage, marketPositionData, totalPositionData),
-                    PositionHouseFunction.handleNotionalInIncrease(_newNotional, marketPositionData, totalPositionData),
-                // TODO update latest cumulative premium fraction
-                    0,
-                    block.number,
-                    _leverage
-                );
+            newData = Position.Data(
+                PositionHouseFunction.handleQuantity(marketPositionData.quantity, _newQuantity),
+                PositionHouseFunction.handleMarginInIncrease(_newNotional / _leverage, marketPositionData, totalPositionData),
+                PositionHouseFunction.handleNotionalInIncrease(_newNotional, marketPositionData, totalPositionData),
+            // TODO update latest cumulative premium fraction
+                0,
+                block.number,
+                _leverage
+            );
         } else {
-                newData = Position.Data(
-                    PositionHouseFunction.handleQuantity(marketPositionData.quantity, _newQuantity),
-                    PositionHouseFunction.handleMarginInOpenReverse(totalPositionData.margin * _newQuantity / totalPositionData.quantity.abs(), marketPositionData, totalPositionData),
-                    PositionHouseFunction.handleNotionalInOpenReverse(_newNotional, marketPositionData, totalPositionData),
-                // TODO update latest cumulative premium fraction
-                    0,
-                    block.number,
-                    _leverage
-                );
+            newData = Position.Data(
+                PositionHouseFunction.handleQuantity(marketPositionData.quantity, _newQuantity),
+                PositionHouseFunction.handleMarginInOpenReverse(totalPositionData.margin * _newQuantity / totalPositionData.quantity.abs(), marketPositionData, totalPositionData),
+                PositionHouseFunction.handleNotionalInOpenReverse(_newNotional, marketPositionData, totalPositionData),
+            // TODO update latest cumulative premium fraction
+                0,
+                block.number,
+                _leverage
+            );
         }
         positionMap[_positionManager][_trader].update(
             newData
