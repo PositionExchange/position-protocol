@@ -273,7 +273,9 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
                 handleMarketQuantityInLimitOrder(address(_positionManager), _trader, sizeOut, openNotional, _leverage, _isBuy);
             } else {
                 (orderId, sizeOut, openNotional) = _positionManager.openLimitPosition(_pip, _quantity, _isBuy);
-//                handleMarketQuantityInLimitOrder(address(_positionManager), _trader, sizeOut, openNotional, _leverage, _isBuy);
+                if (sizeOut != 0){
+                    handleMarketQuantityInLimitOrder(address(_positionManager), _trader, sizeOut, openNotional, _leverage, _isBuy);
+                }
             }
         }
 
@@ -709,8 +711,8 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         Position.Data memory newData;
         Position.Data memory marketPositionData = positionMap[_positionManager][_trader];
         Position.Data memory totalPositionData = getPosition(_positionManager, _trader);
-        int256 newPositionSide = _isBuy == true ? int256(1) : int256(- 1);
-        if (newPositionSide * totalPositionData.quantity >= 0) {
+        int256 newPositionQuantity = _isBuy == true ? int256(_newQuantity) : -int256(_newQuantity);
+        if (newPositionQuantity * totalPositionData.quantity >= 0) {
 //            newData = Position.Data(
 //                marketPositionData.quantity.sumWithUint256(_newQuantity),
 //                handleMarginInIncrease(address(_positionManager), _trader, _newNotional / _leverage),
@@ -720,10 +722,10 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 //                block.number,
 //                _leverage
 //            );
-            if (newPositionSide * marketPositionData.quantity >= 0) {
+            if (newPositionQuantity * marketPositionData.quantity >= 0) {
                 newData = Position.Data(
 //                    marketPositionData.quantity >= 0 ? marketPositionData.quantity + int256(_newQuantity) : marketPositionData.quantity - int256(_newQuantity),
-                    marketPositionData.quantity.sumWithUint256(_newQuantity),
+                    marketPositionData.quantity + newPositionQuantity,
                     handleMarginInIncrease(address(_positionManager), _trader, _newNotional / _leverage),
                     handleNotionalInIncrease(address(_positionManager), _trader, _newNotional),
                 // TODO update latest cumulative premium fraction
@@ -734,7 +736,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             } else {
                 newData = Position.Data(
 //                    marketPositionData.quantity <= 0 ? marketPositionData.quantity + int256(_newQuantity) : marketPositionData.quantity - int256(_newQuantity),
-                    marketPositionData.quantity.minusWithUint256(_newQuantity),
+                    marketPositionData.quantity - newPositionQuantity,
                     handleMarginInIncrease(address(_positionManager), _trader, _newNotional / _leverage),
                     handleNotionalInIncrease(address(_positionManager), _trader, _newNotional),
                 // TODO update latest cumulative premium fraction
@@ -753,10 +755,10 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 //                block.number,
 //                _leverage
 //            );
-            if (newPositionSide * marketPositionData.quantity >= 0) {
+            if (newPositionQuantity * marketPositionData.quantity >= 0) {
                 newData = Position.Data(
 //                    marketPositionData.quantity >= 0 ? marketPositionData.quantity + int256(_newQuantity) : marketPositionData.quantity - int256(_newQuantity),
-                    marketPositionData.quantity.sumWithUint256(_newQuantity),
+                    marketPositionData.quantity + newPositionQuantity,
                     handleMarginInOpenReverse(address(_positionManager), _trader, totalPositionData.margin * _newQuantity / totalPositionData.quantity.abs()),
                     handleNotionalInOpenReverse(address(_positionManager), _trader, _newNotional),
                 // TODO update latest cumulative premium fraction
@@ -767,7 +769,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             } else {
                 newData = Position.Data(
 //                    marketPositionData.quantity <= 0 ? marketPositionData.quantity + int256(_newQuantity) : marketPositionData.quantity - int256(_newQuantity),
-                    marketPositionData.quantity.minusWithUint256(_newQuantity),
+                    marketPositionData.quantity - newPositionQuantity,
                     handleMarginInOpenReverse(address(_positionManager), _trader, totalPositionData.margin * _newQuantity / totalPositionData.quantity.abs()),
                     handleNotionalInOpenReverse(address(_positionManager), _trader, _newNotional),
                 // TODO update latest cumulative premium fraction
