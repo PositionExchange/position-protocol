@@ -427,7 +427,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     ) external whenNotPause nonReentrant {
         //        requirePositionManager(_positionManager);
         address _caller = _msgSender();
-        (uint256 maintenanceMargin, int256 marginBalance, uint256 marginRatio) = getMaintenanceDetail(_positionManager, _trader);
+        (, , uint256 marginRatio) = getMaintenanceDetail(_positionManager, _trader);
 
         // TODO before liquidate should we check can claimFund, because trader has close position limit before liquidate
         // require trader's margin ratio higher than partial liquidation ratio
@@ -531,22 +531,22 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         debtPosition[address(_positionManager)][_trader].clearDebt();
         manualMargin[address(_positionManager)][_trader] = 0;
         canClaimAmountMap[address(_positionManager)][_trader] = 0;
-        //        PositionLimitOrder.Data[] memory listLimitOrder = limitOrders[address(_positionManager)][_trader];
-        //        PositionLimitOrder.Data[] memory reduceLimitOrder = reduceLimitOrders[address(_positionManager)][_trader];
-        //        (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) = PositionHouseFunction.clearAllFilledOrder(_positionManager, _trader, listLimitOrder, reduceLimitOrder);
+        PositionLimitOrder.Data[] memory listLimitOrder = limitOrders[address(_positionManager)][_trader];
+        PositionLimitOrder.Data[] memory reduceLimitOrder = reduceLimitOrders[address(_positionManager)][_trader];
+        (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) = PositionHouseFunction.clearAllFilledOrder(_positionManager, _trader, listLimitOrder, reduceLimitOrder);
 
         if (limitOrders[address(_positionManager)][_trader].length > 0) {
             delete limitOrders[address(_positionManager)][_trader];
         }
-        //        for (uint256 i = 0; i < subListLimitOrder.length; i++) {
-        //            limitOrders[address(_positionManager)][_trader][i] = (subListLimitOrder[i]);
-        //        }
+        for (uint256 i = 0; i < subListLimitOrder.length; i++) {
+            limitOrders[address(_positionManager)][_trader][i] = (subListLimitOrder[i]);
+        }
         if (reduceLimitOrders[address(_positionManager)][_trader].length > 0) {
             delete reduceLimitOrders[address(_positionManager)][_trader];
         }
-        //        for (uint256 i = 0; i < subReduceLimitOrder.length; i++) {
-        //            reduceLimitOrders[address(_positionManager)][_trader][i] = (subReduceLimitOrder[i]);
-        //        }
+        for (uint256 i = 0; i < subReduceLimitOrder.length; i++) {
+            reduceLimitOrders[address(_positionManager)][_trader][i] = (subReduceLimitOrder[i]);
+        }
     }
 
     // TODO can move to position house function

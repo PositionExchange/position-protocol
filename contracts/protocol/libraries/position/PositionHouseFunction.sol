@@ -123,7 +123,7 @@ library PositionHouseFunction {
         address _trader,
         PositionLimitOrder.Data[] memory listLimitOrder,
         PositionLimitOrder.Data[] memory reduceLimitOrder
-    ) internal returns (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) {
+    ) public returns (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) {
         if (listLimitOrder.length > 0) {
             uint256 index = 0;
             for (uint256 i = 0; i < listLimitOrder.length; i++) {
@@ -314,7 +314,6 @@ library PositionHouseFunction {
     ) public view returns (int256 totalClaimableAmount){
         IPositionManager _positionManager = IPositionManager(_positionManagerAddress);
         uint256 indexReduce = 0;
-        bool skipIf;
         uint256 indexLimit = 0;
         for (indexLimit; indexLimit < _limitOrders.length; indexLimit++) {
             {
@@ -339,13 +338,11 @@ library PositionHouseFunction {
                 }
             }
 
-//            {
-//                (bool isFilled, bool isBuy,
-//                uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(_limitOrders[indexLimit].pip, _limitOrders[indexLimit].orderId);
-//                if (!isFilled) {
-//                    totalClaimableAmount -= int256((quantity - partialFilled) * _positionManager.pipToPrice(_limitOrders[indexLimit].pip) / _positionManager.getBaseBasisPoint() / _limitOrders[indexLimit].leverage);
-//                }
-//            }
+                (bool isFilled, ,
+                uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(_limitOrders[indexLimit].pip, _limitOrders[indexLimit].orderId);
+                if (!isFilled) {
+                    totalClaimableAmount -= int256((quantity - partialFilled) * _positionManager.pipToPrice(_limitOrders[indexLimit].pip) / _positionManager.getBaseBasisPoint() / _limitOrders[indexLimit].leverage);
+                }
         }
 
         totalClaimableAmount = totalClaimableAmount + int256(canClaimAmountInMap) + manualMarginInMap + int256(positionMapData.margin);
