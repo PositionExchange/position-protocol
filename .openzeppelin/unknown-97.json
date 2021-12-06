@@ -286,43 +286,38 @@
       "kind": "transparent"
     },
     {
-      "address": "0x7B101298b4373cAf8a5895E8A76E1a6286b8e3F4",
-      "txHash": "0x9165175c433271bf8783625d0dd434af6ff828100a3ab2afef034fd76f0ef478",
+      "address": "0xcede7E8605f3c42bF44Abb84809F7d9398176B92",
+      "txHash": "0xdd78efc5bba56ba2197c8bc1d97b6f959656bc407c6749e51e689e26a94d8407",
       "kind": "transparent"
     },
     {
-      "address": "0x865DA0C1db47d7E7E6966aaD4Fe30D4fb103988E",
-      "txHash": "0x7cd1e61ab689976fdd9bed1c82a553917e44acaf82a2b9798d4d06aeb7c4716a",
+      "address": "0x050Ce0aB2Fafe82F378960eF10a3e83923E80BA4",
+      "txHash": "0x636661fa3164ed9f4459a5b8d1ad6d0f81f8a5091f65993fdab995abc3ff727b",
       "kind": "transparent"
     },
     {
-      "address": "0x2eC2B03fA732C7e726177C4425a19a46607D40E2",
-      "txHash": "0xee94446abbf5bf9473cfa1eb92512602440a8f3e3be3820d240629fd145dd24d",
+      "address": "0xB3585e73be3a589f14Bb7FA67Cec42727e856971",
+      "txHash": "0xc3fdebd4583bb1102fb0ce77980723536b534b3ca1a7682f606b2d99d87ac20d",
       "kind": "transparent"
     },
     {
-      "address": "0x61D026768AAdFE837c140EDdA5e9BF6cbF2B7850",
-      "txHash": "0x4ccf8332d28d0717b8fbf09aed9d9c4bf80328a95a1e5be5eaaf7e15c47949d7",
+      "address": "0x8143Cb2318875D4736Ab5Bfd1Ac0B204Bd662b85",
+      "txHash": "0xb334f820116b4ca1775d3fce39dc61f840790df6a73349d12d3401dd7531f08c",
       "kind": "transparent"
     },
     {
-      "address": "0x50Fc82C3156A3f9689566A1A9F0caF81e8f6139B",
-      "txHash": "0x593fd0f59888869bcbc98af836c32e4cad77b643b66cdd421c208ce87aed79da",
+      "address": "0x9E4dbf8eb63Cf147c4e64Dee7cE482BC3c4db7d6",
+      "txHash": "0x8a65b39d6f456a249e98f0009d1431112fb741775a991315bdc5b5230a20cc96",
       "kind": "transparent"
     },
     {
-      "address": "0xC4eA94f79660da3f43F1e4c7300caa8f900eEC16",
-      "txHash": "0x62de0581384cdcc59070b177db55e78079b09960d9291c6e1869fc78b511343a",
+      "address": "0x2665beB56a37fAeD1eAfB83E647B5be5B1499Fe9",
+      "txHash": "0x32811cd461a5130986aa17cbbc0975016fef9a0de8e473f3eac0c6bdf54d0123",
       "kind": "transparent"
     },
     {
-      "address": "0x8334655c0351400E52860C232e073fc90cCF9085",
-      "txHash": "0xf8542d3e9989f96609cd93b459f2c09ecdb314f20546a098a3f06e752bed4e68",
-      "kind": "transparent"
-    },
-    {
-      "address": "0xA4C9f4B3619168413C5e302762eB2002CA4f97D0",
-      "txHash": "0x103f59a2b3104e395cb2761f3f384e34caa77710d64427528dc130274c5a0055",
+      "address": "0xC6cc4ff73268Fb4F4595214e23F3d461f8A0feC3",
+      "txHash": "0xa4a5fee1d8ddb750af6ee6cc434e1c3e09a86e18cb4b39a8d38335349e6625ed",
       "kind": "transparent"
     },
     {
@@ -25541,19 +25536,19 @@
           {
             "contract": "PositionManager",
             "label": "reserveSnapshots",
-            "type": "t_array(t_struct(ReserveSnapshot)7031_storage)dyn_storage",
+            "type": "t_array(t_struct(ReserveSnapshot)7081_storage)dyn_storage",
             "src": "contracts\\protocol\\PositionManager.sol:80"
           },
           {
             "contract": "PositionManager",
             "label": "singleSlot",
-            "type": "t_struct(SingleSlot)7021_storage",
+            "type": "t_struct(SingleSlot)7071_storage",
             "src": "contracts\\protocol\\PositionManager.sol:83"
           },
           {
             "contract": "PositionManager",
             "label": "tickPosition",
-            "type": "t_mapping(t_int128,t_struct(Data)12267_storage)",
+            "type": "t_mapping(t_int128,t_struct(Data)12317_storage)",
             "src": "contracts\\protocol\\PositionManager.sol:84"
           },
           {
@@ -25591,10 +25586,10 @@
           "t_contract(IERC20)942": {
             "label": "contract IERC20"
           },
-          "t_array(t_struct(ReserveSnapshot)7031_storage)dyn_storage": {
+          "t_array(t_struct(ReserveSnapshot)7081_storage)dyn_storage": {
             "label": "struct PositionManager.ReserveSnapshot[]"
           },
-          "t_struct(ReserveSnapshot)7031_storage": {
+          "t_struct(ReserveSnapshot)7081_storage": {
             "label": "struct PositionManager.ReserveSnapshot",
             "members": [
               {
@@ -25611,7 +25606,7 @@
               }
             ]
           },
-          "t_struct(SingleSlot)7021_storage": {
+          "t_struct(SingleSlot)7071_storage": {
             "label": "struct PositionManager.SingleSlot",
             "members": [
               {
@@ -25627,10 +25622,10 @@
           "t_uint8": {
             "label": "uint8"
           },
-          "t_mapping(t_int128,t_struct(Data)12267_storage)": {
+          "t_mapping(t_int128,t_struct(Data)12317_storage)": {
             "label": "mapping(int128 => struct TickPosition.Data)"
           },
-          "t_struct(Data)12267_storage": {
+          "t_struct(Data)12317_storage": {
             "label": "struct TickPosition.Data",
             "members": [
               {
@@ -25647,7 +25642,7 @@
               },
               {
                 "label": "orderQueue",
-                "type": "t_mapping(t_uint64,t_struct(Data)9165_storage)"
+                "type": "t_mapping(t_uint64,t_struct(Data)9215_storage)"
               }
             ]
           },
@@ -25657,10 +25652,10 @@
           "t_uint64": {
             "label": "uint64"
           },
-          "t_mapping(t_uint64,t_struct(Data)9165_storage)": {
+          "t_mapping(t_uint64,t_struct(Data)9215_storage)": {
             "label": "mapping(uint64 => struct LimitOrder.Data)"
           },
-          "t_struct(Data)9165_storage": {
+          "t_struct(Data)9215_storage": {
             "label": "struct LimitOrder.Data",
             "members": [
               {
@@ -25971,160 +25966,527 @@
         }
       }
     },
-    "095cdc0aa4361772e188d129a97cc294e68136fd9b9e54d2cadb2b4af162621b": {
-      "address": "0xBF65cF9c5bb91435cfB7501dA6A2d220b04cF9B2",
-      "txHash": "0x12a5881912dee5715d2f372dfc5a6221aed8f135d434999b681ee8836e08747b",
+    "d54e72b3dcabba740b16937296fa8b467ebd21d880931eb5dd663f580bfa0325": {
+      "address": "0xe90468B485d0Af459eFb60e14e9e8076200d3A26",
+      "txHash": "0xfa6bea01b73a6ab295ce4bb563adbeb32c7b12d8b5f7f4818a8bd7b9c2241081",
       "layout": {
         "storage": [
           {
             "contract": "Initializable",
             "label": "_initialized",
             "type": "t_bool",
-            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:21"
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:21"
           },
           {
             "contract": "Initializable",
             "label": "_initializing",
             "type": "t_bool",
-            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:26"
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:26"
           },
           {
             "contract": "ReentrancyGuardUpgradeable",
             "label": "_status",
             "type": "t_uint256",
-            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:37"
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:37"
           },
           {
             "contract": "ReentrancyGuardUpgradeable",
             "label": "__gap",
             "type": "t_array(t_uint256)49_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:67"
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:67"
           },
           {
             "contract": "ContextUpgradeable",
             "label": "__gap",
             "type": "t_array(t_uint256)50_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:30"
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:30"
           },
           {
             "contract": "OwnableUpgradeable",
             "label": "_owner",
             "type": "t_address",
-            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:21"
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:21"
           },
           {
             "contract": "OwnableUpgradeable",
             "label": "__gap",
             "type": "t_array(t_uint256)49_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:77"
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:77"
+          },
+          {
+            "contract": "InsuranceFund",
+            "label": "totalFee",
+            "type": "t_uint256",
+            "src": "contracts/protocol/InsuranceFund.sol:15"
+          },
+          {
+            "contract": "InsuranceFund",
+            "label": "totalBurn",
+            "type": "t_uint256",
+            "src": "contracts/protocol/InsuranceFund.sol:16"
+          },
+          {
+            "contract": "InsuranceFund",
+            "label": "counterParty",
+            "type": "t_address",
+            "src": "contracts/protocol/InsuranceFund.sol:18"
+          }
+        ],
+        "types": {
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_bool": {
+            "label": "bool"
+          }
+        }
+      }
+    },
+    "be66fe58d7f173a1e50310929c4c957894cef8ff22f6784047449d0f8752073c": {
+      "address": "0x82F11C1959BEcc7fF3604e889E76519067D6d837",
+      "txHash": "0x290b28612971ce00dd5b124e49d7c91674d39aa5cf17a45945f3ec037109ec07",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:21"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:26"
+          },
+          {
+            "contract": "ReentrancyGuardUpgradeable",
+            "label": "_status",
+            "type": "t_uint256",
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:37"
+          },
+          {
+            "contract": "ReentrancyGuardUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:67"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:30"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:21"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:77"
+          },
+          {
+            "contract": "PositionHouse",
+            "label": "positionMap",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(Data)10368_storage))",
+            "src": "contracts/protocol/PositionHouse.sol:83"
+          },
+          {
+            "contract": "PositionHouse",
+            "label": "debtPosition",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)10375_storage))",
+            "src": "contracts/protocol/PositionHouse.sol:86"
+          },
+          {
+            "contract": "PositionHouse",
+            "label": "canClaimAmountMap",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
+            "src": "contracts/protocol/PositionHouse.sol:87"
+          },
+          {
+            "contract": "PositionHouse",
+            "label": "manualMargin",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_int256))",
+            "src": "contracts/protocol/PositionHouse.sol:90"
+          },
+          {
+            "contract": "PositionHouse",
+            "label": "limitOrders",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12226_storage)dyn_storage))",
+            "src": "contracts/protocol/PositionHouse.sol:92"
+          },
+          {
+            "contract": "PositionHouse",
+            "label": "reduceLimitOrders",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12226_storage)dyn_storage))",
+            "src": "contracts/protocol/PositionHouse.sol:93"
+          },
+          {
+            "contract": "PositionHouse",
+            "label": "maintenanceMarginRatio",
+            "type": "t_uint256",
+            "src": "contracts/protocol/PositionHouse.sol:95"
+          },
+          {
+            "contract": "PositionHouse",
+            "label": "partialLiquidationRatio",
+            "type": "t_uint256",
+            "src": "contracts/protocol/PositionHouse.sol:96"
+          },
+          {
+            "contract": "PositionHouse",
+            "label": "liquidationFeeRatio",
+            "type": "t_uint256",
+            "src": "contracts/protocol/PositionHouse.sol:97"
+          },
+          {
+            "contract": "PositionHouse",
+            "label": "liquidationPenaltyRatio",
+            "type": "t_uint256",
+            "src": "contracts/protocol/PositionHouse.sol:98"
+          },
+          {
+            "contract": "PositionHouse",
+            "label": "insuranceFund",
+            "type": "t_contract(IInsuranceFund)1390",
+            "src": "contracts/protocol/PositionHouse.sol:100"
+          },
+          {
+            "contract": "PositionHouse",
+            "label": "feePool",
+            "type": "t_contract(IFeePool)1348",
+            "src": "contracts/protocol/PositionHouse.sol:101"
+          }
+        ],
+        "types": {
+          "t_mapping(t_address,t_mapping(t_address,t_struct(Data)10368_storage))": {
+            "label": "mapping(address => mapping(address => struct Position.Data))"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_mapping(t_address,t_struct(Data)10368_storage)": {
+            "label": "mapping(address => struct Position.Data)"
+          },
+          "t_struct(Data)10368_storage": {
+            "label": "struct Position.Data",
+            "members": [
+              {
+                "label": "quantity",
+                "type": "t_int256"
+              },
+              {
+                "label": "margin",
+                "type": "t_uint256"
+              },
+              {
+                "label": "openNotional",
+                "type": "t_uint256"
+              },
+              {
+                "label": "lastUpdatedCumulativePremiumFraction",
+                "type": "t_int256"
+              },
+              {
+                "label": "blockNumber",
+                "type": "t_uint256"
+              },
+              {
+                "label": "leverage",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_int256": {
+            "label": "int256"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)10375_storage))": {
+            "label": "mapping(address => mapping(address => struct Position.LiquidatedData))"
+          },
+          "t_mapping(t_address,t_struct(LiquidatedData)10375_storage)": {
+            "label": "mapping(address => struct Position.LiquidatedData)"
+          },
+          "t_struct(LiquidatedData)10375_storage": {
+            "label": "struct Position.LiquidatedData",
+            "members": [
+              {
+                "label": "quantity",
+                "type": "t_int256"
+              },
+              {
+                "label": "margin",
+                "type": "t_uint256"
+              },
+              {
+                "label": "notional",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
+            "label": "mapping(address => mapping(address => uint256))"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)"
+          },
+          "t_mapping(t_address,t_mapping(t_address,t_int256))": {
+            "label": "mapping(address => mapping(address => int256))"
+          },
+          "t_mapping(t_address,t_int256)": {
+            "label": "mapping(address => int256)"
+          },
+          "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12226_storage)dyn_storage))": {
+            "label": "mapping(address => mapping(address => struct PositionLimitOrder.Data[]))"
+          },
+          "t_mapping(t_address,t_array(t_struct(Data)12226_storage)dyn_storage)": {
+            "label": "mapping(address => struct PositionLimitOrder.Data[])"
+          },
+          "t_array(t_struct(Data)12226_storage)dyn_storage": {
+            "label": "struct PositionLimitOrder.Data[]"
+          },
+          "t_struct(Data)12226_storage": {
+            "label": "struct PositionLimitOrder.Data",
+            "members": [
+              {
+                "label": "pip",
+                "type": "t_int128"
+              },
+              {
+                "label": "orderId",
+                "type": "t_uint64"
+              },
+              {
+                "label": "leverage",
+                "type": "t_uint16"
+              },
+              {
+                "label": "isBuy",
+                "type": "t_uint8"
+              },
+              {
+                "label": "entryPrice",
+                "type": "t_uint256"
+              },
+              {
+                "label": "pnlCalcPrice",
+                "type": "t_uint256"
+              },
+              {
+                "label": "reduceQuantity",
+                "type": "t_uint256"
+              },
+              {
+                "label": "blockNumber",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_int128": {
+            "label": "int128"
+          },
+          "t_uint64": {
+            "label": "uint64"
+          },
+          "t_uint16": {
+            "label": "uint16"
+          },
+          "t_uint8": {
+            "label": "uint8"
+          },
+          "t_contract(IInsuranceFund)1390": {
+            "label": "contract IInsuranceFund"
+          },
+          "t_contract(IFeePool)1348": {
+            "label": "contract IFeePool"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_bool": {
+            "label": "bool"
+          }
+        }
+      }
+    },
+    "46aa0c4027e7f78f534dc065d6dd3450a582cfccd7812f4c0b62fc28bbf85b06": {
+      "address": "0x70C71277ccA2ED416288eC2ac32bf34138B0cEcf",
+      "txHash": "0xe7ef182fb8ae38fdccdabf40c56e134b999afb28b6da3a1c4646e4258db0ae20",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:21"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:26"
+          },
+          {
+            "contract": "ReentrancyGuardUpgradeable",
+            "label": "_status",
+            "type": "t_uint256",
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:37"
+          },
+          {
+            "contract": "ReentrancyGuardUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:67"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:30"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:21"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:77"
           },
           {
             "contract": "PositionManager",
             "label": "basisPoint",
             "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionManager.sol:21"
+            "src": "contracts/protocol/PositionManager.sol:21"
           },
           {
             "contract": "PositionManager",
             "label": "BASE_BASIC_POINT",
             "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionManager.sol:22"
+            "src": "contracts/protocol/PositionManager.sol:22"
           },
           {
             "contract": "PositionManager",
             "label": "tollRatio",
             "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionManager.sol:24"
+            "src": "contracts/protocol/PositionManager.sol:24"
           },
           {
             "contract": "PositionManager",
             "label": "fundingRate",
             "type": "t_int256",
-            "src": "contracts\\protocol\\PositionManager.sol:26"
+            "src": "contracts/protocol/PositionManager.sol:26"
           },
           {
             "contract": "PositionManager",
             "label": "spotPriceTwapInterval",
             "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionManager.sol:28"
+            "src": "contracts/protocol/PositionManager.sol:28"
           },
           {
             "contract": "PositionManager",
             "label": "fundingPeriod",
             "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionManager.sol:29"
+            "src": "contracts/protocol/PositionManager.sol:29"
           },
           {
             "contract": "PositionManager",
             "label": "fundingBufferPeriod",
             "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionManager.sol:30"
+            "src": "contracts/protocol/PositionManager.sol:30"
           },
           {
             "contract": "PositionManager",
             "label": "nextFundingTime",
             "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionManager.sol:31"
+            "src": "contracts/protocol/PositionManager.sol:31"
           },
           {
             "contract": "PositionManager",
             "label": "priceFeedKey",
             "type": "t_bytes32",
-            "src": "contracts\\protocol\\PositionManager.sol:32"
+            "src": "contracts/protocol/PositionManager.sol:32"
           },
           {
             "contract": "PositionManager",
             "label": "maxFindingWordsIndex",
             "type": "t_int128",
-            "src": "contracts\\protocol\\PositionManager.sol:34"
+            "src": "contracts/protocol/PositionManager.sol:34"
+          },
+          {
+            "contract": "PositionManager",
+            "label": "counterParty",
+            "type": "t_address",
+            "src": "contracts/protocol/PositionManager.sol:36"
           },
           {
             "contract": "PositionManager",
             "label": "isOpen",
             "type": "t_bool",
-            "src": "contracts\\protocol\\PositionManager.sol:36"
+            "src": "contracts/protocol/PositionManager.sol:38"
           },
           {
             "contract": "PositionManager",
             "label": "priceFeed",
-            "type": "t_contract(IChainLinkPriceFeed)1345",
-            "src": "contracts\\protocol\\PositionManager.sol:38"
+            "type": "t_contract(IChainLinkPriceFeed)706",
+            "src": "contracts/protocol/PositionManager.sol:40"
           },
           {
             "contract": "PositionManager",
             "label": "quoteAsset",
-            "type": "t_contract(IERC20)942",
-            "src": "contracts\\protocol\\PositionManager.sol:48"
+            "type": "t_contract(IERC20)350",
+            "src": "contracts/protocol/PositionManager.sol:50"
           },
           {
             "contract": "PositionManager",
             "label": "reserveSnapshots",
-            "type": "t_array(t_struct(ReserveSnapshot)7169_storage)dyn_storage",
-            "src": "contracts\\protocol\\PositionManager.sol:80"
+            "type": "t_array(t_struct(ReserveSnapshot)4820_storage)dyn_storage",
+            "src": "contracts/protocol/PositionManager.sol:82"
           },
           {
             "contract": "PositionManager",
             "label": "singleSlot",
-            "type": "t_struct(SingleSlot)7159_storage",
-            "src": "contracts\\protocol\\PositionManager.sol:83"
+            "type": "t_struct(SingleSlot)4810_storage",
+            "src": "contracts/protocol/PositionManager.sol:85"
           },
           {
             "contract": "PositionManager",
             "label": "tickPosition",
-            "type": "t_mapping(t_int128,t_struct(Data)12410_storage)",
-            "src": "contracts\\protocol\\PositionManager.sol:84"
+            "type": "t_mapping(t_int128,t_struct(Data)10107_storage)",
+            "src": "contracts/protocol/PositionManager.sol:86"
           },
           {
             "contract": "PositionManager",
             "label": "tickStore",
             "type": "t_mapping(t_int128,t_uint256)",
-            "src": "contracts\\protocol\\PositionManager.sol:85"
+            "src": "contracts/protocol/PositionManager.sol:87"
           },
           {
             "contract": "PositionManager",
             "label": "liquidityBitmap",
             "type": "t_mapping(t_int128,t_uint256)",
-            "src": "contracts\\protocol\\PositionManager.sol:87"
+            "src": "contracts/protocol/PositionManager.sol:89"
           }
         ],
         "types": {
@@ -26140,19 +26502,22 @@
           "t_int128": {
             "label": "int128"
           },
+          "t_address": {
+            "label": "address"
+          },
           "t_bool": {
             "label": "bool"
           },
-          "t_contract(IChainLinkPriceFeed)1345": {
+          "t_contract(IChainLinkPriceFeed)706": {
             "label": "contract IChainLinkPriceFeed"
           },
-          "t_contract(IERC20)942": {
+          "t_contract(IERC20)350": {
             "label": "contract IERC20"
           },
-          "t_array(t_struct(ReserveSnapshot)7169_storage)dyn_storage": {
+          "t_array(t_struct(ReserveSnapshot)4820_storage)dyn_storage": {
             "label": "struct PositionManager.ReserveSnapshot[]"
           },
-          "t_struct(ReserveSnapshot)7169_storage": {
+          "t_struct(ReserveSnapshot)4820_storage": {
             "label": "struct PositionManager.ReserveSnapshot",
             "members": [
               {
@@ -26169,7 +26534,7 @@
               }
             ]
           },
-          "t_struct(SingleSlot)7159_storage": {
+          "t_struct(SingleSlot)4810_storage": {
             "label": "struct PositionManager.SingleSlot",
             "members": [
               {
@@ -26185,10 +26550,10 @@
           "t_uint8": {
             "label": "uint8"
           },
-          "t_mapping(t_int128,t_struct(Data)12410_storage)": {
+          "t_mapping(t_int128,t_struct(Data)10107_storage)": {
             "label": "mapping(int128 => struct TickPosition.Data)"
           },
-          "t_struct(Data)12410_storage": {
+          "t_struct(Data)10107_storage": {
             "label": "struct TickPosition.Data",
             "members": [
               {
@@ -26205,7 +26570,7 @@
               },
               {
                 "label": "orderQueue",
-                "type": "t_mapping(t_uint64,t_struct(Data)9307_storage)"
+                "type": "t_mapping(t_uint64,t_struct(Data)7005_storage)"
               }
             ]
           },
@@ -26215,10 +26580,10 @@
           "t_uint64": {
             "label": "uint64"
           },
-          "t_mapping(t_uint64,t_struct(Data)9307_storage)": {
+          "t_mapping(t_uint64,t_struct(Data)7005_storage)": {
             "label": "mapping(uint64 => struct LimitOrder.Data)"
           },
-          "t_struct(Data)9307_storage": {
+          "t_struct(Data)7005_storage": {
             "label": "struct LimitOrder.Data",
             "members": [
               {
@@ -26241,9 +26606,6 @@
           "t_mapping(t_int128,t_uint256)": {
             "label": "mapping(int128 => uint256)"
           },
-          "t_address": {
-            "label": "address"
-          },
           "t_array(t_uint256)49_storage": {
             "label": "uint256[49]"
           },
@@ -26253,137 +26615,137 @@
         }
       }
     },
-    "cc3549198d3c7e4d8ebf2f2e2172fd67d5e4ac7608166ee491646fa4ba5cc629": {
-      "address": "0x921fa4bfCDdFFaC049146292BA1aC46e22b8E447",
-      "txHash": "0xfe7e741ba0634d1cb8b82d1ac73dc2a22f5ba02d31dad95cbfa0705a727dcf0d",
+    "d9cda94153cda0f773a84e5955dcb333c0ff7e70463a7d58bf006152f5810150": {
+      "address": "0xcF41e4E2d895F1b1130e0DEd140bb77bCf655fcf",
+      "txHash": "0xfd02d133daf927a85627aa4e9f9533ea5115912cb0ff325f287a5265e8033776",
       "layout": {
         "storage": [
           {
             "contract": "Initializable",
             "label": "_initialized",
             "type": "t_bool",
-            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:21"
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:21"
           },
           {
             "contract": "Initializable",
             "label": "_initializing",
             "type": "t_bool",
-            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:26"
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:26"
           },
           {
             "contract": "ReentrancyGuardUpgradeable",
             "label": "_status",
             "type": "t_uint256",
-            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:37"
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:37"
           },
           {
             "contract": "ReentrancyGuardUpgradeable",
             "label": "__gap",
             "type": "t_array(t_uint256)49_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:67"
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:67"
           },
           {
             "contract": "ContextUpgradeable",
             "label": "__gap",
             "type": "t_array(t_uint256)50_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:30"
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:30"
           },
           {
             "contract": "OwnableUpgradeable",
             "label": "_owner",
             "type": "t_address",
-            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:21"
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:21"
           },
           {
             "contract": "OwnableUpgradeable",
             "label": "__gap",
             "type": "t_array(t_uint256)49_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:77"
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:77"
           },
           {
             "contract": "PositionHouse",
             "label": "positionMap",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(Data)10278_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:83"
+            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(Data)10368_storage))",
+            "src": "contracts/protocol/PositionHouse.sol:83"
           },
           {
             "contract": "PositionHouse",
             "label": "debtPosition",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)10285_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:86"
+            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)10375_storage))",
+            "src": "contracts/protocol/PositionHouse.sol:86"
           },
           {
             "contract": "PositionHouse",
             "label": "canClaimAmountMap",
             "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
-            "src": "contracts\\protocol\\PositionHouse.sol:87"
+            "src": "contracts/protocol/PositionHouse.sol:87"
           },
           {
             "contract": "PositionHouse",
             "label": "manualMargin",
             "type": "t_mapping(t_address,t_mapping(t_address,t_int256))",
-            "src": "contracts\\protocol\\PositionHouse.sol:90"
+            "src": "contracts/protocol/PositionHouse.sol:90"
           },
           {
             "contract": "PositionHouse",
             "label": "limitOrders",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12136_storage)dyn_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:92"
+            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12226_storage)dyn_storage))",
+            "src": "contracts/protocol/PositionHouse.sol:92"
           },
           {
             "contract": "PositionHouse",
             "label": "reduceLimitOrders",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12136_storage)dyn_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:93"
+            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12226_storage)dyn_storage))",
+            "src": "contracts/protocol/PositionHouse.sol:93"
           },
           {
             "contract": "PositionHouse",
             "label": "maintenanceMarginRatio",
             "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:95"
+            "src": "contracts/protocol/PositionHouse.sol:95"
           },
           {
             "contract": "PositionHouse",
             "label": "partialLiquidationRatio",
             "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:96"
+            "src": "contracts/protocol/PositionHouse.sol:96"
           },
           {
             "contract": "PositionHouse",
             "label": "liquidationFeeRatio",
             "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:97"
+            "src": "contracts/protocol/PositionHouse.sol:97"
           },
           {
             "contract": "PositionHouse",
             "label": "liquidationPenaltyRatio",
             "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:98"
+            "src": "contracts/protocol/PositionHouse.sol:98"
           },
           {
             "contract": "PositionHouse",
             "label": "insuranceFund",
             "type": "t_contract(IInsuranceFund)1390",
-            "src": "contracts\\protocol\\PositionHouse.sol:100"
+            "src": "contracts/protocol/PositionHouse.sol:100"
           },
           {
             "contract": "PositionHouse",
             "label": "feePool",
             "type": "t_contract(IFeePool)1348",
-            "src": "contracts\\protocol\\PositionHouse.sol:101"
+            "src": "contracts/protocol/PositionHouse.sol:101"
           }
         ],
         "types": {
-          "t_mapping(t_address,t_mapping(t_address,t_struct(Data)10278_storage))": {
+          "t_mapping(t_address,t_mapping(t_address,t_struct(Data)10368_storage))": {
             "label": "mapping(address => mapping(address => struct Position.Data))"
           },
           "t_address": {
             "label": "address"
           },
-          "t_mapping(t_address,t_struct(Data)10278_storage)": {
+          "t_mapping(t_address,t_struct(Data)10368_storage)": {
             "label": "mapping(address => struct Position.Data)"
           },
-          "t_struct(Data)10278_storage": {
+          "t_struct(Data)10368_storage": {
             "label": "struct Position.Data",
             "members": [
               {
@@ -26418,13 +26780,13 @@
           "t_uint256": {
             "label": "uint256"
           },
-          "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)10285_storage))": {
+          "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)10375_storage))": {
             "label": "mapping(address => mapping(address => struct Position.LiquidatedData))"
           },
-          "t_mapping(t_address,t_struct(LiquidatedData)10285_storage)": {
+          "t_mapping(t_address,t_struct(LiquidatedData)10375_storage)": {
             "label": "mapping(address => struct Position.LiquidatedData)"
           },
-          "t_struct(LiquidatedData)10285_storage": {
+          "t_struct(LiquidatedData)10375_storage": {
             "label": "struct Position.LiquidatedData",
             "members": [
               {
@@ -26453,16 +26815,16 @@
           "t_mapping(t_address,t_int256)": {
             "label": "mapping(address => int256)"
           },
-          "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12136_storage)dyn_storage))": {
+          "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12226_storage)dyn_storage))": {
             "label": "mapping(address => mapping(address => struct PositionLimitOrder.Data[]))"
           },
-          "t_mapping(t_address,t_array(t_struct(Data)12136_storage)dyn_storage)": {
+          "t_mapping(t_address,t_array(t_struct(Data)12226_storage)dyn_storage)": {
             "label": "mapping(address => struct PositionLimitOrder.Data[])"
           },
-          "t_array(t_struct(Data)12136_storage)dyn_storage": {
+          "t_array(t_struct(Data)12226_storage)dyn_storage": {
             "label": "struct PositionLimitOrder.Data[]"
           },
-          "t_struct(Data)12136_storage": {
+          "t_struct(Data)12226_storage": {
             "label": "struct PositionLimitOrder.Data",
             "members": [
               {
@@ -26529,137 +26891,137 @@
         }
       }
     },
-    "7935ac16a2695d85f0b592cd2396033385f25f18e0c2a073897968edd964e24a": {
-      "address": "0x4e22c451D72498Ae926359cf6103F7ea8DEAc272",
-      "txHash": "0x004032f6881ad7c8b0ee77cf2759bc466f64dd8df502b38b8438034e9681f35c",
+    "32af315ea39eda293648e410166d80cfeae58fccc548045904f91593acdab7bd": {
+      "address": "0x10eBbD7b37Cc96Ec3dAC84D10d0164c6F414b907",
+      "txHash": "0xcb684732bc79c09a3891c622222ef02d487800795523806a57af94e54d18bedf",
       "layout": {
         "storage": [
           {
             "contract": "Initializable",
             "label": "_initialized",
             "type": "t_bool",
-            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:21"
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:21"
           },
           {
             "contract": "Initializable",
             "label": "_initializing",
             "type": "t_bool",
-            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:26"
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:26"
           },
           {
             "contract": "ReentrancyGuardUpgradeable",
             "label": "_status",
             "type": "t_uint256",
-            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:37"
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:37"
           },
           {
             "contract": "ReentrancyGuardUpgradeable",
             "label": "__gap",
             "type": "t_array(t_uint256)49_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:67"
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:67"
           },
           {
             "contract": "ContextUpgradeable",
             "label": "__gap",
             "type": "t_array(t_uint256)50_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:30"
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:30"
           },
           {
             "contract": "OwnableUpgradeable",
             "label": "_owner",
             "type": "t_address",
-            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:21"
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:21"
           },
           {
             "contract": "OwnableUpgradeable",
             "label": "__gap",
             "type": "t_array(t_uint256)49_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:77"
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:77"
           },
           {
             "contract": "PositionHouse",
             "label": "positionMap",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(Data)10278_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:83"
+            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(Data)10368_storage))",
+            "src": "contracts/protocol/PositionHouse.sol:83"
           },
           {
             "contract": "PositionHouse",
             "label": "debtPosition",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)10285_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:86"
+            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)10375_storage))",
+            "src": "contracts/protocol/PositionHouse.sol:86"
           },
           {
             "contract": "PositionHouse",
             "label": "canClaimAmountMap",
             "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
-            "src": "contracts\\protocol\\PositionHouse.sol:87"
+            "src": "contracts/protocol/PositionHouse.sol:87"
           },
           {
             "contract": "PositionHouse",
             "label": "manualMargin",
             "type": "t_mapping(t_address,t_mapping(t_address,t_int256))",
-            "src": "contracts\\protocol\\PositionHouse.sol:90"
+            "src": "contracts/protocol/PositionHouse.sol:90"
           },
           {
             "contract": "PositionHouse",
             "label": "limitOrders",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12136_storage)dyn_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:92"
+            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12226_storage)dyn_storage))",
+            "src": "contracts/protocol/PositionHouse.sol:92"
           },
           {
             "contract": "PositionHouse",
             "label": "reduceLimitOrders",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12136_storage)dyn_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:93"
+            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12226_storage)dyn_storage))",
+            "src": "contracts/protocol/PositionHouse.sol:93"
           },
           {
             "contract": "PositionHouse",
             "label": "maintenanceMarginRatio",
             "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:95"
+            "src": "contracts/protocol/PositionHouse.sol:95"
           },
           {
             "contract": "PositionHouse",
             "label": "partialLiquidationRatio",
             "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:96"
+            "src": "contracts/protocol/PositionHouse.sol:96"
           },
           {
             "contract": "PositionHouse",
             "label": "liquidationFeeRatio",
             "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:97"
+            "src": "contracts/protocol/PositionHouse.sol:97"
           },
           {
             "contract": "PositionHouse",
             "label": "liquidationPenaltyRatio",
             "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:98"
+            "src": "contracts/protocol/PositionHouse.sol:98"
           },
           {
             "contract": "PositionHouse",
             "label": "insuranceFund",
             "type": "t_contract(IInsuranceFund)1390",
-            "src": "contracts\\protocol\\PositionHouse.sol:100"
+            "src": "contracts/protocol/PositionHouse.sol:100"
           },
           {
             "contract": "PositionHouse",
             "label": "feePool",
             "type": "t_contract(IFeePool)1348",
-            "src": "contracts\\protocol\\PositionHouse.sol:101"
+            "src": "contracts/protocol/PositionHouse.sol:101"
           }
         ],
         "types": {
-          "t_mapping(t_address,t_mapping(t_address,t_struct(Data)10278_storage))": {
+          "t_mapping(t_address,t_mapping(t_address,t_struct(Data)10368_storage))": {
             "label": "mapping(address => mapping(address => struct Position.Data))"
           },
           "t_address": {
             "label": "address"
           },
-          "t_mapping(t_address,t_struct(Data)10278_storage)": {
+          "t_mapping(t_address,t_struct(Data)10368_storage)": {
             "label": "mapping(address => struct Position.Data)"
           },
-          "t_struct(Data)10278_storage": {
+          "t_struct(Data)10368_storage": {
             "label": "struct Position.Data",
             "members": [
               {
@@ -26694,13 +27056,13 @@
           "t_uint256": {
             "label": "uint256"
           },
-          "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)10285_storage))": {
+          "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)10375_storage))": {
             "label": "mapping(address => mapping(address => struct Position.LiquidatedData))"
           },
-          "t_mapping(t_address,t_struct(LiquidatedData)10285_storage)": {
+          "t_mapping(t_address,t_struct(LiquidatedData)10375_storage)": {
             "label": "mapping(address => struct Position.LiquidatedData)"
           },
-          "t_struct(LiquidatedData)10285_storage": {
+          "t_struct(LiquidatedData)10375_storage": {
             "label": "struct Position.LiquidatedData",
             "members": [
               {
@@ -26729,16 +27091,16 @@
           "t_mapping(t_address,t_int256)": {
             "label": "mapping(address => int256)"
           },
-          "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12136_storage)dyn_storage))": {
+          "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12226_storage)dyn_storage))": {
             "label": "mapping(address => mapping(address => struct PositionLimitOrder.Data[]))"
           },
-          "t_mapping(t_address,t_array(t_struct(Data)12136_storage)dyn_storage)": {
+          "t_mapping(t_address,t_array(t_struct(Data)12226_storage)dyn_storage)": {
             "label": "mapping(address => struct PositionLimitOrder.Data[])"
           },
-          "t_array(t_struct(Data)12136_storage)dyn_storage": {
+          "t_array(t_struct(Data)12226_storage)dyn_storage": {
             "label": "struct PositionLimitOrder.Data[]"
           },
-          "t_struct(Data)12136_storage": {
+          "t_struct(Data)12226_storage": {
             "label": "struct PositionLimitOrder.Data",
             "members": [
               {
@@ -26763,1386 +27125,6 @@
               },
               {
                 "label": "pnlCalcPrice",
-                "type": "t_uint256"
-              },
-              {
-                "label": "reduceQuantity",
-                "type": "t_uint256"
-              },
-              {
-                "label": "blockNumber",
-                "type": "t_uint256"
-              }
-            ]
-          },
-          "t_int128": {
-            "label": "int128"
-          },
-          "t_uint64": {
-            "label": "uint64"
-          },
-          "t_uint16": {
-            "label": "uint16"
-          },
-          "t_uint8": {
-            "label": "uint8"
-          },
-          "t_contract(IInsuranceFund)1390": {
-            "label": "contract IInsuranceFund"
-          },
-          "t_contract(IFeePool)1348": {
-            "label": "contract IFeePool"
-          },
-          "t_array(t_uint256)49_storage": {
-            "label": "uint256[49]"
-          },
-          "t_array(t_uint256)50_storage": {
-            "label": "uint256[50]"
-          },
-          "t_bool": {
-            "label": "bool"
-          }
-        }
-      }
-    },
-    "4ec8641c45b54398d038c2cbbc8c8c4f9c830de5a075a9ffa04003afef4b46a9": {
-      "address": "0xb161492Be8137F8f25152354B960114aE2aa76Da",
-      "txHash": "0x5f0aafd810ea047ab2825d4b66aa268b61e4936eb244d271cdb21f57bbea858c",
-      "layout": {
-        "storage": [
-          {
-            "contract": "Initializable",
-            "label": "_initialized",
-            "type": "t_bool",
-            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:21"
-          },
-          {
-            "contract": "Initializable",
-            "label": "_initializing",
-            "type": "t_bool",
-            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:26"
-          },
-          {
-            "contract": "ReentrancyGuardUpgradeable",
-            "label": "_status",
-            "type": "t_uint256",
-            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:37"
-          },
-          {
-            "contract": "ReentrancyGuardUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)49_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:67"
-          },
-          {
-            "contract": "ContextUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)50_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:30"
-          },
-          {
-            "contract": "OwnableUpgradeable",
-            "label": "_owner",
-            "type": "t_address",
-            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:21"
-          },
-          {
-            "contract": "OwnableUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)49_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:77"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "positionMap",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(Data)10278_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:83"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "debtPosition",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)10285_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:86"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "canClaimAmountMap",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
-            "src": "contracts\\protocol\\PositionHouse.sol:87"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "manualMargin",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_int256))",
-            "src": "contracts\\protocol\\PositionHouse.sol:90"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "limitOrders",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12136_storage)dyn_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:92"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "reduceLimitOrders",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12136_storage)dyn_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:93"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "maintenanceMarginRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:95"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "partialLiquidationRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:96"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "liquidationFeeRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:97"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "liquidationPenaltyRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:98"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "insuranceFund",
-            "type": "t_contract(IInsuranceFund)1390",
-            "src": "contracts\\protocol\\PositionHouse.sol:100"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "feePool",
-            "type": "t_contract(IFeePool)1348",
-            "src": "contracts\\protocol\\PositionHouse.sol:101"
-          }
-        ],
-        "types": {
-          "t_mapping(t_address,t_mapping(t_address,t_struct(Data)10278_storage))": {
-            "label": "mapping(address => mapping(address => struct Position.Data))"
-          },
-          "t_address": {
-            "label": "address"
-          },
-          "t_mapping(t_address,t_struct(Data)10278_storage)": {
-            "label": "mapping(address => struct Position.Data)"
-          },
-          "t_struct(Data)10278_storage": {
-            "label": "struct Position.Data",
-            "members": [
-              {
-                "label": "quantity",
-                "type": "t_int256"
-              },
-              {
-                "label": "margin",
-                "type": "t_uint256"
-              },
-              {
-                "label": "openNotional",
-                "type": "t_uint256"
-              },
-              {
-                "label": "lastUpdatedCumulativePremiumFraction",
-                "type": "t_int256"
-              },
-              {
-                "label": "blockNumber",
-                "type": "t_uint256"
-              },
-              {
-                "label": "leverage",
-                "type": "t_uint256"
-              }
-            ]
-          },
-          "t_int256": {
-            "label": "int256"
-          },
-          "t_uint256": {
-            "label": "uint256"
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)10285_storage))": {
-            "label": "mapping(address => mapping(address => struct Position.LiquidatedData))"
-          },
-          "t_mapping(t_address,t_struct(LiquidatedData)10285_storage)": {
-            "label": "mapping(address => struct Position.LiquidatedData)"
-          },
-          "t_struct(LiquidatedData)10285_storage": {
-            "label": "struct Position.LiquidatedData",
-            "members": [
-              {
-                "label": "quantity",
-                "type": "t_int256"
-              },
-              {
-                "label": "margin",
-                "type": "t_uint256"
-              },
-              {
-                "label": "notional",
-                "type": "t_uint256"
-              }
-            ]
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
-            "label": "mapping(address => mapping(address => uint256))"
-          },
-          "t_mapping(t_address,t_uint256)": {
-            "label": "mapping(address => uint256)"
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_int256))": {
-            "label": "mapping(address => mapping(address => int256))"
-          },
-          "t_mapping(t_address,t_int256)": {
-            "label": "mapping(address => int256)"
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12136_storage)dyn_storage))": {
-            "label": "mapping(address => mapping(address => struct PositionLimitOrder.Data[]))"
-          },
-          "t_mapping(t_address,t_array(t_struct(Data)12136_storage)dyn_storage)": {
-            "label": "mapping(address => struct PositionLimitOrder.Data[])"
-          },
-          "t_array(t_struct(Data)12136_storage)dyn_storage": {
-            "label": "struct PositionLimitOrder.Data[]"
-          },
-          "t_struct(Data)12136_storage": {
-            "label": "struct PositionLimitOrder.Data",
-            "members": [
-              {
-                "label": "pip",
-                "type": "t_int128"
-              },
-              {
-                "label": "orderId",
-                "type": "t_uint64"
-              },
-              {
-                "label": "leverage",
-                "type": "t_uint16"
-              },
-              {
-                "label": "isBuy",
-                "type": "t_uint8"
-              },
-              {
-                "label": "entryPrice",
-                "type": "t_uint256"
-              },
-              {
-                "label": "pnlCalcPrice",
-                "type": "t_uint256"
-              },
-              {
-                "label": "reduceQuantity",
-                "type": "t_uint256"
-              },
-              {
-                "label": "blockNumber",
-                "type": "t_uint256"
-              }
-            ]
-          },
-          "t_int128": {
-            "label": "int128"
-          },
-          "t_uint64": {
-            "label": "uint64"
-          },
-          "t_uint16": {
-            "label": "uint16"
-          },
-          "t_uint8": {
-            "label": "uint8"
-          },
-          "t_contract(IInsuranceFund)1390": {
-            "label": "contract IInsuranceFund"
-          },
-          "t_contract(IFeePool)1348": {
-            "label": "contract IFeePool"
-          },
-          "t_array(t_uint256)49_storage": {
-            "label": "uint256[49]"
-          },
-          "t_array(t_uint256)50_storage": {
-            "label": "uint256[50]"
-          },
-          "t_bool": {
-            "label": "bool"
-          }
-        }
-      }
-    },
-    "40b78e7b05283c0e37f39ebb2cd185798c726d8c61d279ea24d5aba328ca211b": {
-      "address": "0xce37C6549EA0f93DDdA8518BA06a31869935e39c",
-      "txHash": "0x024db9f5551f01b24a495e3d2272ad9e9350140b6d340293adb792bec191df91",
-      "layout": {
-        "storage": [
-          {
-            "contract": "Initializable",
-            "label": "_initialized",
-            "type": "t_bool",
-            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:21"
-          },
-          {
-            "contract": "Initializable",
-            "label": "_initializing",
-            "type": "t_bool",
-            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:26"
-          },
-          {
-            "contract": "ReentrancyGuardUpgradeable",
-            "label": "_status",
-            "type": "t_uint256",
-            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:37"
-          },
-          {
-            "contract": "ReentrancyGuardUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)49_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:67"
-          },
-          {
-            "contract": "ContextUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)50_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:30"
-          },
-          {
-            "contract": "OwnableUpgradeable",
-            "label": "_owner",
-            "type": "t_address",
-            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:21"
-          },
-          {
-            "contract": "OwnableUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)49_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:77"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "positionMap",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(Data)10316_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:83"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "debtPosition",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)10323_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:86"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "canClaimAmountMap",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
-            "src": "contracts\\protocol\\PositionHouse.sol:87"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "manualMargin",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_int256))",
-            "src": "contracts\\protocol\\PositionHouse.sol:90"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "limitOrders",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12175_storage)dyn_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:92"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "reduceLimitOrders",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12175_storage)dyn_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:93"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "maintenanceMarginRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:95"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "partialLiquidationRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:96"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "liquidationFeeRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:97"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "liquidationPenaltyRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:98"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "insuranceFund",
-            "type": "t_contract(IInsuranceFund)1390",
-            "src": "contracts\\protocol\\PositionHouse.sol:100"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "feePool",
-            "type": "t_contract(IFeePool)1348",
-            "src": "contracts\\protocol\\PositionHouse.sol:101"
-          }
-        ],
-        "types": {
-          "t_mapping(t_address,t_mapping(t_address,t_struct(Data)10316_storage))": {
-            "label": "mapping(address => mapping(address => struct Position.Data))"
-          },
-          "t_address": {
-            "label": "address"
-          },
-          "t_mapping(t_address,t_struct(Data)10316_storage)": {
-            "label": "mapping(address => struct Position.Data)"
-          },
-          "t_struct(Data)10316_storage": {
-            "label": "struct Position.Data",
-            "members": [
-              {
-                "label": "quantity",
-                "type": "t_int256"
-              },
-              {
-                "label": "margin",
-                "type": "t_uint256"
-              },
-              {
-                "label": "openNotional",
-                "type": "t_uint256"
-              },
-              {
-                "label": "lastUpdatedCumulativePremiumFraction",
-                "type": "t_int256"
-              },
-              {
-                "label": "blockNumber",
-                "type": "t_uint256"
-              },
-              {
-                "label": "leverage",
-                "type": "t_uint256"
-              }
-            ]
-          },
-          "t_int256": {
-            "label": "int256"
-          },
-          "t_uint256": {
-            "label": "uint256"
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)10323_storage))": {
-            "label": "mapping(address => mapping(address => struct Position.LiquidatedData))"
-          },
-          "t_mapping(t_address,t_struct(LiquidatedData)10323_storage)": {
-            "label": "mapping(address => struct Position.LiquidatedData)"
-          },
-          "t_struct(LiquidatedData)10323_storage": {
-            "label": "struct Position.LiquidatedData",
-            "members": [
-              {
-                "label": "quantity",
-                "type": "t_int256"
-              },
-              {
-                "label": "margin",
-                "type": "t_uint256"
-              },
-              {
-                "label": "notional",
-                "type": "t_uint256"
-              }
-            ]
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
-            "label": "mapping(address => mapping(address => uint256))"
-          },
-          "t_mapping(t_address,t_uint256)": {
-            "label": "mapping(address => uint256)"
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_int256))": {
-            "label": "mapping(address => mapping(address => int256))"
-          },
-          "t_mapping(t_address,t_int256)": {
-            "label": "mapping(address => int256)"
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12175_storage)dyn_storage))": {
-            "label": "mapping(address => mapping(address => struct PositionLimitOrder.Data[]))"
-          },
-          "t_mapping(t_address,t_array(t_struct(Data)12175_storage)dyn_storage)": {
-            "label": "mapping(address => struct PositionLimitOrder.Data[])"
-          },
-          "t_array(t_struct(Data)12175_storage)dyn_storage": {
-            "label": "struct PositionLimitOrder.Data[]"
-          },
-          "t_struct(Data)12175_storage": {
-            "label": "struct PositionLimitOrder.Data",
-            "members": [
-              {
-                "label": "pip",
-                "type": "t_int128"
-              },
-              {
-                "label": "orderId",
-                "type": "t_uint64"
-              },
-              {
-                "label": "leverage",
-                "type": "t_uint16"
-              },
-              {
-                "label": "isBuy",
-                "type": "t_uint8"
-              },
-              {
-                "label": "entryPrice",
-                "type": "t_uint256"
-              },
-              {
-                "label": "reduceLimitOrderId",
-                "type": "t_uint256"
-              },
-              {
-                "label": "reduceQuantity",
-                "type": "t_uint256"
-              },
-              {
-                "label": "blockNumber",
-                "type": "t_uint256"
-              }
-            ]
-          },
-          "t_int128": {
-            "label": "int128"
-          },
-          "t_uint64": {
-            "label": "uint64"
-          },
-          "t_uint16": {
-            "label": "uint16"
-          },
-          "t_uint8": {
-            "label": "uint8"
-          },
-          "t_contract(IInsuranceFund)1390": {
-            "label": "contract IInsuranceFund"
-          },
-          "t_contract(IFeePool)1348": {
-            "label": "contract IFeePool"
-          },
-          "t_array(t_uint256)49_storage": {
-            "label": "uint256[49]"
-          },
-          "t_array(t_uint256)50_storage": {
-            "label": "uint256[50]"
-          },
-          "t_bool": {
-            "label": "bool"
-          }
-        }
-      }
-    },
-    "13a97f880b9701d6d48c083666fa4e6fdd04bcea28ee72e2ed0de9cf6a6c4b0b": {
-      "address": "0xDCff44465C70865187Fe01c25A0ca961cA5f2fCF",
-      "txHash": "0x9095c2c91a00273faaf3d15462fcd148ad35ffe931d7cb770915e830a7b8c6f5",
-      "layout": {
-        "storage": [
-          {
-            "contract": "Initializable",
-            "label": "_initialized",
-            "type": "t_bool",
-            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:21"
-          },
-          {
-            "contract": "Initializable",
-            "label": "_initializing",
-            "type": "t_bool",
-            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:26"
-          },
-          {
-            "contract": "ReentrancyGuardUpgradeable",
-            "label": "_status",
-            "type": "t_uint256",
-            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:37"
-          },
-          {
-            "contract": "ReentrancyGuardUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)49_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:67"
-          },
-          {
-            "contract": "ContextUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)50_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:30"
-          },
-          {
-            "contract": "OwnableUpgradeable",
-            "label": "_owner",
-            "type": "t_address",
-            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:21"
-          },
-          {
-            "contract": "OwnableUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)49_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:77"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "positionMap",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(Data)10316_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:83"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "debtPosition",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)10323_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:86"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "canClaimAmountMap",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
-            "src": "contracts\\protocol\\PositionHouse.sol:87"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "manualMargin",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_int256))",
-            "src": "contracts\\protocol\\PositionHouse.sol:90"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "limitOrders",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12175_storage)dyn_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:92"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "reduceLimitOrders",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12175_storage)dyn_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:93"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "maintenanceMarginRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:95"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "partialLiquidationRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:96"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "liquidationFeeRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:97"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "liquidationPenaltyRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:98"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "insuranceFund",
-            "type": "t_contract(IInsuranceFund)1390",
-            "src": "contracts\\protocol\\PositionHouse.sol:100"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "feePool",
-            "type": "t_contract(IFeePool)1348",
-            "src": "contracts\\protocol\\PositionHouse.sol:101"
-          }
-        ],
-        "types": {
-          "t_mapping(t_address,t_mapping(t_address,t_struct(Data)10316_storage))": {
-            "label": "mapping(address => mapping(address => struct Position.Data))"
-          },
-          "t_address": {
-            "label": "address"
-          },
-          "t_mapping(t_address,t_struct(Data)10316_storage)": {
-            "label": "mapping(address => struct Position.Data)"
-          },
-          "t_struct(Data)10316_storage": {
-            "label": "struct Position.Data",
-            "members": [
-              {
-                "label": "quantity",
-                "type": "t_int256"
-              },
-              {
-                "label": "margin",
-                "type": "t_uint256"
-              },
-              {
-                "label": "openNotional",
-                "type": "t_uint256"
-              },
-              {
-                "label": "lastUpdatedCumulativePremiumFraction",
-                "type": "t_int256"
-              },
-              {
-                "label": "blockNumber",
-                "type": "t_uint256"
-              },
-              {
-                "label": "leverage",
-                "type": "t_uint256"
-              }
-            ]
-          },
-          "t_int256": {
-            "label": "int256"
-          },
-          "t_uint256": {
-            "label": "uint256"
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)10323_storage))": {
-            "label": "mapping(address => mapping(address => struct Position.LiquidatedData))"
-          },
-          "t_mapping(t_address,t_struct(LiquidatedData)10323_storage)": {
-            "label": "mapping(address => struct Position.LiquidatedData)"
-          },
-          "t_struct(LiquidatedData)10323_storage": {
-            "label": "struct Position.LiquidatedData",
-            "members": [
-              {
-                "label": "quantity",
-                "type": "t_int256"
-              },
-              {
-                "label": "margin",
-                "type": "t_uint256"
-              },
-              {
-                "label": "notional",
-                "type": "t_uint256"
-              }
-            ]
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
-            "label": "mapping(address => mapping(address => uint256))"
-          },
-          "t_mapping(t_address,t_uint256)": {
-            "label": "mapping(address => uint256)"
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_int256))": {
-            "label": "mapping(address => mapping(address => int256))"
-          },
-          "t_mapping(t_address,t_int256)": {
-            "label": "mapping(address => int256)"
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12175_storage)dyn_storage))": {
-            "label": "mapping(address => mapping(address => struct PositionLimitOrder.Data[]))"
-          },
-          "t_mapping(t_address,t_array(t_struct(Data)12175_storage)dyn_storage)": {
-            "label": "mapping(address => struct PositionLimitOrder.Data[])"
-          },
-          "t_array(t_struct(Data)12175_storage)dyn_storage": {
-            "label": "struct PositionLimitOrder.Data[]"
-          },
-          "t_struct(Data)12175_storage": {
-            "label": "struct PositionLimitOrder.Data",
-            "members": [
-              {
-                "label": "pip",
-                "type": "t_int128"
-              },
-              {
-                "label": "orderId",
-                "type": "t_uint64"
-              },
-              {
-                "label": "leverage",
-                "type": "t_uint16"
-              },
-              {
-                "label": "isBuy",
-                "type": "t_uint8"
-              },
-              {
-                "label": "entryPrice",
-                "type": "t_uint256"
-              },
-              {
-                "label": "reduceLimitOrderId",
-                "type": "t_uint256"
-              },
-              {
-                "label": "reduceQuantity",
-                "type": "t_uint256"
-              },
-              {
-                "label": "blockNumber",
-                "type": "t_uint256"
-              }
-            ]
-          },
-          "t_int128": {
-            "label": "int128"
-          },
-          "t_uint64": {
-            "label": "uint64"
-          },
-          "t_uint16": {
-            "label": "uint16"
-          },
-          "t_uint8": {
-            "label": "uint8"
-          },
-          "t_contract(IInsuranceFund)1390": {
-            "label": "contract IInsuranceFund"
-          },
-          "t_contract(IFeePool)1348": {
-            "label": "contract IFeePool"
-          },
-          "t_array(t_uint256)49_storage": {
-            "label": "uint256[49]"
-          },
-          "t_array(t_uint256)50_storage": {
-            "label": "uint256[50]"
-          },
-          "t_bool": {
-            "label": "bool"
-          }
-        }
-      }
-    },
-    "0a2764862897e4c40da0f98a919a413b00d717d0812adad8f8b73423eba25224": {
-      "address": "0x1f0379587A06da555E3E7629B80600FF43F13Bd2",
-      "txHash": "0x270b5f9e9ce527795590bb87dfb9f64c7c6454000c6b5d4736472ba05da57d52",
-      "layout": {
-        "storage": [
-          {
-            "contract": "Initializable",
-            "label": "_initialized",
-            "type": "t_bool",
-            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:21"
-          },
-          {
-            "contract": "Initializable",
-            "label": "_initializing",
-            "type": "t_bool",
-            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:26"
-          },
-          {
-            "contract": "ReentrancyGuardUpgradeable",
-            "label": "_status",
-            "type": "t_uint256",
-            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:37"
-          },
-          {
-            "contract": "ReentrancyGuardUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)49_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:67"
-          },
-          {
-            "contract": "ContextUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)50_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:30"
-          },
-          {
-            "contract": "OwnableUpgradeable",
-            "label": "_owner",
-            "type": "t_address",
-            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:21"
-          },
-          {
-            "contract": "OwnableUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)49_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:77"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "positionMap",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(Data)8053_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:83"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "debtPosition",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)8060_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:86"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "canClaimAmountMap",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
-            "src": "contracts\\protocol\\PositionHouse.sol:87"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "manualMargin",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_int256))",
-            "src": "contracts\\protocol\\PositionHouse.sol:90"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "limitOrders",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)9912_storage)dyn_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:92"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "reduceLimitOrders",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)9912_storage)dyn_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:93"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "maintenanceMarginRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:95"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "partialLiquidationRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:96"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "liquidationFeeRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:97"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "liquidationPenaltyRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:98"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "insuranceFund",
-            "type": "t_contract(IInsuranceFund)751",
-            "src": "contracts\\protocol\\PositionHouse.sol:100"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "feePool",
-            "type": "t_contract(IFeePool)709",
-            "src": "contracts\\protocol\\PositionHouse.sol:101"
-          }
-        ],
-        "types": {
-          "t_mapping(t_address,t_mapping(t_address,t_struct(Data)8053_storage))": {
-            "label": "mapping(address => mapping(address => struct Position.Data))"
-          },
-          "t_address": {
-            "label": "address"
-          },
-          "t_mapping(t_address,t_struct(Data)8053_storage)": {
-            "label": "mapping(address => struct Position.Data)"
-          },
-          "t_struct(Data)8053_storage": {
-            "label": "struct Position.Data",
-            "members": [
-              {
-                "label": "quantity",
-                "type": "t_int256"
-              },
-              {
-                "label": "margin",
-                "type": "t_uint256"
-              },
-              {
-                "label": "openNotional",
-                "type": "t_uint256"
-              },
-              {
-                "label": "lastUpdatedCumulativePremiumFraction",
-                "type": "t_int256"
-              },
-              {
-                "label": "blockNumber",
-                "type": "t_uint256"
-              },
-              {
-                "label": "leverage",
-                "type": "t_uint256"
-              }
-            ]
-          },
-          "t_int256": {
-            "label": "int256"
-          },
-          "t_uint256": {
-            "label": "uint256"
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)8060_storage))": {
-            "label": "mapping(address => mapping(address => struct Position.LiquidatedData))"
-          },
-          "t_mapping(t_address,t_struct(LiquidatedData)8060_storage)": {
-            "label": "mapping(address => struct Position.LiquidatedData)"
-          },
-          "t_struct(LiquidatedData)8060_storage": {
-            "label": "struct Position.LiquidatedData",
-            "members": [
-              {
-                "label": "quantity",
-                "type": "t_int256"
-              },
-              {
-                "label": "margin",
-                "type": "t_uint256"
-              },
-              {
-                "label": "notional",
-                "type": "t_uint256"
-              }
-            ]
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
-            "label": "mapping(address => mapping(address => uint256))"
-          },
-          "t_mapping(t_address,t_uint256)": {
-            "label": "mapping(address => uint256)"
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_int256))": {
-            "label": "mapping(address => mapping(address => int256))"
-          },
-          "t_mapping(t_address,t_int256)": {
-            "label": "mapping(address => int256)"
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)9912_storage)dyn_storage))": {
-            "label": "mapping(address => mapping(address => struct PositionLimitOrder.Data[]))"
-          },
-          "t_mapping(t_address,t_array(t_struct(Data)9912_storage)dyn_storage)": {
-            "label": "mapping(address => struct PositionLimitOrder.Data[])"
-          },
-          "t_array(t_struct(Data)9912_storage)dyn_storage": {
-            "label": "struct PositionLimitOrder.Data[]"
-          },
-          "t_struct(Data)9912_storage": {
-            "label": "struct PositionLimitOrder.Data",
-            "members": [
-              {
-                "label": "pip",
-                "type": "t_int128"
-              },
-              {
-                "label": "orderId",
-                "type": "t_uint64"
-              },
-              {
-                "label": "leverage",
-                "type": "t_uint16"
-              },
-              {
-                "label": "isBuy",
-                "type": "t_uint8"
-              },
-              {
-                "label": "entryPrice",
-                "type": "t_uint256"
-              },
-              {
-                "label": "reduceLimitOrderId",
-                "type": "t_uint256"
-              },
-              {
-                "label": "reduceQuantity",
-                "type": "t_uint256"
-              },
-              {
-                "label": "blockNumber",
-                "type": "t_uint256"
-              }
-            ]
-          },
-          "t_int128": {
-            "label": "int128"
-          },
-          "t_uint64": {
-            "label": "uint64"
-          },
-          "t_uint16": {
-            "label": "uint16"
-          },
-          "t_uint8": {
-            "label": "uint8"
-          },
-          "t_contract(IInsuranceFund)751": {
-            "label": "contract IInsuranceFund"
-          },
-          "t_contract(IFeePool)709": {
-            "label": "contract IFeePool"
-          },
-          "t_array(t_uint256)49_storage": {
-            "label": "uint256[49]"
-          },
-          "t_array(t_uint256)50_storage": {
-            "label": "uint256[50]"
-          },
-          "t_bool": {
-            "label": "bool"
-          }
-        }
-      }
-    },
-    "96601ea8a1b106a17f1b34eccb64c34d6327d19dcef6b79dad2695712916ae68": {
-      "address": "0x1078867a4D60126A8AC605cd242673c11A56E9A6",
-      "txHash": "0x833e0272df3084baedab36aec1fd4f056d7746e178325bfd3a9563e37093db80",
-      "layout": {
-        "storage": [
-          {
-            "contract": "Initializable",
-            "label": "_initialized",
-            "type": "t_bool",
-            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:21"
-          },
-          {
-            "contract": "Initializable",
-            "label": "_initializing",
-            "type": "t_bool",
-            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:26"
-          },
-          {
-            "contract": "ReentrancyGuardUpgradeable",
-            "label": "_status",
-            "type": "t_uint256",
-            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:37"
-          },
-          {
-            "contract": "ReentrancyGuardUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)49_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:67"
-          },
-          {
-            "contract": "ContextUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)50_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:30"
-          },
-          {
-            "contract": "OwnableUpgradeable",
-            "label": "_owner",
-            "type": "t_address",
-            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:21"
-          },
-          {
-            "contract": "OwnableUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)49_storage",
-            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:77"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "positionMap",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(Data)10366_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:83"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "debtPosition",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)10373_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:86"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "canClaimAmountMap",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
-            "src": "contracts\\protocol\\PositionHouse.sol:87"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "manualMargin",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_int256))",
-            "src": "contracts\\protocol\\PositionHouse.sol:90"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "limitOrders",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12225_storage)dyn_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:92"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "reduceLimitOrders",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12225_storage)dyn_storage))",
-            "src": "contracts\\protocol\\PositionHouse.sol:93"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "maintenanceMarginRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:95"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "partialLiquidationRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:96"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "liquidationFeeRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:97"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "liquidationPenaltyRatio",
-            "type": "t_uint256",
-            "src": "contracts\\protocol\\PositionHouse.sol:98"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "insuranceFund",
-            "type": "t_contract(IInsuranceFund)1390",
-            "src": "contracts\\protocol\\PositionHouse.sol:100"
-          },
-          {
-            "contract": "PositionHouse",
-            "label": "feePool",
-            "type": "t_contract(IFeePool)1348",
-            "src": "contracts\\protocol\\PositionHouse.sol:101"
-          }
-        ],
-        "types": {
-          "t_mapping(t_address,t_mapping(t_address,t_struct(Data)10366_storage))": {
-            "label": "mapping(address => mapping(address => struct Position.Data))"
-          },
-          "t_address": {
-            "label": "address"
-          },
-          "t_mapping(t_address,t_struct(Data)10366_storage)": {
-            "label": "mapping(address => struct Position.Data)"
-          },
-          "t_struct(Data)10366_storage": {
-            "label": "struct Position.Data",
-            "members": [
-              {
-                "label": "quantity",
-                "type": "t_int256"
-              },
-              {
-                "label": "margin",
-                "type": "t_uint256"
-              },
-              {
-                "label": "openNotional",
-                "type": "t_uint256"
-              },
-              {
-                "label": "lastUpdatedCumulativePremiumFraction",
-                "type": "t_int256"
-              },
-              {
-                "label": "blockNumber",
-                "type": "t_uint256"
-              },
-              {
-                "label": "leverage",
-                "type": "t_uint256"
-              }
-            ]
-          },
-          "t_int256": {
-            "label": "int256"
-          },
-          "t_uint256": {
-            "label": "uint256"
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_struct(LiquidatedData)10373_storage))": {
-            "label": "mapping(address => mapping(address => struct Position.LiquidatedData))"
-          },
-          "t_mapping(t_address,t_struct(LiquidatedData)10373_storage)": {
-            "label": "mapping(address => struct Position.LiquidatedData)"
-          },
-          "t_struct(LiquidatedData)10373_storage": {
-            "label": "struct Position.LiquidatedData",
-            "members": [
-              {
-                "label": "quantity",
-                "type": "t_int256"
-              },
-              {
-                "label": "margin",
-                "type": "t_uint256"
-              },
-              {
-                "label": "notional",
-                "type": "t_uint256"
-              }
-            ]
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
-            "label": "mapping(address => mapping(address => uint256))"
-          },
-          "t_mapping(t_address,t_uint256)": {
-            "label": "mapping(address => uint256)"
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_int256))": {
-            "label": "mapping(address => mapping(address => int256))"
-          },
-          "t_mapping(t_address,t_int256)": {
-            "label": "mapping(address => int256)"
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Data)12225_storage)dyn_storage))": {
-            "label": "mapping(address => mapping(address => struct PositionLimitOrder.Data[]))"
-          },
-          "t_mapping(t_address,t_array(t_struct(Data)12225_storage)dyn_storage)": {
-            "label": "mapping(address => struct PositionLimitOrder.Data[])"
-          },
-          "t_array(t_struct(Data)12225_storage)dyn_storage": {
-            "label": "struct PositionLimitOrder.Data[]"
-          },
-          "t_struct(Data)12225_storage": {
-            "label": "struct PositionLimitOrder.Data",
-            "members": [
-              {
-                "label": "pip",
-                "type": "t_int128"
-              },
-              {
-                "label": "orderId",
-                "type": "t_uint64"
-              },
-              {
-                "label": "leverage",
-                "type": "t_uint16"
-              },
-              {
-                "label": "isBuy",
-                "type": "t_uint8"
-              },
-              {
-                "label": "entryPrice",
-                "type": "t_uint256"
-              },
-              {
-                "label": "reduceLimitOrderId",
                 "type": "t_uint256"
               },
               {

@@ -30,8 +30,8 @@ library PositionHouseFunction {
         uint256 exchangedQuoteAmount,
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData
-    ) internal pure returns (uint256 openNotional) {
-//        int256 newPositionSide = totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
+    ) public pure returns (uint256 openNotional) {
+        //        int256 newPositionSide = totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
             openNotional = marketPositionData.openNotional + exchangedQuoteAmount;
         } else {
@@ -53,8 +53,8 @@ library PositionHouseFunction {
         uint256 reduceMarginRequirement,
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData
-    ) internal pure returns (uint256 margin) {
-//        int256 newPositionSide = totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
+    ) public pure returns (uint256 margin) {
+        int256 newPositionSide = totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
             margin = marketPositionData.margin + reduceMarginRequirement;
         } else {
@@ -66,6 +66,7 @@ library PositionHouseFunction {
         }
     }
 
+
     // There are 5 cases could happen:
     //      1. Old position created by long limit and long market, increase position is long => notional = oldNotional + exchangedQuoteAssetAmount
     //      2. Old position created by long limit and short market, increase position is long and < old short market => notional = oldNotional - exchangedQuoteAssetAmount
@@ -76,7 +77,8 @@ library PositionHouseFunction {
         uint256 exchangedQuoteAmount,
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData
-    ) internal pure returns (uint256 openNotional) {
+    ) public pure returns (uint256 openNotional) {
+
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
             if (marketPositionData.openNotional > exchangedQuoteAmount) {
                 openNotional = marketPositionData.openNotional - exchangedQuoteAmount;
@@ -99,7 +101,7 @@ library PositionHouseFunction {
         uint256 increaseMarginRequirement,
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData
-    ) internal pure returns (uint256 margin) {
+    ) public pure returns (uint256 margin) {
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
             if (marketPositionData.margin > increaseMarginRequirement) {
                 margin = marketPositionData.margin - increaseMarginRequirement;
@@ -111,7 +113,7 @@ library PositionHouseFunction {
         }
     }
 
-    function handleQuantity (int256 oldMarketQuantity, uint256 newQuantity) internal pure returns (int256 quantity) {
+    function handleQuantity(int256 oldMarketQuantity, uint256 newQuantity) public pure returns (int256 quantity) {
         if (oldMarketQuantity >= 0) {
             return oldMarketQuantity.sumWithUint256(newQuantity);
         }
@@ -156,7 +158,7 @@ library PositionHouseFunction {
         PositionLimitOrder.Data memory limitOrder,
         Position.Data memory positionData,
         uint256 entryPrice,
-        uint256 reduceQuantity) internal view returns (Position.Data memory) {
+        uint256 reduceQuantity) public view returns (Position.Data memory) {
 
         IPositionManager _positionManager = IPositionManager(addressPositionManager);
 
@@ -214,8 +216,8 @@ library PositionHouseFunction {
 
                 (bool isFilled, bool isBuy,
                 uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
-//                if (!isFilled && listLimitOrder[i].reduceQuantity == 0) {
-                if (!isFilled ) {
+                //                if (!isFilled && listLimitOrder[i].reduceQuantity == 0) {
+                if (!isFilled) {
                     listPendingOrderData[index] = PositionHouseStorage.LimitOrderPending({
                     isBuy : isBuy,
                     quantity : quantity,
@@ -347,117 +349,117 @@ library PositionHouseFunction {
 
         totalClaimableAmount = totalClaimableAmount + int256(canClaimAmountInMap) + manualMarginInMap + int256(positionMapData.margin);
         if (totalClaimableAmount <= 0) {
-                totalClaimableAmount = 0;
+            totalClaimableAmount = 0;
         }
     }
 
-//    function internalClosePosition(
-//        address addressPositionManager,
-//        address _trader,
-//        PositionHouseStorage.PnlCalcOption _pnlCalcOption,
-//        Position.Data memory oldPosition,
-//        uint256 quantity
-//    ) external returns (PositionHouseStorage.PositionResp memory positionResp) {
-//
-//        IPositionManager _positionManager = IPositionManager(addressPositionManager);
-//        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(addressPositionManager, _trader, _pnlCalcOption, oldPosition);
-//
-//        if (oldPosition.quantity > 0) {
-//            // sell
-//            (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(addressPositionManager, quantity, Position.Side.SHORT, _trader);
-//        } else {
-//            // buy
-//            (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(addressPositionManager, quantity, Position.Side.LONG, _trader);
-//        }
-//
-//        uint256 remainMargin = oldPosition.margin;
-//
-//        positionResp.realizedPnl = unrealizedPnl;
-//        // NOTICE remainMargin can be negative
-//        // unchecked: should be -(remainMargin + unrealizedPnl) and update remainMargin with fundingPayment
-//        positionResp.marginToVault = - ((int256(remainMargin) + positionResp.realizedPnl) < 0 ? 0 : (int256(remainMargin) + positionResp.realizedPnl));
-//        positionResp.unrealizedPnl = 0;
-//    }
-//
-//    function openMarketOrder(
-//        address addressPositionManager,
-//        uint256 _quantity,
-//        Position.Side _side,
-//        address _trader
-//    ) internal returns (int256 exchangedQuantity, uint256 openNotional) {
-//        IPositionManager _positionManager = IPositionManager(addressPositionManager);
-//
-//        uint256 exchangedSize;
-//        (exchangedSize, openNotional) = _positionManager.openMarketPosition(_quantity, _side == Position.Side.LONG);
-//        require(exchangedSize == _quantity, "NELQ");
-//        exchangedQuantity = _side == Position.Side.LONG ? int256(exchangedSize) : - int256(exchangedSize);
-//    }
+    //    function internalClosePosition(
+    //        address addressPositionManager,
+    //        address _trader,
+    //        PositionHouseStorage.PnlCalcOption _pnlCalcOption,
+    //        Position.Data memory oldPosition,
+    //        uint256 quantity
+    //    ) external returns (PositionHouseStorage.PositionResp memory positionResp) {
+    //
+    //        IPositionManager _positionManager = IPositionManager(addressPositionManager);
+    //        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(addressPositionManager, _trader, _pnlCalcOption, oldPosition);
+    //
+    //        if (oldPosition.quantity > 0) {
+    //            // sell
+    //            (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(addressPositionManager, quantity, Position.Side.SHORT, _trader);
+    //        } else {
+    //            // buy
+    //            (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(addressPositionManager, quantity, Position.Side.LONG, _trader);
+    //        }
+    //
+    //        uint256 remainMargin = oldPosition.margin;
+    //
+    //        positionResp.realizedPnl = unrealizedPnl;
+    //        // NOTICE remainMargin can be negative
+    //        // unchecked: should be -(remainMargin + unrealizedPnl) and update remainMargin with fundingPayment
+    //        positionResp.marginToVault = - ((int256(remainMargin) + positionResp.realizedPnl) < 0 ? 0 : (int256(remainMargin) + positionResp.realizedPnl));
+    //        positionResp.unrealizedPnl = 0;
+    //    }
+    //
+    //    function openMarketOrder(
+    //        address addressPositionManager,
+    //        uint256 _quantity,
+    //        Position.Side _side,
+    //        address _trader
+    //    ) internal returns (int256 exchangedQuantity, uint256 openNotional) {
+    //        IPositionManager _positionManager = IPositionManager(addressPositionManager);
+    //
+    //        uint256 exchangedSize;
+    //        (exchangedSize, openNotional) = _positionManager.openMarketPosition(_quantity, _side == Position.Side.LONG);
+    //        require(exchangedSize == _quantity, "NELQ");
+    //        exchangedQuantity = _side == Position.Side.LONG ? int256(exchangedSize) : - int256(exchangedSize);
+    //    }
 
-//    function clearPosition(
-//        address addressPositionManager,
-//        address _trader,
-//        PositionLimitOrder.Data[] storage limitOrders,
-//        PositionLimitOrder.Data[] storage reduceLimitOrders
-//    ) internal {
-//        IPositionManager _positionManager = IPositionManager(addressPositionManager);
-//
-////        positionMapData.clear();
-////        debtPositionData.clearDebt();
-//        //        PositionLimitOrder.Data[] memory listLimitOrder = limitOrders;
-//        //        PositionLimitOrder.Data[] memory reduceLimitOrder = reduceLimitOrders;
-//        //        (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) = clearAllFilledOrder(_positionManager, _trader, listLimitOrder, reduceLimitOrder);
-//        (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) = clearAllFilledOrder(_positionManager, _trader, limitOrders, reduceLimitOrders);
-//
-//        if (limitOrders.length > 0) {
-////            limitOrders.pop();
-//            delete limitOrders[addressPositionManager][_trader];
-//        }
-//        for (uint256 i = 0; i < subListLimitOrder.length; i++) {
-//            limitOrders.push(subListLimitOrder[i]);
-//        }
-//        if (reduceLimitOrders.length > 0) {
-////            limitOrders.pop();
-//            delete reduceLimitOrders[addressPositionManager][_trader];
-//        }
-//        for (uint256 i = 0; i < subReduceLimitOrder.length; i++) {
-//            reduceLimitOrders.push(subReduceLimitOrder[i]);
-//        }
-//    }
+    //    function clearPosition(
+    //        address addressPositionManager,
+    //        address _trader,
+    //        PositionLimitOrder.Data[] storage limitOrders,
+    //        PositionLimitOrder.Data[] storage reduceLimitOrders
+    //    ) internal {
+    //        IPositionManager _positionManager = IPositionManager(addressPositionManager);
+    //
+    ////        positionMapData.clear();
+    ////        debtPositionData.clearDebt();
+    //        //        PositionLimitOrder.Data[] memory listLimitOrder = limitOrders;
+    //        //        PositionLimitOrder.Data[] memory reduceLimitOrder = reduceLimitOrders;
+    //        //        (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) = clearAllFilledOrder(_positionManager, _trader, listLimitOrder, reduceLimitOrder);
+    //        (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) = clearAllFilledOrder(_positionManager, _trader, limitOrders, reduceLimitOrders);
+    //
+    //        if (limitOrders.length > 0) {
+    ////            limitOrders.pop();
+    //            delete limitOrders[addressPositionManager][_trader];
+    //        }
+    //        for (uint256 i = 0; i < subListLimitOrder.length; i++) {
+    //            limitOrders.push(subListLimitOrder[i]);
+    //        }
+    //        if (reduceLimitOrders.length > 0) {
+    ////            limitOrders.pop();
+    //            delete reduceLimitOrders[addressPositionManager][_trader];
+    //        }
+    //        for (uint256 i = 0; i < subReduceLimitOrder.length; i++) {
+    //            reduceLimitOrders.push(subReduceLimitOrder[i]);
+    //        }
+    //    }
 
 
-//    function handleLimitOrderInOpenLimit(
-//        OpenLimitResp memory openLimitResp,
-//        PositionLimitOrder.Data memory _newOrder,
-//        address addressPositionManager,
-//        address _trader,
-//        uint256 _quantity,
-//        Position.Side _side,
-//        PositionLimitOrder.Data[] storage limitOrders,
-//        PositionLimitOrder.Data[] storage reduceLimitOrders,
-//        Position.Data memory _oldPosition) internal returns (uint64 orderIdOfUser) {
-//
-//        IPositionManager _positionManager = IPositionManager(addressPositionManager);
-//
-//
-//        if (_oldPosition.quantity == 0 || _side == (_oldPosition.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT)) {
-//            limitOrders.push(_newOrder);
-//            orderIdOfUser = uint64(limitOrders.length - 1);
-//        } else {
-//            // if new limit order is smaller than old position then just reduce old position
-//            if (_oldPosition.quantity.abs() > _quantity) {
-//                _newOrder.reduceQuantity = _quantity - openLimitResp.sizeOut;
-//                _newOrder.entryPrice = _oldPosition.openNotional * _positionManager.getBaseBasisPoint() / _oldPosition.quantity.abs();
-//                reduceLimitOrders.push(_newOrder);
-//                orderIdOfUser = uint64(reduceLimitOrders.length - 1);
-//            }
-//            // else new limit order is larger than old position then close old position and open new opposite position
-//            else {
-//                _newOrder.reduceQuantity = _oldPosition.quantity.abs();
-//                limitOrders.push(_newOrder);
-//                orderIdOfUser = uint64(limitOrders.length - 1);
-//                _newOrder.entryPrice = _oldPosition.openNotional * _positionManager.getBaseBasisPoint() / _oldPosition.quantity.abs();
-//                reduceLimitOrders.push(_newOrder);
-//            }
-//        }
-//    }
+    //    function handleLimitOrderInOpenLimit(
+    //        OpenLimitResp memory openLimitResp,
+    //        PositionLimitOrder.Data memory _newOrder,
+    //        address addressPositionManager,
+    //        address _trader,
+    //        uint256 _quantity,
+    //        Position.Side _side,
+    //        PositionLimitOrder.Data[] storage limitOrders,
+    //        PositionLimitOrder.Data[] storage reduceLimitOrders,
+    //        Position.Data memory _oldPosition) internal returns (uint64 orderIdOfUser) {
+    //
+    //        IPositionManager _positionManager = IPositionManager(addressPositionManager);
+    //
+    //
+    //        if (_oldPosition.quantity == 0 || _side == (_oldPosition.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT)) {
+    //            limitOrders.push(_newOrder);
+    //            orderIdOfUser = uint64(limitOrders.length - 1);
+    //        } else {
+    //            // if new limit order is smaller than old position then just reduce old position
+    //            if (_oldPosition.quantity.abs() > _quantity) {
+    //                _newOrder.reduceQuantity = _quantity - openLimitResp.sizeOut;
+    //                _newOrder.entryPrice = _oldPosition.openNotional * _positionManager.getBaseBasisPoint() / _oldPosition.quantity.abs();
+    //                reduceLimitOrders.push(_newOrder);
+    //                orderIdOfUser = uint64(reduceLimitOrders.length - 1);
+    //            }
+    //            // else new limit order is larger than old position then close old position and open new opposite position
+    //            else {
+    //                _newOrder.reduceQuantity = _oldPosition.quantity.abs();
+    //                limitOrders.push(_newOrder);
+    //                orderIdOfUser = uint64(limitOrders.length - 1);
+    //                _newOrder.entryPrice = _oldPosition.openNotional * _positionManager.getBaseBasisPoint() / _oldPosition.quantity.abs();
+    //                reduceLimitOrders.push(_newOrder);
+    //            }
+    //        }
+    //    }
 }

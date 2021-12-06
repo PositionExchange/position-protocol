@@ -82,7 +82,7 @@ library Position {
         self.openNotional = 0;
         self.lastUpdatedCumulativePremiumFraction = 0;
         // TODO get current block number
-        self.blockNumber = 0;
+        self.blockNumber = block.number;
         self.leverage = 0;
     }
 
@@ -95,7 +95,7 @@ library Position {
         address addressPositionManager
     ) internal view returns (uint256){
         IPositionManager _positionManager = IPositionManager(addressPositionManager);
-        return self.openNotional * _positionManager.getBaseBasisPoint() / self.quantity.abs() ;
+        return self.openNotional * _positionManager.getBaseBasisPoint() / self.quantity.abs();
     }
 
     function accumulateLimitOrder(
