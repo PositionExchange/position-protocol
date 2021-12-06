@@ -4373,5 +4373,31 @@ describe("PositionHouse_02", () => {
                 _trader: trader0
             })
         })
+
+        it("open order with same price and different side", async function () {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 10,
+                _trader: trader0
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 10,
+                _trader: trader1
+            })
+
+            const getTrader0Position = await positionHouse.getPosition(positionManager.address, trader0.address)
+            console.log(getTrader0Position)
+            expect(getTrader0Position.quantity).eq(-10)
+
+            const getTrader1Position = await positionHouse.getPosition(positionManager.address, trader1.address)
+            console.log(getTrader1Position)
+            expect(getTrader1Position.quantity).eq(10)
+        })
     })
 })
