@@ -4399,5 +4399,35 @@ describe("PositionHouse_02", () => {
             console.log(getTrader1Position)
             expect(getTrader1Position.quantity).eq(10)
         })
+
+        it("should create a close order with 100% quantity when still have pending order", async function () {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: 10,
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from(10),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5300,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 10,
+                _trader: trader0
+            })
+
+            // await positionHouse.closeLimitPosition(positionManager.address, 510000, )
+        })
     })
 })

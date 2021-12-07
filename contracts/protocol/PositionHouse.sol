@@ -364,9 +364,9 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         require(_quantity > 0 && _quantity <= positionData.quantity.abs(), "ICQ");
         //        requirePositionManager(_positionManager);
         // only when close 100% position need to close pending order
-        if (_quantity == positionData.quantity.abs()) {
-            require(getListOrderPending(_positionManager, _trader).length == 0, "ICP");
-        }
+//        if (_quantity == positionData.quantity.abs()) {
+//            require(getListOrderPending(_positionManager, _trader).length == 0, "ICP");
+//        }
 
         if (positionData.quantity > 0) {
             openMarketPosition(_positionManager, Position.Side.SHORT, _quantity, positionData.leverage);
@@ -391,9 +391,9 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         Position.Data memory positionData = getPosition(address(_positionManager), _trader);
         //        requirePositionManager(_positionManager);
         require(_quantity > 0 && _quantity <= positionData.quantity.abs(), "ICQ");
-        if (_quantity == positionData.quantity.abs()) {
-            require(getListOrderPending(_positionManager, _trader).length == 0, "ICP");
-        }
+//        if (_quantity == positionData.quantity.abs()) {
+//            require(getListOrderPending(_positionManager, _trader).length == 0, "ICP");
+//        }
 
 
         if (positionData.quantity > 0) {
