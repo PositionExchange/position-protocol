@@ -534,21 +534,26 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         debtPosition[address(_positionManager)][_trader].clearDebt();
         manualMargin[address(_positionManager)][_trader] = 0;
         canClaimAmountMap[address(_positionManager)][_trader] = 0;
-        PositionLimitOrder.Data[] memory listLimitOrder = limitOrders[address(_positionManager)][_trader];
-        PositionLimitOrder.Data[] memory reduceLimitOrder = reduceLimitOrders[address(_positionManager)][_trader];
-        (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) = PositionHouseFunction.clearAllFilledOrder(_positionManager, _trader, listLimitOrder, reduceLimitOrder);
+//        PositionLimitOrder.Data[] memory listLimitOrder = limitOrders[address(_positionManager)][_trader];
+//        PositionLimitOrder.Data[] memory reduceLimitOrder = reduceLimitOrders[address(_positionManager)][_trader];
+//        (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) = PositionHouseFunction.clearAllFilledOrder(_positionManager, listLimitOrder, reduceLimitOrder);
+        (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) = PositionHouseFunction.clearAllFilledOrder(_positionManager, limitOrders[address(_positionManager)][_trader], reduceLimitOrders[address(_positionManager)][_trader]);
 
         if (limitOrders[address(_positionManager)][_trader].length > 0) {
             delete limitOrders[address(_positionManager)][_trader];
+//            limitOrders[address(_positionManager)][_trader] = subListLimitOrder;
         }
         for (uint256 i = 0; i < subListLimitOrder.length; i++) {
-            limitOrders[address(_positionManager)][_trader][i] = (subListLimitOrder[i]);
+//            limitOrders[address(_positionManager)][_trader][i] = (subListLimitOrder[i]);
+            limitOrders[address(_positionManager)][_trader].push(subListLimitOrder[i]);
         }
         if (reduceLimitOrders[address(_positionManager)][_trader].length > 0) {
             delete reduceLimitOrders[address(_positionManager)][_trader];
+//            reduceLimitOrders[address(_positionManager)][_trader] = subReduceLimitOrder;
         }
         for (uint256 i = 0; i < subReduceLimitOrder.length; i++) {
-            reduceLimitOrders[address(_positionManager)][_trader][i] = (subReduceLimitOrder[i]);
+//            reduceLimitOrders[address(_positionManager)][_trader][i] = (subReduceLimitOrder[i]);
+            reduceLimitOrders[address(_positionManager)][_trader].push(subReduceLimitOrder[i]);
         }
     }
 
@@ -687,10 +692,10 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         Position.Data memory newData;
         Position.Data memory marketPositionData = positionMap[_positionManager][_trader];
         Position.Data memory totalPositionData = getPosition(_positionManager, _trader);
-        int256 newPositionSide = _isBuy == true ? int256(1) : int256(- 1);
-        if (newPositionSide * totalPositionData.quantity >= 0) {
+        int256 newPositionQuantity = _isBuy == true ? int256(_newQuantity) : -int256(_newQuantity);
+        if (newPositionQuantity * totalPositionData.quantity >= 0) {
             newData = Position.Data(
-                PositionHouseFunction.handleQuantity(marketPositionData.quantity, _newQuantity),
+                marketPositionData.quantity + newPositionQuantity,
                 PositionHouseFunction.handleMarginInIncrease(_newNotional / _leverage, marketPositionData, totalPositionData),
                 PositionHouseFunction.handleNotionalInIncrease(_newNotional, marketPositionData, totalPositionData),
             // TODO update latest cumulative premium fraction
@@ -700,7 +705,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
             );
         } else {
             newData = Position.Data(
-                PositionHouseFunction.handleQuantity(marketPositionData.quantity, _newQuantity),
+                marketPositionData.quantity - newPositionQuantity,
                 PositionHouseFunction.handleMarginInOpenReverse(totalPositionData.margin * _newQuantity / totalPositionData.quantity.abs(), marketPositionData, totalPositionData),
                 PositionHouseFunction.handleNotionalInOpenReverse(_newNotional, marketPositionData, totalPositionData),
             // TODO update latest cumulative premium fraction

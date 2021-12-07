@@ -113,16 +113,16 @@ library PositionHouseFunction {
         }
     }
 
-    function handleQuantity(int256 oldMarketQuantity, uint256 newQuantity) public pure returns (int256 quantity) {
-        if (oldMarketQuantity >= 0) {
-            return oldMarketQuantity.sumWithUint256(newQuantity);
+    function handleQuantity(int256 oldMarketQuantity, int256 newQuantity) public pure returns (int256 quantity) {
+        if (oldMarketQuantity * newQuantity >= 0) {
+            return oldMarketQuantity + newQuantity;
         }
-        return oldMarketQuantity.minusWithUint256(newQuantity);
+        return oldMarketQuantity - newQuantity;
     }
 
     function clearAllFilledOrder(
         IPositionManager _positionManager,
-        address _trader,
+//        address _trader,
         PositionLimitOrder.Data[] memory listLimitOrder,
         PositionLimitOrder.Data[] memory reduceLimitOrder
     ) public returns (PositionLimitOrder.Data[] memory subListLimitOrder, PositionLimitOrder.Data[] memory subReduceLimitOrder) {
