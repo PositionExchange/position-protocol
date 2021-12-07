@@ -198,7 +198,6 @@ library PositionHouseFunction {
         PositionLimitOrder.Data[] memory reduceLimitOrder) public view returns (PositionHouse.LimitOrderPending[] memory){
 
         IPositionManager _positionManager = IPositionManager(addressPositionManager);
-        //                PositionHouse.LimitOrderPending[] memory listPendingOrderData = new PositionHouse.LimitOrderPending[](listLimitOrder.length + reduceLimitOrder.length);
         if (listLimitOrder.length + reduceLimitOrder.length > 0) {
             PositionHouse.LimitOrderPending[] memory listPendingOrderData = new PositionHouse.LimitOrderPending[](listLimitOrder.length + reduceLimitOrder.length + 1);
             uint256 index = 0;
@@ -206,7 +205,6 @@ library PositionHouseFunction {
 
                 (bool isFilled, bool isBuy,
                 uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
-//                if (!isFilled && listLimitOrder[i].reduceQuantity == 0) {
                 if (!isFilled ) {
                     listPendingOrderData[index] = PositionHouse.LimitOrderPending({
                     isBuy : isBuy,
@@ -243,17 +241,9 @@ library PositionHouseFunction {
                     return listPendingOrderData;
                 }
             }
-//            PositionHouse.LimitOrderPending[] memory blankListPendingOrderData;
-//            return blankListPendingOrderData;
-//            if (listPendingOrderData[0].quantity == 0 && listPendingOrderData[listPendingOrderData.length - 1].quantity == 0) {
-//                PositionHouse.LimitOrderPending[] memory blankListPendingOrderData;
-//                return blankListPendingOrderData;
-//            }
         }
-//        else {
         PositionHouse.LimitOrderPending[] memory blankListPendingOrderData;
         return blankListPendingOrderData;
-//        }
     }
 
     function getPositionNotionalAndUnrealizedPnl(

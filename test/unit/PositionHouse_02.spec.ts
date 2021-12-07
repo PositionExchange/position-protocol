@@ -4236,8 +4236,8 @@ describe("PositionHouse_02", () => {
         it('has market transaction in limit order in current price', async function () {
             console.log(4290)
             await openLimitPositionAndExpect({
-                limitPrice: 4990,
-                side: SIDE.LONG,
+                limitPrice: 5000,
+                side: SIDE.SHORT,
                 leverage: 10,
                 quantity: 10000,
                 _trader: trader0
@@ -4247,42 +4247,47 @@ describe("PositionHouse_02", () => {
             await openMarketPosition({
                     quantity: BigNumber.from('10000'),
                     leverage: 10,
-                    side: SIDE.SHORT,
+                    side: SIDE.LONG,
                     trader: trader1.address,
                     instanceTrader: trader1,
                     _positionManager: positionManager,
                 }
             );
             console.log(4309)
+            console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).toString())
+            console.log((await positionHouse.getPosition(positionManager.address, trader1.address)).toString())
 
             await openLimitPositionAndExpect({
-                limitPrice: 4990,
-                side: SIDE.SHORT,
-                leverage: 10,
-                quantity: 20000,
-                _trader: trader2
-            })
-            console.log(4318)
-            await openLimitPositionAndExpect({
-                limitPrice: 4990,
+                limitPrice: 5000,
                 side: SIDE.LONG,
                 leverage: 10,
-                quantity: 10000,
+                quantity: 5000,
                 _trader: trader0
             })
-            console.log(4326)
 
-            // await openLimitPositionAndExpect({
-            //     limitPrice: 5000,
-            //     side: SIDE.SHORT,
-            //     leverage: 10,
-            //     quantity: 10000,
-            //     _trader: trader0
-            // })
-            // console.log(4227)
-            //
-            console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).toString())
-            console.log((await positionHouse.getClaimAmount(positionManager.address, trader0.address)).toString())
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: 5000,
+                _trader: trader1
+            })
+
+
+
+
+
+            console.log(4318)
+            const quantityTrader0 = (await positionHouse.getPosition(positionManager.address, trader0.address)).quantity.toString()
+            const quantityTrader1 = (await positionHouse.getPosition(positionManager.address, trader1.address)).quantity.toString()
+            console.log(await positionHouse.getListOrderPending(positionManager.address, trader1.address))
+            console.log("expect trader0")
+            expect(quantityTrader0).eq("-5000")
+            console.log("expect trader1")
+            expect(quantityTrader1).eq("5000")
+            // console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).toString())
+            // console.log((await positionHouse.getPosition(positionManager.address, trader1.address)).toString())
+            // console.log((await positionHouse.getClaimAmount(positionManager.address, trader0.address)).toString())
         })
 
         it("partial close and got liquidated, transfer claimable amount to trader was liquidated", async function () {
