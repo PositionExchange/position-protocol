@@ -4419,6 +4419,9 @@ describe("PositionHouse_02", () => {
                 }
             );
 
+            let claimableAmountTrader0 = await positionHouse.getClaimAmount(positionManager.address, trader0.address)
+            console.log("0    ", claimableAmountTrader0.toString())
+
             await openLimitPositionAndExpect({
                 limitPrice: 5300,
                 side: SIDE.SHORT,
@@ -4427,7 +4430,29 @@ describe("PositionHouse_02", () => {
                 _trader: trader0
             })
 
-            // await positionHouse.closeLimitPosition(positionManager.address, 510000, )
+            claimableAmountTrader0 = await positionHouse.getClaimAmount(positionManager.address, trader0.address)
+            console.log("1    ", claimableAmountTrader0.toString())
+
+            await positionHouse.connect(trader0).closeLimitPosition(positionManager.address, 510000, 10)
+
+            claimableAmountTrader0 = await positionHouse.getClaimAmount(positionManager.address, trader0.address)
+            console.log("2    ", claimableAmountTrader0.toString())
+
+            await openMarketPosition({
+                    quantity: BigNumber.from(10),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            const listOrderPendingTrader0 = await positionHouse.getListOrderPending(positionManager.address, trader0.address)
+            console.log(listOrderPendingTrader0)
+
+            claimableAmountTrader0 = await positionHouse.getClaimAmount(positionManager.address, trader0.address)
+            console.log("3    ", claimableAmountTrader0.toString())
         })
     })
 })

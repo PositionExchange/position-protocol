@@ -171,7 +171,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         uint256 _leverage
     ) public whenNotPause nonReentrant {
         // TODO update require quantity > minimum amount of each pair
-        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
+//        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
         //        requirePositionManager(_positionManager);
 
         address _trader = _msgSender();
@@ -219,7 +219,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         int128 _pip,
         uint256 _leverage
     ) public whenNotPause nonReentrant {
-        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
+//        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
         require(_pip > 0, "IP");
         //        requirePositionManager(_positionManager);
         address _trader = _msgSender();
@@ -846,16 +846,14 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     }
 
     function withdraw(IPositionManager _positionManager, address _trader, uint256 amount) internal {
-        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, amount);
+//        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, amount);
     }
 
     function deposit(IPositionManager _positionManager, address _trader, uint256 amount, uint256 openNotional) internal {
 
         uint256 fee = calcFee(_trader, _positionManager, openNotional);
-        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, amount + fee);
-
+        //        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, amount + fee);
         //        insuranceFund.updateTotalFee(fee);
-        insuranceFund.updateTotalFee(fee);
     }
 
     //
