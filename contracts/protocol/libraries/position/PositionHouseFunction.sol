@@ -208,7 +208,6 @@ library PositionHouseFunction {
         PositionLimitOrder.Data[] memory reduceLimitOrder) public view returns (PositionHouseStorage.LimitOrderPending[] memory){
 
         IPositionManager _positionManager = IPositionManager(addressPositionManager);
-        //                PositionHouseStorage.LimitOrderPending[] memory listPendingOrderData = new PositionHouseStorage.LimitOrderPending[](listLimitOrder.length + reduceLimitOrder.length);
         if (listLimitOrder.length + reduceLimitOrder.length > 0) {
             PositionHouseStorage.LimitOrderPending[] memory listPendingOrderData = new PositionHouseStorage.LimitOrderPending[](listLimitOrder.length + reduceLimitOrder.length + 1);
             uint256 index = 0;
@@ -216,7 +215,6 @@ library PositionHouseFunction {
 
                 (bool isFilled, bool isBuy,
                 uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(listLimitOrder[i].pip, listLimitOrder[i].orderId);
-                //                if (!isFilled && listLimitOrder[i].reduceQuantity == 0) {
                 if (!isFilled) {
                     listPendingOrderData[index] = PositionHouseStorage.LimitOrderPending({
                     isBuy : isBuy,

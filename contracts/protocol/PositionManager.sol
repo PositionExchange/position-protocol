@@ -243,6 +243,7 @@ contract PositionManager is Initializable, ReentrancyGuardUpgradeable, OwnableUp
         if (pip == _singleSlot.pip && hasLiquidity && _singleSlot.isFullBuy != (isBuy ? 1 : 2)) {
             // open market
             (sizeOut, openNotional) = openMarketPositionWithMaxPip(size, isBuy, pip);
+            hasLiquidity = liquidityBitmap.hasLiquidity(pip);
         }
         if (size > sizeOut) {
             if (pip == _singleSlot.pip && _singleSlot.isFullBuy != (isBuy ? 1 : 2)) {
