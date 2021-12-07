@@ -16,10 +16,10 @@ library PositionHouseFunction {
     using Quantity for int128;
 
 
-    struct OpenLimitResp {
-        uint64 orderId;
-        uint256 sizeOut;
-    }
+//    struct OpenLimitResp {
+//        uint64 orderId;
+//        uint256 sizeOut;
+//    }
 
     // There are 4 cases could happen:
     //      1. oldPosition created by limitOrder, new marketOrder reversed it => ON = positionResp.exchangedQuoteAssetAmount
@@ -30,7 +30,7 @@ library PositionHouseFunction {
         uint256 exchangedQuoteAmount,
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData
-    ) public pure returns (uint256 openNotional) {
+    ) public view returns (uint256 openNotional) {
         //        int256 newPositionSide = totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
             openNotional = marketPositionData.openNotional + exchangedQuoteAmount;
@@ -53,7 +53,7 @@ library PositionHouseFunction {
         uint256 reduceMarginRequirement,
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData
-    ) public pure returns (uint256 margin) {
+    ) public view returns (uint256 margin) {
         int256 newPositionSide = totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
             margin = marketPositionData.margin + reduceMarginRequirement;
@@ -77,7 +77,7 @@ library PositionHouseFunction {
         uint256 exchangedQuoteAmount,
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData
-    ) public pure returns (uint256 openNotional) {
+    ) public view returns (uint256 openNotional) {
 
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
             if (marketPositionData.openNotional > exchangedQuoteAmount) {
@@ -101,7 +101,7 @@ library PositionHouseFunction {
         uint256 increaseMarginRequirement,
         Position.Data memory marketPositionData,
         Position.Data memory totalPositionData
-    ) public pure returns (uint256 margin) {
+    ) public view returns (uint256 margin) {
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
             if (marketPositionData.margin > increaseMarginRequirement) {
                 margin = marketPositionData.margin - increaseMarginRequirement;
@@ -113,7 +113,7 @@ library PositionHouseFunction {
         }
     }
 
-    function handleQuantity(int256 oldMarketQuantity, int256 newQuantity) public pure returns (int256 quantity) {
+    function handleQuantity(int256 oldMarketQuantity, int256 newQuantity) public view returns (int256 quantity) {
         if (oldMarketQuantity * newQuantity >= 0) {
             return oldMarketQuantity + newQuantity;
         }

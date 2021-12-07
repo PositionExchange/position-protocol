@@ -771,22 +771,22 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         oldPosition = getPosition(address(positionManager), _trader);
         (positionNotional, unrealizedPnl) = PositionHouseFunction.getPositionNotionalAndUnrealizedPnl(address(positionManager), _trader, _pnlCalcOption, oldPosition);
 
-        uint256 oldPositionNotional = oldPosition.openNotional;
-        if (_pnlCalcOption == PositionHouseStorage.PnlCalcOption.SPOT_PRICE) {
-            positionNotional = positionManager.getPrice() * oldPosition.quantity.abs() / positionManager.getBaseBasisPoint();
-        }
-        else if (_pnlCalcOption == PositionHouseStorage.PnlCalcOption.TWAP) {
-            // TODO get twap price
-        }
-        else {
-            // TODO get oracle price
-        }
-
-        if (oldPosition.side() == Position.Side.LONG) {
-            unrealizedPnl = int256(positionNotional) - int256(oldPositionNotional);
-        } else {
-            unrealizedPnl = int256(oldPositionNotional) - int256(positionNotional);
-        }
+//        uint256 oldPositionNotional = oldPosition.openNotional;
+//        if (_pnlCalcOption == PositionHouseStorage.PnlCalcOption.SPOT_PRICE) {
+//            positionNotional = positionManager.getPrice() * oldPosition.quantity.abs() / positionManager.getBaseBasisPoint();
+//        }
+//        else if (_pnlCalcOption == PositionHouseStorage.PnlCalcOption.TWAP) {
+//            // TODO get twap price
+//        }
+//        else {
+//            // TODO get oracle price
+//        }
+//
+//        if (oldPosition.side() == Position.Side.LONG) {
+//            unrealizedPnl = int256(positionNotional) - int256(oldPositionNotional);
+//        } else {
+//            unrealizedPnl = int256(oldPositionNotional) - int256(positionNotional);
+//        }
     }
 
     //    function getLiquidationPrice(
