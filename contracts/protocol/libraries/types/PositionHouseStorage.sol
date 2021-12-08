@@ -1,14 +1,19 @@
 pragma solidity ^0.8.0;
 
+import "../position/PositionLimitOrder.sol";
+import "../../../interfaces/IInsuranceFund.sol";
 
-import "../interfaces/IPositionManager.sol";
-import "../interfaces/IInsuranceFund.sol";
-import "../interfaces/IFeePool.sol";
-import "./libraries/position/Position.sol";
-import "hardhat/console.sol";
-import "./PositionManager.sol";
-import "./libraries/helpers/Quantity.sol";
-import "./libraries/position/PositionLimitOrder.sol";
+
+
+
+//import "../interfaces/IPositionManager.sol";
+//import "../interfaces/IInsuranceFund.sol";
+//import "../interfaces/IFeePool.sol";
+//import "./libraries/position/Position.sol";
+//import "hardhat/console.sol";
+//import "./PositionManager.sol";
+//import "./libraries/helpers/Quantity.sol";
+//import "./libraries/position/PositionLimitOrder.sol";
 contract PositionHouseStorage {
 
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
@@ -93,6 +98,5 @@ contract PositionHouseStorage {
     uint256 liquidationPenaltyRatio;
 
     IInsuranceFund public insuranceFund;
-    IFeePool public feePool;
 
 }

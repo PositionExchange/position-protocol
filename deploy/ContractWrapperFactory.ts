@@ -100,7 +100,7 @@ export class ContractWrapperFactory {
                 args.liquidationFeeRatio,
                 args.liquidationPenaltyRatio,
                 args.insuranceFund,
-                args.feePool
+                // args.feePool
             ];
 
             //@ts-ignore

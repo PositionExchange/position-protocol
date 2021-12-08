@@ -5,7 +5,7 @@ import "../../../interfaces/IPositionManager.sol";
 import "./PositionLimitOrder.sol";
 import "../../libraries/helpers/Quantity.sol";
 import "../../PositionHouse.sol";
-import "../../PositionHouseStorage.sol";
+import "../types/PositionHouseStorage.sol";
 
 
 library PositionHouseFunction {
@@ -381,19 +381,19 @@ library PositionHouseFunction {
     //        positionResp.unrealizedPnl = 0;
     //    }
     //
-    //    function openMarketOrder(
-    //        address addressPositionManager,
-    //        uint256 _quantity,
-    //        Position.Side _side,
-    //        address _trader
-    //    ) internal returns (int256 exchangedQuantity, uint256 openNotional) {
-    //        IPositionManager _positionManager = IPositionManager(addressPositionManager);
-    //
-    //        uint256 exchangedSize;
-    //        (exchangedSize, openNotional) = _positionManager.openMarketPosition(_quantity, _side == Position.Side.LONG);
-    //        require(exchangedSize == _quantity, "NELQ");
-    //        exchangedQuantity = _side == Position.Side.LONG ? int256(exchangedSize) : - int256(exchangedSize);
-    //    }
+    function openMarketOrder(
+        address addressPositionManager,
+        uint256 _quantity,
+        Position.Side _side,
+        address _trader
+    ) public returns (int256 exchangedQuantity, uint256 openNotional) {
+        IPositionManager _positionManager = IPositionManager(addressPositionManager);
+
+        uint256 exchangedSize;
+        (exchangedSize, openNotional) = _positionManager.openMarketPosition(_quantity, _side == Position.Side.LONG);
+        require(exchangedSize == _quantity, "NELQ");
+        exchangedQuantity = _side == Position.Side.LONG ? int256(exchangedSize) : - int256(exchangedSize);
+    }
 
     //    function clearPosition(
     //        address addressPositionManager,

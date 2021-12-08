@@ -48,7 +48,7 @@ export interface CreatePositionHouseInput {
     liquidationFeeRatio: number,
     liquidationPenaltyRatio: number,
     insuranceFund: string,
-    feePool: string
+    // feePool: string
 }
 
 
