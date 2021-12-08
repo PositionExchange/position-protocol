@@ -21,7 +21,7 @@ const migrations: MigrationDefinition = {
                 liquidationFeeRatio: 3,
                 liquidationPenaltyRatio: 20,
                 insuranceFund: insuranceFundContactAddress,
-                feePool : '0x0000000000000000000000000000000000000000'
+                // feePool : '0x0000000000000000000000000000000000000000'
             })
 
         }
