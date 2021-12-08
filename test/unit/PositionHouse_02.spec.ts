@@ -53,7 +53,7 @@ describe("PositionHouse_02", () => {
         })
         positionHouse = (await factory.deploy()) as unknown as PositionHouse;
         await positionManager.initialize(BigNumber.from(500000), '0xd364238D7eC81547a38E3bF4CBB5206605A15Fee', ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
-        await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), '0xf1d0e7be179cb21f0e6bfe3616a3d7bce2f18aef'.toLowerCase(), '0x0000000000000000000000000000000000000000')
+        await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), '0xf1d0e7be179cb21f0e6bfe3616a3d7bce2f18aef'.toLowerCase())
     })
 
     const openMarketPosition = async ({
@@ -2437,9 +2437,9 @@ describe("PositionHouse_02", () => {
             const expectTrader1AfterS11 = await expectMarginPnlAndOP({
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader1.address,
-                expectedOpenNotional: 8474800,
-                expectedMargin: 847400,
-                expectedPnl: 195100,
+                expectedOpenNotional: 8474815,
+                expectedMargin: 847482,
+                expectedPnl: 195185,
                 expectedQuantity: 1700,
             });
 
@@ -3999,7 +3999,9 @@ describe("PositionHouse_02", () => {
                 }
             );
             const claimableAmount = await positionHouse.getClaimAmount(positionManager.address, trader0.address)
-            expect(claimableAmount).eq(4980000)
+            // Claimable amount of trader0 = 0 cause order have not taken
+            // expect(claimableAmount).eq(4980000)
+            expect(claimableAmount).eq(0)
         })
 
         it('open limit order at current price', async function () {
@@ -4149,11 +4151,10 @@ describe("PositionHouse_02", () => {
                 quantity: 20000,
                 _trader: trader0
             })
-            console.log(4206)
+            console.log("test 4152", (await positionHouse.getClaimAmount(positionManager.address, trader0.address)).toString())
 
-            await positionHouse.cancelLimitOrder(positionManager.address, 1, 498000, 1)
-            console.log(4209)
-
+            await positionHouse.connect(trader0).cancelLimitOrder(positionManager.address, 1, 498000, 1)
+            console.log("test 4155", (await positionHouse.getClaimAmount(positionManager.address, trader0.address)).toString())
             await openLimitPositionAndExpect({
                 limitPrice: 4970,
                 side: SIDE.LONG,
@@ -4161,8 +4162,7 @@ describe("PositionHouse_02", () => {
                 quantity: 20000,
                 _trader: trader0
             })
-            console.log(4218)
-
+            console.log("test 4163", (await positionHouse.getClaimAmount(positionManager.address, trader0.address)).toString())
             await openLimitPositionAndExpect({
                 limitPrice: 5000,
                 side: SIDE.SHORT,
@@ -4170,11 +4170,14 @@ describe("PositionHouse_02", () => {
                 quantity: 10000,
                 _trader: trader0
             })
-            console.log(4227)
+
+            console.log("test 4172", (await positionHouse.getClaimAmount(positionManager.address, trader0.address)).toString())
 
             console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).toString())
             const claimableAmount = await positionHouse.getClaimAmount(positionManager.address, trader0.address)
-            expect(claimableAmount).eq(19950000)
+            // Claimable amount of trader0 = 998000 cause only 2000 quantity at price 4990 made to position
+            // expect(claimableAmount).eq(19950000)
+            expect(claimableAmount).eq(998000)
         })
 
         it('close order in current price and toggle current price', async function () {

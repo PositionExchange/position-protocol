@@ -67,21 +67,6 @@ library LiquidityBitmap {
         }
     }
 
-    function findHasLiquidityPipInCertainWord(
-        mapping(int128 => uint256) storage self,
-        int128 pip,
-        int128 word,
-        bool lte
-    ) internal view returns (
-        int128 next
-    ) {
-        if(lte){
-
-        }else{
-
-        }
-    }
-
     // find nearest pip has liquidity in multiple word
     function findHasLiquidityInMultipleWords(
         mapping(int128 => uint256) storage self,
