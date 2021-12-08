@@ -42,7 +42,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         address trader,
         int256 quantity,
         uint256 leverage,
-        int128 pip,
+        uint128 pip,
         IPositionManager positionManager
     );
 
@@ -50,7 +50,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
 
     event RemoveMargin(address trader, uint256 marginRemoved, IPositionManager positionManager);
 
-    event CancelLimitOrder(address trader, address _positionManager, int128 pip, uint64 orderId);
+    event CancelLimitOrder(address trader, address _positionManager, uint128 pip, uint64 orderId);
 
     event Liquidate(address positionManager, address trader);
 
@@ -127,11 +127,10 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         IPositionManager _positionManager,
         Position.Side _side,
         uint256 _quantity,
-        int128 _pip,
+        uint128 _pip,
         uint256 _leverage
     ) public whenNotPause nonReentrant {
         require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
-        require(_pip > 0, "IP");
         address _trader = _msgSender();
         OpenLimitResp memory openLimitResp;
         (,openLimitResp.orderId, openLimitResp.sizeOut) = openLimitIncludeMarket(_positionManager, _trader, _pip, int256(_quantity).abs128(), _side == Position.Side.LONG ? true : false, _leverage);
@@ -161,11 +160,11 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     //      2. Old position created by limit Long and market Long, new limit order has market is Short and quantity < old market part Long => reduce old quantity
     //      3. Old position created by limit Long and market Long, new limit order has market is Short and quantity > old market part Long => close and open reverse old market
     //      4. Old position created by limit Long and market Long, new limit order has market is Short and quantity > old position Long => close and open reverse old position
-    function openLimitIncludeMarket(IPositionManager _positionManager, address _trader, int128 _pip, uint128 _quantity, bool _isBuy, uint256 _leverage) internal returns (PositionResp memory positionResp, uint64 orderId, uint256 sizeOut){
+    function openLimitIncludeMarket(IPositionManager _positionManager, address _trader, uint128 _pip, uint128 _quantity, bool _isBuy, uint256 _leverage) internal returns (PositionResp memory positionResp, uint64 orderId, uint256 sizeOut){
         {
             Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
             require(_leverage >= totalPosition.leverage && _leverage <= 125 && _leverage > 0, "IL");
-            (int128 currentPip, uint8 isFullBuy) = _positionManager.getCurrentSingleSlot();
+            (uint128 currentPip, uint8 isFullBuy) = _positionManager.getCurrentSingleSlot();
             uint256 openNotional;
             //1: buy
             //2: sell
@@ -228,11 +227,10 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         }
     }
 
-    function cancelLimitOrder(IPositionManager _positionManager, uint64 orderIdOfTrader, int128 pip, uint64 orderId) public whenNotPause nonReentrant {
-        //        requirePositionManager(_positionManager);
+    function cancelLimitOrder(IPositionManager _positionManager, uint64 orderIdOfTrader, uint128 pip, uint64 orderId) public whenNotPause nonReentrant {
         address _trader = _msgSender();
         uint256 refundQuantity = _positionManager.cancelLimitOrder(pip, orderId);
-        int128 oldOrderPip = limitOrders[address(_positionManager)][_trader][orderIdOfTrader].pip;
+        uint128 oldOrderPip = limitOrders[address(_positionManager)][_trader][orderIdOfTrader].pip;
         uint64 oldOrderId = limitOrders[address(_positionManager)][_trader][orderIdOfTrader].orderId;
         uint16 leverage;
         PositionLimitOrder.Data memory blankLimitOrderData;
@@ -298,7 +296,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     */
     function closeLimitPosition(
         IPositionManager _positionManager,
-        int128 _pip,
+        uint128 _pip,
         uint256 _quantity
     ) public {
         address _trader = _msgSender();
@@ -325,7 +323,8 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     function claimFund(IPositionManager _positionManager) public whenNotPause nonReentrant {
         address _trader = _msgSender();
         int256 totalRealizedPnl = getClaimAmount(_positionManager, _trader);
-        require(getPosition(address(_positionManager), _trader).quantity == 0 && getListOrderPending(_positionManager, _trader).length == 0, "ICF");
+//        require(getPosition(address(_positionManager), _trader).quantity == 0 && getListOrderPending(_positionManager, _trader).length == 0, "ICF");
+        require(getPosition(address(_positionManager), _trader).quantity == 0, "ICF");
         clearPosition(_positionManager, _trader);
         if (totalRealizedPnl > 0) {
             withdraw(_positionManager, _trader, totalRealizedPnl.abs());
@@ -393,11 +392,11 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     function addMargin(IPositionManager _positionManager, uint256 _marginAdded) external whenNotPause nonReentrant {
 
         address _trader = _msgSender();
-        Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
-        require(totalPosition.quantity != 0, "NPTA");
-        if (totalPosition.quantity != 0) {
-            manualMargin[address(_positionManager)][_trader] += int256(_marginAdded);
-        }
+//        Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
+        require(getPosition(address(_positionManager), _trader).quantity != 0, "NPTA");
+//        if (totalPosition.quantity != 0) {
+        manualMargin[address(_positionManager)][_trader] += int256(_marginAdded);
+//        }
 
         deposit(_positionManager, _trader, _marginAdded, 0);
 
@@ -418,7 +417,7 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         address _trader = _msgSender();
 
 //        Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
-//        require(totalPosition.quantity != 0, "NPTR");
+        require(getPosition(address(_positionManager), _trader).quantity != 0, "NPTR");
         uint256 removableMargin = uint256(getRemovableMargin(_positionManager, _trader));
         require(_marginRemoved <= removableMargin, "IRM");
 

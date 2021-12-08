@@ -121,7 +121,9 @@ describe("PositionHouse_02", () => {
         _trader = _trader || trader0
         if (!_positionManager) throw Error("No position manager")
         if (!_trader) throw Error("No trader")
+        console.log("test 124")
         const tx = await positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(Number(limitPrice)), leverage)
+        console.log("test 126")
         console.log("GAS USED LIMIT", (await tx.wait()).gasUsed.toString())
         const {orderId, priceLimit} = await getOrderIdByTx(tx)
 
@@ -265,14 +267,15 @@ describe("PositionHouse_02", () => {
          */
         it('PS_FUTU_21 increase size by market order and limit order', async () => {
             console.log('****** Step 1 and Step 2')
-            let response1 = (await openLimitPositionAndExpect({
+            await openLimitPositionAndExpect({
                 limitPrice: 4980,
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: 800,
                 _trader: trader0
-            })) as unknown as PositionLimitOrderID
-
+            })
+            // as unknown as PositionLimitOrderID
+            console.log("step 2")
             await openMarketPosition({
                     quantity: BigNumber.from('800'),
                     leverage: 10,
@@ -3823,8 +3826,8 @@ describe("PositionHouse_02", () => {
         it('should got list order pending', async function () {
             let numberOfOrder = 0;
             await openLimitPositionAndExpect({
-                limitPrice: 5010,
-                side: SIDE.SHORT,
+                limitPrice: 4990,
+                side: SIDE.LONG,
                 leverage: 10,
                 quantity: 35100,
                 _trader: trader0

@@ -9,7 +9,7 @@ library PositionLimitOrder {
         CLOSE_LIMIT
     }
     struct Data {
-        int128 pip;
+        uint128 pip;
         uint64 orderId;
         uint16 leverage;
 //        OrderType typeLimitOrder;

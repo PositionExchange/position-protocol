@@ -24,7 +24,7 @@ library TickPosition {
 
     function insertLimitOrder(
         TickPosition.Data storage self,
-        uint120 size,
+        uint128 size,
         bool hasLiquidity,
         bool isBuy
     ) internal returns (uint64) {
@@ -70,12 +70,12 @@ library TickPosition {
 
     function partiallyFill(
         TickPosition.Data storage self,
-        uint120 amount
+        uint128 amount
     ) internal {
         self.liquidity -= amount;
         unchecked {
             uint64 index = self.filledIndex;
-            uint120 totalSize = 0;
+            uint128 totalSize = 0;
             while (totalSize < amount) {
                 totalSize += self.orderQueue[index].size;
                 index++;
@@ -83,7 +83,7 @@ library TickPosition {
             index--;
             self.filledIndex = index;
             //            self.orderQueue[index].partialFilled = totalSize - amount;
-            self.orderQueue[index].updatePartialFill(totalSize - amount);
+            self.orderQueue[index].updatePartialFill(uint120(totalSize - amount));
         }
     }
 
@@ -94,7 +94,7 @@ library TickPosition {
         (bool isBuy,
         uint256 size,
         uint256 partialFilled) = self.orderQueue[orderId].getData();
-        self.liquidity = self.liquidity - uint120(size - partialFilled);
+        self.liquidity = self.liquidity - uint128(size - partialFilled);
 
         self.orderQueue[orderId].update(isBuy, partialFilled);
 
