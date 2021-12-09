@@ -870,4 +870,18 @@ contract PositionHouse is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     function updateLiquidationPenaltyRatio(uint256 _liquidationPenaltyRatio) public onlyOwner {
         liquidationPenaltyRatio = _liquidationPenaltyRatio;
     }
+
+    // NEW REQUIRE: restriction mode
+    // In restriction mode, no one can do multi open/close/liquidate position in the same block.
+    // If any underwater position being closed (having a bad debt and make insuranceFund loss),
+    // or any liquidation happened,
+    // restriction mode is ON in that block and OFF(default) in the next block.
+    // This design is to prevent the attacker being benefited from the multiple action in one block
+//    function requireNotRestrictionMode(IAmm _amm) private view {
+//        uint256 currentBlock = _blockNumber();
+//        if (currentBlock == positionManagerMap[address].lastRestrictionBlock) {
+//            // only one action allowed
+//
+//        }
+//    }
 }

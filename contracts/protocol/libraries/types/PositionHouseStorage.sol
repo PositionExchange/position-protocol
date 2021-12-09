@@ -65,18 +65,19 @@ contract PositionHouseStorage {
         uint256 sizeOut;
     }
 
-    //    struct PositionManagerData {
-    //        uint24 blockNumber;
-    //        int256[] cumulativePremiumFraction;
-    //        // Position data of each trader
-    //        mapping(address => Position.Data) positionMap;
-    //        mapping(address => PositionLimitOrder.Data[]) limitOrders;
-    //        mapping(address => PositionLimitOrder.Data[]) reduceLimitOrders;
-    //        // Amount that trader can claim from exchange
-    //        mapping(address => int256) canClaimAmount;
-    //    }
-    //    // TODO change separate mapping to positionManagerMap
-    //    mapping(address => PositionManagerData) public positionManagerMap;
+//    struct PositionManagerData {
+//        uint24 blockNumber;
+//        int256[] cumulativePremiumFraction;
+//        // Position data of each trader
+//        mapping(address => Position.Data) positionMap;
+//        mapping(address => PositionLimitOrder.Data[]) limitOrders;
+//        mapping(address => PositionLimitOrder.Data[]) reduceLimitOrders;
+//        // Amount that trader can claim from exchange
+//        mapping(address => int256) canClaimAmount;
+//        mapping(address => int256) manualMargin;
+//    }
+//    // TODO change separate mapping to positionManagerMap
+//    mapping(address => PositionManagerData) public positionManagerMap;
 
     // Can join positionMap and cumulativePremiumFractionsMap into a map of struct with key is PositionManager's address
     // Mapping from position manager address of each pair to position data of each trader
