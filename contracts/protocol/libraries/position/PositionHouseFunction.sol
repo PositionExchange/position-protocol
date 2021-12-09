@@ -16,10 +16,10 @@ library PositionHouseFunction {
     using Quantity for int128;
 
 
-//    struct OpenLimitResp {
-//        uint64 orderId;
-//        uint256 sizeOut;
-//    }
+    //    struct OpenLimitResp {
+    //        uint64 orderId;
+    //        uint256 sizeOut;
+    //    }
 
     // There are 4 cases could happen:
     //      1. oldPosition created by limitOrder, new marketOrder reversed it => ON = positionResp.exchangedQuoteAssetAmount
@@ -125,7 +125,7 @@ library PositionHouseFunction {
         IPositionManager _positionManager,
         PositionLimitOrder.Data[] memory listLimitOrder,
         PositionLimitOrder.Data[] memory reduceLimitOrder
-    ) public returns (PositionLimitOrder.Data[] memory , PositionLimitOrder.Data[] memory ) {
+    ) public returns (PositionLimitOrder.Data[] memory, PositionLimitOrder.Data[] memory) {
         PositionLimitOrder.Data[] memory subListLimitOrder = new PositionLimitOrder.Data[](listLimitOrder.length);
         PositionLimitOrder.Data[] memory subReduceLimitOrder = new PositionLimitOrder.Data[](reduceLimitOrder.length);
         if (listLimitOrder.length > 0) {
@@ -353,7 +353,7 @@ library PositionHouseFunction {
     ) public view returns (uint256 indexReduce, int256 totalClaimableAmount, Position.Data memory positionData) {
         for (_indexReduce; _indexReduce < _reduceOrders.length; _indexReduce++) {
             (bool isFilled,,, uint256 partialFilled) = _positionManager.getPendingOrderDetail(_reduceOrders[_indexReduce].pip, _reduceOrders[_indexReduce].orderId);
-//            uint256 filledQuantity = (partialFilled < _reduceOrders[_indexReduce].reduceQuantity && !isFilled) ? partialFilled : _reduceOrders[_indexReduce].reduceQuantity;
+            //            uint256 filledQuantity = (partialFilled < _reduceOrders[_indexReduce].reduceQuantity && !isFilled) ? partialFilled : _reduceOrders[_indexReduce].reduceQuantity;
             {
                 int256 realizedPnl = int256(((partialFilled < _reduceOrders[_indexReduce].reduceQuantity && !isFilled) ? partialFilled : _reduceOrders[_indexReduce].reduceQuantity) * _positionManager.pipToPrice(_reduceOrders[_indexReduce].pip) / _positionManager.getBaseBasisPoint())
                 - int256((_positionData.openNotional != 0 ? _positionData.openNotional : positionMapData.openNotional) * ((partialFilled < _reduceOrders[_indexReduce].reduceQuantity && !isFilled) ? partialFilled : _reduceOrders[_indexReduce].reduceQuantity) / (_positionData.quantity.abs() != 0 ? _positionData.quantity.abs() : positionMapData.quantity.abs()));
@@ -385,5 +385,6 @@ library PositionHouseFunction {
         require(exchangedSize == _quantity, "NELQ");
         exchangedQuantity = _side == Position.Side.LONG ? int256(exchangedSize) : - int256(exchangedSize);
     }
+
 
 }
