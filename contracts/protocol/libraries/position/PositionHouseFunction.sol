@@ -197,14 +197,15 @@ library PositionHouseFunction {
     ) public view returns (Position.Data memory positionData) {
         for (uint i = 0; i < _limitOrders.length; i++) {
             if (_limitOrders[i].pip != 0) {
-                positionData = accumulateLimitOrderToPositionData(positionManager, _limitOrders[i], _positionData, _limitOrders[i].entryPrice, _limitOrders[i].reduceQuantity);
+                _positionData = accumulateLimitOrderToPositionData(positionManager, _limitOrders[i], _positionData, _limitOrders[i].entryPrice, _limitOrders[i].reduceQuantity);
             }
         }
         for (uint i = 0; i < _reduceOrders.length; i++) {
             if (_reduceOrders[i].pip != 0) {
-                positionData = accumulateLimitOrderToPositionData(positionManager, _reduceOrders[i], _positionData, _reduceOrders[i].entryPrice, _reduceOrders[i].reduceQuantity);
+                _positionData = accumulateLimitOrderToPositionData(positionManager, _reduceOrders[i], _positionData, _reduceOrders[i].entryPrice, _reduceOrders[i].reduceQuantity);
             }
         }
+        positionData = _positionData;
     }
 
     function accumulateLimitOrderToPositionData(

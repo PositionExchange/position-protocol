@@ -86,7 +86,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         uint256 _leverage
     ) public whenNotPaused nonReentrant {
         // TODO update require quantity > minimum amount of each pair
-//        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
+        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
 
         address _trader = _msgSender();
         Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
@@ -131,7 +131,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         uint128 _pip,
         uint256 _leverage
     ) public whenNotPaused nonReentrant {
-//        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
+        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
         address _trader = _msgSender();
         OpenLimitResp memory openLimitResp;
         (, openLimitResp.orderId, openLimitResp.sizeOut) = openLimitIncludeMarket(_positionManager, _trader, _pip, int256(_quantity).abs128(), _side == Position.Side.LONG ? true : false, _leverage);
@@ -772,13 +772,13 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     }
 
     function withdraw(IPositionManager _positionManager, address _trader, uint256 amount) internal {
-//        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, amount);
+        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, amount);
     }
 
     function deposit(IPositionManager _positionManager, address _trader, uint256 amount, uint256 openNotional) internal {
         uint256 fee = calcFee(_trader, _positionManager, openNotional);
-//        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, amount + fee);
-//        insuranceFund.updateTotalFee(fee);
+        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, amount + fee);
+        insuranceFund.updateTotalFee(fee);
     }
 
 
