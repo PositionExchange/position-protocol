@@ -27,12 +27,13 @@ library PositionHouseFunction {
         uint256 _newQuantity,
         uint256 _newNotional,
         int256 newQuantityInt,
-        uint256 _leverage
+        uint256 _leverage,
+        int256[] memory cumulativePremiumFractions
     ) public view returns (Position.Data memory newData) {
         if (newQuantityInt * totalPosition.quantity >= 0) {
             newData = Position.Data(
                 marketPosition.quantity + newQuantityInt,
-                handleMarginInIncrease(_newNotional / _leverage, marketPosition, totalPosition),
+                handleMarginInIncrease(_newNotional / _leverage, marketPosition, totalPosition, cumulativePremiumFractions),
                 handleNotionalInIncrease(_newNotional, marketPosition, totalPosition),
             // TODO update latest cumulative premium fraction
                 0,
@@ -42,7 +43,7 @@ library PositionHouseFunction {
         } else {
             newData = Position.Data(
                 marketPosition.quantity + newQuantityInt,
-                handleMarginInOpenReverse(totalPosition.margin * _newQuantity / totalPosition.quantity.abs(), marketPosition, totalPosition),
+                handleMarginInOpenReverse(totalPosition.margin * _newQuantity / totalPosition.quantity.abs(), marketPosition, totalPosition, cumulativePremiumFractions),
                 handleNotionalInOpenReverse(_newNotional, marketPosition, totalPosition),
             // TODO update latest cumulative premium fraction
                 0,
@@ -83,7 +84,8 @@ library PositionHouseFunction {
     function handleMarginInOpenReverse(
         uint256 reduceMarginRequirement,
         Position.Data memory marketPositionData,
-        Position.Data memory totalPositionData
+        Position.Data memory totalPositionData,
+        int256[] memory cumulativePremiumFractions
     ) public view returns (uint256 margin) {
         int256 newPositionSide = totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
@@ -95,6 +97,7 @@ library PositionHouseFunction {
                 margin = reduceMarginRequirement - marketPositionData.margin;
             }
         }
+        margin = calcRemainMarginWithFundingPayment(totalPositionData, margin, cumulativePremiumFractions);
     }
 
 
@@ -131,7 +134,8 @@ library PositionHouseFunction {
     function handleMarginInIncrease(
         uint256 increaseMarginRequirement,
         Position.Data memory marketPositionData,
-        Position.Data memory totalPositionData
+        Position.Data memory totalPositionData,
+        int256[] memory cumulativePremiumFractions
     ) public view returns (uint256 margin) {
         if (marketPositionData.quantity * totalPositionData.quantity < 0) {
             if (marketPositionData.margin > increaseMarginRequirement) {
@@ -142,6 +146,7 @@ library PositionHouseFunction {
         } else {
             margin = marketPositionData.margin + increaseMarginRequirement;
         }
+        margin = calcRemainMarginWithFundingPayment(totalPositionData, margin, cumulativePremiumFractions);
     }
 
     function handleQuantity(int256 oldMarketQuantity, int256 newQuantity) public view returns (int256 quantity) {
@@ -434,39 +439,62 @@ library PositionHouseFunction {
         exchangedQuantity = _side == Position.Side.LONG ? int256(exchangedSize) : - int256(exchangedSize);
     }
 
-    function increasePosition(
-        address addressPositionManager,
-        Position.Side _side,
-        int256 _quantity,
-        uint256 _leverage,
-        address _trader,
-        Position.Data memory totalPosition,
-        Position.Data memory marketPosition
-    ) public returns (PositionHouseStorage.PositionResp memory positionResp){
-//        IPositionManager _positionManager = IPositionManager(addressPositionManager);
-        (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(addressPositionManager, _quantity.abs(), _side, _trader);
-        if (positionResp.exchangedPositionSize != 0) {
-//            Position.Data memory marketPosition = positionMap[address(_positionManager)][_trader];
-            int256 _newSize = marketPosition.quantity + positionResp.exchangedPositionSize;
-            uint256 increaseMarginRequirement = positionResp.exchangedQuoteAssetAmount / _leverage;
-            // TODO update function latestCumulativePremiumFraction
+//    function increasePosition(
+//        address addressPositionManager,
+//        Position.Side _side,
+//        int256 _quantity,
+//        uint256 _leverage,
+//        address _trader,
+//        Position.Data memory totalPosition,
+//        Position.Data memory marketPosition
+//    ) public returns (PositionHouseStorage.PositionResp memory positionResp){
+////        IPositionManager _positionManager = IPositionManager(addressPositionManager);
+//        (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(addressPositionManager, _quantity.abs(), _side, _trader);
+//        if (positionResp.exchangedPositionSize != 0) {
+////            Position.Data memory marketPosition = positionMap[address(_positionManager)][_trader];
+//            int256 _newSize = marketPosition.quantity + positionResp.exchangedPositionSize;
+//            uint256 increaseMarginRequirement = positionResp.exchangedQuoteAssetAmount / _leverage;
+//            // TODO update function latestCumulativePremiumFraction
+//
+//            //            Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
+//
+//            (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(addressPositionManager, _trader, PositionHouseStorage.PnlCalcOption.SPOT_PRICE, totalPosition);
+//
+//            positionResp.unrealizedPnl = unrealizedPnl;
+//            positionResp.realizedPnl = 0;
+//            // checked margin to vault
+//            positionResp.marginToVault = int256(increaseMarginRequirement);
+//            positionResp.position = Position.Data(
+//                _newSize,
+//                handleMarginInIncrease(increaseMarginRequirement, marketPosition, totalPosition),
+//                handleNotionalInIncrease(positionResp.exchangedQuoteAssetAmount, marketPosition, totalPosition),
+//                0,
+//                block.number,
+//                _leverage
+//            );
+//        }
+//    }
 
-            //            Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
+    function calcRemainMarginWithFundingPayment(
+        Position.Data memory oldPosition, uint256 deltaMargin, int256[] memory cumulativePremiumFractions
+    ) internal view returns (uint256 remainMargin){
+        int256 fundingPayment;
+        // calculate fundingPayment
+        int256 latestCumulativePremiumFraction = getLatestCumulativePremiumFraction(cumulativePremiumFractions);
+        if (oldPosition.quantity != 0) {
+            fundingPayment = (latestCumulativePremiumFraction - oldPosition.lastUpdatedCumulativePremiumFraction) * oldPosition.quantity;
+        }
 
-            (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(addressPositionManager, _trader, PositionHouseStorage.PnlCalcOption.SPOT_PRICE, totalPosition);
+        // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt
+        if (int256(deltaMargin) + fundingPayment >= 0) {
+            remainMargin = uint256(int256(deltaMargin) + fundingPayment);
+        }
+    }
 
-            positionResp.unrealizedPnl = unrealizedPnl;
-            positionResp.realizedPnl = 0;
-            // checked margin to vault
-            positionResp.marginToVault = int256(increaseMarginRequirement);
-            positionResp.position = Position.Data(
-                _newSize,
-                handleMarginInIncrease(increaseMarginRequirement, marketPosition, totalPosition),
-                handleNotionalInIncrease(positionResp.exchangedQuoteAssetAmount, marketPosition, totalPosition),
-                0,
-                block.number,
-                _leverage
-            );
+    function getLatestCumulativePremiumFraction(int256[] memory cumulativePremiumFractions) public view returns (int256){
+        uint256 len = cumulativePremiumFractions.length;
+        if (len > 0) {
+            return cumulativePremiumFractions[len - 1];
         }
     }
 }
