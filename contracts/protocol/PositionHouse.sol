@@ -7,13 +7,12 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "../interfaces/IPositionManager.sol";
 import "./libraries/position/Position.sol";
-//import "hardhat/console.sol";
+import "hardhat/console.sol";
 import "./PositionManager.sol";
 import "./libraries/helpers/Quantity.sol";
 import "./libraries/position/PositionLimitOrder.sol";
 import "../interfaces/IInsuranceFund.sol";
-//import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.sol";
-import "./libraries/position/PositionHouseFunction.sol";
+import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.sol";
 import "./libraries/types/PositionHouseStorage.sol";
 
 contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, PositionHouseStorage
@@ -479,29 +478,34 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         address _trader,
         Position.Data memory totalPosition
     ) internal returns (PositionResp memory positionResp) {
-        (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(_positionManager, _quantity.abs(), _side);
-        if (positionResp.exchangedPositionSize != 0) {
-            int256 _newSize = positionMap[address(_positionManager)][_trader].quantity + positionResp.exchangedPositionSize;
-            uint256 increaseMarginRequirement = positionResp.exchangedQuoteAssetAmount / _leverage;
-            // TODO update function latestCumulativePremiumFraction
-
-            //            Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
-            Position.Data memory marketPosition = positionMap[address(_positionManager)][_trader];
-            (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, totalPosition);
-
-            positionResp.unrealizedPnl = unrealizedPnl;
-            positionResp.realizedPnl = 0;
-            // checked margin to vault
-            positionResp.marginToVault = int256(increaseMarginRequirement);
-            positionResp.position = Position.Data(
-                _newSize,
-                PositionHouseFunction.handleMarginInIncrease(increaseMarginRequirement, marketPosition, totalPosition),
-                PositionHouseFunction.handleNotionalInIncrease(positionResp.exchangedQuoteAssetAmount, marketPosition, totalPosition),
-                0,
-                block.number,
-                _leverage
-            );
+        address positionManagerAddress = address(_positionManager);
+        {
+            positionResp = PositionHouseFunction.increasePosition(positionManagerAddress, _side, _quantity, _leverage, _trader, totalPosition, positionMap[positionManagerAddress][_trader]);
         }
+//        (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(_positionManager, _quantity.abs(), _side);
+//        if (positionResp.exchangedPositionSize != 0) {
+//            Position.Data memory marketPosition = positionMap[address(_positionManager)][_trader];
+//            int256 _newSize = marketPosition.quantity + positionResp.exchangedPositionSize;
+//            uint256 increaseMarginRequirement = positionResp.exchangedQuoteAssetAmount / _leverage;
+//            // TODO update function latestCumulativePremiumFraction
+//
+//            //            Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
+//
+//            (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, totalPosition);
+//
+//            positionResp.unrealizedPnl = unrealizedPnl;
+//            positionResp.realizedPnl = 0;
+//            // checked margin to vault
+//            positionResp.marginToVault = int256(increaseMarginRequirement);
+//            positionResp.position = Position.Data(
+//                _newSize,
+//                PositionHouseFunction.handleMarginInIncrease(increaseMarginRequirement, marketPosition, totalPosition),
+//                PositionHouseFunction.handleNotionalInIncrease(positionResp.exchangedQuoteAssetAmount, marketPosition, totalPosition),
+//                0,
+//                block.number,
+//                _leverage
+//            );
+//        }
     }
 
     function openReversePosition(
@@ -674,6 +678,13 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         }
     }
 
+    function getLatestCumulativePremiumFraction(IPositionManager _positionManager) public view returns (int256){
+        uint256 len = cumulativePremiumFractions[address(_positionManager)].length;
+        if (len > 0) {
+            return cumulativePremiumFractions[address(_positionManager)][len - 1];
+        }
+    }
+
 
     function getPositionNotionalAndUnrealizedPnl(
         IPositionManager positionManager,
@@ -712,6 +723,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         Position.Data memory positionData = getPosition(address(_positionManager), _trader);
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, positionData);
         //        (uint256 maintenanceMargin, int256 marginBalance, uint256 marginRatio) = PositionHouseFunction.calcMaintenanceDetail(positionData, maintenanceMarginRatio, unrealizedPnl);
+//        (uint256 remainMarginWithFundingPayment,,,) = calcRemainMarginWithFundingPayment(_positionManager, positionData, positionData.margin);
         maintenanceMargin = (positionData.margin - uint256(manualMargin[address(_positionManager)][_trader])) * maintenanceMarginRatio / 100;
         marginBalance = int256(positionData.margin) + unrealizedPnl;
         if (marginBalance <= 0) {
@@ -809,26 +821,23 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     //    }
 
     // new function
-    //    function calcRemainMarginWithFundingPaymentNew(
-    //        IPositionManager _positionManager, Position.Data memory oldPosition, int256 deltaMargin
-    //    ) internal view returns (uint256 remainMargin, uint256 badDebt, int256 fundingPayment, int256 latestCumulativePremiumFraction){
-    //
-    //        // calculate fundingPayment
-    //        latestCumulativePremiumFraction = getLatestCumulativePremiumFraction(_positionManager);
-    //        if (oldPosition.quantity != 0) {
-    //            fundingPayment = (latestCumulativePremiumFraction - oldPosition.lastUpdatedCumulativePremiumFraction) * oldPosition.quantity;
-    //        }
-    //
-    //        // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt
-    //        if (deltaMargin + fundingPayment >= 0) {
-    //            remainMargin = uint256(deltaMargin + fundingPayment);
-    //        } else {
-    //            badDebt = uint256(- fundingPayment - deltaMargin);
-    //        }
-    //
-    //        fundingPayment = 0;
-    //        latestCumulativePremiumFraction = 0;
-    //    }
+    function calcRemainMarginWithFundingPayment(
+        IPositionManager _positionManager, Position.Data memory oldPosition, int256 deltaMargin
+    ) internal view returns (uint256 remainMargin, uint256 badDebt, int256 fundingPayment, int256 latestCumulativePremiumFraction){
+
+        // calculate fundingPayment
+        latestCumulativePremiumFraction = getLatestCumulativePremiumFraction(_positionManager);
+        if (oldPosition.quantity != 0) {
+            fundingPayment = (latestCumulativePremiumFraction - oldPosition.lastUpdatedCumulativePremiumFraction) * oldPosition.quantity;
+        }
+
+        // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt
+        if (deltaMargin + fundingPayment >= 0) {
+            remainMargin = uint256(deltaMargin + fundingPayment);
+        } else {
+            badDebt = uint256(- fundingPayment - deltaMargin);
+        }
+    }
 
 
     // TODO can move to position house function
