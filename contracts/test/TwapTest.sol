@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "../protocol/libraries/position/Twap.sol";
 
-import "hardhat/console.sol";
+//import "hardhat/console.sol";
 
 contract TwapTest {
     using Twap for Twap.Observation[65535];
@@ -41,13 +41,13 @@ contract TwapTest {
     // write an observation, then change pip and liquidity
     function update(UpdateParams calldata params) external {
         advanceTime(params.advanceTimeBy);
-        console.log("index before %s", index);
-        console.log("time %s", time);
+//        console.log("index before %s", index);
+//        console.log("time %s", time);
 
         (index, cardinality) = observations.write(index, time, pip, cardinality, cardinalityNext);
-        console.log("index after %s", index);
+//        console.log("index after %s", index);
 
-        console.log("cardinality %s", cardinality);
+//        console.log("cardinality %s", cardinality);
 
         pip = params.pip;
     }

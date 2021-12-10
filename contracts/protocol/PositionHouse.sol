@@ -7,12 +7,13 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "../interfaces/IPositionManager.sol";
 import "./libraries/position/Position.sol";
-import "hardhat/console.sol";
+//import "hardhat/console.sol";
 import "./PositionManager.sol";
 import "./libraries/helpers/Quantity.sol";
 import "./libraries/position/PositionLimitOrder.sol";
 import "../interfaces/IInsuranceFund.sol";
-import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.sol";
+//import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.sol";
+import "./libraries/position/PositionHouseFunction.sol";
 import "./libraries/types/PositionHouseStorage.sol";
 
 contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, PositionHouseStorage
@@ -606,30 +607,31 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
 
     function handleMarketQuantityInLimitOrder(address _positionManager, address _trader, uint256 _newQuantity, uint256 _newNotional, uint256 _leverage, bool _isBuy) internal {
         Position.Data memory newData;
-        Position.Data memory marketPositionData = positionMap[_positionManager][_trader];
+        Position.Data memory marketPosition = positionMap[_positionManager][_trader];
         Position.Data memory totalPosition = getPosition(_positionManager, _trader);
-        int256 newPositionQuantity = _isBuy == true ? int256(_newQuantity) : - int256(_newQuantity);
-        if (newPositionQuantity * totalPosition.quantity >= 0) {
-            newData = Position.Data(
-                marketPositionData.quantity + newPositionQuantity,
-                PositionHouseFunction.handleMarginInIncrease(_newNotional / _leverage, marketPositionData, totalPosition),
-                PositionHouseFunction.handleNotionalInIncrease(_newNotional, marketPositionData, totalPosition),
-            // TODO update latest cumulative premium fraction
-                0,
-                block.number,
-                _leverage
-            );
-        } else {
-            newData = Position.Data(
-                marketPositionData.quantity + newPositionQuantity,
-                PositionHouseFunction.handleMarginInOpenReverse(totalPosition.margin * _newQuantity / totalPosition.quantity.abs(), marketPositionData, totalPosition),
-                PositionHouseFunction.handleNotionalInOpenReverse(_newNotional, marketPositionData, totalPosition),
-            // TODO update latest cumulative premium fraction
-                0,
-                block.number,
-                _leverage
-            );
-        }
+        int256 newQuantityInt = _isBuy == true ? int256(_newQuantity) : - int256(_newQuantity);
+        newData = PositionHouseFunction.handleMarketPart(totalPosition, marketPosition, _newQuantity, _newNotional, newQuantityInt, _leverage);
+//        if (newQuantityInt * totalPosition.quantity >= 0) {
+//            newData = Position.Data(
+//                marketPosition.quantity + newQuantityInt,
+//                PositionHouseFunction.handleMarginInIncrease(_newNotional / _leverage, marketPosition, totalPosition),
+//                PositionHouseFunction.handleNotionalInIncrease(_newNotional, marketPosition, totalPosition),
+//            // TODO update latest cumulative premium fraction
+//                0,
+//                block.number,
+//                _leverage
+//            );
+//        } else {
+//            newData = Position.Data(
+//                marketPosition.quantity + newQuantityInt,
+//                PositionHouseFunction.handleMarginInOpenReverse(totalPosition.margin * _newQuantity / totalPosition.quantity.abs(), marketPosition, totalPosition),
+//                PositionHouseFunction.handleNotionalInOpenReverse(_newNotional, marketPosition, totalPosition),
+//            // TODO update latest cumulative premium fraction
+//                0,
+//                block.number,
+//                _leverage
+//            );
+//        }
         positionMap[_positionManager][_trader].update(
             newData
         );
@@ -652,16 +654,17 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         positionData = positionMap[positionManager][_trader];
         PositionLimitOrder.Data[] memory _limitOrders = limitOrders[positionManager][_trader];
         PositionLimitOrder.Data[] memory _reduceOrders = reduceLimitOrders[positionManager][_trader];
-        for (uint i = 0; i < _limitOrders.length; i++) {
-            if (_limitOrders[i].pip != 0) {
-                positionData = _accumulateLimitOrderToPositionData(positionManager, _limitOrders[i], positionData, _limitOrders[i].entryPrice, _limitOrders[i].reduceQuantity);
-            }
-        }
-        for (uint i = 0; i < _reduceOrders.length; i++) {
-            if (_reduceOrders[i].pip != 0) {
-                positionData = _accumulateLimitOrderToPositionData(positionManager, _reduceOrders[i], positionData, _reduceOrders[i].entryPrice, _reduceOrders[i].reduceQuantity);
-            }
-        }
+        positionData = PositionHouseFunction.calculateLimitOrder(positionManager, _limitOrders, _reduceOrders, positionData);
+//        for (uint i = 0; i < _limitOrders.length; i++) {
+//            if (_limitOrders[i].pip != 0) {
+//                positionData = _accumulateLimitOrderToPositionData(positionManager, _limitOrders[i], positionData, _limitOrders[i].entryPrice, _limitOrders[i].reduceQuantity);
+//            }
+//        }
+//        for (uint i = 0; i < _reduceOrders.length; i++) {
+//            if (_reduceOrders[i].pip != 0) {
+//                positionData = _accumulateLimitOrderToPositionData(positionManager, _reduceOrders[i], positionData, _reduceOrders[i].entryPrice, _reduceOrders[i].reduceQuantity);
+//            }
+//        }
         positionData.margin += uint256(manualMargin[positionManager][_trader]);
         Position.LiquidatedData memory _debtPosition = debtPosition[positionManager][_trader];
         if (_debtPosition.margin != 0) {
@@ -852,15 +855,15 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         return positionResp;
     }
 
-    function _accumulateLimitOrderToPositionData(
-        address _positionManager,
-        PositionLimitOrder.Data memory limitOrder,
-        Position.Data memory positionData,
-        uint256 entryPrice,
-        uint256 reduceQuantity) internal view returns (Position.Data memory) {
-
-        return PositionHouseFunction.accumulateLimitOrderToPositionData(_positionManager, limitOrder, positionData, entryPrice, reduceQuantity);
-    }
+//    function _accumulateLimitOrderToPositionData(
+//        address _positionManager,
+//        PositionLimitOrder.Data memory limitOrder,
+//        Position.Data memory positionData,
+//        uint256 entryPrice,
+//        uint256 reduceQuantity) internal view returns (Position.Data memory) {
+//
+//        return PositionHouseFunction.accumulateLimitOrderToPositionData(_positionManager, limitOrder, positionData, entryPrice, reduceQuantity);
+//    }
 
     // UPDATE VARIABLE STORAGE
 

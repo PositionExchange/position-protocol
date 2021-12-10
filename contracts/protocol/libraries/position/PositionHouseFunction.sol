@@ -21,6 +21,37 @@ library PositionHouseFunction {
     //        uint256 sizeOut;
     //    }
 
+    function handleMarketPart(
+        Position.Data memory totalPosition,
+        Position.Data memory marketPosition,
+        uint256 _newQuantity,
+        uint256 _newNotional,
+        int256 newQuantityInt,
+        uint256 _leverage
+    ) public view returns (Position.Data memory newData) {
+        if (newQuantityInt * totalPosition.quantity >= 0) {
+            newData = Position.Data(
+                marketPosition.quantity + newQuantityInt,
+                handleMarginInIncrease(_newNotional / _leverage, marketPosition, totalPosition),
+                handleNotionalInIncrease(_newNotional, marketPosition, totalPosition),
+            // TODO update latest cumulative premium fraction
+                0,
+                block.number,
+                _leverage
+            );
+        } else {
+            newData = Position.Data(
+                marketPosition.quantity + newQuantityInt,
+                handleMarginInOpenReverse(totalPosition.margin * _newQuantity / totalPosition.quantity.abs(), marketPosition, totalPosition),
+                handleNotionalInOpenReverse(_newNotional, marketPosition, totalPosition),
+            // TODO update latest cumulative premium fraction
+                0,
+                block.number,
+                _leverage
+            );
+        }
+    }
+
     // There are 4 cases could happen:
     //      1. oldPosition created by limitOrder, new marketOrder reversed it => ON = positionResp.exchangedQuoteAssetAmount
     //      2. oldPosition created by marketOrder, new marketOrder reversed it => ON = oldPosition.openNotional - positionResp.exchangedQuoteAssetAmount
@@ -153,6 +184,23 @@ library PositionHouseFunction {
         return (subListLimitOrder, subReduceLimitOrder);
     }
 
+    function calculateLimitOrder(
+        address positionManager,
+        PositionLimitOrder.Data[] memory _limitOrders,
+        PositionLimitOrder.Data[] memory _reduceOrders,
+        Position.Data memory _positionData
+    ) public view returns (Position.Data memory positionData) {
+        for (uint i = 0; i < _limitOrders.length; i++) {
+            if (_limitOrders[i].pip != 0) {
+                positionData = accumulateLimitOrderToPositionData(positionManager, _limitOrders[i], _positionData, _limitOrders[i].entryPrice, _limitOrders[i].reduceQuantity);
+            }
+        }
+        for (uint i = 0; i < _reduceOrders.length; i++) {
+            if (_reduceOrders[i].pip != 0) {
+                positionData = accumulateLimitOrderToPositionData(positionManager, _reduceOrders[i], _positionData, _reduceOrders[i].entryPrice, _reduceOrders[i].reduceQuantity);
+            }
+        }
+    }
 
     function accumulateLimitOrderToPositionData(
         address addressPositionManager,
