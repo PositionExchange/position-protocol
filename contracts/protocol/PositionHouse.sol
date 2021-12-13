@@ -231,12 +231,16 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     function cancelLimitOrder(IPositionManager _positionManager, uint64 orderIdOfTrader, uint128 pip, uint64 orderId) public whenNotPaused nonReentrant {
         address _trader = _msgSender();
         uint256 refundQuantity = _positionManager.cancelLimitOrder(pip, orderId);
-        uint128 oldOrderPip = limitOrders[address(_positionManager)][_trader][orderIdOfTrader].pip;
-        uint64 oldOrderId = limitOrders[address(_positionManager)][_trader][orderIdOfTrader].orderId;
+        // TODO orderIdOfTrader of reduce can higher than limit increase
+        uint128 oldOrderPip;
+        uint64 oldOrderId;
+        if (orderIdOfTrader < limitOrders[address(_positionManager)][_trader].length) {
+            oldOrderPip = limitOrders[address(_positionManager)][_trader][orderIdOfTrader].pip;
+            oldOrderId = limitOrders[address(_positionManager)][_trader][orderIdOfTrader].orderId;
+        }
         uint16 leverage;
         PositionLimitOrder.Data memory blankLimitOrderData;
         if (pip == oldOrderPip && orderId == oldOrderId) {
-
             leverage = limitOrders[address(_positionManager)][_trader][orderIdOfTrader].leverage;
             (,,, uint256 partialFilled) = _positionManager.getPendingOrderDetail(pip, orderId);
             if (partialFilled == 0) {
