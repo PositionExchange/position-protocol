@@ -130,14 +130,14 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         if (openLimitResp.sizeOut < _quantity)
         {
             PositionLimitOrder.Data memory _newOrder = PositionLimitOrder.Data({
-            pip : _pip,
-            orderId : openLimitResp.orderId,
-            leverage : uint16(_leverage),
-            isBuy : _side == Position.Side.LONG ? 1 : 2,
-            entryPrice : 0,
-            reduceLimitOrderId : 0,
-            reduceQuantity : 0,
-            blockNumber : block.number
+                pip : _pip,
+                orderId : openLimitResp.orderId,
+                leverage : uint16(_leverage),
+                isBuy : _side == Position.Side.LONG ? 1 : 2,
+                entryPrice : 0,
+                reduceLimitOrderId : 0,
+                reduceQuantity : 0,
+                blockNumber : block.number
             });
             handleLimitOrderInOpenLimit(openLimitResp, _newOrder, _positionManager, _trader, _quantity, _side);
         }
@@ -250,8 +250,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
                 reduceLimitOrders[address(_positionManager)][_trader][orderIdOfTrader] = blankLimitOrderData;
             }
         }
-
-        require(leverage >= 0 && leverage <= 125, Errors.VL_INVALID_LEVERAGE);
 
         uint256 refundMargin = refundQuantity * _positionManager.pipToPrice(pip) / uint256(leverage) / _positionManager.getBaseBasisPoint();
         withdraw(_positionManager, _trader, refundMargin);
