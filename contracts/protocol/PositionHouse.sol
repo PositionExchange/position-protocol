@@ -543,7 +543,8 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         positionResp.realizedPnl = unrealizedPnl;
         // NOTICE remainMargin can be negative
         // unchecked: should be -(remainMargin + unrealizedPnl) and update remainMargin with fundingPayment
-        positionResp.marginToVault = - ((int256(remainMargin) + positionResp.realizedPnl + manualMargin[address(_positionManager)][_trader]) < 0 ? 0 : (int256(remainMargin) + positionResp.realizedPnl + manualMargin[address(_positionManager)][_trader]));
+        int256 _marginToVault = int256(remainMargin) + positionResp.realizedPnl + manualMargin[address(_positionManager)][_trader];
+        positionResp.marginToVault = - (_marginToVault < 0 ? 0 : _marginToVault);
         positionResp.unrealizedPnl = 0;
         canClaimAmountMap[address(_positionManager)][_trader] = 0;
         clearPosition(_positionManager, _trader);
