@@ -276,13 +276,12 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         //        if (_quantity == positionData.quantity.abs()) {
         //            require(getListOrderPending(_positionManager, _trader).length == 0, "ICP");
         //        }
-
-        if (positionData.quantity > 0) {
-            openMarketPosition(_positionManager, Position.Side.SHORT, _quantity, positionData.leverage);
-        } else {
-            openMarketPosition(_positionManager, Position.Side.LONG, _quantity, positionData.leverage);
-        }
-
+        openMarketPosition(
+            _positionManager,
+            positionData.quantity > 0 ? Position.Side.SHORT :  Position.Side.LONG,
+            _quantity,
+            positionData.leverage
+        );
     }
 
     /**
