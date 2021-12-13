@@ -757,16 +757,12 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         _;
     }
 
-    modifier whenPaused() {
-        require(paused, "Pausable: not paused");
-        _;
-    }
-
     function pause() public onlyOwner whenNotPaused {
         paused = true;
     }
 
-    function unpause() public onlyOwner whenPaused {
+    function unpause() public onlyOwner {
+        require(paused, "Pausable: not paused");
         paused = false;
     }
 
