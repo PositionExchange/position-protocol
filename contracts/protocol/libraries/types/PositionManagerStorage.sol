@@ -28,7 +28,6 @@ contract PositionManagerStorage {
 
     address counterParty;
 
-    bool public isOpen;
 
     bool public paused;
 
