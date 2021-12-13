@@ -6,6 +6,7 @@ import "./PositionLimitOrder.sol";
 import "../../libraries/helpers/Quantity.sol";
 import "../../PositionHouse.sol";
 import "../types/PositionHouseStorage.sol";
+import {Errors} from "../helpers/Errors.sol";
 
 
 library PositionHouseFunction {
@@ -436,7 +437,7 @@ library PositionHouseFunction {
 
         uint256 exchangedSize;
         (exchangedSize, openNotional) = _positionManager.openMarketPosition(_quantity, _side == Position.Side.LONG);
-        require(exchangedSize == _quantity, "NELQ");
+        require(exchangedSize == _quantity, Errors.VL_NOT_ENOUGH_LIQUIDITY);
         exchangedQuantity = _side == Position.Side.LONG ? int256(exchangedSize) : - int256(exchangedSize);
     }
 

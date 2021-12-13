@@ -4,16 +4,14 @@ import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Cont
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
-
 import "./libraries/position/TickPosition.sol";
 import "./libraries/position/LimitOrder.sol";
 import "./libraries/position/LiquidityBitmap.sol";
-import {IChainLinkPriceFeed} from "../interfaces/IChainLinkPriceFeed.sol";
 import "./libraries/types/PositionManagerStorage.sol";
-
+import {IChainLinkPriceFeed} from "../interfaces/IChainLinkPriceFeed.sol";
+import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import {Errors} from "./libraries/helpers/Errors.sol";
 
 import "hardhat/console.sol";
 
@@ -41,7 +39,7 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
     }
 
     modifier onlyCounterParty(){
-        require(counterParty == _msgSender(), "caller is not counterParty");
+        require(counterParty == _msgSender(), Errors.VL_NOT_COUNTERPARTY);
         _;
     }
 
@@ -64,7 +62,7 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
             _quoteAsset != address(0) &&
             _priceFeed != address(0) &&
             _counterParty != address(0),
-            "invalid input"
+            Errors.VL_INVALID_INPUT
         );
 
         __ReentrancyGuard_init();
@@ -166,9 +164,9 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
 
     function openLimitPosition(uint128 pip, uint128 size, bool isBuy) external whenNotPause onlyCounterParty returns (uint64 orderId, uint256 sizeOut, uint256 openNotional) {
         if (isBuy && singleSlot.pip != 0) {
-            require(pip <= singleSlot.pip && int128(pip) >= (int128(singleSlot.pip) - int128(maxFindingWordsIndex * 250)), "!B");
+            require(pip <= singleSlot.pip && int128(pip) >= (int128(singleSlot.pip) - int128(maxFindingWordsIndex * 250)), Errors.VL_LONG_PRICE_THAN_CURRENT_PRICE);
         } else {
-            require(pip >= singleSlot.pip && pip <= (singleSlot.pip + maxFindingWordsIndex * 250), "!S");
+            require(pip >= singleSlot.pip && pip <= (singleSlot.pip + maxFindingWordsIndex * 250), Errors.VL_SHORT_PRICE_LESS_CURRENT_PRICE);
         }
         SingleSlot memory _singleSlot = singleSlot;
         bool hasLiquidity = liquidityBitmap.hasLiquidity(pip);
@@ -205,7 +203,7 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
     }
 
     function _internalOpenMarketOrder(uint256 size, bool isBuy, uint128 maxPip) internal returns (uint256 sizeOut, uint256 openNotional) {
-        require(size != 0, "!Size");
+        require(size != 0, Errors.VL_INVALID_SIZE);
         // TODO lock
         // get current tick liquidity
         SingleSlot memory _initialSingleSlot = singleSlot;
@@ -354,7 +352,7 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
     }
 
     function setCounterParty(address _counterParty) public onlyOwner {
-        require(_counterParty != address(0), "Invalid address");
+        require(_counterParty != address(0), Errors.VL_EMPTY_ADDRESS);
         counterParty = _counterParty;
     }
 
@@ -371,7 +369,7 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
      * @return premiumFraction of this period in 18 digits
      */
     function settleFunding() external onlyCounterParty returns (int256 premiumFraction) {
-        require(block.timestamp >= nextFundingTime, "settle funding too early");
+        require(block.timestamp >= nextFundingTime, Errors.VL_SETTLE_FUNDING_TOO_EARLY);
 
         // premium = twapMarketPrice - twapIndexPrice
         // timeFraction = fundingPeriod(1 hour) / 1 day
