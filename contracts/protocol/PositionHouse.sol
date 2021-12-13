@@ -81,9 +81,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         uint256 _quantity,
         uint256 _leverage
     ) public whenNotPaused nonReentrant {
-        // TODO update require quantity > minimum amount of each pair
-//        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
-
         address _trader = _msgSender();
         Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
         if (totalPosition.quantity == 0) {
@@ -127,7 +124,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         uint128 _pip,
         uint256 _leverage
     ) public whenNotPaused nonReentrant {
-//        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
         address _trader = _msgSender();
         OpenLimitResp memory openLimitResp;
         (, openLimitResp.orderId, openLimitResp.sizeOut) = openLimitIncludeMarket(_positionManager, _trader, _pip, int256(_quantity).abs128(), _side == Position.Side.LONG ? true : false, _leverage);
