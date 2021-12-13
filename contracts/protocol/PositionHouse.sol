@@ -91,7 +91,16 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         PositionResp memory positionResp;
         // check if old position quantity is same side with new
         if (totalPosition.quantity == 0 || totalPosition.side() == _side) {
-            positionResp = PositionHouseFunction.increasePosition(positionManagerAddress, _side, int256(_quantity), _leverage, _trader, totalPosition, positionMap[positionManagerAddress][_trader], cumulativePremiumFractions[positionManagerAddress]);
+            positionResp = PositionHouseFunction.increasePosition(
+                positionManagerAddress,
+                _side,
+                int256(_quantity),
+                _leverage,
+                _trader,
+                totalPosition,
+                positionMap[positionManagerAddress][_trader],
+                cumulativePremiumFractions[positionManagerAddress]
+            );
         } else {
             positionResp = openReversePosition(_positionManager, _side, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, _trader, totalPosition);
         }
@@ -473,7 +482,16 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         address positionManagerAddress = address(_positionManager);
         if (_quantity.abs() < totalPosition.quantity.abs()) {
             {
-                positionResp = PositionHouseFunction.openReversePosition(positionManagerAddress, _side, _quantity, _leverage, _trader, totalPosition, positionMap[positionManagerAddress][_trader], cumulativePremiumFractions[positionManagerAddress]);
+                positionResp = PositionHouseFunction.openReversePosition(
+                    positionManagerAddress,
+                    _side,
+                    _quantity,
+                    _leverage,
+                    _trader,
+                    totalPosition,
+                    positionMap[positionManagerAddress][_trader],
+                    cumulativePremiumFractions[positionManagerAddress]
+                );
                 return positionResp;
             }
         }
