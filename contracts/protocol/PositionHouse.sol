@@ -81,7 +81,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         uint256 _quantity,
         uint256 _leverage
     ) public whenNotPaused nonReentrant {
-        // TODO update require quantity > minimum amount of each pair
         address _trader = _msgSender();
         address positionManagerAddress = address(_positionManager);
         Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
@@ -132,14 +131,14 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         if (openLimitResp.sizeOut < _quantity)
         {
             PositionLimitOrder.Data memory _newOrder = PositionLimitOrder.Data({
-            pip : _pip,
-            orderId : openLimitResp.orderId,
-            leverage : uint16(_leverage),
-            isBuy : _side == Position.Side.LONG ? 1 : 2,
-            entryPrice : 0,
-            reduceLimitOrderId : 0,
-            reduceQuantity : 0,
-            blockNumber : block.number
+                pip : _pip,
+                orderId : openLimitResp.orderId,
+                leverage : uint16(_leverage),
+                isBuy : _side == Position.Side.LONG ? 1 : 2,
+                entryPrice : 0,
+                reduceLimitOrderId : 0,
+                reduceQuantity : 0,
+                blockNumber : block.number
             });
             handleLimitOrderInOpenLimit(openLimitResp, _newOrder, _positionManager, _trader, _quantity, _side);
         }
@@ -303,14 +302,23 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         );
     }
 
-    function getClaimAmount(IPositionManager _positionManager, address _trader) public view returns (int256 totalClaimableAmount) {
-        Position.Data memory positionData = getPosition(address(_positionManager), _trader);
-        return PositionHouseFunction.getClaimAmount(address(_positionManager), _trader, positionData, limitOrders[address(_positionManager)][_trader], reduceLimitOrders[address(_positionManager)][_trader], positionMap[address(_positionManager)][_trader], canClaimAmountMap[address(_positionManager)][_trader], manualMargin[address(_positionManager)][_trader]);
+    function getClaimAmount(address _positionManager, address _trader) public view returns (int256 totalClaimableAmount) {
+        Position.Data memory positionData = getPosition(_positionManager, _trader);
+        return PositionHouseFunction.getClaimAmount(
+            _positionManager,
+            _trader,
+            positionData,
+            limitOrders[_positionManager][_trader],
+            reduceLimitOrders[_positionManager][_trader],
+            positionMap[_positionManager][_trader],
+            canClaimAmountMap[_positionManager][_trader],
+            manualMargin[_positionManager][_trader]
+        );
     }
 
     function claimFund(IPositionManager _positionManager) public whenNotPaused nonReentrant {
         address _trader = _msgSender();
-        int256 totalRealizedPnl = getClaimAmount(_positionManager, _trader);
+        int256 totalRealizedPnl = getClaimAmount(address(_positionManager), _trader);
         require(getPosition(address(_positionManager), _trader).quantity == 0, Errors.VL_INVALID_CLAIM_FUND);
         clearPosition(_positionManager, _trader);
         if (totalRealizedPnl > 0) {
@@ -334,13 +342,13 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         // TODO before liquidate should we check can claimFund, because trader has close position limit before liquidate
         // require trader's margin ratio higher than partial liquidation ratio
         require(marginRatio >= partialLiquidationRatio, Errors.VL_NOT_ENOUGH_MARGIN_RATIO);
-
+        address positionManagerAddress = address(_positionManager);
         PositionResp memory positionResp;
         uint256 liquidationPenalty;
         {
             uint256 feeToLiquidator;
             uint256 feeToInsuranceFund;
-            Position.Data memory positionData = getPosition(address(_positionManager), _trader);
+            Position.Data memory positionData = getPosition(positionManagerAddress, _trader);
             // partially liquidate position
             if (marginRatio >= partialLiquidationRatio && marginRatio < 100) {
 
@@ -361,10 +369,10 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
                 feeToLiquidator = liquidationPenalty / 2;
                 feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
                 // TODO take liquidation fee
-            } else {
+            } else {        
                 // fully liquidate trader's position
-                liquidationPenalty = positionData.margin + uint256(manualMargin[address(_positionManager)][_trader]);
-                withdraw(_positionManager, _trader, (uint256(getClaimAmount(_positionManager, _trader)) + positionData.margin));
+                liquidationPenalty = positionData.margin + uint256(manualMargin[positionManagerAddress][_trader]);
+                withdraw(_positionManager, _trader, (uint256(getClaimAmount(positionManagerAddress, _trader)) + positionData.margin));
                 clearPosition(_positionManager, _trader);
                 feeToLiquidator = liquidationPenalty * liquidationFeeRatio / 2 / 100;
             }
