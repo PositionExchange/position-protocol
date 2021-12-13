@@ -33,15 +33,29 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
     event FundingRateUpdated(int256 fundingRate, uint256 underlyingPrice);
     event LimitOrderUpdated(uint64 orderId, uint128 pip, uint256 size);
 
-    modifier whenNotPause(){
-        //TODO implement
-        _;
-    }
-
     modifier onlyCounterParty(){
         require(counterParty == _msgSender(), Errors.VL_NOT_COUNTERPARTY);
         _;
     }
+
+    modifier whenNotPaused() {
+        require(!paused, "Pausable: paused");
+        _;
+    }
+
+    modifier whenPaused() {
+        require(paused, "Pausable: not paused");
+        _;
+    }
+
+    function pause() public onlyOwner whenNotPaused {
+        paused = true;
+    }
+
+    function unpause() public onlyOwner whenPaused {
+        paused = false;
+    }
+
 
 
     function initialize(
@@ -84,7 +98,7 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
         priceFeed = IChainLinkPriceFeed(_priceFeed);
         isOpen = true;
         counterParty = _counterParty;
-
+        paused = false;
         emit ReserveSnapshotted(_initialPip, block.timestamp);
     }
 
@@ -162,7 +176,7 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
         emit LimitOrderCancelled(orderId, pip, size);
     }
 
-    function openLimitPosition(uint128 pip, uint128 size, bool isBuy) external whenNotPause onlyCounterParty returns (uint64 orderId, uint256 sizeOut, uint256 openNotional) {
+    function openLimitPosition(uint128 pip, uint128 size, bool isBuy) external whenNotPaused onlyCounterParty returns (uint64 orderId, uint256 sizeOut, uint256 openNotional) {
         if (isBuy && singleSlot.pip != 0) {
             require(pip <= singleSlot.pip && int128(pip) >= (int128(singleSlot.pip) - int128(maxFindingWordsIndex * 250)), Errors.VL_LONG_PRICE_THAN_CURRENT_PRICE);
         } else {
@@ -194,11 +208,11 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
     }
 
 
-    function openMarketPositionWithMaxPip(uint256 size, bool isBuy, uint128 maxPip) public whenNotPause onlyCounterParty returns (uint256 sizeOut, uint256 openNotional) {
+    function openMarketPositionWithMaxPip(uint256 size, bool isBuy, uint128 maxPip) public whenNotPaused onlyCounterParty returns (uint256 sizeOut, uint256 openNotional) {
         return _internalOpenMarketOrder(size, isBuy, maxPip);
     }
 
-    function openMarketPosition(uint256 size, bool isBuy) external whenNotPause onlyCounterParty returns (uint256 sizeOut, uint256 openNotional) {
+    function openMarketPosition(uint256 size, bool isBuy) external whenNotPaused onlyCounterParty returns (uint256 sizeOut, uint256 openNotional) {
         return _internalOpenMarketOrder(size, isBuy, 0);
     }
 

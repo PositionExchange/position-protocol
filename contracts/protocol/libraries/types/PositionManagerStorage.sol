@@ -30,6 +30,8 @@ contract PositionManagerStorage {
 
     bool public isOpen;
 
+    bool public paused;
+
     IChainLinkPriceFeed public priceFeed;
 
     struct SingleSlot {

@@ -91,7 +91,7 @@ contract PositionHouseStorage {
 
     IInsuranceFund public insuranceFund;
 
-    bool  _paused;
+    bool public paused;
 
 
 }
