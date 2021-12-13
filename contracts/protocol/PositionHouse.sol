@@ -642,11 +642,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         (uint256 remainMarginWithFundingPayment,,,) = calcRemainMarginWithFundingPayment(_positionManager, positionData, positionData.margin);
         maintenanceMargin = (remainMarginWithFundingPayment - uint256(manualMargin[address(_positionManager)][_trader])) * maintenanceMarginRatio / 100;
         marginBalance = int256(remainMarginWithFundingPayment) + unrealizedPnl;
-        if (marginBalance <= 0) {
-            marginRatio = 100;
-        } else {
-            marginRatio = maintenanceMargin * 100 / uint256(marginBalance);
-        }
+        marginRatio = marginBalance <= 0 ? 100 : maintenanceMargin * 100 / uint256(marginBalance);
     }
 
     function getLatestCumulativePremiumFraction(IPositionManager _positionManager) public view returns (int256){
