@@ -298,18 +298,14 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     ) public {
         address _trader = _msgSender();
         Position.Data memory positionData = getPosition(address(_positionManager), _trader);
-        //        requirePositionManager(_positionManager);
         require(_quantity > 0 && _quantity <= positionData.quantity.abs(), Errors.VL_INVALID_CLOSE_QUANTITY);
-        //        if (_quantity == positionData.quantity.abs()) {
-        //            require(getListOrderPending(_positionManager, _trader).length == 0, "ICP");
-        //        }
-
-
-        if (positionData.quantity > 0) {
-            openLimitOrder(_positionManager, Position.Side.SHORT, _quantity, _pip, positionData.leverage);
-        } else {
-            openLimitOrder(_positionManager, Position.Side.LONG, _quantity, _pip, positionData.leverage);
-        }
+        openLimitOrder(
+            _positionManager,
+            positionData.quantity > 0 ? Position.Side.SHORT : Position.Side.LONG,
+            _quantity,
+            _pip,
+            positionData.leverage
+        );
     }
 
     function getClaimAmount(address _positionManager, address _trader) public view returns (int256 totalClaimableAmount) {
