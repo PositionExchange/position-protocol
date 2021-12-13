@@ -484,33 +484,35 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         Position.Data memory totalPosition
     ) internal returns (PositionResp memory positionResp) {
         address positionManagerAddress = address(_positionManager);
-//        {
-//            positionResp = PositionHouseFunction.increasePosition(positionManagerAddress, _side, _quantity, _leverage, _trader, totalPosition, positionMap[positionManagerAddress][_trader]);
-//        }
-        (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(_positionManager, _quantity.abs(), _side);
-        if (positionResp.exchangedPositionSize != 0) {
-            Position.Data memory marketPosition = positionMap[address(_positionManager)][_trader];
-            int256 _newSize = marketPosition.quantity + positionResp.exchangedPositionSize;
-            uint256 increaseMarginRequirement = positionResp.exchangedQuoteAssetAmount / _leverage;
-            // TODO update function latestCumulativePremiumFraction
-
-            //            Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
-
-            (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, totalPosition);
-
-            positionResp.unrealizedPnl = unrealizedPnl;
-            positionResp.realizedPnl = 0;
-            // checked margin to vault
-            positionResp.marginToVault = int256(increaseMarginRequirement);
-            positionResp.position = Position.Data(
-                _newSize,
-                PositionHouseFunction.handleMarginInIncrease(increaseMarginRequirement, marketPosition, totalPosition, cumulativePremiumFractions[positionManagerAddress]),
-                PositionHouseFunction.handleNotionalInIncrease(positionResp.exchangedQuoteAssetAmount, marketPosition, totalPosition),
-                0,
-                block.number,
-                _leverage
-            );
+        Position.Data memory marketPosition = positionMap[positionManagerAddress][_trader];
+        int256[] memory cumulativePremiumFraction = cumulativePremiumFractions[positionManagerAddress];
+        {
+            positionResp = PositionHouseFunction.increasePosition(positionManagerAddress, _side, _quantity, _leverage, _trader, totalPosition, marketPosition, cumulativePremiumFraction);
         }
+//        (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(_positionManager, _quantity.abs(), _side);
+//        if (positionResp.exchangedPositionSize != 0) {
+//            Position.Data memory marketPosition = positionMap[address(_positionManager)][_trader];
+//            int256 _newSize = marketPosition.quantity + positionResp.exchangedPositionSize;
+//            uint256 increaseMarginRequirement = positionResp.exchangedQuoteAssetAmount / _leverage;
+//            // TODO update function latestCumulativePremiumFraction
+//
+//            //            Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
+//
+//            (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, totalPosition);
+//
+//            positionResp.unrealizedPnl = unrealizedPnl;
+//            positionResp.realizedPnl = 0;
+//            // checked margin to vault
+//            positionResp.marginToVault = int256(increaseMarginRequirement);
+//            positionResp.position = Position.Data(
+//                _newSize,
+//                PositionHouseFunction.handleMarginInIncrease(increaseMarginRequirement, marketPosition, totalPosition, cumulativePremiumFractions[positionManagerAddress]),
+//                PositionHouseFunction.handleNotionalInIncrease(positionResp.exchangedQuoteAssetAmount, marketPosition, totalPosition),
+//                0,
+//                block.number,
+//                _leverage
+//            );
+//        }
     }
 
     function openReversePosition(
