@@ -12,8 +12,9 @@ import "./PositionManager.sol";
 import "./libraries/helpers/Quantity.sol";
 import "./libraries/position/PositionLimitOrder.sol";
 import "../interfaces/IInsuranceFund.sol";
-import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.sol";
 import "./libraries/types/PositionHouseStorage.sol";
+import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.sol";
+import {Errors} from "./libraries/helpers/Errors.sol";
 
 contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, PositionHouseStorage
 {
@@ -86,14 +87,14 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         uint256 _leverage
     ) public whenNotPaused nonReentrant {
         // TODO update require quantity > minimum amount of each pair
-        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
+        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), Errors.VL_INVALID_QUANTITY);
 
         address _trader = _msgSender();
         Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
         if (totalPosition.quantity == 0) {
             totalPosition.leverage = 1;
         }
-        require(_leverage >= totalPosition.leverage && _leverage <= 125 && _leverage > 0, "IL");
+        require(_leverage >= totalPosition.leverage && _leverage <= 125 && _leverage > 0, Errors.VL_INVALID_LEVERAGE);
         PositionResp memory positionResp;
         // check if old position quantity is same side with new
         if (totalPosition.quantity == 0 || totalPosition.side() == _side) {
@@ -131,7 +132,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         uint128 _pip,
         uint256 _leverage
     ) public whenNotPaused nonReentrant {
-        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
+        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), Errors.VL_INVALID_QUANTITY);
         address _trader = _msgSender();
         OpenLimitResp memory openLimitResp;
         (, openLimitResp.orderId, openLimitResp.sizeOut) = openLimitIncludeMarket(_positionManager, _trader, _pip, int256(_quantity).abs128(), _side == Position.Side.LONG ? true : false, _leverage);
@@ -164,7 +165,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     function openLimitIncludeMarket(IPositionManager _positionManager, address _trader, uint128 _pip, uint128 _quantity, bool _isBuy, uint256 _leverage) internal returns (PositionResp memory positionResp, uint64 orderId, uint256 sizeOut){
         {
             Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
-            require(_leverage >= totalPosition.leverage && _leverage <= 125 && _leverage > 0, "IL");
+            require(_leverage >= totalPosition.leverage && _leverage <= 125 && _leverage > 0, Errors.VL_INVALID_LEVERAGE);
             (uint128 currentPip, uint8 isFullBuy) = _positionManager.getCurrentSingleSlot();
             uint256 openNotional;
             //1: buy
@@ -259,7 +260,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
             }
         }
 
-        require(leverage >= 0 && leverage <= 125, "IL");
+        require(leverage >= 0 && leverage <= 125, Errors.VL_INVALID_LEVERAGE);
 
         uint256 refundMargin = refundQuantity * _positionManager.pipToPrice(pip) / uint256(leverage) / _positionManager.getBaseBasisPoint();
         withdraw(_positionManager, _trader, refundMargin);
@@ -278,7 +279,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     ) public {
         address _trader = _msgSender();
         Position.Data memory positionData = getPosition(address(_positionManager), _trader);
-        require(_quantity > 0 && _quantity <= positionData.quantity.abs(), "ICQ");
+        require(_quantity > 0 && _quantity <= positionData.quantity.abs(), Errors.VL_INVALID_CLOSE_QUANTITY);
         //        requirePositionManager(_positionManager);
         // only when close 100% position need to close pending order
         //        if (_quantity == positionData.quantity.abs()) {
@@ -307,7 +308,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         address _trader = _msgSender();
         Position.Data memory positionData = getPosition(address(_positionManager), _trader);
         //        requirePositionManager(_positionManager);
-        require(_quantity > 0 && _quantity <= positionData.quantity.abs(), "ICQ");
+        require(_quantity > 0 && _quantity <= positionData.quantity.abs(), Errors.VL_INVALID_CLOSE_QUANTITY);
         //        if (_quantity == positionData.quantity.abs()) {
         //            require(getListOrderPending(_positionManager, _trader).length == 0, "ICP");
         //        }
@@ -329,7 +330,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         address _trader = _msgSender();
         int256 totalRealizedPnl = getClaimAmount(_positionManager, _trader);
         //        require(getPosition(address(_positionManager), _trader).quantity == 0 && getListOrderPending(_positionManager, _trader).length == 0, "ICF");
-        require(getPosition(address(_positionManager), _trader).quantity == 0, "ICF");
+        require(getPosition(address(_positionManager), _trader).quantity == 0, Errors.VL_INVALID_CLAIM_FUND);
         clearPosition(_positionManager, _trader);
         if (totalRealizedPnl > 0) {
             withdraw(_positionManager, _trader, totalRealizedPnl.abs());
@@ -351,7 +352,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
 
         // TODO before liquidate should we check can claimFund, because trader has close position limit before liquidate
         // require trader's margin ratio higher than partial liquidation ratio
-        require(marginRatio >= partialLiquidationRatio, "NEMR");
+        require(marginRatio >= partialLiquidationRatio, Errors.VL_NOT_ENOUGH_MARGIN_RATIO);
 
         PositionResp memory positionResp;
         uint256 liquidationPenalty;
@@ -398,7 +399,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
 
         address _trader = _msgSender();
         //        Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
-        require(getPosition(address(_positionManager), _trader).quantity != 0, "NPTA");
+        require(getPosition(address(_positionManager), _trader).quantity != 0, Errors.VL_NO_POSITION_TO_ADD);
         //        if (totalPosition.quantity != 0) {
         manualMargin[address(_positionManager)][_trader] += int256(_marginAdded);
         //        }
@@ -422,9 +423,9 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         address _trader = _msgSender();
 
         //        Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
-        require(getPosition(address(_positionManager), _trader).quantity != 0, "NPTR");
+        require(getPosition(address(_positionManager), _trader).quantity != 0, Errors.VL_NO_POSITION_TO_REMOVE);
         uint256 removableMargin = uint256(getRemovableMargin(_positionManager, _trader));
-        require(_marginRemoved <= removableMargin, "IRM");
+        require(_marginRemoved <= removableMargin,  Errors.VL_INVALID_REMOVE_MARGIN);
 
         manualMargin[address(_positionManager)][_trader] -= int256(_marginRemoved);
 
@@ -588,7 +589,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         //        Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, _pnlCalcOption, totalPosition);
         uint256 openMarketQuantity = totalPosition.quantity.abs();
-        require(openMarketQuantity != 0, "IQIC");
+        require(openMarketQuantity != 0,  Errors.VL_INVALID_QUANTITY_INTERNAL_CLOSE);
         if (isInOpenLimit) {
             uint256 liquidityInCurrentPip = uint256(_positionManager.getLiquidityInCurrentPip());
             openMarketQuantity = liquidityInCurrentPip > totalPosition.quantity.abs() ? totalPosition.quantity.abs() : liquidityInCurrentPip;
