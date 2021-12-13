@@ -312,9 +312,18 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         }
     }
 
-    function getClaimAmount(IPositionManager _positionManager, address _trader) public view returns (int256 totalClaimableAmount) {
-        Position.Data memory positionData = getPosition(address(_positionManager), _trader);
-        return PositionHouseFunction.getClaimAmount(address(_positionManager), _trader, positionData, limitOrders[address(_positionManager)][_trader], reduceLimitOrders[address(_positionManager)][_trader], positionMap[address(_positionManager)][_trader], canClaimAmountMap[address(_positionManager)][_trader], manualMargin[address(_positionManager)][_trader]);
+    function getClaimAmount(address _positionManager, address _trader) public view returns (int256 totalClaimableAmount) {
+        Position.Data memory positionData = getPosition(_positionManager, _trader);
+        return PositionHouseFunction.getClaimAmount(
+            _positionManager,
+            _trader,
+            positionData,
+            limitOrders[_positionManager][_trader],
+            reduceLimitOrders[_positionManager][_trader],
+            positionMap[_positionManager][_trader],
+            canClaimAmountMap[_positionManager][_trader],
+            manualMargin[_positionManager][_trader]
+        );
     }
 
     function claimFund(IPositionManager _positionManager) public whenNotPaused nonReentrant {
