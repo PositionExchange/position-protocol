@@ -17,14 +17,19 @@ library Errors {
     //contract specific errors
     string public constant VL_INVALID_AMOUNT = '1'; // 'Amount must be greater than 0'
     string public constant VL_EMPTY_ADDRESS = '2';
-    string public constant VL_NOT_ENOUGH_HISTORY = '3';
-    string public constant VL_NEGATIVE_PRICE = '4';// "Negative price"
-    string public constant A_AMM_WAS_CLOSE= '81';
-    string public constant A_AMM_IS_OPEN= '82';
-    string public constant A_AMM_NOT_FOUND= '83';
-    string public constant A_AMM_ALREADY_ADDED= '84';
-    string public constant A_AMM_SETTLE_TO_SOON = '85';
-    string public constant A_AMM_CALLER_IS_NOT_COUNTER_PARTY = '86';// caller is not counterParty
+    string public constant VL_INVALID_QUANTITY = '3'; // 'IQ'
+    string public constant VL_INVALID_LEVERAGE = '4'; // 'IL'
+    string public constant VL_INVALID_CLOSE_QUANTITY = '5'; // 'ICQ'
+    string public constant VL_INVALID_CLAIM_FUND = '6'; // 'ICF'
+    string public constant VL_NOT_ENOUGH_MARGIN_RATIO = '7'; // 'NEMR'
+    string public constant VL_NO_POSITION_TO_REMOVE = '8'; // 'NPTR'
+    string public constant VL_NO_POSITION_TO_ADD = '9'; // 'NPTA'
+    string public constant VL_INVALID_QUANTITY_INTERNAL_CLOSE = '10'; // 'IQIC'
+    string public constant VL_NOT_ENOUGH_LIQUIDITY = '11'; // 'NELQ'
+    string public constant VL_INVALID_REMOVE_MARGIN = '12'; // 'IRM'
+    string public constant VL_NOT_COUNTERPARTY = '13'; // 'IRM'
+
+
 
     enum CollateralManagerErrors {
         NO_ERROR
