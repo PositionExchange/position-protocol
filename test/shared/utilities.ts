@@ -189,7 +189,7 @@ export interface PendingOrder {
 
 export interface LimitOrderReturns {
     orderId: string;
-    pip: number;
+    pip: string;
     orderIdOfTrader: string;
 }
 

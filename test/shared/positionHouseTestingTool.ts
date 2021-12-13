@@ -158,9 +158,9 @@ export default class PositionHouseTestingTool {
         notional
     }: any) {
         const positionData = (await this.getPosition(trader))
-        margin && expect(positionData.margin.div('10000').toString()).eq(margin.toString());
+        margin && expect(positionData.margin.toString()).eq(margin.toString());
         quantity && expect(positionData.quantity.toString()).eq(quantity.toString());
-        notional && expect(positionData.openNotional.div('10000').toString()).eq(notional.toString());
+        notional && expect(positionData.openNotional.toString()).eq(notional.toString());
     }
 
     async debugPosition(trader: SignerWithAddress){
@@ -170,7 +170,7 @@ export default class PositionHouseTestingTool {
         const openNotional = positionInfo.openNotional.div('10000').toString()
         // expectedNotional = expectedNotional && expectedNotional.toString() || quantity.mul(price).toString()
         console.log(`debugPosition Position Info of ${trader.address}`)
-        const pnl = await this.positionHouse.getPositionNotionalAndUnrealizedPnl(this.positionManager.address, trader.address, 0)
+        const pnl = await this.positionHouse.getPositionNotionalAndUnrealizedPnlTest(this.positionManager.address, trader.address, 0)
         console.table([
             {
                 openNotional: openNotional,

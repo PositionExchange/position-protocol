@@ -720,8 +720,20 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         uint256 positionNotional,
         int256 unrealizedPnl
     ){
+        (positionNotional, unrealizedPnl) = PositionHouseFunction.getPositionNotionalAndUnrealizedPnl(address(positionManager), _trader, _pnlCalcOption, totalPosition);
+    }
+
+    function getPositionNotionalAndUnrealizedPnlTest(
+        IPositionManager positionManager,
+        address _trader,
+        PnlCalcOption _pnlCalcOption
+    ) public view returns
+    (
+        uint256 positionNotional,
+        int256 unrealizedPnl
+    ){
         // TODO remove function getPosition when deploy
-        totalPosition = getPosition(address(positionManager), _trader);
+        Position.Data memory totalPosition = getPosition(address(positionManager), _trader);
         (positionNotional, unrealizedPnl) = PositionHouseFunction.getPositionNotionalAndUnrealizedPnl(address(positionManager), _trader, _pnlCalcOption, totalPosition);
     }
 
