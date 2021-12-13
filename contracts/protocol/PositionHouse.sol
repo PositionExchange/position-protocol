@@ -86,7 +86,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         uint256 _leverage
     ) public whenNotPaused nonReentrant {
         // TODO update require quantity > minimum amount of each pair
-        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
+//        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
 
         address _trader = _msgSender();
         Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
@@ -131,7 +131,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         uint128 _pip,
         uint256 _leverage
     ) public whenNotPaused nonReentrant {
-        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
+//        require(_quantity == (_quantity / 1000000000000000 * 1000000000000000), "IQ");
         address _trader = _msgSender();
         OpenLimitResp memory openLimitResp;
         (, openLimitResp.orderId, openLimitResp.sizeOut) = openLimitIncludeMarket(_positionManager, _trader, _pip, int256(_quantity).abs128(), _side == Position.Side.LONG ? true : false, _leverage);
@@ -484,10 +484,10 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         Position.Data memory totalPosition
     ) internal returns (PositionResp memory positionResp) {
         address positionManagerAddress = address(_positionManager);
-        Position.Data memory marketPosition = positionMap[positionManagerAddress][_trader];
-        int256[] memory cumulativePremiumFraction = cumulativePremiumFractions[positionManagerAddress];
+//        Position.Data memory marketPosition = positionMap[positionManagerAddress][_trader];
+//        int256[] memory cumulativePremiumFraction = cumulativePremiumFractions[positionManagerAddress];
         {
-            positionResp = PositionHouseFunction.increasePosition(positionManagerAddress, _side, _quantity, _leverage, _trader, totalPosition, marketPosition, cumulativePremiumFraction);
+            positionResp = PositionHouseFunction.increasePosition(positionManagerAddress, _side, _quantity, _leverage, _trader, totalPosition, positionMap[positionManagerAddress][_trader], cumulativePremiumFractions[positionManagerAddress]);
         }
 //        (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(_positionManager, _quantity.abs(), _side);
 //        if (positionResp.exchangedPositionSize != 0) {
@@ -525,30 +525,34 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     ) internal returns (PositionResp memory positionResp) {
         address positionManagerAddress = address(_positionManager);
         //        Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
-        Position.Data memory marketPosition = positionMap[address(_positionManager)][_trader];
+//        Position.Data memory marketPosition = positionMap[address(_positionManager)][_trader];
         if (_quantity.abs() < totalPosition.quantity.abs()) {
-            uint256 reduceMarginRequirement = totalPosition.margin * _quantity.abs() / totalPosition.quantity.abs();
-            int256 totalQuantity = marketPosition.quantity + _quantity;
-            (positionResp.exchangedPositionSize,) = openMarketOrder(_positionManager, _quantity.abs(), _side);
-
-            (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, totalPosition);
-            positionResp.realizedPnl = unrealizedPnl * int256(positionResp.exchangedPositionSize) / totalPosition.quantity;
-            positionResp.exchangedQuoteAssetAmount = _quantity.abs() * totalPosition.getEntryPrice(address(_positionManager)) / _positionManager.getBaseBasisPoint();
-            // NOTICE margin to vault can be negative
-            positionResp.marginToVault = - (int256(reduceMarginRequirement) + positionResp.realizedPnl);
-            // NOTICE calc unrealizedPnl after open reverse
-            positionResp.unrealizedPnl = unrealizedPnl - positionResp.realizedPnl;
             {
-                positionResp.position = Position.Data(
-                    totalQuantity,
-                    PositionHouseFunction.handleMarginInOpenReverse(reduceMarginRequirement, marketPosition, totalPosition, cumulativePremiumFractions[positionManagerAddress]),
-                    PositionHouseFunction.handleNotionalInOpenReverse(positionResp.exchangedQuoteAssetAmount, marketPosition, totalPosition),
-                    0,
-                    block.number,
-                    _leverage
-                );
+                positionResp = PositionHouseFunction.openReversePosition(positionManagerAddress, _side, _quantity, _leverage, _trader, totalPosition, positionMap[positionManagerAddress][_trader], cumulativePremiumFractions[positionManagerAddress]);
+                return positionResp;
             }
-            return positionResp;
+//            uint256 reduceMarginRequirement = totalPosition.margin * _quantity.abs() / totalPosition.quantity.abs();
+//            int256 totalQuantity = marketPosition.quantity + _quantity;
+//            (positionResp.exchangedPositionSize,) = openMarketOrder(_positionManager, _quantity.abs(), _side);
+//
+//            (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, totalPosition);
+//            positionResp.realizedPnl = unrealizedPnl * int256(positionResp.exchangedPositionSize) / totalPosition.quantity;
+//            positionResp.exchangedQuoteAssetAmount = _quantity.abs() * totalPosition.getEntryPrice(address(_positionManager)) / _positionManager.getBaseBasisPoint();
+//            // NOTICE margin to vault can be negative
+//            positionResp.marginToVault = - (int256(reduceMarginRequirement) + positionResp.realizedPnl);
+//            // NOTICE calc unrealizedPnl after open reverse
+//            positionResp.unrealizedPnl = unrealizedPnl - positionResp.realizedPnl;
+//            {
+//                positionResp.position = Position.Data(
+//                    totalQuantity,
+//                    PositionHouseFunction.handleMarginInOpenReverse(reduceMarginRequirement, marketPosition, totalPosition, cumulativePremiumFractions[positionManagerAddress]),
+//                    PositionHouseFunction.handleNotionalInOpenReverse(positionResp.exchangedQuoteAssetAmount, marketPosition, totalPosition),
+//                    0,
+//                    block.number,
+//                    _leverage
+//                );
+//            }
+//            return positionResp;
         }
         // if new position is larger then close old and open new
         return closeAndOpenReversePosition(_positionManager, _side, _quantity, _leverage, totalPosition);
@@ -562,11 +566,12 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         Position.Data memory totalPosition
     ) internal returns (PositionResp memory positionResp) {
         address _trader = _msgSender();
+        address positionManagerAddress = address(_positionManager);
         PositionResp memory closePositionResp = internalClosePosition(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, false, totalPosition);
         if (_quantity - closePositionResp.exchangedPositionSize == 0) {
             positionResp = closePositionResp;
         } else {
-            totalPosition = getPosition(address(_positionManager), _trader);
+            totalPosition = getPosition(positionManagerAddress, _trader);
             PositionResp memory increasePositionResp = increasePosition(_positionManager, _side, _quantity - closePositionResp.exchangedPositionSize, _leverage, _trader, totalPosition);
             positionResp = PositionResp({
             position : increasePositionResp.position,
@@ -779,13 +784,13 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     }
 
     function withdraw(IPositionManager _positionManager, address _trader, uint256 amount) internal {
-        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, amount);
+//        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, amount);
     }
 
     function deposit(IPositionManager _positionManager, address _trader, uint256 amount, uint256 openNotional) internal {
         uint256 fee = calcFee(_trader, _positionManager, openNotional);
-        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, amount + fee);
-        insuranceFund.updateTotalFee(fee);
+//        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, amount + fee);
+//        insuranceFund.updateTotalFee(fee);
     }
 
 

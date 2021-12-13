@@ -477,6 +477,42 @@ library PositionHouseFunction {
         }
     }
 
+    function openReversePosition(
+        address addressPositionManager,
+        Position.Side _side,
+        int256 _quantity,
+        uint256 _leverage,
+        address _trader,
+        Position.Data memory totalPosition,
+        Position.Data memory marketPosition,
+        int256[] memory cumulativePremiumFraction
+    ) public returns (PositionHouseStorage.PositionResp memory positionResp){
+        IPositionManager _positionManager = IPositionManager(addressPositionManager);
+        uint256 reduceMarginRequirement = totalPosition.margin * _quantity.abs() / totalPosition.quantity.abs();
+        int256 totalQuantity = marketPosition.quantity + _quantity;
+        (positionResp.exchangedPositionSize,) = openMarketOrder(addressPositionManager, _quantity.abs(), _side, _trader);
+
+        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(addressPositionManager, _trader, PositionHouseStorage.PnlCalcOption.SPOT_PRICE, totalPosition);
+        positionResp.realizedPnl = unrealizedPnl * int256(positionResp.exchangedPositionSize) / totalPosition.quantity;
+        positionResp.exchangedQuoteAssetAmount = _quantity.abs() * totalPosition.getEntryPrice(addressPositionManager) / _positionManager.getBaseBasisPoint();
+        // NOTICE margin to vault can be negative
+        positionResp.marginToVault = - (int256(reduceMarginRequirement) + positionResp.realizedPnl);
+        // NOTICE calc unrealizedPnl after open reverse
+        positionResp.unrealizedPnl = unrealizedPnl - positionResp.realizedPnl;
+        {
+            positionResp.position = Position.Data(
+                totalQuantity,
+                handleMarginInOpenReverse(reduceMarginRequirement, marketPosition, totalPosition, cumulativePremiumFraction),
+                handleNotionalInOpenReverse(positionResp.exchangedQuoteAssetAmount, marketPosition, totalPosition),
+                0,
+                block.number,
+                _leverage
+            );
+        }
+        return positionResp;
+
+    }
+
     function calcRemainMarginWithFundingPayment(
         Position.Data memory oldPosition, uint256 deltaMargin, int256[] memory cumulativePremiumFractions
     ) internal view returns (uint256 remainMargin){
