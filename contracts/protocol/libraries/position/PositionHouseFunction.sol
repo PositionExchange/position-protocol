@@ -6,6 +6,7 @@ import "./PositionLimitOrder.sol";
 import "../../libraries/helpers/Quantity.sol";
 import "../../PositionHouse.sol";
 import "../types/PositionHouseStorage.sol";
+import {Errors} from "../helpers/Errors.sol";
 
 
 library PositionHouseFunction {
@@ -436,45 +437,45 @@ library PositionHouseFunction {
 
         uint256 exchangedSize;
         (exchangedSize, openNotional) = _positionManager.openMarketPosition(_quantity, _side == Position.Side.LONG);
-        require(exchangedSize == _quantity, "NELQ");
+        require(exchangedSize == _quantity, Errors.VL_NOT_ENOUGH_LIQUIDITY);
         exchangedQuantity = _side == Position.Side.LONG ? int256(exchangedSize) : - int256(exchangedSize);
     }
 
-//    function increasePosition(
-//        address addressPositionManager,
-//        Position.Side _side,
-//        int256 _quantity,
-//        uint256 _leverage,
-//        address _trader,
-//        Position.Data memory totalPosition,
-//        Position.Data memory marketPosition
-//    ) public returns (PositionHouseStorage.PositionResp memory positionResp){
-////        IPositionManager _positionManager = IPositionManager(addressPositionManager);
-//        (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(addressPositionManager, _quantity.abs(), _side, _trader);
-//        if (positionResp.exchangedPositionSize != 0) {
-////            Position.Data memory marketPosition = positionMap[address(_positionManager)][_trader];
-//            int256 _newSize = marketPosition.quantity + positionResp.exchangedPositionSize;
-//            uint256 increaseMarginRequirement = positionResp.exchangedQuoteAssetAmount / _leverage;
-//            // TODO update function latestCumulativePremiumFraction
-//
-//            //            Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
-//
-//            (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(addressPositionManager, _trader, PositionHouseStorage.PnlCalcOption.SPOT_PRICE, totalPosition);
-//
-//            positionResp.unrealizedPnl = unrealizedPnl;
-//            positionResp.realizedPnl = 0;
-//            // checked margin to vault
-//            positionResp.marginToVault = int256(increaseMarginRequirement);
-//            positionResp.position = Position.Data(
-//                _newSize,
-//                handleMarginInIncrease(increaseMarginRequirement, marketPosition, totalPosition),
-//                handleNotionalInIncrease(positionResp.exchangedQuoteAssetAmount, marketPosition, totalPosition),
-//                0,
-//                block.number,
-//                _leverage
-//            );
-//        }
-//    }
+    //    function increasePosition(
+    //        address addressPositionManager,
+    //        Position.Side _side,
+    //        int256 _quantity,
+    //        uint256 _leverage,
+    //        address _trader,
+    //        Position.Data memory totalPosition,
+    //        Position.Data memory marketPosition
+    //    ) public returns (PositionHouseStorage.PositionResp memory positionResp){
+    ////        IPositionManager _positionManager = IPositionManager(addressPositionManager);
+    //        (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(addressPositionManager, _quantity.abs(), _side, _trader);
+    //        if (positionResp.exchangedPositionSize != 0) {
+    ////            Position.Data memory marketPosition = positionMap[address(_positionManager)][_trader];
+    //            int256 _newSize = marketPosition.quantity + positionResp.exchangedPositionSize;
+    //            uint256 increaseMarginRequirement = positionResp.exchangedQuoteAssetAmount / _leverage;
+    //            // TODO update function latestCumulativePremiumFraction
+    //
+    //            //            Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
+    //
+    //            (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(addressPositionManager, _trader, PositionHouseStorage.PnlCalcOption.SPOT_PRICE, totalPosition);
+    //
+    //            positionResp.unrealizedPnl = unrealizedPnl;
+    //            positionResp.realizedPnl = 0;
+    //            // checked margin to vault
+    //            positionResp.marginToVault = int256(increaseMarginRequirement);
+    //            positionResp.position = Position.Data(
+    //                _newSize,
+    //                handleMarginInIncrease(increaseMarginRequirement, marketPosition, totalPosition),
+    //                handleNotionalInIncrease(positionResp.exchangedQuoteAssetAmount, marketPosition, totalPosition),
+    //                0,
+    //                block.number,
+    //                _leverage
+    //            );
+    //        }
+    //    }
 
     function calcRemainMarginWithFundingPayment(
         Position.Data memory oldPosition, uint256 deltaMargin, int256[] memory cumulativePremiumFractions

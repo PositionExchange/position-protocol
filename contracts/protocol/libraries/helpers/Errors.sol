@@ -28,8 +28,11 @@ library Errors {
     string public constant VL_NOT_ENOUGH_LIQUIDITY = '11'; // 'NELQ'
     string public constant VL_INVALID_REMOVE_MARGIN = '12'; // 'IRM'
     string public constant VL_NOT_COUNTERPARTY = '13'; // 'IRM'
-
-
+    string public constant VL_INVALID_INPUT = '14'; // 'IP'
+    string public constant VL_SETTLE_FUNDING_TOO_EARLY = '15'; // 'SFTE'
+    string public constant VL_LONG_PRICE_THAN_CURRENT_PRICE = '16'; // '!B'
+    string public constant VL_SHORT_PRICE_LESS_CURRENT_PRICE = '17'; // '!S'
+    string public constant VL_INVALID_SIZE = '18'; // ''
 
     enum CollateralManagerErrors {
         NO_ERROR
