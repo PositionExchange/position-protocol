@@ -26,11 +26,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     using Position for Position.LiquidatedData;
     using PositionHouseFunction for PositionHouse;
 
-    //    modifier whenNotPause(){
-    //        //TODO implement
-    //        _;
-    //    }
-
     event OpenMarket(
         address trader,
         int256 quantity,
