@@ -91,7 +91,16 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         PositionResp memory positionResp;
         // check if old position quantity is same side with new
         if (totalPosition.quantity == 0 || totalPosition.side() == _side) {
-            positionResp = PositionHouseFunction.increasePosition(positionManagerAddress, _side, int256(_quantity), _leverage, _trader, totalPosition, positionMap[positionManagerAddress][_trader], cumulativePremiumFractions[positionManagerAddress]);
+            positionResp = PositionHouseFunction.increasePosition(
+                positionManagerAddress,
+                _side,
+                int256(_quantity),
+                _leverage,
+                _trader,
+                totalPosition,
+                positionMap[positionManagerAddress][_trader],
+                cumulativePremiumFractions[positionManagerAddress]
+            );
         } else {
             positionResp = openReversePosition(_positionManager, _side, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, _trader, totalPosition);
         }
@@ -476,7 +485,16 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         address positionManagerAddress = address(_positionManager);
         if (_quantity.abs() < totalPosition.quantity.abs()) {
             {
-                positionResp = PositionHouseFunction.openReversePosition(positionManagerAddress, _side, _quantity, _leverage, _trader, totalPosition, positionMap[positionManagerAddress][_trader], cumulativePremiumFractions[positionManagerAddress]);
+                positionResp = PositionHouseFunction.openReversePosition(
+                    positionManagerAddress,
+                    _side,
+                    _quantity,
+                    _leverage,
+                    _trader,
+                    totalPosition,
+                    positionMap[positionManagerAddress][_trader],
+                    cumulativePremiumFractions[positionManagerAddress]
+                );
                 return positionResp;
             }
         }
@@ -546,7 +564,8 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         positionResp.realizedPnl = unrealizedPnl;
         // NOTICE remainMargin can be negative
         // unchecked: should be -(remainMargin + unrealizedPnl) and update remainMargin with fundingPayment
-        positionResp.marginToVault = - ((int256(remainMargin) + positionResp.realizedPnl + manualMargin[address(_positionManager)][_trader]) < 0 ? 0 : (int256(remainMargin) + positionResp.realizedPnl + manualMargin[address(_positionManager)][_trader]));
+        int256 _marginToVault = int256(remainMargin) + positionResp.realizedPnl + manualMargin[address(_positionManager)][_trader];
+        positionResp.marginToVault = - (_marginToVault < 0 ? 0 : _marginToVault);
         positionResp.unrealizedPnl = 0;
         canClaimAmountMap[address(_positionManager)][_trader] = 0;
         clearPosition(_positionManager, _trader);
@@ -646,11 +665,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         (uint256 remainMarginWithFundingPayment,,,) = calcRemainMarginWithFundingPayment(_positionManager, positionData, positionData.margin);
         maintenanceMargin = (remainMarginWithFundingPayment - uint256(manualMargin[address(_positionManager)][_trader])) * maintenanceMarginRatio / 100;
         marginBalance = int256(remainMarginWithFundingPayment) + unrealizedPnl;
-        if (marginBalance <= 0) {
-            marginRatio = 100;
-        } else {
-            marginRatio = maintenanceMargin * 100 / uint256(marginBalance);
-        }
+        marginRatio = marginBalance <= 0 ? 100 : maintenanceMargin * 100 / uint256(marginBalance);
     }
 
     function getLatestCumulativePremiumFraction(IPositionManager _positionManager) public view returns (int256){
@@ -761,16 +776,12 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         _;
     }
 
-    modifier whenPaused() {
-        require(paused, "Pausable: not paused");
-        _;
-    }
-
     function pause() public onlyOwner whenNotPaused {
         paused = true;
     }
 
-    function unpause() public onlyOwner whenPaused {
+    function unpause() public onlyOwner {
+        require(paused, "Pausable: not paused");
         paused = false;
     }
 

@@ -63,6 +63,7 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
-    "deploy_testnet": "npx hardhat --network bsc_testnet deploy --stage test"
+    "deploy_testnet": "npx hardhat --network bsc_testnet deploy --stage test",
+    "check-sizes": "npx hardhat compile && yarn hardhat size-contracts"
   }
 }
