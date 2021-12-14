@@ -26,6 +26,12 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     using Position for Position.LiquidatedData;
     using PositionHouseFunction for PositionHouse;
 
+    modifier whenNotPaused() {
+        require(!paused, "Pausable: paused");
+        _;
+    }
+
+
     event OpenMarket(
         address trader,
         int256 quantity,
@@ -771,10 +777,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     }
 
 
-    modifier whenNotPaused() {
-        require(!paused, "Pausable: paused");
-        _;
-    }
 
     function pause() public onlyOwner whenNotPaused {
         paused = true;
