@@ -57,7 +57,6 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
     }
 
 
-
     function initialize(
         uint128 _initialPip,
         address _quoteAsset,
@@ -96,7 +95,6 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
         fundingBufferPeriod = _fundingPeriod / 2;
         maxFindingWordsIndex = _maxFindingWordsIndex;
         priceFeed = IChainLinkPriceFeed(_priceFeed);
-        isOpen = true;
         counterParty = _counterParty;
         paused = false;
         emit ReserveSnapshotted(_initialPip, block.timestamp);
@@ -357,14 +355,6 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
         emit UpdateTollRatio(newTollRatio);
     }
 
-    function setOpen(bool _open) public onlyOwner {
-        if (isOpen == _open) return;
-        isOpen = _open;
-    }
-
-    function open() public view returns (bool) {
-        return isOpen;
-    }
 
     function setCounterParty(address _counterParty) public onlyOwner {
         require(_counterParty != address(0), Errors.VL_EMPTY_ADDRESS);

@@ -11,7 +11,6 @@ library Position {
     enum Side {LONG, SHORT}
     struct Data {
         // TODO restruct data
-        //        Position.Side side;
         int256 quantity;
         uint256 margin;
         uint256 openNotional;
@@ -81,7 +80,6 @@ library Position {
         self.margin = 0;
         self.openNotional = 0;
         self.lastUpdatedCumulativePremiumFraction = 0;
-        // TODO get current block number
         self.blockNumber = block.number;
         self.leverage = 0;
     }
