@@ -342,7 +342,7 @@ describe("PositionHouse_01", () => {
                     trader: trader.address,
                     instanceTrader: trader,
                     _positionManager: positionManager,
-                    expectRevertMsg: 'VM Exception while processing transaction: reverted with reason string \'NELQ\''
+                    expectRevertMsg: 'VM Exception while processing transaction: reverted with reason string \'11\''
                 }
             );
         });
@@ -1002,7 +1002,7 @@ describe("PositionHouse_01", () => {
                     side: SIDE.SHORT,
                     price: 5010,
                     expectedSize: BigNumber.from('-50')
-                })).to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'NELQ\'');
+                })).to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'11\'');
 
                 // const positionData1 = await positionHouse.getPosition(positionManager.address, trader.address)
                 // expect(positionData1.quantity.toNumber()).eq(-100)

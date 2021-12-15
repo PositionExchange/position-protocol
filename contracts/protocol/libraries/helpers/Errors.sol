@@ -15,9 +15,9 @@ library Errors {
     //common errors
 
     //contract specific errors
-    string public constant VL_INVALID_AMOUNT = '1'; // 'Amount must be greater than 0'
+//    string public constant VL_INVALID_AMOUNT = '1'; // 'Amount must be greater than 0'
     string public constant VL_EMPTY_ADDRESS = '2';
-    string public constant VL_INVALID_QUANTITY = '3'; // 'IQ'
+//    string public constant VL_INVALID_QUANTITY = '3'; // 'IQ'
     string public constant VL_INVALID_LEVERAGE = '4'; // 'IL'
     string public constant VL_INVALID_CLOSE_QUANTITY = '5'; // 'ICQ'
     string public constant VL_INVALID_CLAIM_FUND = '6'; // 'ICF'

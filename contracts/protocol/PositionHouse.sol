@@ -110,14 +110,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         emit OpenMarket(_trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, positionResp.exchangedQuoteAssetAmount / _quantity, _positionManager);
     }
 
-    /**
-    * @notice open position with price limit
-    * @param _positionManager IPositionManager address
-    * @param _side Side of position LONG or SHORT
-    * @param _quantity quantity of size after mul with leverage
-    * @param _pip is pip converted from limit price of position
-    * @param _leverage leverage of position
-    */
     function openLimitOrder(
         IPositionManager _positionManager,
         Position.Side _side,
@@ -149,11 +141,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         emit OpenLimit(openLimitResp.orderId, _trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, _pip, _positionManager);
     }
 
-    // There are 4 cases could happen:
-    //      1. Old position created by limit Long and market Long, new limit order has market is Long => increase old quantity
-    //      2. Old position created by limit Long and market Long, new limit order has market is Short and quantity < old market part Long => reduce old quantity
-    //      3. Old position created by limit Long and market Long, new limit order has market is Short and quantity > old market part Long => close and open reverse old market
-    //      4. Old position created by limit Long and market Long, new limit order has market is Short and quantity > old position Long => close and open reverse old position
     function openLimitIncludeMarket(IPositionManager _positionManager, address _trader, uint128 _pip, uint128 _quantity, bool _isBuy, uint256 _leverage) internal returns (PositionResp memory positionResp, uint64 orderId, uint256 sizeOut){
         {
             Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
@@ -225,7 +212,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     function cancelLimitOrder(IPositionManager _positionManager, uint64 orderIdOfTrader, uint128 pip, uint64 orderId) public whenNotPaused nonReentrant {
         address _trader = _msgSender();
         uint256 refundQuantity = _positionManager.cancelLimitOrder(pip, orderId);
-        // TODO orderIdOfTrader of reduce can higher than limit increase
         uint128 oldOrderPip;
         uint64 oldOrderId;
         address positionManagerAddress = address(_positionManager);
@@ -283,7 +269,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
             _quantity,
             positionData.leverage
         );
-
     }
 
     /**
@@ -363,7 +348,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
                 // calculate amount quantity of position to reduce
                 int256 partiallyLiquidateQuantity = positionData.quantity * int256(liquidationPenaltyRatio) / 100;
                 // partially liquidate position by reduce position's quantity
-
                 positionResp = partialLiquidate(
                     _positionManager,
                     positionData.quantity > 0 ? Position.Side.SHORT : Position.Side.LONG,
@@ -418,7 +402,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
 
         address _trader = _msgSender();
 
-        //        Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
         require(getPosition(address(_positionManager), _trader).quantity != 0, Errors.VL_NO_POSITION_TO_REMOVE);
         uint256 removableMargin = uint256(getRemovableMargin(_positionManager, _trader));
         require(_marginRemoved <= removableMargin,  Errors.VL_INVALID_REMOVE_MARGIN);
@@ -447,7 +430,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
             delete limitOrders[positionManagerAddress][_trader];
         }
         for (uint256 i = 0; i < subListLimitOrder.length; i++) {
-            // TODO can change to if subListLimitOrder.pip == 0 then break to save gas
             if (subListLimitOrder[i].pip == 0) {
                 break;
             }
@@ -544,8 +526,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
 
 
         positionResp.realizedPnl = unrealizedPnl;
-        // NOTICE remainMargin can be negative
-        // unchecked: should be -(remainMargin + unrealizedPnl) and update remainMargin with fundingPayment
         positionResp.marginToVault = - ((int256(remainMargin) + positionResp.realizedPnl + manualMargin[positionManagerAddress][_trader]) < 0 ? 0 : (int256(remainMargin) + positionResp.realizedPnl + manualMargin[positionManagerAddress][_trader]));
         positionResp.unrealizedPnl = 0;
         canClaimAmountMap[positionManagerAddress][_trader] = 0;
@@ -607,20 +587,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         (positionNotional, unrealizedPnl) = PositionHouseFunction.getPositionNotionalAndUnrealizedPnl(address(positionManager), _trader, _pnlCalcOption, totalPosition);
     }
 
-    function getPositionNotionalAndUnrealizedPnlTest(
-        IPositionManager positionManager,
-        address _trader,
-        PnlCalcOption _pnlCalcOption
-    ) public view returns
-    (
-        uint256 positionNotional,
-        int256 unrealizedPnl
-    ){
-        // TODO remove function getPosition when deploy
-        Position.Data memory totalPosition = getPosition(address(positionManager), _trader);
-        (positionNotional, unrealizedPnl) = PositionHouseFunction.getPositionNotionalAndUnrealizedPnl(address(positionManager), _trader, _pnlCalcOption, totalPosition);
-    }
-
     //    function getLiquidationPrice(
     //        IPositionManager positionManager,
     //        address _trader,
@@ -672,7 +638,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         uint256 _positionNotional
     ) internal returns (uint256) {
         return _positionManager.calcFee(_positionNotional);
-
     }
 
     function withdraw(IPositionManager _positionManager, address _trader, uint256 amount) internal {
@@ -690,6 +655,16 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     // INTERNAL FUNCTION OF POSITION HOUSE
     //
 
+//    function openMarketOrder(
+//        IPositionManager _positionManager,
+//        uint256 _quantity,
+//        Position.Side _side
+//    ) internal returns (int256 exchangedQuantity, uint256 openNotional) {
+//        address _trader = _msgSender();
+//        // TODO higher gas price but lower contract's size
+//        (exchangedQuantity, openNotional) = PositionHouseFunction.openMarketOrder(address(_positionManager), _quantity, _side, _trader);
+//    }
+
     function calcRemainMarginWithFundingPayment(
         IPositionManager _positionManager, Position.Data memory oldPosition, uint256 deltaMargin
     ) internal view returns (uint256 remainMargin, uint256 badDebt, int256 fundingPayment, int256 latestCumulativePremiumFraction){
@@ -704,7 +679,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         if (int256(deltaMargin) + fundingPayment >= 0) {
             remainMargin = uint256(int256(deltaMargin) + fundingPayment);
         } else {
-            badDebt = uint256(- fundingPayment - int256(deltaMargin));
+            badDebt = uint256(-fundingPayment - int256(deltaMargin));
         }
     }
 
@@ -745,22 +720,22 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
 
 
     modifier whenNotPaused() {
-        require(!paused, "Pausable: paused");
+//        require(!paused, "Pausable: paused");
         _;
     }
 
     modifier whenPaused() {
-        require(paused, "Pausable: not paused");
+//        require(paused, "Pausable: not paused");
         _;
     }
 
-    function pause() public onlyOwner whenNotPaused {
-        paused = true;
-    }
-
-    function unpause() public onlyOwner whenPaused {
-        paused = false;
-    }
+//    function pause() public onlyOwner whenNotPaused {
+//        paused = true;
+//    }
+//
+//    function unpause() public onlyOwner whenPaused {
+//        paused = false;
+//    }
 
     // NEW REQUIRE: restriction mode
     // In restriction mode, no one can do multi open/close/liquidate position in the same block.
@@ -768,11 +743,11 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     // or any liquidation happened,
     // restriction mode is ON in that block and OFF(default) in the next block.
     // This design is to prevent the attacker being benefited from the multiple action in one block
-//    function requireNotRestrictionMode(IAmm _amm) private view {
-//        uint256 currentBlock = _blockNumber();
-//        if (currentBlock == positionManagerMap[address].lastRestrictionBlock) {
-//            // only one action allowed
-//
-//        }
-//    }
+    //    function requireNotRestrictionMode(IAmm _amm) private view {
+    //        uint256 currentBlock = _blockNumber();
+    //        if (currentBlock == positionManagerMap[address].lastRestrictionBlock) {
+    //            // only one action allowed
+    //
+    //        }
+    //    }
 }
