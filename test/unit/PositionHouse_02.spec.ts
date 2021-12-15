@@ -240,6 +240,16 @@ describe("PositionHouse_02", () => {
         expect(positionData.quantity).eq(0);
     }
 
+    async function cancelLimitOrder(positionManagerAddress: string, trader: SignerWithAddress, orderId : string, pip : string) {
+        const listPendingOrder = await positionHouse.connect(trader).getListOrderPending(positionManagerAddress, trader.address)
+        console.log(listPendingOrder[0].orderId.toString())
+        const obj = listPendingOrder.find(x => () => {
+            (x.orderId.toString() == orderId && x.pip.toString() == pip)
+        });
+        console.log(obj)
+        await positionHouse.connect(trader).cancelLimitOrder(positionManagerAddress, obj.orderIdOfTrader, obj.pip, obj.orderId);
+    }
+
     describe('Increase size in order', async () => {
 
         /**
@@ -4628,6 +4638,57 @@ describe("PositionHouse_02", () => {
             console.log(await positionHouse.getPosition(positionManager.address, trader0.address))
 
             console.log(await positionHouse.getListOrderPending(positionManager.address, trader0.address))
+        })
+
+        it("should open market order after 2 limit order matched at the same pip", async function () {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('20'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader0.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1
+            })
+
+            await cancelLimitOrder(positionManager.address, trader0, '1', '500000')
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5010,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('15'),
+                _trader: trader1
+            })
+
+            console.log((await positionManager.getLiquidityInPipRange(BigNumber.from('500000'), BigNumber.from('10'), true))[0])
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader0.address,
+                    instanceTrader: trader0,
+                    _positionManager: positionManager,
+                }
+            );
+
         })
     })
 })

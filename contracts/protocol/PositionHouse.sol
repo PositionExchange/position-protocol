@@ -587,6 +587,19 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         (positionNotional, unrealizedPnl) = PositionHouseFunction.getPositionNotionalAndUnrealizedPnl(address(positionManager), _trader, _pnlCalcOption, totalPosition);
     }
 
+    function getPositionNotionalAndUnrealizedPnlTest(
+        IPositionManager positionManager,
+        address _trader,
+        PnlCalcOption _pnlCalcOption
+    ) public view returns
+    (
+        uint256 positionNotional,
+        int256 unrealizedPnl
+    ){
+        Position.Data memory totalPosition = getPosition(address(positionManager), _trader);
+        (positionNotional, unrealizedPnl) = PositionHouseFunction.getPositionNotionalAndUnrealizedPnl(address(positionManager), _trader, _pnlCalcOption, totalPosition);
+    }
+
     //    function getLiquidationPrice(
     //        IPositionManager positionManager,
     //        address _trader,
@@ -641,13 +654,13 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     }
 
     function withdraw(IPositionManager _positionManager, address _trader, uint256 amount) internal {
-        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, amount);
+//        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, amount);
     }
 
     function deposit(IPositionManager _positionManager, address _trader, uint256 amount, uint256 openNotional) internal {
         uint256 fee = calcFee(_trader, _positionManager, openNotional);
-        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, amount + fee);
-        insuranceFund.updateTotalFee(fee);
+//        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, amount + fee);
+//        insuranceFund.updateTotalFee(fee);
     }
 
 
