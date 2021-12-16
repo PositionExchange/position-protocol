@@ -39,5 +39,4 @@ interface IPositionManager {
 
     function settleFunding() external returns (int256 premiumFraction);
 
-    function open() external view returns (bool);
 }
