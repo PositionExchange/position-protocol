@@ -421,9 +421,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
                 liquidationPenalty = uint256(positionResp.marginToVault);
                 feeToLiquidator = liquidationPenalty / 2;
                 feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
-                // TODO take liquidation fee
-//                // TODO has taken liquidation fee, check again
-//                deposit(_positionManager, _trader, liquidationPenalty - feeToLiquidator, 0);
             } else {        
                 // fully liquidate trader's position
                 liquidationPenalty = positionData.margin + uint256(manualMargin[positionManagerAddress][_trader]);
@@ -724,13 +721,13 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     }
 
     function withdraw(IPositionManager _positionManager, address _trader, uint256 amount) internal {
-//        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, amount);
+        insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, amount);
     }
 
     function deposit(IPositionManager _positionManager, address _trader, uint256 amount, uint256 openNotional) internal {
         uint256 fee = calcFee(_trader, _positionManager, openNotional);
-//        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, amount + fee);
-//        insuranceFund.updateTotalFee(fee);
+        insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, amount + fee);
+        insuranceFund.updateTotalFee(fee);
     }
 
 
