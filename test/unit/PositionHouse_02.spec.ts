@@ -240,6 +240,14 @@ describe("PositionHouse_02", () => {
         expect(positionData.quantity).eq(0);
     }
 
+    async function cancelLimitOrder(positionManagerAddress: string, trader: SignerWithAddress, orderId : string, pip : string) {
+        const listPendingOrder = await positionHouse.connect(trader).getListOrderPending(positionManagerAddress, trader.address)
+        const obj = listPendingOrder.find(x => () => {
+            (x.orderId.toString() == orderId && x.pip.toString() == pip)
+        });
+        await positionHouse.connect(trader).cancelLimitOrder(positionManagerAddress, obj.orderIdOfTrader, obj.pip, obj.orderId);
+    }
+
     describe('Increase size in order', async () => {
 
         /**
@@ -4629,5 +4637,252 @@ describe("PositionHouse_02", () => {
 
             console.log(await positionHouse.getListOrderPending(positionManager.address, trader0.address))
         })
+
+        it("should open market order after 2 limit order matched at the same pip", async function () {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('20'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader0.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1
+            })
+
+            await cancelLimitOrder(positionManager.address, trader0, '1', '500000')
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5010,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('15'),
+                _trader: trader1
+            })
+
+            console.log((await positionManager.getLiquidityInPipRange(BigNumber.from('500000'), BigNumber.from('10'), true))[0])
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader0.address,
+                    instanceTrader: trader0,
+                    _positionManager: positionManager,
+                }
+            );
+
+        })
+
+        it("partial fill then cancel limit order, should get correct quantity of position", async function () {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4990,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+
+            console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).toString())
+
+            await cancelLimitOrder(positionManager.address, trader0, '1', '499000')
+
+            console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).toString())
+
+        })
+
+        it("should get correct quantity of position when partial filled, currently WRONG", async function (){
+            await openLimitPositionAndExpect({
+                limitPrice: 4990,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+            console.log("before cancel limit")
+            await cancelLimitOrder(positionManager.address, trader0, "1", "499000")
+
+            console.log("before get position")
+            console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).quantity.toString())
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4990,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('2'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            // await openMarketPosition({
+            //         quantity: BigNumber.from('1'),
+            //         leverage: 10,
+            //         side: SIDE.SHORT,
+            //         trader: trader1.address,
+            //         instanceTrader: trader1,
+            //         _positionManager: positionManager,
+            //     }
+            // );
+            console.log("before get liquidity in pip range")
+            console.log((await positionManager.getLiquidityInPipRange(498900, 50, true))[0][0])
+
+            console.log("get list order pending")
+            console.log((await positionHouse.getListOrderPending(positionManager.address, trader0.address))[0])
+
+            console.log("get position quantity")
+            console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).quantity.toString())
+
+        })
+
+        it("should get correct quantity of position when partial filled, currently WRONG version 2", async function (){
+            await openLimitPositionAndExpect({
+                limitPrice: 4990,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('9'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+            console.log("before cancel limit")
+            await cancelLimitOrder(positionManager.address, trader0, "1", "499000")
+
+            console.log("before get position")
+            console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).quantity.toString())
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4990,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('2'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            // await openMarketPosition({
+            //         quantity: BigNumber.from('1'),
+            //         leverage: 10,
+            //         side: SIDE.SHORT,
+            //         trader: trader1.address,
+            //         instanceTrader: trader1,
+            //         _positionManager: positionManager,
+            //     }
+            // );
+            console.log("before get liquidity in pip range")
+            console.log((await positionManager.getLiquidityInPipRange(498900, 50, true))[0][0])
+
+            console.log("get list order pending")
+            console.log((await positionHouse.getListOrderPending(positionManager.address, trader0.address))[0])
+
+            console.log("get position quantity")
+            console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).quantity.toString())
+
+        })
+
+
+        it("should get order quantity and partial filled amount correctly", async function (){
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            console.log("get list order pending")
+            console.log((await positionHouse.getListOrderPending(positionManager.address, trader0.address)))
+
+        })
+
     })
 })
