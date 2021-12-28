@@ -63,7 +63,6 @@ library TickPosition {
         } else if (self.filledIndex < orderId) {
             isFilled = false;
         } else {
-            //            isFilled = partialFilled >= 0 && partialFilled < size ? false : true;
             isFilled = partialFilled >= size && size != 0 ? true : false;
         }
     }
@@ -73,18 +72,17 @@ library TickPosition {
         uint128 amount
     ) internal {
         self.liquidity -= amount;
-        unchecked {
-            uint64 index = self.filledIndex;
-            uint128 totalSize = 0;
-            while (totalSize < amount) {
-                totalSize += self.orderQueue[index].size;
-                index++;
-            }
-            index--;
-            self.filledIndex = index;
-            //            self.orderQueue[index].partialFilled = totalSize - amount;
-            self.orderQueue[index].updatePartialFill(uint120(totalSize - amount));
+    unchecked {
+        uint64 index = self.filledIndex;
+        uint128 totalSize = 0;
+        while (totalSize < amount) {
+            totalSize += self.orderQueue[index].size;
+            index++;
         }
+        index--;
+        self.filledIndex = index;
+        self.orderQueue[index].updatePartialFill(uint120(totalSize - amount));
+    }
     }
 
     function cancelLimitOrder(
@@ -94,8 +92,9 @@ library TickPosition {
         (bool isBuy,
         uint256 size,
         uint256 partialFilled) = self.orderQueue[orderId].getData();
-        self.liquidity = self.liquidity - uint128(size - partialFilled);
-
+        if (self.liquidity > uint128(size - partialFilled)){
+            self.liquidity = self.liquidity - uint128(size - partialFilled);
+        }
         self.orderQueue[orderId].update(isBuy, partialFilled);
 
         return size - partialFilled;
@@ -124,24 +123,4 @@ library TickPosition {
 
 
     }
-    //    function executeOrder(Data storage self, uint256 size, bool isLong)
-    //    internal returns
-    //    (
-    //        uint256 remainingAmount
-    //    ) {
-    //        if(self.liquidity > size){
-    //            self.liquidity = self.liquidity.sub(size);
-    //            // safe to increase by plus 1
-    //            //TODO determine index to plus
-    ////            self.filledIndex += 1;
-    //            remainingAmount = 0;
-    //        }else{
-    //            // fill all liquidity
-    //            // safe to use with out safemath to avoid gas wasting?
-    //            remainingAmount = size.sub(self.liquidity);
-    //            self.liquidity = 0;
-    //            self.filledIndex = self.currentIndex;
-    //        }
-    //    }
-
 }
