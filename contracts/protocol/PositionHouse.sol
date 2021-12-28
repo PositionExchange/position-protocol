@@ -267,6 +267,51 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         emit CancelLimitOrder(_trader, positionManagerAddress, pip, orderId);
     }
 
+
+    //    function cancelLimitOrder(IPositionManager _positionManager, uint64 orderIdOfTrader, uint128 pip, uint64 orderId) public whenNotPaused nonReentrant {
+//        address _trader = _msgSender();
+//        uint16 leverage;
+//        address positionManagerAddress = address(_positionManager);
+//        //        uint256 refundQuantity = _positionManager.cancelLimitOrder(pip, orderId);
+//
+//        {
+//            uint128 oldOrderPip;
+//            uint64 oldOrderId;
+//            PositionLimitOrder.Data[] memory listLimitOrders = limitOrders[positionManagerAddress][_trader];
+//            PositionLimitOrder.Data[] memory listReduceLimitOrders = reduceLimitOrders[positionManagerAddress][_trader];
+//
+//            if (orderIdOfTrader < listLimitOrders.length) {
+//                oldOrderPip = listLimitOrders[orderIdOfTrader].pip;
+//                oldOrderId = listLimitOrders[orderIdOfTrader].orderId;
+//            }
+//            PositionLimitOrder.Data memory blankLimitOrderData;
+//            (bool isFilled,,, uint256 partialFilled) = _positionManager.getPendingOrderDetail(pip, orderId);
+//            if (pip == oldOrderPip && orderId == oldOrderId) {
+//                leverage = listLimitOrders[orderIdOfTrader].leverage;
+//                if (partialFilled == 0 && isFilled != true) {
+//                uint256 reduceLimitOrderId = listLimitOrders[orderIdOfTrader].reduceLimitOrderId;
+//                if (reduceLimitOrderId != 0) {
+//                    reduceLimitOrders[positionManagerAddress][_trader][reduceLimitOrderId - 1] = blankLimitOrderData;
+//                }
+//                limitOrders[positionManagerAddress][_trader][orderIdOfTrader] = blankLimitOrderData;
+//                }
+//            } else {
+//                leverage = listReduceLimitOrders[orderIdOfTrader].leverage;
+//                if (partialFilled == 0 && isFilled != true) {
+//                    reduceLimitOrders[positionManagerAddress][_trader][orderIdOfTrader] = blankLimitOrderData;
+//                }
+//            }
+//        }
+//
+////        uint256 refundMargin = refundQuantity * _positionManager.pipToPrice(pip) / uint256(leverage) / _positionManager.getBaseBasisPoint();
+//        {
+//            uint256 refundMargin = _positionManager.cancelLimitOrder(pip, orderId) * _positionManager.pipToPrice(pip) / uint256(leverage) / _positionManager.getBaseBasisPoint();
+//            withdraw(_positionManager, _trader, refundMargin);
+//            canClaimAmountMap[positionManagerAddress][_trader] -= refundMargin;
+//            emit CancelLimitOrder(_trader, positionManagerAddress, pip, orderId);
+//        }
+//    }
+
     /**
     * @notice close position with close market
     * @param _positionManager IPositionManager address

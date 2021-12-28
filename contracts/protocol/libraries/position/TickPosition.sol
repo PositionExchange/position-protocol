@@ -94,8 +94,9 @@ library TickPosition {
         (bool isBuy,
         uint256 size,
         uint256 partialFilled) = self.orderQueue[orderId].getData();
-        self.liquidity = self.liquidity - uint128(size - partialFilled);
-
+        if (self.liquidity > uint128(size - partialFilled)){
+            self.liquidity = self.liquidity - uint128(size - partialFilled);
+        }
         self.orderQueue[orderId].update(isBuy, partialFilled);
 
         return size - partialFilled;
