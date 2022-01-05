@@ -29,20 +29,20 @@ You should have Node 12 installed. Use [nvm](https://github.com/nvm-sh/nvm) to i
 Clone this repository, install NodeJS dependencies, and build the source code:
 ```
 git clone git@github.com:PositionExchange/position-protocol.git
-npm i
-npm run build
+yarn
+yarn compile
 ```
 
 ### Local development
 Deploy in the local environment.
 ```
-npm run dev
+yarn dev
 ```
 
 ### Testing
 To run all the test cases,
 ```
-npm run test
+yarn test
 ```
 Test cases can be found in the `./tests` folder.
 
