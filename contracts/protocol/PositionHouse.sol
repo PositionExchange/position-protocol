@@ -134,7 +134,14 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     ) public whenNotPaused nonReentrant {
         address _trader = _msgSender();
         OpenLimitResp memory openLimitResp;
-        (, openLimitResp.orderId, openLimitResp.sizeOut) = openLimitIncludeMarket(_positionManager, _trader, _pip, int256(_quantity).abs128(), _side == Position.Side.LONG ? true : false, _leverage);
+        (, openLimitResp.orderId, openLimitResp.sizeOut) = openLimitIncludeMarket(
+            _positionManager,
+            _trader,
+            _pip,
+            int256(_quantity).abs128(),
+            _side == Position.Side.LONG ? true : false,
+            _leverage
+        );
         if (openLimitResp.sizeOut < _quantity)
         {
             PositionLimitOrder.Data memory _newOrder = PositionLimitOrder.Data({
@@ -156,7 +163,18 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         emit OpenLimit(openLimitResp.orderId, _trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, _pip, _positionManager);
     }
 
-    function openLimitIncludeMarket(IPositionManager _positionManager, address _trader, uint128 _pip, uint128 _quantity, bool _isBuy, uint256 _leverage) internal returns (PositionResp memory positionResp, uint64 orderId, uint256 sizeOut){
+    function openLimitIncludeMarket(
+        IPositionManager _positionManager,
+        address _trader,
+        uint128 _pip,
+        uint128 _quantity,
+        bool _isBuy,
+        uint256 _leverage
+    ) internal returns (
+        PositionResp memory positionResp,
+        uint64 orderId,
+        uint256 sizeOut
+    ){
         {
             Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
             require(_leverage >= totalPosition.leverage && _leverage <= 125 && _leverage > 0, Errors.VL_INVALID_LEVERAGE);
