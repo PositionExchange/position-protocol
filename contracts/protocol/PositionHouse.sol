@@ -88,41 +88,43 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         uint256 _leverage
     ) public whenNotPaused nonReentrant {
         address _trader = _msgSender();
-        address positionManagerAddress = address(_positionManager);
-        Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
-        if (totalPosition.quantity == 0) {
-            totalPosition.leverage = 1;
+        address pmAddr = address(_positionManager);
+        int256 pQuantity = _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity);
+        Position.Data memory oldPosition = getPosition(address(_positionManager), _trader);
+        if (oldPosition.quantity == 0) {
+            oldPosition.leverage = 1;
         }
-        require(_leverage >= totalPosition.leverage && _leverage <= 125 && _leverage > 0, Errors.VL_INVALID_LEVERAGE);
-        PositionResp memory positionResp;
-        // check if old position quantity is same side with new
-        if (totalPosition.quantity == 0 || totalPosition.side() == _side) {
-            positionResp = PositionHouseFunction.increasePosition(
-                positionManagerAddress,
+        //leverage must be greater than old position and in range of allowed leverage
+        require(_leverage >= oldPosition.leverage && _leverage <= 125 && _leverage > 0, Errors.VL_INVALID_LEVERAGE);
+        PositionResp memory pResp;
+        // check if old position quantity is the same side with the new one
+        if (oldPosition.quantity == 0 || oldPosition.side() == _side) {
+            pResp = PositionHouseFunction.increasePosition(
+                pmAddr,
                 _side,
                 int256(_quantity),
                 _leverage,
                 _trader,
-                totalPosition,
-                positionMap[positionManagerAddress][_trader],
-                cumulativePremiumFractions[positionManagerAddress]
+                oldPosition,
+                positionMap[pmAddr][_trader],
+                cumulativePremiumFractions[pmAddr]
             );
         } else {
-            positionResp = openReversePosition(_positionManager, _side, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, _trader, totalPosition);
+            pResp = openReversePosition(_positionManager, _side, pQuantity, _leverage, _trader, oldPosition);
         }
         // update position state
-        positionMap[address(_positionManager)][_trader].update(
-            positionResp.position
+        positionMap[pmAddr][_trader].update(
+            pResp.position
         );
 
-        if (positionResp.marginToVault > 0) {
+        if (pResp.marginToVault > 0) {
             //transfer from trader to vault
-            deposit(_positionManager, _trader, positionResp.marginToVault.abs(), positionResp.position.openNotional);
-        } else if (positionResp.marginToVault < 0) {
+            deposit(_positionManager, _trader, pResp.marginToVault.abs(), pResp.position.openNotional);
+        } else if (pResp.marginToVault < 0) {
             // withdraw from vault to user
-            withdraw(_positionManager, _trader, positionResp.marginToVault.abs());
+            withdraw(_positionManager, _trader, pResp.marginToVault.abs());
         }
-        emit OpenMarket(_trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, positionResp.exchangedQuoteAssetAmount / _quantity, _positionManager);
+        emit OpenMarket(_trader, pQuantity, _leverage, pResp.exchangedQuoteAssetAmount / _quantity, _positionManager);
     }
 
     function openLimitOrder(
