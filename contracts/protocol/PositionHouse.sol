@@ -136,7 +136,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     ) public whenNotPaused nonReentrant {
         address _trader = _msgSender();
         OpenLimitResp memory openLimitResp;
-        (, openLimitResp.orderId, openLimitResp.sizeOut) = _internalOpenLimitOrder(
+        (openLimitResp.orderId, openLimitResp.sizeOut) = _internalOpenLimitOrder(
             _positionManager,
             _trader,
             _pip,
@@ -172,7 +172,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         bool _isBuy,
         uint256 _leverage
     ) internal returns (
-        PositionResp memory positionResp,
         uint64 orderId,
         uint256 sizeOut
     ){
@@ -190,7 +189,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
                         PositionResp memory closePositionResp = internalClosePosition(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, true, totalPosition);
                         if (int256(_quantity) - closePositionResp.exchangedPositionSize == 0) {
                             // TODO deposit margin to vault of position resp
-                            positionResp = closePositionResp;
+//                            positionResp = closePositionResp;
 //                            deposit(_positionManager, _trader, positionResp.marginToVault.abs(), 0);
                         } else {
                             (orderId, sizeOut, openNotional) = _positionManager.openLimitPosition(_pip, _quantity - (closePositionResp.exchangedPositionSize).abs128(), _isBuy);
