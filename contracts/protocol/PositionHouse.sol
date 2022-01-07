@@ -136,7 +136,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     ) public whenNotPaused nonReentrant {
         address _trader = _msgSender();
         OpenLimitResp memory openLimitResp;
-        (, openLimitResp.orderId, openLimitResp.sizeOut) = openLimitIncludeMarket(
+        (, openLimitResp.orderId, openLimitResp.sizeOut) = _internalOpenLimitOrder(
             _positionManager,
             _trader,
             _pip,
@@ -164,7 +164,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         emit OpenLimit(openLimitResp.orderId, _trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, _pip, _positionManager);
     }
 
-    function openLimitIncludeMarket(
+    function _internalOpenLimitOrder(
         IPositionManager _positionManager,
         address _trader,
         uint128 _pip,
