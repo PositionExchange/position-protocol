@@ -144,8 +144,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
             _side == Position.Side.LONG ? true : false,
             _leverage
         );
-        if (openLimitResp.sizeOut < _quantity)
-        {
+        if (openLimitResp.sizeOut < _quantity) {
             PositionLimitOrder.Data memory _newOrder = PositionLimitOrder.Data({
                 pip : _pip,
                 orderId : openLimitResp.orderId,
@@ -156,7 +155,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
                 reduceQuantity : 0,
                 blockNumber : block.number
             });
-            handleLimitOrderInOpenLimit(openLimitResp, _newOrder, _positionManager, _trader, _quantity, _side);
+            handleLimitOrderInOpenLimit(_newOrder, _positionManager, _trader, _quantity, openLimitResp.sizeOut, _side);
         }
         uint256 baseBasisPoint = _positionManager.getBaseBasisPoint();
         uint256 depositAmount = _quantity * _positionManager.pipToPrice(_pip) / _leverage / baseBasisPoint;
@@ -215,11 +214,11 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
 
     // check the new limit order is fully reduce, increase or both reduce and increase
     function handleLimitOrderInOpenLimit(
-        OpenLimitResp memory openLimitResp,
         PositionLimitOrder.Data memory _newOrder,
         IPositionManager _positionManager,
         address _trader,
         uint256 _quantity,
+        uint256 _sizeOut,
         Position.Side _side
     ) internal {
         address positionManagerAddress = address(_positionManager);
@@ -230,7 +229,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         } else {
             // if new limit order is smaller than old position then just reduce old position
             if (totalPosition.quantity.abs() > _quantity) {
-                _newOrder.reduceQuantity = _quantity - openLimitResp.sizeOut;
+                _newOrder.reduceQuantity = _quantity - _sizeOut;
                 _newOrder.entryPrice = totalPosition.openNotional * baseBasisPoint / totalPosition.quantity.abs();
                 reduceLimitOrders[positionManagerAddress][_trader].push(_newOrder);
             }
