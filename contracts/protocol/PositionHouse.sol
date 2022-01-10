@@ -130,20 +130,21 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     function openLimitOrder(
         IPositionManager _positionManager,
         Position.Side _side,
-        uint256 _quantity,
+        uint256 _uQuantity,
         uint128 _pip,
         uint256 _leverage
     ) public whenNotPaused nonReentrant {
         address _trader = _msgSender();
         OpenLimitResp memory openLimitResp;
+        int256 _quantity = _side == Position.Side.LONG ? int256(_uQuantity) : -int256(_uQuantity);
         (openLimitResp.orderId, openLimitResp.sizeOut) = _internalOpenLimitOrder(
             _positionManager,
             _trader,
             _pip,
-            _side == Position.Side.LONG ? int256(_quantity) : -int256(_quantity),
+            _quantity,
             _leverage
         );
-        if (openLimitResp.sizeOut < _quantity) {
+        if (openLimitResp.sizeOut < _uQuantity) {
             PositionLimitOrder.Data memory _newOrder = PositionLimitOrder.Data({
                 pip : _pip,
                 orderId : openLimitResp.orderId,
@@ -154,13 +155,19 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
                 reduceQuantity : 0,
                 blockNumber : block.number
             });
-            handleLimitOrderInOpenLimit(_newOrder, _positionManager, _trader, _quantity, openLimitResp.sizeOut, _side);
+            _storeLimitOrder(
+                _newOrder,
+                _positionManager,
+                _trader,
+                _quantity,
+                openLimitResp.sizeOut
+            );
         }
         uint256 baseBasisPoint = _positionManager.getBaseBasisPoint();
-        uint256 depositAmount = _quantity * _positionManager.pipToPrice(_pip) / _leverage / baseBasisPoint;
-        deposit(_positionManager, _trader, depositAmount, _quantity * _positionManager.pipToPrice(_pip) / baseBasisPoint);
+        uint256 depositAmount = _uQuantity * _positionManager.pipToPrice(_pip) / _leverage / baseBasisPoint;
+        deposit(_positionManager, _trader, depositAmount, _uQuantity * _positionManager.pipToPrice(_pip) / baseBasisPoint);
         canClaimAmountMap[address(_positionManager)][_trader] += depositAmount;
-        emit OpenLimit(openLimitResp.orderId, _trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, _pip, _positionManager);
+        emit OpenLimit(openLimitResp.orderId, _trader, _quantity, _leverage, _pip, _positionManager);
     }
 
     function _internalOpenLimitOrder(
@@ -174,9 +181,9 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         uint256 sizeOut
     ){
         {
+            address _pmAddress = address(_positionManager);
             Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
             require(_leverage >= oldPosition.leverage && _leverage <= 125 && _leverage > 0, Errors.VL_INVALID_LEVERAGE);
-            address _pmAddress = address(_positionManager);
             uint256 openNotional;
             uint128 _quantity = _rawQuantity.abs128();
             if(
@@ -222,23 +229,22 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     }
 
     // check the new limit order is fully reduce, increase or both reduce and increase
-    function handleLimitOrderInOpenLimit(
+    function _storeLimitOrder(
         PositionLimitOrder.Data memory _newOrder,
         IPositionManager _positionManager,
         address _trader,
-        uint256 _quantity,
-        uint256 _sizeOut,
-        Position.Side _side
+        int256 _quantity,
+        uint256 _sizeOut
     ) internal {
         address positionManagerAddress = address(_positionManager);
         Position.Data memory oldPosition = getPosition(positionManagerAddress, _trader);
         uint256 baseBasisPoint = _positionManager.getBaseBasisPoint();
-        if (oldPosition.quantity == 0 || _side == (oldPosition.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT)) {
+        if (oldPosition.quantity == 0 || _quantity.isSameSide(oldPosition.quantity)) {
             limitOrders[positionManagerAddress][_trader].push(_newOrder);
         } else {
             // if new limit order is smaller than old position then just reduce old position
-            if (oldPosition.quantity.abs() > _quantity) {
-                _newOrder.reduceQuantity = _quantity - _sizeOut;
+            if (oldPosition.quantity.abs() > _quantity.abs()) {
+                _newOrder.reduceQuantity = _quantity.abs() - _sizeOut;
                 _newOrder.entryPrice = oldPosition.openNotional * baseBasisPoint / oldPosition.quantity.abs();
                 reduceLimitOrders[positionManagerAddress][_trader].push(_newOrder);
             }
