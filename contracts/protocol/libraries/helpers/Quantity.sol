@@ -1,6 +1,11 @@
 pragma solidity ^0.8.0;
 
 library Quantity {
+
+    function u8Side(int256 quantity) internal pure returns (uint8) {
+        return quantity > 0 ? 1 : 2;
+    }
+
     function abs(int256 quantity) internal pure returns (uint256) {
         return uint256(quantity >= 0 ? quantity : -quantity);
     }

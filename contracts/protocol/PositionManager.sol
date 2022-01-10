@@ -148,6 +148,21 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
         }
     }
 
+    function needClosePositionBeforeOpeningLimitOrder(
+        uint8 _side,
+        uint256 _pip,
+        uint128 _quantity,
+        uint8 _pSide,
+        uint256 _pQuantity
+    ) public view returns (bool) {
+        //save gas
+        SingleSlot memory _singleSlot = singleSlot;
+        return _pip == _singleSlot.pip
+                && _singleSlot.isFullBuy != _side
+                && _pQuantity <= _quantity
+                && _pQuantity <= getLiquidityInCurrentPip();
+    }
+
     function updatePartialFilledOrder(uint128 pip, uint64 orderId) public {
         uint256 newSize = tickPosition[pip].updateOrderWhenClose(orderId);
         emit LimitOrderUpdated(orderId, pip, newSize);
