@@ -174,9 +174,9 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         uint256 sizeOut
     ){
         {
-            address _pmAddress = address(_positionManager);
             Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
             require(_leverage >= oldPosition.leverage && _leverage <= 125 && _leverage > 0, Errors.VL_INVALID_LEVERAGE);
+            address _pmAddress = address(_positionManager);
             uint256 openNotional;
             uint128 _quantity = _rawQuantity.abs128();
             if(
