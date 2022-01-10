@@ -180,20 +180,25 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
             require(_leverage >= oldPosition.leverage && _leverage <= 125 && _leverage > 0, Errors.VL_INVALID_LEVERAGE);
             (uint128 currentPip, uint8 isFullBuy) = _positionManager.getCurrentSingleSlot();
             uint256 openNotional;
-            //1: buy
-            //2: sell
-            if (_pip == currentPip && isFullBuy != (_isBuy ? 1 : 2) && _isBuy != (oldPosition.quantity > 0 ? true : false)) {// not is full buy -> open opposite orders
+            if (
+                // open at current pip (at market price)?
+                _pip == currentPip &&
+                // current pip contains sell orders?
+                isFullBuy != (_isBuy ? 1 : 2) &&
+                // current limit order's side != opening position's side?
+                _isBuy != (oldPosition.quantity > 0 ? true : false)
+            ) {
+                // then the limit order must be executed
+                // partially close opening position or open an opposite position
                 uint128 liquidityInCurrentPip = _positionManager.getLiquidityInCurrentPip();
                 if (oldPosition.quantity.abs() <= liquidityInCurrentPip && oldPosition.quantity.abs() <= _quantity && oldPosition.quantity.abs() != 0) {
-                    {
-                        PositionResp memory closePositionResp = internalClosePosition(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, true, oldPosition);
-                        if (int256(_quantity) - closePositionResp.exchangedPositionSize == 0) {
-                            // TODO deposit margin to vault of position resp
+                    PositionResp memory closePositionResp = internalClosePosition(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, true, oldPosition);
+                    if (int256(_quantity) - closePositionResp.exchangedPositionSize == 0) {
+                        // TODO deposit margin to vault of position resp
 //                            positionResp = closePositionResp;
 //                            deposit(_positionManager, _trader, positionResp.marginToVault.abs(), 0);
-                        } else {
-                            (orderId, sizeOut, openNotional) = _positionManager.openLimitPosition(_pip, _quantity - (closePositionResp.exchangedPositionSize).abs128(), _isBuy);
-                        }
+                    } else {
+                        (orderId, sizeOut, openNotional) = _positionManager.openLimitPosition(_pip, _quantity - (closePositionResp.exchangedPositionSize).abs128(), _isBuy);
                     }
                 } else {
                     (orderId, sizeOut, openNotional) = _positionManager.openLimitPosition(_pip, _quantity, _isBuy);
