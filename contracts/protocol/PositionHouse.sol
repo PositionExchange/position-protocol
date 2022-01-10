@@ -88,41 +88,43 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         uint256 _leverage
     ) public whenNotPaused nonReentrant {
         address _trader = _msgSender();
-        address positionManagerAddress = address(_positionManager);
-        Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
-        if (totalPosition.quantity == 0) {
-            totalPosition.leverage = 1;
+        address pmAddr = address(_positionManager);
+        int256 pQuantity = _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity);
+        Position.Data memory oldPosition = getPosition(address(_positionManager), _trader);
+        if (oldPosition.quantity == 0) {
+            oldPosition.leverage = 1;
         }
-        require(_leverage >= totalPosition.leverage && _leverage <= 125 && _leverage > 0, Errors.VL_INVALID_LEVERAGE);
-        PositionResp memory positionResp;
-        // check if old position quantity is same side with new
-        if (totalPosition.quantity == 0 || totalPosition.side() == _side) {
-            positionResp = PositionHouseFunction.increasePosition(
-                positionManagerAddress,
+        //leverage must be greater than old position and in range of allowed leverage
+        require(_leverage >= oldPosition.leverage && _leverage <= 125 && _leverage > 0, Errors.VL_INVALID_LEVERAGE);
+        PositionResp memory pResp;
+        // check if old position quantity is the same side with the new one
+        if (oldPosition.quantity == 0 || oldPosition.side() == _side) {
+            pResp = PositionHouseFunction.increasePosition(
+                pmAddr,
                 _side,
                 int256(_quantity),
                 _leverage,
                 _trader,
-                totalPosition,
-                positionMap[positionManagerAddress][_trader],
-                cumulativePremiumFractions[positionManagerAddress]
+                oldPosition,
+                positionMap[pmAddr][_trader],
+                cumulativePremiumFractions[pmAddr]
             );
         } else {
-            positionResp = openReversePosition(_positionManager, _side, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, _trader, totalPosition);
+            pResp = openReversePosition(_positionManager, _side, pQuantity, _leverage, _trader, oldPosition);
         }
         // update position state
-        positionMap[address(_positionManager)][_trader].update(
-            positionResp.position
+        positionMap[pmAddr][_trader].update(
+            pResp.position
         );
 
-        if (positionResp.marginToVault > 0) {
+        if (pResp.marginToVault > 0) {
             //transfer from trader to vault
-            deposit(_positionManager, _trader, positionResp.marginToVault.abs(), positionResp.position.openNotional);
-        } else if (positionResp.marginToVault < 0) {
+            deposit(_positionManager, _trader, pResp.marginToVault.abs(), pResp.position.openNotional);
+        } else if (pResp.marginToVault < 0) {
             // withdraw from vault to user
-            withdraw(_positionManager, _trader, positionResp.marginToVault.abs());
+            withdraw(_positionManager, _trader, pResp.marginToVault.abs());
         }
-        emit OpenMarket(_trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, positionResp.exchangedQuoteAssetAmount / _quantity, _positionManager);
+        emit OpenMarket(_trader, pQuantity, _leverage, pResp.exchangedQuoteAssetAmount / _quantity, _positionManager);
     }
 
     function openLimitOrder(
@@ -134,9 +136,15 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     ) public whenNotPaused nonReentrant {
         address _trader = _msgSender();
         OpenLimitResp memory openLimitResp;
-        (, openLimitResp.orderId, openLimitResp.sizeOut) = openLimitIncludeMarket(_positionManager, _trader, _pip, int256(_quantity).abs128(), _side == Position.Side.LONG ? true : false, _leverage);
-        if (openLimitResp.sizeOut < _quantity)
-        {
+        (openLimitResp.orderId, openLimitResp.sizeOut) = _internalOpenLimitOrder(
+            _positionManager,
+            _trader,
+            _pip,
+            int256(_quantity).abs128(),
+            _side == Position.Side.LONG ? true : false,
+            _leverage
+        );
+        if (openLimitResp.sizeOut < _quantity) {
             PositionLimitOrder.Data memory _newOrder = PositionLimitOrder.Data({
                 pip : _pip,
                 orderId : openLimitResp.orderId,
@@ -147,7 +155,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
                 reduceQuantity : 0,
                 blockNumber : block.number
             });
-            handleLimitOrderInOpenLimit(openLimitResp, _newOrder, _positionManager, _trader, _quantity, _side);
+            handleLimitOrderInOpenLimit(_newOrder, _positionManager, _trader, _quantity, openLimitResp.sizeOut, _side);
         }
         uint256 baseBasisPoint = _positionManager.getBaseBasisPoint();
         uint256 depositAmount = _quantity * _positionManager.pipToPrice(_pip) / _leverage / baseBasisPoint;
@@ -156,22 +164,32 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         emit OpenLimit(openLimitResp.orderId, _trader, _side == Position.Side.LONG ? int256(_quantity) : - int256(_quantity), _leverage, _pip, _positionManager);
     }
 
-    function openLimitIncludeMarket(IPositionManager _positionManager, address _trader, uint128 _pip, uint128 _quantity, bool _isBuy, uint256 _leverage) internal returns (PositionResp memory positionResp, uint64 orderId, uint256 sizeOut){
+    function _internalOpenLimitOrder(
+        IPositionManager _positionManager,
+        address _trader,
+        uint128 _pip,
+        uint128 _quantity,
+        bool _isBuy,
+        uint256 _leverage
+    ) internal returns (
+        uint64 orderId,
+        uint256 sizeOut
+    ){
         {
-            Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
-            require(_leverage >= totalPosition.leverage && _leverage <= 125 && _leverage > 0, Errors.VL_INVALID_LEVERAGE);
+            Position.Data memory oldPosition = getPosition(address(_positionManager), _trader);
+            require(_leverage >= oldPosition.leverage && _leverage <= 125 && _leverage > 0, Errors.VL_INVALID_LEVERAGE);
             (uint128 currentPip, uint8 isFullBuy) = _positionManager.getCurrentSingleSlot();
             uint256 openNotional;
             //1: buy
             //2: sell
-            if (_pip == currentPip && isFullBuy != (_isBuy ? 1 : 2) && _isBuy != (totalPosition.quantity > 0 ? true : false)) {// not is full buy -> open opposite orders
+            if (_pip == currentPip && isFullBuy != (_isBuy ? 1 : 2) && _isBuy != (oldPosition.quantity > 0 ? true : false)) {// not is full buy -> open opposite orders
                 uint128 liquidityInCurrentPip = _positionManager.getLiquidityInCurrentPip();
-                if (totalPosition.quantity.abs() <= liquidityInCurrentPip && totalPosition.quantity.abs() <= _quantity && totalPosition.quantity.abs() != 0) {
+                if (oldPosition.quantity.abs() <= liquidityInCurrentPip && oldPosition.quantity.abs() <= _quantity && oldPosition.quantity.abs() != 0) {
                     {
-                        PositionResp memory closePositionResp = internalClosePosition(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, true, totalPosition);
+                        PositionResp memory closePositionResp = internalClosePosition(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, true, oldPosition);
                         if (int256(_quantity) - closePositionResp.exchangedPositionSize == 0) {
                             // TODO deposit margin to vault of position resp
-                            positionResp = closePositionResp;
+//                            positionResp = closePositionResp;
 //                            deposit(_positionManager, _trader, positionResp.marginToVault.abs(), 0);
                         } else {
                             (orderId, sizeOut, openNotional) = _positionManager.openLimitPosition(_pip, _quantity - (closePositionResp.exchangedPositionSize).abs128(), _isBuy);
@@ -195,31 +213,31 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
 
     // check the new limit order is fully reduce, increase or both reduce and increase
     function handleLimitOrderInOpenLimit(
-        OpenLimitResp memory openLimitResp,
         PositionLimitOrder.Data memory _newOrder,
         IPositionManager _positionManager,
         address _trader,
         uint256 _quantity,
+        uint256 _sizeOut,
         Position.Side _side
     ) internal {
         address positionManagerAddress = address(_positionManager);
-        Position.Data memory totalPosition = getPosition(positionManagerAddress, _trader);
+        Position.Data memory oldPosition = getPosition(positionManagerAddress, _trader);
         uint256 baseBasisPoint = _positionManager.getBaseBasisPoint();
-        if (totalPosition.quantity == 0 || _side == (totalPosition.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT)) {
+        if (oldPosition.quantity == 0 || _side == (oldPosition.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT)) {
             limitOrders[positionManagerAddress][_trader].push(_newOrder);
         } else {
             // if new limit order is smaller than old position then just reduce old position
-            if (totalPosition.quantity.abs() > _quantity) {
-                _newOrder.reduceQuantity = _quantity - openLimitResp.sizeOut;
-                _newOrder.entryPrice = totalPosition.openNotional * baseBasisPoint / totalPosition.quantity.abs();
+            if (oldPosition.quantity.abs() > _quantity) {
+                _newOrder.reduceQuantity = _quantity - _sizeOut;
+                _newOrder.entryPrice = oldPosition.openNotional * baseBasisPoint / oldPosition.quantity.abs();
                 reduceLimitOrders[positionManagerAddress][_trader].push(_newOrder);
             }
             // else new limit order is larger than old position then close old position and open new opposite position
             else {
-                _newOrder.reduceQuantity = totalPosition.quantity.abs();
+                _newOrder.reduceQuantity = oldPosition.quantity.abs();
                 _newOrder.reduceLimitOrderId = reduceLimitOrders[positionManagerAddress][_trader].length + 1;
                 limitOrders[positionManagerAddress][_trader].push(_newOrder);
-                _newOrder.entryPrice = totalPosition.openNotional * baseBasisPoint / totalPosition.quantity.abs();
+                _newOrder.entryPrice = oldPosition.openNotional * baseBasisPoint / oldPosition.quantity.abs();
                 reduceLimitOrders[positionManagerAddress][_trader].push(_newOrder);
             }
         }
@@ -470,10 +488,10 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         int256 _quantity,
         uint256 _leverage,
         address _trader,
-        Position.Data memory totalPosition
+        Position.Data memory oldPosition
     ) internal returns (PositionResp memory positionResp) {
         address positionManagerAddress = address(_positionManager);
-        if (_quantity.abs() < totalPosition.quantity.abs()) {
+        if (_quantity.abs() < oldPosition.quantity.abs()) {
             {
                 positionResp = PositionHouseFunction.openReversePosition(
                     positionManagerAddress,
@@ -481,7 +499,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
                     _quantity,
                     _leverage,
                     _trader,
-                    totalPosition,
+                    oldPosition,
                     positionMap[positionManagerAddress][_trader],
                     cumulativePremiumFractions[positionManagerAddress]
                 );
@@ -489,7 +507,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
             }
         }
         // if new position is larger then close old and open new
-        return closeAndOpenReversePosition(_positionManager, _side, _quantity, _leverage, totalPosition);
+        return closeAndOpenReversePosition(_positionManager, _side, _quantity, _leverage, oldPosition);
     }
 
     function closeAndOpenReversePosition(
@@ -497,16 +515,16 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         Position.Side _side,
         int256 _quantity,
         uint256 _leverage,
-        Position.Data memory totalPosition
+        Position.Data memory oldPosition
     ) internal returns (PositionResp memory positionResp) {
         address _trader = _msgSender();
         address positionManagerAddress = address(_positionManager);
-        PositionResp memory closePositionResp = internalClosePosition(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, false, totalPosition);
+        PositionResp memory closePositionResp = internalClosePosition(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, false, oldPosition);
         if (_quantity - closePositionResp.exchangedPositionSize == 0) {
             positionResp = closePositionResp;
         } else {
-            totalPosition = getPosition(positionManagerAddress, _trader);
-            PositionResp memory increasePositionResp = PositionHouseFunction.increasePosition(address(_positionManager), _side, _quantity - closePositionResp.exchangedPositionSize, _leverage, _trader, totalPosition, positionMap[positionManagerAddress][_trader], cumulativePremiumFractions[positionManagerAddress]);
+            oldPosition = getPosition(positionManagerAddress, _trader);
+            PositionResp memory increasePositionResp = PositionHouseFunction.increasePosition(address(_positionManager), _side, _quantity - closePositionResp.exchangedPositionSize, _leverage, _trader, oldPosition, positionMap[positionManagerAddress][_trader], cumulativePremiumFractions[positionManagerAddress]);
             positionResp = PositionResp({
             position : increasePositionResp.position,
             exchangedQuoteAssetAmount : closePositionResp.exchangedQuoteAssetAmount + increasePositionResp.exchangedQuoteAssetAmount,
@@ -525,22 +543,22 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         address _trader,
         PnlCalcOption _pnlCalcOption,
         bool isInOpenLimit,
-        Position.Data memory totalPosition
+        Position.Data memory oldPosition
     ) internal returns (PositionResp memory positionResp) {
         address positionManagerAddress = address(_positionManager);
-        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, _pnlCalcOption, totalPosition);
-        uint256 openMarketQuantity = totalPosition.quantity.abs();
+        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, _pnlCalcOption, oldPosition);
+        uint256 openMarketQuantity = oldPosition.quantity.abs();
         require(openMarketQuantity != 0, Errors.VL_INVALID_QUANTITY_INTERNAL_CLOSE);
         if (isInOpenLimit) {
             uint256 liquidityInCurrentPip = uint256(_positionManager.getLiquidityInCurrentPip());
-            openMarketQuantity = liquidityInCurrentPip > totalPosition.quantity.abs() ? totalPosition.quantity.abs() : liquidityInCurrentPip;
+            openMarketQuantity = liquidityInCurrentPip > oldPosition.quantity.abs() ? oldPosition.quantity.abs() : liquidityInCurrentPip;
         }
 
         (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount)
         = PositionHouseFunction.openMarketOrder(
             positionManagerAddress,
             openMarketQuantity,
-            totalPosition.quantity > 0 ? Position.Side.SHORT : Position.Side.LONG,
+            oldPosition.quantity > 0 ? Position.Side.SHORT : Position.Side.LONG,
             _trader
         );
 
@@ -549,7 +567,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
             uint256 badDebt,
             int256 fundingPayment,
 
-        ) = calcRemainMarginWithFundingPayment(_positionManager, totalPosition, totalPosition.margin);
+        ) = calcRemainMarginWithFundingPayment(_positionManager, oldPosition, oldPosition.margin);
 
 
         positionResp.realizedPnl = unrealizedPnl;
@@ -564,11 +582,11 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     function handleMarketQuantityInLimitOrder(address _positionManager, address _trader, uint256 _newQuantity, uint256 _newNotional, uint256 _leverage, bool _isBuy) internal {
         Position.Data memory newData;
         Position.Data memory marketPosition = positionMap[_positionManager][_trader];
-        Position.Data memory totalPosition = getPosition(_positionManager, _trader);
+        Position.Data memory oldPosition = getPosition(_positionManager, _trader);
         int256 newQuantityInt = _isBuy == true ? int256(_newQuantity) : - int256(_newQuantity);
         int256[] memory cumulativePremiumFractions = cumulativePremiumFractions[_positionManager];
         {
-            newData = PositionHouseFunction.handleMarketPart(totalPosition, marketPosition, _newQuantity, _newNotional, newQuantityInt, _leverage, cumulativePremiumFractions);
+            newData = PositionHouseFunction.handleMarketPart(oldPosition, marketPosition, _newQuantity, _newNotional, newQuantityInt, _leverage, cumulativePremiumFractions);
         }
         positionMap[_positionManager][_trader].update(
             newData
@@ -607,13 +625,13 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         IPositionManager positionManager,
         address _trader,
         PnlCalcOption _pnlCalcOption,
-        Position.Data memory totalPosition
+        Position.Data memory oldPosition
     ) public view returns
     (
         uint256 positionNotional,
         int256 unrealizedPnl
     ){
-        (positionNotional, unrealizedPnl) = PositionHouseFunction.getPositionNotionalAndUnrealizedPnl(address(positionManager), _trader, _pnlCalcOption, totalPosition);
+        (positionNotional, unrealizedPnl) = PositionHouseFunction.getPositionNotionalAndUnrealizedPnl(address(positionManager), _trader, _pnlCalcOption, oldPosition);
     }
 
     //    function getLiquidationPrice(
@@ -714,20 +732,20 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         IPositionManager _positionManager,
         Position.Side _side,
         int256 _quantity,
-        Position.Data memory totalPosition,
+        Position.Data memory oldPosition,
         address _trader
     ) internal returns (PositionResp memory positionResp){
         (positionResp.exchangedPositionSize,) = PositionHouseFunction.openMarketOrder(address(_positionManager), _quantity.abs(), _side, _trader);
-        positionResp.exchangedQuoteAssetAmount = _quantity.abs() * (totalPosition.openNotional / totalPosition.quantity.abs());
-        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, totalPosition);
+        positionResp.exchangedQuoteAssetAmount = _quantity.abs() * (oldPosition.openNotional / oldPosition.quantity.abs());
+        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, oldPosition);
         // TODO need to calculate remain margin with funding payment
-        uint256 remainMargin = totalPosition.margin * (100 - liquidationFeeRatio) / 100;
+        uint256 remainMargin = oldPosition.margin * (100 - liquidationFeeRatio) / 100;
         // unchecked
-        positionResp.marginToVault = int256(totalPosition.margin) - int256(remainMargin);
+        positionResp.marginToVault = int256(oldPosition.margin) - int256(remainMargin);
         positionResp.unrealizedPnl = unrealizedPnl;
         debtPosition[address(_positionManager)][_trader].updateDebt(
             - _quantity,
-            totalPosition.margin - remainMargin,
+            oldPosition.margin - remainMargin,
             positionResp.exchangedQuoteAssetAmount
         );
         return positionResp;
