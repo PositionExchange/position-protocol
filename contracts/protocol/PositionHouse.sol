@@ -410,9 +410,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
                 liquidationPenalty = uint256(positionResp.marginToVault);
                 feeToLiquidator = liquidationPenalty / 2;
                 feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
-                // TODO take liquidation fee
-//                // TODO has taken liquidation fee, check again
-//                deposit(_positionManager, _trader, liquidationPenalty - feeToLiquidator, 0);
             } else {        
                 // fully liquidate trader's position
                 liquidationPenalty = positionData.margin + uint256(manualMargin[positionManagerAddress][_trader]);

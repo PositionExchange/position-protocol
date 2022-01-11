@@ -72,17 +72,17 @@ library TickPosition {
         uint128 amount
     ) internal {
         self.liquidity -= amount;
-    unchecked {
-        uint64 index = self.filledIndex;
-        uint128 totalSize = 0;
-        while (totalSize < amount) {
-            totalSize += self.orderQueue[index].size;
-            index++;
+        unchecked {
+            uint64 index = self.filledIndex;
+            uint128 totalSize = 0;
+            while (totalSize < amount) {
+                totalSize += self.orderQueue[index].size;
+                index++;
+            }
+            index--;
+            self.filledIndex = index;
+            self.orderQueue[index].updatePartialFill(uint120(totalSize - amount));
         }
-        index--;
-        self.filledIndex = index;
-        self.orderQueue[index].updatePartialFill(uint120(totalSize - amount));
-    }
     }
 
     function cancelLimitOrder(
