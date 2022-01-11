@@ -238,9 +238,9 @@ describe('LiquidityBitmapTest', function () {
             });
             describe('lte = true', function () {
                 it('should finding from 500, next 250', async function () {
-                    await setBitsInRage2(240, 250);
+                    await setBitsInRage2(250, 500);
                     const result = await liquidityBitmap.findHasLiquidityInMultipleWords(1000, 10, true);
-                    expect(result.toNumber()).eq(250)
+                    expect(result.toNumber()).eq(500)
                 });
                 it('should not find any pip', async function () {
                     await setBitsInRage2(140, 200);
