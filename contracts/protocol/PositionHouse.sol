@@ -432,7 +432,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         emit AddMargin(_trader, _marginAdded, _positionManager);
     }
 
-    function getAddedMargin(IPositionManager _positionManager, address _trader) public view returns (int256) {
+    function getAddedMargin(IPositionManager _positionManager, address _trader) external view returns (int256) {
         return manualMargin[address(_positionManager)][_trader];
     }
 
