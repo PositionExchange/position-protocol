@@ -119,7 +119,8 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
 
         if (pResp.marginToVault > 0) {
             //transfer from trader to vault
-            deposit(_positionManager, _trader, pResp.marginToVault.abs(), pResp.position.openNotional);
+            uint256 fee = _positionManager.calcFee(pResp.position.openNotional);
+            deposit(_positionManager, _trader, pResp.marginToVault.abs(), fee);
         } else if (pResp.marginToVault < 0) {
             // withdraw from vault to user
             withdraw(_positionManager, _trader, pResp.marginToVault.abs());
@@ -163,10 +164,9 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
                 openLimitResp.sizeOut
             );
         }
-        uint256 baseBasisPoint = _positionManager.getBaseBasisPoint();
-        uint256 depositAmount = _uQuantity * _positionManager.pipToPrice(_pip) / _leverage / baseBasisPoint;
-        deposit(_positionManager, _trader, depositAmount, _uQuantity * _positionManager.pipToPrice(_pip) / baseBasisPoint);
-        canClaimAmountMap[address(_positionManager)][_trader] += depositAmount;
+        (, uint256 marginToVault, uint256 fee) = _positionManager.getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
+        deposit(_positionManager, _trader, marginToVault, fee);
+        canClaimAmountMap[address(_positionManager)][_trader] += marginToVault;
         emit OpenLimit(openLimitResp.orderId, _trader, _quantity, _leverage, _pip, _positionManager);
     }
 
@@ -295,9 +295,9 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
             }
         }
 
-        uint256 refundMargin = refundQuantity * _positionManager.pipToPrice(pip) / uint256(leverage) / _positionManager.getBaseBasisPoint();
-        withdraw(_positionManager, _trader, refundMargin);
-        canClaimAmountMap[positionManagerAddress][_trader] -= refundMargin;
+        (,uint256 _refundMargin,) = _positionManager.getNotionalMarginAndFee(refundQuantity, pip, leverage);
+        withdraw(_positionManager, _trader, _refundMargin);
+        canClaimAmountMap[positionManagerAddress][_trader] -= _refundMargin;
         emit CancelLimitOrder(_trader, positionManagerAddress, pip, orderId);
     }
 
@@ -677,20 +677,11 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         );
     }
 
-    function calcFee(
-        address _trader,
-        IPositionManager _positionManager,
-        uint256 _positionNotional
-    ) internal returns (uint256) {
-        return _positionManager.calcFee(_positionNotional);
-    }
-
     function withdraw(IPositionManager _positionManager, address _trader, uint256 amount) internal {
         insuranceFund.withdraw(address(_positionManager.getQuoteAsset()), _trader, amount);
     }
 
-    function deposit(IPositionManager _positionManager, address _trader, uint256 amount, uint256 openNotional) internal {
-        uint256 fee = calcFee(_trader, _positionManager, openNotional);
+    function deposit(IPositionManager _positionManager, address _trader, uint256 amount, uint256 fee) internal {
         insuranceFund.deposit(address(_positionManager.getQuoteAsset()), _trader, amount + fee);
         insuranceFund.updateTotalFee(fee);
     }
