@@ -196,8 +196,8 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
         return 0;
     }
 
-    function cancelLimitOrder(uint128 pip, uint64 orderId) external onlyCounterParty returns (uint256 size) {
-        size = tickPosition[pip].cancelLimitOrder(orderId);
+    function cancelLimitOrder(uint128 pip, uint64 orderId) external onlyCounterParty returns (uint256 size, uint256 partialFilled) {
+        (size, partialFilled) = tickPosition[pip].cancelLimitOrder(orderId);
         if (orderId == tickPosition[pip].currentIndex && orderId <= tickPosition[pip].filledIndex) {
             liquidityBitmap.toggleSingleBit(pip, false);
             singleSlot.isFullBuy = 0;
