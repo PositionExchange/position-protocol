@@ -269,15 +269,8 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     function cancelLimitOrder(IPositionManager _positionManager, uint64 _orderIdx, bool _isReduce) external whenNotPaused nonReentrant {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
-        // declare a pointer
-        PositionLimitOrder.Data[] storage _orders;
-        if (_isReduce) {
-            // set pointer to reduceLimitOrders
-            _orders = reduceLimitOrders[_pmAddress][_trader];
-        }else{
-            // set pointer to limitOrders
-            _orders = limitOrders[_pmAddress][_trader];
-        }
+        // declare a pointer to reduceLimitOrders or limitOrders
+        PositionLimitOrder.Data[] storage _orders = _isReduce ? reduceLimitOrders[_pmAddress][_trader] : limitOrders[_pmAddress][_trader];
         require(_orderIdx < _orders.length, "invalid order");
         // save gas
         PositionLimitOrder.Data memory _order = _orders[_orderIdx];
