@@ -193,6 +193,11 @@ export interface LimitOrderReturns {
     orderIdOfTrader: string;
 }
 
+export interface NotionalAndUnrealizedPnlReturns {
+    positionNotional : BigNumber
+    unrealizedPnl : BigNumber
+}
+
 export interface ChangePriceParams {
     limitPrice: number | string
     toHigherPrice: boolean
