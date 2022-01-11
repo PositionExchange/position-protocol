@@ -279,7 +279,11 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
             _orders = limitOrders[_pmAddress][_trader];
         }
         require(_orderIdx < _orders.length, "invalid order");
+        // save gas
         PositionLimitOrder.Data memory _order = _orders[_orderIdx];
+        // blank limit order data
+        // we set the deleted order to a blank data
+        // because we don't want to mess with order index (orderIdx)
         PositionLimitOrder.Data memory blankLimitOrderData;
 
         (uint256 refundQuantity, uint256 partialFilled) = _positionManager.cancelLimitOrder(_order.pip, _order.orderId);
