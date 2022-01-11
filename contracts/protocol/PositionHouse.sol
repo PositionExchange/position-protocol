@@ -272,10 +272,10 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         // declare a pointer
         PositionLimitOrder.Data[] storage _orders;
         if (_isReduce) {
-            // set pointer to limitOrders
+            // set pointer to reduceLimitOrders
             _orders = reduceLimitOrders[_pmAddress][_trader];
         }else{
-            // set pointer to reduceLimitOrders
+            // set pointer to limitOrders
             _orders = limitOrders[_pmAddress][_trader];
         }
         require(_orderIdx < _orders.length, "invalid order");
