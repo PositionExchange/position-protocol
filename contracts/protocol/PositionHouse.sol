@@ -265,7 +265,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     * @param _isReduce is that a reduce limit order?
     * The external service must determine that by a variable in getListPendingOrders
     */
-
     function cancelLimitOrder(IPositionManager _positionManager, uint64 _orderIdx, bool _isReduce) external whenNotPaused nonReentrant {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
@@ -350,7 +349,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         );
     }
 
-    function claimFund(IPositionManager _positionManager) public whenNotPaused nonReentrant {
+    function claimFund(IPositionManager _positionManager) external whenNotPaused nonReentrant {
         address _trader = _msgSender();
         address positionManagerAddress = address(_positionManager);
         int256 totalRealizedPnl = getClaimAmount(positionManagerAddress, _trader);
