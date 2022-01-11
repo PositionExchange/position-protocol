@@ -238,24 +238,22 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     ) internal {
         address positionManagerAddress = address(_positionManager);
         Position.Data memory oldPosition = getPosition(positionManagerAddress, _trader);
-        uint256 baseBasisPoint = _positionManager.getBaseBasisPoint();
         if (oldPosition.quantity == 0 || _quantity.isSameSide(oldPosition.quantity)) {
             limitOrders[positionManagerAddress][_trader].push(_newOrder);
         } else {
+            uint256 baseBasisPoint = _positionManager.getBaseBasisPoint();
             // if new limit order is smaller than old position then just reduce old position
             if (oldPosition.quantity.abs() > _quantity.abs()) {
                 _newOrder.reduceQuantity = _quantity.abs() - _sizeOut;
-                _newOrder.entryPrice = oldPosition.openNotional * baseBasisPoint / oldPosition.quantity.abs();
-                reduceLimitOrders[positionManagerAddress][_trader].push(_newOrder);
             }
             // else new limit order is larger than old position then close old position and open new opposite position
             else {
                 _newOrder.reduceQuantity = oldPosition.quantity.abs();
                 _newOrder.reduceLimitOrderId = reduceLimitOrders[positionManagerAddress][_trader].length + 1;
                 limitOrders[positionManagerAddress][_trader].push(_newOrder);
-                _newOrder.entryPrice = oldPosition.openNotional * baseBasisPoint / oldPosition.quantity.abs();
-                reduceLimitOrders[positionManagerAddress][_trader].push(_newOrder);
             }
+            _newOrder.entryPrice = oldPosition.openNotional * baseBasisPoint / oldPosition.quantity.abs();
+            reduceLimitOrders[positionManagerAddress][_trader].push(_newOrder);
         }
     }
 
