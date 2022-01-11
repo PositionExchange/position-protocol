@@ -49,7 +49,7 @@ interface IPositionManager {
 
     function calcFee(uint256 _positionNotional) external view returns (uint256);
 
-    function cancelLimitOrder(uint128 pip, uint64 orderId) external returns (uint256);
+    function cancelLimitOrder(uint128 pip, uint64 orderId) external returns (uint256 refundSize, uint256 partialFilled);
 
     function settleFunding() external returns (int256 premiumFraction);
 

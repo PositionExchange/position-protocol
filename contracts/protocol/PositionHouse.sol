@@ -241,6 +241,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         if (oldPosition.quantity == 0 || _quantity.isSameSide(oldPosition.quantity)) {
             limitOrders[positionManagerAddress][_trader].push(_newOrder);
         } else {
+            // limit order reducing position
             uint256 baseBasisPoint = _positionManager.getBaseBasisPoint();
             // if new limit order is smaller than old position then just reduce old position
             if (oldPosition.quantity.abs() > _quantity.abs()) {
@@ -257,46 +258,42 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         }
     }
 
-    function cancelLimitOrder(IPositionManager _positionManager, uint64 orderIdx, uint128 pip, uint64 orderId) public whenNotPaused nonReentrant {
+    /**
+    * @dev cancel a limit order
+    * @param _positionManager position manager
+    * @param _orderIdx order index in the limit orders (increase or reduce) list
+    * @param _isReduce is that a reduce limit order?
+    * The external service must determine that by a variable in getListPendingOrders
+    */
+
+    function cancelLimitOrder(IPositionManager _positionManager, uint64 _orderIdx, bool _isReduce) external whenNotPaused nonReentrant {
         address _trader = _msgSender();
-        uint256 refundQuantity = _positionManager.cancelLimitOrder(pip, orderId);
-        uint128 oldOrderPip;
-        uint64 oldOrderId;
-        address positionManagerAddress = address(_positionManager);
-        PositionLimitOrder.Data[] memory listLimitOrders = limitOrders[positionManagerAddress][_trader];
-        PositionLimitOrder.Data[] memory listReduceLimitOrders = reduceLimitOrders[positionManagerAddress][_trader];
-
-        if (orderIdx < listLimitOrders.length) {
-            oldOrderPip = listLimitOrders[orderIdx].pip;
-            oldOrderId = listLimitOrders[orderIdx].orderId;
+        address _pmAddress = address(_positionManager);
+        // declare a pointer
+        PositionLimitOrder.Data[] storage _orders;
+        if (_isReduce) {
+            // set pointer to limitOrders
+            _orders = reduceLimitOrders[_pmAddress][_trader];
+        }else{
+            // set pointer to reduceLimitOrders
+            _orders = limitOrders[_pmAddress][_trader];
         }
-        uint16 leverage;
+        require(_orderIdx < _orders.length, "invalid order");
+        PositionLimitOrder.Data memory _order = _orders[_orderIdx];
         PositionLimitOrder.Data memory blankLimitOrderData;
-        {
-            if (pip == oldOrderPip && orderId == oldOrderId) {
-                leverage = listLimitOrders[orderIdx].leverage;
-                (,,, uint256 partialFilled) = _positionManager.getPendingOrderDetail(pip, orderId);
-                if (partialFilled == 0) {
-                    uint256 reduceLimitOrderId = listLimitOrders[orderIdx].reduceLimitOrderId;
-                    if (reduceLimitOrderId != 0) {
-                        reduceLimitOrders[positionManagerAddress][_trader][reduceLimitOrderId - 1] = blankLimitOrderData;
-                    }
-                    limitOrders[positionManagerAddress][_trader][orderIdx] = blankLimitOrderData;
 
-                }
-            } else {
-                leverage = listReduceLimitOrders[orderIdx].leverage;
-                (,,, uint256 partialFilled) = _positionManager.getPendingOrderDetail(pip, orderId);
-                if (partialFilled == 0) {
-                    reduceLimitOrders[positionManagerAddress][_trader][orderIdx] = blankLimitOrderData;
-                }
+        (uint256 refundQuantity, uint256 partialFilled) = _positionManager.cancelLimitOrder(_order.pip, _order.orderId);
+        if (partialFilled == 0){
+            _orders[_orderIdx] = blankLimitOrderData;
+            if(_order.reduceLimitOrderId != 0){
+                reduceLimitOrders[_pmAddress][_trader][_order.reduceLimitOrderId - 1] = blankLimitOrderData;
             }
         }
 
-        (,uint256 _refundMargin,) = _positionManager.getNotionalMarginAndFee(refundQuantity, pip, leverage);
+        (,uint256 _refundMargin,) = _positionManager.getNotionalMarginAndFee(refundQuantity, _order.pip, _order.leverage);
         withdraw(_positionManager, _trader, _refundMargin);
-        canClaimAmountMap[positionManagerAddress][_trader] -= _refundMargin;
-        emit CancelLimitOrder(_trader, positionManagerAddress, pip, orderId);
+        canClaimAmountMap[_pmAddress][_trader] -= _refundMargin;
+        emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
     }
 
     /**
