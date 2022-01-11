@@ -257,7 +257,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         }
     }
 
-    function cancelLimitOrder(IPositionManager _positionManager, uint64 orderIdOfTrader, uint128 pip, uint64 orderId) public whenNotPaused nonReentrant {
+    function cancelLimitOrder(IPositionManager _positionManager, uint64 orderIdx, uint128 pip, uint64 orderId) public whenNotPaused nonReentrant {
         address _trader = _msgSender();
         uint256 refundQuantity = _positionManager.cancelLimitOrder(pip, orderId);
         uint128 oldOrderPip;
@@ -266,29 +266,29 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         PositionLimitOrder.Data[] memory listLimitOrders = limitOrders[positionManagerAddress][_trader];
         PositionLimitOrder.Data[] memory listReduceLimitOrders = reduceLimitOrders[positionManagerAddress][_trader];
 
-        if (orderIdOfTrader < listLimitOrders.length) {
-            oldOrderPip = listLimitOrders[orderIdOfTrader].pip;
-            oldOrderId = listLimitOrders[orderIdOfTrader].orderId;
+        if (orderIdx < listLimitOrders.length) {
+            oldOrderPip = listLimitOrders[orderIdx].pip;
+            oldOrderId = listLimitOrders[orderIdx].orderId;
         }
         uint16 leverage;
         PositionLimitOrder.Data memory blankLimitOrderData;
         {
             if (pip == oldOrderPip && orderId == oldOrderId) {
-                leverage = listLimitOrders[orderIdOfTrader].leverage;
+                leverage = listLimitOrders[orderIdx].leverage;
                 (,,, uint256 partialFilled) = _positionManager.getPendingOrderDetail(pip, orderId);
                 if (partialFilled == 0) {
-                    uint256 reduceLimitOrderId = listLimitOrders[orderIdOfTrader].reduceLimitOrderId;
+                    uint256 reduceLimitOrderId = listLimitOrders[orderIdx].reduceLimitOrderId;
                     if (reduceLimitOrderId != 0) {
                         reduceLimitOrders[positionManagerAddress][_trader][reduceLimitOrderId - 1] = blankLimitOrderData;
                     }
-                    limitOrders[positionManagerAddress][_trader][orderIdOfTrader] = blankLimitOrderData;
+                    limitOrders[positionManagerAddress][_trader][orderIdx] = blankLimitOrderData;
 
                 }
             } else {
-                leverage = listReduceLimitOrders[orderIdOfTrader].leverage;
+                leverage = listReduceLimitOrders[orderIdx].leverage;
                 (,,, uint256 partialFilled) = _positionManager.getPendingOrderDetail(pip, orderId);
                 if (partialFilled == 0) {
-                    reduceLimitOrders[positionManagerAddress][_trader][orderIdOfTrader] = blankLimitOrderData;
+                    reduceLimitOrders[positionManagerAddress][_trader][orderIdx] = blankLimitOrderData;
                 }
             }
         }
