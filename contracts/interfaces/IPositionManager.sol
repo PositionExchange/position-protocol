@@ -27,7 +27,13 @@ interface IPositionManager {
         uint128 _quantity,
         uint8 _pSide,
         uint256 _pQuantity
-    ) external returns (bool);
+    ) external view returns (bool);
+
+    function getNotionalMarginAndFee(
+        uint256 _pQuantity,
+        uint128 _pip,
+        uint256 _leverage
+    ) external view returns(uint256 notional, uint256 margin, uint256 fee);
 
     function openLimitPosition(uint128 pip, uint128 size, bool isBuy) external returns (uint64 orderId, uint256 sizeOut, uint256 openNotional);
 

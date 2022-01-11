@@ -163,6 +163,21 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
                 && _pQuantity <= getLiquidityInCurrentPip();
     }
 
+    function getNotionalMarginAndFee(
+      uint256 _pQuantity,
+      uint128 _pip,
+      uint256 _leverage
+    ) public view returns(
+        uint256 notional,
+        uint256 margin,
+        uint256 fee
+    ){
+        notional = _pQuantity * pipToPrice(_pip) / getBaseBasisPoint();
+        margin = notional / _leverage;
+        fee = calcFee(notional);
+    }
+
+
     function updatePartialFilledOrder(uint128 pip, uint64 orderId) public {
         uint256 newSize = tickPosition[pip].updateOrderWhenClose(orderId);
         emit LimitOrderUpdated(orderId, pip, newSize);
@@ -173,10 +188,10 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
      * @param _positionNotional quote asset amount
      * @return total tx fee
      */
-    function calcFee(uint256 _positionNotional) external view returns (uint256)
+    function calcFee(uint256 _positionNotional) public view returns (uint256)
     {
         if (tollRatio != 0) {
-            return _positionNotional == 0 ? 0 : _positionNotional / tollRatio;
+            return _positionNotional / tollRatio;
         }
         return 0;
     }
