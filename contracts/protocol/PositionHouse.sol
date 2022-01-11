@@ -295,9 +295,9 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
             }
         }
 
-        uint256 refundMargin = refundQuantity * _positionManager.pipToPrice(pip) / uint256(leverage) / _positionManager.getBaseBasisPoint();
-        withdraw(_positionManager, _trader, refundMargin);
-        canClaimAmountMap[positionManagerAddress][_trader] -= refundMargin;
+        (,uint256 _refundMargin,) = _positionManager.getNotionalMarginAndFee(refundQuantity, pip, leverage);
+        withdraw(_positionManager, _trader, _refundMargin);
+        canClaimAmountMap[positionManagerAddress][_trader] -= _refundMargin;
         emit CancelLimitOrder(_trader, positionManagerAddress, pip, orderId);
     }
 
