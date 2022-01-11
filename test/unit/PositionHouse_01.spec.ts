@@ -4,7 +4,6 @@ import {deployContract, loadFixture} from "ethereum-waffle";
 
 const {solidity} = waffle
 
-import {describe} from "mocha";
 import {expect, use} from 'chai'
 import InsuranceFundArtifact from '../../artifacts/contracts/protocol/InsuranceFund.sol/InsuranceFund.json'
 import {PositionManager, PositionHouse, ChainLinkPriceFeed, BEP20Mintable, InsuranceFund} from "../../typeChain";
