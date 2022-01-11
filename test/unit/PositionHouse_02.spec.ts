@@ -8,7 +8,7 @@ import {loadFixture} from "ethereum-waffle";
 // import {TEST_POOL_START_TIME} from "../../shared/fixtures";
 import {describe} from "mocha";
 import {expect} from 'chai'
-import {PositionManager, PositionHouse, InsuranceFund} from "../../typeChain";
+import {PositionManager, PositionHouse, InsuranceFund, BEP20Mintable} from "../../typeChain";
 import {
     ClaimFund,
     LimitOrderReturns,
@@ -28,7 +28,6 @@ import PositionHouseTestingTool from "../shared/positionHouseTestingTool";
 
 describe("PositionHouse_02", () => {
     let positionHouse: PositionHouse;
-    let insuranceFund : InsuranceFund;
     let trader0: any;
     let trader1: any;
     let trader2: any;
@@ -38,24 +37,46 @@ describe("PositionHouse_02", () => {
     let tradercp: any;
     let positionManager: PositionManager;
     let positionManagerFactory: ContractFactory;
+    let bep20Mintable: BEP20Mintable
+    let insuranceFund: InsuranceFund
 
     beforeEach(async () => {
         [trader0, trader1, trader2, trader3, trader4, trader5, tradercp] = await ethers.getSigners()
         const positionHouseFunction = await ethers.getContractFactory('PositionHouseFunction')
         const libraryIns = (await positionHouseFunction.deploy())
 
+        // Deploy mock busd contract
+        const bep20MintableFactory = await ethers.getContractFactory('BEP20Mintable')
+        bep20Mintable = (await bep20MintableFactory.deploy('BUSD Mock', 'BUSD')) as unknown as BEP20Mintable
+
+        // Deploy insurance fund contract
+        const insuranceFundFactory = await ethers.getContractFactory('InsuranceFund')
+        insuranceFund = (await insuranceFundFactory.deploy()) as unknown as InsuranceFund
+
+        // Deploy position manager contract
         positionManagerFactory = await ethers.getContractFactory("PositionManager")
         positionManager = (await positionManagerFactory.deploy()) as unknown as PositionManager;
+
+        // Deploy position house contract
         const factory = await ethers.getContractFactory("PositionHouse", {
             libraries: {
                 PositionHouseFunction: libraryIns.address
                 // unsafeAllowLinkedLibraries : true
             }
         })
-        const insuranceFundFactory = await ethers.getContractFactory("InsuranceFund")
         positionHouse = (await factory.deploy()) as unknown as PositionHouse;
-        await positionManager.initialize(BigNumber.from(500000), '0xd364238D7eC81547a38E3bF4CBB5206605A15Fee', ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
-        await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), '0xf1d0e7be179cb21f0e6bfe3616a3d7bce2f18aef'.toLowerCase())
+
+        await insuranceFund.connect(trader0).initialize()
+        await insuranceFund.connect(trader0).setCounterParty(positionHouse.address);
+        await bep20Mintable.mint(insuranceFund.address, BigNumber.from('10000000000000000000000000000000'));
+
+        [trader0, trader1, trader2, trader3, trader4, trader5, tradercp].forEach(element => {
+            bep20Mintable.mint(element.address, BigNumber.from('10000000000000000000000000000000'))
+            bep20Mintable.connect(element).approve(insuranceFund.address, BigNumber.from('1000000000000000000000000000000000000'))
+        })
+
+        await positionManager.initialize(BigNumber.from(500000), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
+        await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), insuranceFund.address)
     })
 
     const openMarketPosition = async ({
@@ -205,10 +226,12 @@ describe("PositionHouse_02", () => {
                                             expectedPnl = undefined,
                                             expectedQuantity = 0
                                         }: ExpectTestCaseParams) {
-        const positionNotionalAndPnLTrader = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(
+        const oldPosition = await positionHouse.getPosition(positionManagerAddress, traderAddress)
+        const positionNotionalAndPnLTrader = await positionHouse.getPositionNotionalAndUnrealizedPnl(
             positionManagerAddress,
             traderAddress,
-            1
+            1,
+            oldPosition
         )
         const positionTrader = (await positionHouse.getPosition(positionManagerAddress, traderAddress)) as unknown as PositionData
         console.log("expect all: quantity, openNotional, positionNotional, margin, unrealizedPnl", Number(positionTrader.quantity), Number(positionTrader.openNotional), Number(positionNotionalAndPnLTrader.positionNotional), Number(positionTrader.margin), Number(positionNotionalAndPnLTrader.unrealizedPnl))

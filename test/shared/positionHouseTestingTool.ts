@@ -170,7 +170,8 @@ export default class PositionHouseTestingTool {
         const openNotional = positionInfo.openNotional.div('10000').toString()
         // expectedNotional = expectedNotional && expectedNotional.toString() || quantity.mul(price).toString()
         console.log(`debugPosition Position Info of ${trader.address}`)
-        const pnl = await this.positionHouse.getPositionNotionalAndUnrealizedPnlTest(this.positionManager.address, trader.address, 0)
+        const oldPosition = await this.positionHouse.getPosition(this.positionManager.address, trader.address)
+        const pnl = await this.positionHouse.getPositionNotionalAndUnrealizedPnl(this.positionManager.address, trader.address,0, oldPosition)
         console.table([
             {
                 openNotional: openNotional,
