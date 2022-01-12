@@ -135,6 +135,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         uint128 _pip,
         uint256 _leverage
     ) public whenNotPaused nonReentrant {
+        console.log("start open limit order with quantity", _uQuantity);
         address _trader = _msgSender();
         OpenLimitResp memory openLimitResp;
         int256 _quantity = _side == Position.Side.LONG ? int256(_uQuantity) : -int256(_uQuantity);
@@ -195,8 +196,12 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
                     oldPosition.quantity.u8Side(),
                     oldPosition.quantity.abs()
                 )
+                && oldPosition.quantity * _rawQuantity < 0
             ) {
+                console.log("before internal close");
+                console.log("old position quantity", oldPosition.quantity.abs());
                 PositionResp memory closePositionResp = internalClosePosition(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, true, oldPosition);
+                console.log("after internal close");
                 if (_rawQuantity - closePositionResp.exchangedPositionSize == 0) {
                     // TODO deposit margin to vault of position resp
                     //                            positionResp = closePositionResp;
