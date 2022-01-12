@@ -206,8 +206,6 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
     }
 
     function openLimitPosition(uint128 pip, uint128 size, bool isBuy) external whenNotPaused onlyCounterParty returns (uint64 orderId, uint256 sizeOut, uint256 openNotional) {
-        console.log("start open limit in position manager with size", size);
-        console.log("get current liquidity in pip", getLiquidityInCurrentPip());
         if (isBuy && singleSlot.pip != 0) {
             require(pip <= singleSlot.pip && int128(pip) >= (int128(singleSlot.pip) - int128(maxFindingWordsIndex * 250)), Errors.VL_LONG_PRICE_THAN_CURRENT_PRICE);
         } else {
@@ -235,7 +233,6 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
             }
         }
         // TODO update emit event
-        console.log("get current liquidity in pip after open limit order", getLiquidityInCurrentPip());
         emit LimitOrderCreated(orderId, pip, size, isBuy);
     }
 
