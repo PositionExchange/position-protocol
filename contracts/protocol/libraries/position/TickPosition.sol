@@ -124,24 +124,4 @@ library TickPosition {
 
 
     }
-    //    function executeOrder(Data storage self, uint256 size, bool isLong)
-    //    internal returns
-    //    (
-    //        uint256 remainingAmount
-    //    ) {
-    //        if(self.liquidity > size){
-    //            self.liquidity = self.liquidity.sub(size);
-    //            // safe to increase by plus 1
-    //            //TODO determine index to plus
-    ////            self.filledIndex += 1;
-    //            remainingAmount = 0;
-    //        }else{
-    //            // fill all liquidity
-    //            // safe to use with out safemath to avoid gas wasting?
-    //            remainingAmount = size.sub(self.liquidity);
-    //            self.liquidity = 0;
-    //            self.filledIndex = self.currentIndex;
-    //        }
-    //    }
-
 }

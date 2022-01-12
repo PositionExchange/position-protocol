@@ -227,7 +227,6 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
         }
         SingleSlot memory _singleSlot = singleSlot;
         bool hasLiquidity = liquidityBitmap.hasLiquidity(pip);
-        //save gas
         if (pip == _singleSlot.pip && hasLiquidity && _singleSlot.isFullBuy != (isBuy ? 1 : 2)) {
             // open market
             (sizeOut, openNotional) = openMarketPositionWithMaxPip(size, isBuy, pip);
@@ -237,8 +236,6 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
             if (pip == _singleSlot.pip && _singleSlot.isFullBuy != (isBuy ? 1 : 2)) {
                 singleSlot.isFullBuy = isBuy ? 1 : 2;
             }
-            //TODO validate pip
-            // convert tick to price
             // save at that pip has how many liquidity
             orderId = tickPosition[pip].insertLimitOrder(size - uint128(sizeOut), hasLiquidity, isBuy);
             if (!hasLiquidity) {
@@ -246,7 +243,6 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
                 liquidityBitmap.toggleSingleBit(pip, true);
             }
         }
-        // TODO update emit event
         emit LimitOrderCreated(orderId, pip, size, isBuy);
     }
 

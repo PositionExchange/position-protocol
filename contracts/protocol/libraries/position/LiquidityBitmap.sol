@@ -185,7 +185,7 @@ library LiquidityBitmap {
             self[toMapIndex] |= (((1 << (fromBitPos - 1)) - 1) ^ ((1 << toBitPos) - 1));
         } else {
             // need to shift the map index
-            // TODO fromMapIndex needs set separately
+            // fromMapIndex needs set separately
             self[fromMapIndex] |= (((1 << (fromBitPos - 1)) - 1) ^ ((1 << 255) - 1));
             for (uint128 i = fromMapIndex + 1; i < toMapIndex; i++) {
                 // pass uint256.MAX to avoid gas for computing

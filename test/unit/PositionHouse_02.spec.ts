@@ -2899,7 +2899,6 @@ describe("PositionHouse_02", () => {
     //         })) as unknown as PositionLimitOrderID
     //
     //
-    //         // TODO confirm expect again with this test
     //         const expectTrader0End1 = await expectMarginPnlAndOP({
     //             positionManagerAddress: positionManager.address,
     //             traderAddress: trader0.address,

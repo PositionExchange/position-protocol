@@ -2503,8 +2503,6 @@ describe("PositionHouse_01", () => {
                     });
                 }
 
-
-                // TODO verify expected size
                 {
                     response3 = (await openLimitPositionAndExpect({
                         limitPrice: 5015,

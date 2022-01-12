@@ -10,7 +10,6 @@ library Position {
     using Quantity for int256;
     enum Side {LONG, SHORT}
     struct Data {
-        // TODO restruct data
         int256 quantity;
         uint256 margin;
         uint256 openNotional;

@@ -447,8 +447,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
                 liquidationPenalty = uint256(positionResp.marginToVault);
                 feeToLiquidator = liquidationPenalty / 2;
                 feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
-                //                // TODO has taken liquidation fee, check again
-                //                _deposit(_positionManager, _trader, liquidationPenalty - feeToLiquidator, 0);
             } else {
                 // fully liquidate trader's position
                 liquidationPenalty = positionData.margin + uint256(manualMargin[positionManagerAddress][_trader]);
@@ -749,16 +747,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     // INTERNAL FUNCTION OF POSITION HOUSE
     //
 
-    //    function openMarketOrder(
-    //        IPositionManager _positionManager,
-    //        uint256 _quantity,
-    //        Position.Side _side
-    //    ) internal returns (int256 exchangedQuantity, uint256 openNotional) {
-    //        address _trader = _msgSender();
-    //        // TODO higher gas price but lower contract's size
-    //        (exchangedQuantity, openNotional) = PositionHouseFunction.openMarketOrder(address(_positionManager), _quantity, _side, _trader);
-    //    }
-
     function calcRemainMarginWithFundingPayment(
         IPositionManager _positionManager, Position.Data memory oldPosition, uint256 deltaMargin
     ) internal view returns (uint256 remainMargin, uint256 badDebt, int256 fundingPayment, int256 latestCumulativePremiumFraction){
@@ -776,7 +764,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         }
     }
 
-    // TODO can move to position house function
     function partialLiquidate(
         IPositionManager _positionManager,
         Position.Side _side,

@@ -451,21 +451,13 @@ library PositionHouseFunction {
         Position.Data memory marketPosition,
         int256[] memory cumulativePremiumFraction
     ) public returns (PositionHouseStorage.PositionResp memory positionResp){
-//        IPositionManager _positionManager = IPositionManager(addressPositionManager);
         (positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount) = openMarketOrder(addressPositionManager, _quantity.abs(), _side, _trader);
         if (positionResp.exchangedPositionSize != 0) {
-//            Position.Data memory marketPosition = positionMap[address(_positionManager)][_trader];
             int256 _newSize = marketPosition.quantity + positionResp.exchangedPositionSize;
             uint256 increaseMarginRequirement = positionResp.exchangedQuoteAssetAmount / _leverage;
-            // TODO update function latestCumulativePremiumFraction
-
-            //            Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
-
             (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(addressPositionManager, _trader, PositionHouseStorage.PnlCalcOption.SPOT_PRICE, totalPosition);
-
             positionResp.unrealizedPnl = unrealizedPnl;
             positionResp.realizedPnl = 0;
-            // checked margin to vault
             positionResp.marginToVault = int256(increaseMarginRequirement);
             positionResp.position = Position.Data(
                 _newSize,
