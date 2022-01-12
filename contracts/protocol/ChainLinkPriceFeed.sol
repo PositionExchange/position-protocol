@@ -53,11 +53,18 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
         return priceFeedMap[_priceFeedKey];
     }
 
-    function getLatestRoundDataTest(AggregatorV3Interface _aggregator) public view returns (uint80 round, int256 latestPrice, uint256 latestTimestamp) {
+    function getLatestRoundDataTest(AggregatorV3Interface _aggregator) public view returns (
+        uint80 round,
+        int256 latestPrice,
+        uint256 latestTimestamp) {
         (round, latestPrice, , latestTimestamp,) = _aggregator.latestRoundData();
     }
 
-    function getRoundDataTest(AggregatorV3Interface _aggregator, uint80 _round) public view returns (int256 latestPrice, uint256 startedAt, uint256 latestTimestamp, uint80 answeredInRound) {
+    function getRoundDataTest(AggregatorV3Interface _aggregator, uint80 _round) public view returns (
+        int256 latestPrice,
+        uint256 startedAt,
+        uint256 latestTimestamp,
+        uint80 answeredInRound) {
         (, latestPrice, startedAt, latestTimestamp, answeredInRound) = _aggregator.getRoundData(_round);
     }
 
@@ -81,7 +88,12 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
         return latestTimestamp;
     }
 
-    function getTwapPrice(bytes32 _priceFeedKey, uint256 _interval) external view override returns (uint256) {
+    function getTwapPrice(bytes32 _priceFeedKey, uint256 _interval)
+        external
+        view
+        override
+        returns (uint256)
+    {
         AggregatorV3Interface aggregator = getAggregator(_priceFeedKey);
         requireNonEmptyAddress(address(aggregator));
         require(_interval != 0, "interval can't be 0");
@@ -139,7 +151,12 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
         return formatDecimals(weightedPrice / _interval, decimal);
     }
 
-    function getPreviousPrice(bytes32 _priceFeedKey, uint256 _numOfRoundBack) external view override returns (uint256) {
+    function getPreviousPrice(bytes32 _priceFeedKey, uint256 _numOfRoundBack)
+        external
+        view
+        override
+        returns (uint256)
+    {
         AggregatorV3Interface aggregator = getAggregator(_priceFeedKey);
         requireNonEmptyAddress(address(aggregator));
 
@@ -150,11 +167,14 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
         return formatDecimals(uint256(previousPrice), priceFeedDecimalMap[_priceFeedKey]);
     }
 
-    function getPreviousTimestamp(bytes32 _priceFeedKey, uint256 _numOfRoundBack)
-    external
-    view
-    override
-    returns (uint256)
+    function getPreviousTimestamp(
+        bytes32 _priceFeedKey,
+        uint256 _numOfRoundBack
+    )
+        external
+        view
+        override
+        returns (uint256)
     {
         AggregatorV3Interface aggregator = getAggregator(_priceFeedKey);
         requireNonEmptyAddress(address(aggregator));
@@ -168,13 +188,13 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
     }
 
     function getLatestRoundData(AggregatorV3Interface _aggregator)
-    internal
-    view
-    returns (
-        uint80,
-        uint256 finalPrice,
-        uint256
-    )
+        internal
+        view
+        returns (
+            uint80,
+            uint256 finalPrice,
+            uint256
+        )
     {
         (uint80 round, int256 latestPrice, , uint256 latestTimestamp,) = _aggregator.latestRoundData();
         finalPrice = uint256(latestPrice);
@@ -185,14 +205,17 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
         return (round, finalPrice, latestTimestamp);
     }
 
-    function getRoundData(AggregatorV3Interface _aggregator, uint80 _round)
-    internal
-    view
-    returns (
-        uint80,
-        uint256,
-        uint256
+    function getRoundData(
+        AggregatorV3Interface _aggregator,
+        uint80 _round
     )
+        internal
+        view
+        returns (
+            uint80,
+            uint256,
+            uint256
+        )
     {
         (uint80 round, int256 latestPrice, , uint256 latestTimestamp,) = _aggregator.getRoundData(_round);
         while (latestPrice < 0) {

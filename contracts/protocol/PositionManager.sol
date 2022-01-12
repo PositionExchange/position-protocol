@@ -137,12 +137,19 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
         return liquidityBitmap.hasLiquidity(pip);
     }
 
-    function getPendingOrderDetail(uint128 pip, uint64 orderId) public view returns (
+    function getPendingOrderDetail(
+        uint128 pip,
+        uint64 orderId
+    )
+    public
+    view
+    returns (
         bool isFilled,
         bool isBuy,
         uint256 size,
         uint256 partialFilled
-    ){
+    )
+    {
         (isFilled, isBuy, size, partialFilled) = tickPosition[pip].getQueueOrder(orderId);
         if (!liquidityBitmap.hasLiquidity(pip)) {
             isFilled = true;
@@ -158,7 +165,11 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
         uint128 _quantity,
         uint8 _pSide,
         uint256 _pQuantity
-    ) public view returns (bool) {
+    )
+        public
+        view
+        returns (bool)
+    {
         //save gas
         SingleSlot memory _singleSlot = singleSlot;
         return _pip == _singleSlot.pip
@@ -171,16 +182,19 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
         uint256 _pQuantity,
         uint128 _pip,
         uint256 _leverage
-    ) public view returns (
-        uint256 notional,
-        uint256 margin,
-        uint256 fee
-    ){
+    )
+        public
+        view
+        returns (
+            uint256 notional,
+            uint256 margin,
+            uint256 fee
+        )
+    {
         notional = _pQuantity * pipToPrice(_pip) / getBaseBasisPoint();
         margin = notional / _leverage;
         fee = calcFee(notional);
     }
-
 
     function updatePartialFilledOrder(uint128 pip, uint64 orderId) public {
         uint256 newSize = tickPosition[pip].updateOrderWhenClose(orderId);
@@ -192,15 +206,21 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
      * @param _positionNotional quote asset amount
      * @return total tx fee
      */
-    function calcFee(uint256 _positionNotional) public view returns (uint256)
-    {
+    function calcFee(uint256 _positionNotional) public view returns (uint256) {
         if (tollRatio != 0) {
             return _positionNotional / tollRatio;
         }
         return 0;
     }
 
-    function cancelLimitOrder(uint128 pip, uint64 orderId) external onlyCounterParty returns (uint256 size, uint256 partialFilled) {
+    function cancelLimitOrder(uint128 pip, uint64 orderId)
+        external
+        onlyCounterParty
+        returns (
+            uint256 size,
+            uint256 partialFilled
+        )
+    {
         (size, partialFilled) = tickPosition[pip].cancelLimitOrder(orderId);
         if (orderId == tickPosition[pip].currentIndex && orderId <= tickPosition[pip].filledIndex) {
             liquidityBitmap.toggleSingleBit(pip, false);
@@ -212,10 +232,17 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
     function openLimitPosition(
         uint128 pip,
         uint128 size,
-        bool isBuy) external whenNotPaused onlyCounterParty returns (
-        uint64 orderId,
-        uint256 sizeOut,
-        uint256 openNotional){
+        bool isBuy
+    )
+        external
+        whenNotPaused
+        onlyCounterParty
+        returns (
+            uint64 orderId,
+            uint256 sizeOut,
+            uint256 openNotional
+        )
+    {
         if (isBuy && singleSlot.pip != 0) {
             require(
                 pip <= singleSlot.pip && int128(pip) >= (int128(singleSlot.pip) - int128(maxFindingWordsIndex * 250)),
@@ -247,18 +274,44 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
     }
 
 
-    function openMarketPositionWithMaxPip(uint256 size, bool isBuy, uint128 maxPip) public whenNotPaused onlyCounterParty
-    returns (uint256 sizeOut, uint256 openNotional) {
+    function openMarketPositionWithMaxPip(
+        uint256 size,
+        bool isBuy,
+        uint128 maxPip
+    )
+        public
+        whenNotPaused
+        onlyCounterParty
+        returns (
+            uint256 sizeOut,
+            uint256 openNotional
+        )
+    {
         return _internalOpenMarketOrder(size, isBuy, maxPip);
     }
 
-    function openMarketPosition(uint256 size, bool isBuy) external whenNotPaused onlyCounterParty returns
-    (uint256 sizeOut, uint256 openNotional) {
+    function openMarketPosition(uint256 size, bool isBuy)
+        external
+        whenNotPaused
+        onlyCounterParty returns (
+            uint256 sizeOut,
+            uint256 openNotional
+        )
+    {
         return _internalOpenMarketOrder(size, isBuy, 0);
     }
 
-    function _internalOpenMarketOrder(uint256 size, bool isBuy, uint128 maxPip) internal
-    returns (uint256 sizeOut, uint256 openNotional) {
+    function _internalOpenMarketOrder(
+        uint256 size,
+        bool isBuy,
+        uint128 maxPip
+    )
+        internal
+        returns (
+            uint256 sizeOut,
+            uint256 openNotional
+        )
+    {
         require(size != 0, Errors.VL_INVALID_SIZE);
         // TODO lock
         // get current tick liquidity
@@ -343,7 +396,10 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
         if (_initialSingleSlot.pip != state.pip) {
             // all ticks in shifted range must be marked as filled
             if (!(partialFilledQuantity > 0 && startPip == state.pip)) {
-                liquidityBitmap.unsetBitsRange(startPip, partialFilledQuantity > 0 ? (isBuy ? state.pip - 1 : state.pip + 1) : state.pip);
+                liquidityBitmap.unsetBitsRange(
+                    startPip,
+                    partialFilledQuantity > 0 ? (isBuy ? state.pip - 1 : state.pip + 1) : state.pip
+                );
             }
             // TODO write a checkpoint that we shift a range of ticks
         }
@@ -359,13 +415,21 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
         uint256 liquidity;
     }
 
-    function getLiquidityInPipRange(uint128 fromPip, uint256 dataLength, bool toHigher) public view
-    returns (LiquidityOfEachPip[] memory, uint128) {
+    function getLiquidityInPipRange(
+        uint128 fromPip,
+        uint256 dataLength,
+        bool toHigher
+    )
+        public
+        view
+        returns (
+            LiquidityOfEachPip[] memory,
+            uint128
+        )
+    {
         uint128[] memory allInitializedPip = new uint128[](uint128(dataLength));
         allInitializedPip = liquidityBitmap.findAllLiquidityInMultipleWords(fromPip, dataLength, toHigher);
         LiquidityOfEachPip[] memory allLiquidity = new LiquidityOfEachPip[](dataLength);
-
-
         for (uint i = 0; i < dataLength; i++) {
             allLiquidity[i] = LiquidityOfEachPip({
             pip : allInitializedPip[i],
@@ -478,8 +542,7 @@ contract PositionManager is ReentrancyGuardUpgradeable, OwnableUpgradeable, Posi
     function calcTwap(TwapPriceCalcParams memory _params, uint256 _intervalInSeconds)
     public
     view
-    returns (uint256)
-    {
+    returns (uint256) {
         uint256 currentPrice = getPriceWithSpecificSnapshot(_params);
         if (_intervalInSeconds == 0) {
             return currentPrice;
