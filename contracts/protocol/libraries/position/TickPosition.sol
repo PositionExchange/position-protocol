@@ -63,7 +63,6 @@ library TickPosition {
         } else if (self.filledIndex < orderId) {
             isFilled = false;
         } else {
-            //            isFilled = partialFilled >= 0 && partialFilled < size ? false : true;
             isFilled = partialFilled >= size && size != 0 ? true : false;
         }
     }
@@ -82,7 +81,6 @@ library TickPosition {
             }
             index--;
             self.filledIndex = index;
-            //            self.orderQueue[index].partialFilled = totalSize - amount;
             self.orderQueue[index].updatePartialFill(uint120(totalSize - amount));
         }
     }
@@ -90,15 +88,16 @@ library TickPosition {
     function cancelLimitOrder(
         TickPosition.Data storage self,
         uint64 orderId
-    ) internal returns(uint256) {
+    ) internal returns(uint256, uint256) {
         (bool isBuy,
         uint256 size,
         uint256 partialFilled) = self.orderQueue[orderId].getData();
-        self.liquidity = self.liquidity - uint128(size - partialFilled);
-
+        if (self.liquidity > uint128(size - partialFilled)){
+            self.liquidity = self.liquidity - uint128(size - partialFilled);
+        }
         self.orderQueue[orderId].update(isBuy, partialFilled);
 
-        return size - partialFilled;
+        return (size - partialFilled, partialFilled);
     }
 
     function closeLimitOrder(

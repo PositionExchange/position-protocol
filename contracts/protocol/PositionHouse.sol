@@ -79,6 +79,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         paused = false;
     }
 
+
     /**
     * @notice open position with price market
     * @param _positionManager IPositionManager address
@@ -214,9 +215,10 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
             require(_leverage >= oldPosition.leverage && _leverage <= 125 && _leverage > 0, Errors.VL_INVALID_LEVERAGE);
             uint256 openNotional;
             uint128 _quantity = _rawQuantity.abs128();
-            if (
-                oldPosition.quantity != 0 &&
-                _positionManager.needClosePositionBeforeOpeningLimitOrder(
+            if(
+                oldPosition.quantity != 0
+                && !oldPosition.quantity.isSameSide(_rawQuantity)
+                && _positionManager.needClosePositionBeforeOpeningLimitOrder(
                     _rawQuantity.u8Side(),
                     _pip,
                     _quantity,
@@ -270,75 +272,58 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     ) internal {
         address positionManagerAddress = address(_positionManager);
         Position.Data memory oldPosition = getPosition(positionManagerAddress, _trader);
-        uint256 baseBasisPoint = _positionManager.getBaseBasisPoint();
         if (oldPosition.quantity == 0 || _quantity.isSameSide(oldPosition.quantity)) {
             limitOrders[positionManagerAddress][_trader].push(_newOrder);
         } else {
+            // limit order reducing position
+            uint256 baseBasisPoint = _positionManager.getBaseBasisPoint();
             // if new limit order is smaller than old position then just reduce old position
             if (oldPosition.quantity.abs() > _quantity.abs()) {
                 _newOrder.reduceQuantity = _quantity.abs() - _sizeOut;
-                _newOrder.entryPrice = oldPosition.openNotional * baseBasisPoint / oldPosition.quantity.abs();
-                reduceLimitOrders[positionManagerAddress][_trader].push(_newOrder);
             }
             // else new limit order is larger than old position then close old position and open new opposite position
             else {
                 _newOrder.reduceQuantity = oldPosition.quantity.abs();
                 _newOrder.reduceLimitOrderId = reduceLimitOrders[positionManagerAddress][_trader].length + 1;
                 limitOrders[positionManagerAddress][_trader].push(_newOrder);
-                _newOrder.entryPrice = oldPosition.openNotional * baseBasisPoint / oldPosition.quantity.abs();
-                reduceLimitOrders[positionManagerAddress][_trader].push(_newOrder);
             }
+            _newOrder.entryPrice = oldPosition.openNotional * baseBasisPoint / oldPosition.quantity.abs();
+            reduceLimitOrders[positionManagerAddress][_trader].push(_newOrder);
         }
     }
 
-    function cancelLimitOrder(
-        IPositionManager _positionManager,
-        uint64 orderIdOfTrader,
-        uint128 pip,
-        uint64 orderId) public whenNotPaused nonReentrant {
+    /**
+    * @dev cancel a limit order
+    * @param _positionManager position manager
+    * @param _orderIdx order index in the limit orders (increase or reduce) list
+    * @param _isReduce is that a reduce limit order?
+    * The external service must determine that by a variable in getListPendingOrders
+    */
+    function cancelLimitOrder(IPositionManager _positionManager, uint64 _orderIdx, bool _isReduce) external whenNotPaused nonReentrant {
         address _trader = _msgSender();
-        uint256 refundQuantity = _positionManager.cancelLimitOrder(pip, orderId);
-        uint128 oldOrderPip;
-        uint64 oldOrderId;
-        address positionManagerAddress = address(_positionManager);
-        PositionLimitOrder.Data[] memory listLimitOrders = limitOrders[positionManagerAddress][_trader];
-        PositionLimitOrder.Data[] memory listReduceLimitOrders = reduceLimitOrders[positionManagerAddress][_trader];
-
-        if (orderIdOfTrader < listLimitOrders.length) {
-            oldOrderPip = listLimitOrders[orderIdOfTrader].pip;
-            oldOrderId = listLimitOrders[orderIdOfTrader].orderId;
-        }
-        uint16 leverage;
+        address _pmAddress = address(_positionManager);
+        // declare a pointer to reduceLimitOrders or limitOrders
+        PositionLimitOrder.Data[] storage _orders = _isReduce ? reduceLimitOrders[_pmAddress][_trader] : limitOrders[_pmAddress][_trader];
+        require(_orderIdx < _orders.length, "invalid order");
+        // save gas
+        PositionLimitOrder.Data memory _order = _orders[_orderIdx];
+        // blank limit order data
+        // we set the deleted order to a blank data
+        // because we don't want to mess with order index (orderIdx)
         PositionLimitOrder.Data memory blankLimitOrderData;
-        {
-            if (pip == oldOrderPip && orderId == oldOrderId) {
-                leverage = listLimitOrders[orderIdOfTrader].leverage;
-                (,,, uint256 partialFilled) = _positionManager.getPendingOrderDetail(pip, orderId);
-                if (partialFilled == 0) {
-                    uint256 reduceLimitOrderId = listLimitOrders[orderIdOfTrader].reduceLimitOrderId;
-                    if (reduceLimitOrderId != 0) {
-                        reduceLimitOrders[positionManagerAddress][_trader][reduceLimitOrderId - 1] = blankLimitOrderData;
-                    }
-                    limitOrders[positionManagerAddress][_trader][orderIdOfTrader] = blankLimitOrderData;
-                }
-            } else {
-                leverage = listReduceLimitOrders[orderIdOfTrader].leverage;
-                (,,, uint256 partialFilled) = _positionManager.getPendingOrderDetail(pip, orderId);
-                if (partialFilled == 0) {
-                    reduceLimitOrders[positionManagerAddress][_trader][orderIdOfTrader] = blankLimitOrderData;
-                }
+
+        (uint256 refundQuantity, uint256 partialFilled) = _positionManager.cancelLimitOrder(_order.pip, _order.orderId);
+        if (partialFilled == 0){
+            _orders[_orderIdx] = blankLimitOrderData;
+            if(_order.reduceLimitOrderId != 0){
+                reduceLimitOrders[_pmAddress][_trader][_order.reduceLimitOrderId - 1] = blankLimitOrderData;
             }
         }
 
-        (,uint256 _refundMargin,) = _positionManager.getNotionalMarginAndFee(refundQuantity, pip, leverage);
+        (,uint256 _refundMargin,) = _positionManager.getNotionalMarginAndFee(refundQuantity, _order.pip, _order.leverage);
         withdraw(_positionManager, _trader, _refundMargin);
-        canClaimAmountMap[positionManagerAddress][_trader] -= _refundMargin;
-        emit CancelLimitOrder(
-            _trader,
-            positionManagerAddress,
-            pip,
-            orderId
-        );
+        canClaimAmountMap[_pmAddress][_trader] -= _refundMargin;
+        emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
     }
 
     /**
@@ -398,7 +383,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         );
     }
 
-    function claimFund(IPositionManager _positionManager) public whenNotPaused nonReentrant {
+    function claimFund(IPositionManager _positionManager) external whenNotPaused nonReentrant {
         address _trader = _msgSender();
         address positionManagerAddress = address(_positionManager);
         int256 totalRealizedPnl = getClaimAmount(positionManagerAddress, _trader);
@@ -421,6 +406,9 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     ) external whenNotPaused nonReentrant {
         address _caller = _msgSender();
         (, , uint256 marginRatio) = getMaintenanceDetail(_positionManager, _trader);
+
+        // TODO before liquidate should we check can claimFund, because trader has close position limit before liquidate
+        // require trader's margin ratio higher than partial liquidation ratio
         require(marginRatio >= partialLiquidationRatio, Errors.VL_NOT_ENOUGH_MARGIN_RATIO);
         address positionManagerAddress = address(_positionManager);
         PositionResp memory positionResp;
@@ -447,7 +435,10 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
                 liquidationPenalty = uint256(positionResp.marginToVault);
                 feeToLiquidator = liquidationPenalty / 2;
                 feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
-            } else {
+                // TODO take liquidation fee
+//                // TODO has taken liquidation fee, check again
+//                deposit(_positionManager, _trader, liquidationPenalty - feeToLiquidator, 0);
+            } else {        
                 // fully liquidate trader's position
                 liquidationPenalty = positionData.margin + uint256(manualMargin[positionManagerAddress][_trader]);
                 withdraw(_positionManager, _trader, (uint256(getClaimAmount(positionManagerAddress, _trader)) + positionData.margin));
@@ -475,7 +466,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         emit AddMargin(_trader, _marginAdded, _positionManager);
     }
 
-    function getAddedMargin(IPositionManager _positionManager, address _trader) public view returns (int256) {
+    function getAddedMargin(IPositionManager _positionManager, address _trader) external view returns (int256) {
         return manualMargin[address(_positionManager)][_trader];
     }
 
@@ -756,6 +747,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         if (oldPosition.quantity != 0) {
             fundingPayment = (latestCumulativePremiumFraction - oldPosition.lastUpdatedCumulativePremiumFraction) * oldPosition.quantity;
         }
+
         // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt
         if (int256(deltaMargin) + fundingPayment >= 0) {
             remainMargin = uint256(int256(deltaMargin) + fundingPayment);
@@ -764,6 +756,8 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         }
     }
 
+
+    // TODO can move to position house function
     function partialLiquidate(
         IPositionManager _positionManager,
         Position.Side _side,

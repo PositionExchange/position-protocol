@@ -6,9 +6,8 @@ import {loadFixture} from "ethereum-waffle";
 // import snapshotGasCost from "../../shared/snapshotGasCost";
 // import {expect} from "../../shared/expect";
 // import {TEST_POOL_START_TIME} from "../../shared/fixtures";
-import {describe} from "mocha";
 import {expect} from 'chai'
-import {PositionManager, PositionHouse, InsuranceFund} from "../../typeChain";
+import {PositionManager, PositionHouse, InsuranceFund, BEP20Mintable} from "../../typeChain";
 import {
     ClaimFund,
     LimitOrderReturns,
@@ -28,7 +27,6 @@ import PositionHouseTestingTool from "../shared/positionHouseTestingTool";
 
 describe("PositionHouse_02", () => {
     let positionHouse: PositionHouse;
-    let insuranceFund : InsuranceFund;
     let trader0: any;
     let trader1: any;
     let trader2: any;
@@ -38,24 +36,46 @@ describe("PositionHouse_02", () => {
     let tradercp: any;
     let positionManager: PositionManager;
     let positionManagerFactory: ContractFactory;
+    let bep20Mintable: BEP20Mintable
+    let insuranceFund: InsuranceFund
 
     beforeEach(async () => {
         [trader0, trader1, trader2, trader3, trader4, trader5, tradercp] = await ethers.getSigners()
         const positionHouseFunction = await ethers.getContractFactory('PositionHouseFunction')
         const libraryIns = (await positionHouseFunction.deploy())
 
+        // Deploy mock busd contract
+        const bep20MintableFactory = await ethers.getContractFactory('BEP20Mintable')
+        bep20Mintable = (await bep20MintableFactory.deploy('BUSD Mock', 'BUSD')) as unknown as BEP20Mintable
+
+        // Deploy insurance fund contract
+        const insuranceFundFactory = await ethers.getContractFactory('InsuranceFund')
+        insuranceFund = (await insuranceFundFactory.deploy()) as unknown as InsuranceFund
+
+        // Deploy position manager contract
         positionManagerFactory = await ethers.getContractFactory("PositionManager")
         positionManager = (await positionManagerFactory.deploy()) as unknown as PositionManager;
+
+        // Deploy position house contract
         const factory = await ethers.getContractFactory("PositionHouse", {
             libraries: {
                 PositionHouseFunction: libraryIns.address
                 // unsafeAllowLinkedLibraries : true
             }
         })
-        const insuranceFundFactory = await ethers.getContractFactory("InsuranceFund")
         positionHouse = (await factory.deploy()) as unknown as PositionHouse;
-        await positionManager.initialize(BigNumber.from(500000), '0xd364238D7eC81547a38E3bF4CBB5206605A15Fee', ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
-        await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), '0xf1d0e7be179cb21f0e6bfe3616a3d7bce2f18aef'.toLowerCase())
+
+        await insuranceFund.connect(trader0).initialize()
+        await insuranceFund.connect(trader0).setCounterParty(positionHouse.address);
+        await bep20Mintable.mint(insuranceFund.address, BigNumber.from('10000000000000000000000000000000'));
+
+        [trader0, trader1, trader2, trader3, trader4, trader5, tradercp].forEach(element => {
+            bep20Mintable.mint(element.address, BigNumber.from('10000000000000000000000000000000'))
+            bep20Mintable.connect(element).approve(insuranceFund.address, BigNumber.from('1000000000000000000000000000000000000'))
+        })
+
+        await positionManager.initialize(BigNumber.from(500000), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
+        await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), insuranceFund.address)
     })
 
     const openMarketPosition = async ({
@@ -205,10 +225,12 @@ describe("PositionHouse_02", () => {
                                             expectedPnl = undefined,
                                             expectedQuantity = 0
                                         }: ExpectTestCaseParams) {
-        const positionNotionalAndPnLTrader = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(
+        const oldPosition = await positionHouse.getPosition(positionManagerAddress, traderAddress)
+        const positionNotionalAndPnLTrader = await positionHouse.getPositionNotionalAndUnrealizedPnl(
             positionManagerAddress,
             traderAddress,
-            1
+            1,
+            oldPosition
         )
         const positionTrader = (await positionHouse.getPosition(positionManagerAddress, traderAddress)) as unknown as PositionData
         console.log("expect all: quantity, openNotional, positionNotional, margin, unrealizedPnl", Number(positionTrader.quantity), Number(positionTrader.openNotional), Number(positionNotionalAndPnLTrader.positionNotional), Number(positionTrader.margin), Number(positionNotionalAndPnLTrader.unrealizedPnl))
@@ -238,6 +260,14 @@ describe("PositionHouse_02", () => {
         const positionData = (await positionHouse.getPosition(_positionManager.address, trader)) as unknown as PositionData;
         expect(positionData.margin).eq(0);
         expect(positionData.quantity).eq(0);
+    }
+
+    async function cancelLimitOrder(positionManagerAddress: string, trader: SignerWithAddress, orderId : string, pip : string, isReduce : boolean) {
+        const listPendingOrder = await positionHouse.connect(trader).getListOrderPending(positionManagerAddress, trader.address)
+        const obj = listPendingOrder.find(x => () => {
+            (x.orderId.toString() == orderId && x.pip.toString() == pip)
+        });
+        await positionHouse.connect(trader).cancelLimitOrder(positionManagerAddress, obj.orderIdOfTrader, isReduce);
     }
 
     describe('Increase size in order', async () => {
@@ -3971,7 +4001,7 @@ describe("PositionHouse_02", () => {
                 _trader: trader1
             })
 
-            await positionHouse.connect(trader0).cancelLimitOrder(positionManager.address, 0, 499000, 1);
+            await cancelLimitOrder(positionManager.address, trader0,  '1', '499000',false);
             // console.log("cancel success");
             // console.log(await positionHouse.connect(trader0).getPosition(positionManager.address, trader0.address))
 
@@ -4032,8 +4062,6 @@ describe("PositionHouse_02", () => {
                 quantity: 200000,
                 _trader: trader1
             })
-
-            console.log((await positionManager.getPrice()).toString())
 
             await openLimitPositionAndExpect({
                 limitPrice: 5020,
@@ -4146,7 +4174,7 @@ describe("PositionHouse_02", () => {
             })
             console.log(4206)
 
-            await positionHouse.cancelLimitOrder(positionManager.address, 1, 498000, 1)
+            await cancelLimitOrder(positionManager.address, trader0,  '1', '498000',false)
             console.log(4209)
 
             await openLimitPositionAndExpect({
@@ -4175,7 +4203,6 @@ describe("PositionHouse_02", () => {
         })
 
         it('close order in current price and toggle current price', async function () {
-            console.log(4234)
             await openLimitPositionAndExpect({
                 limitPrice: 4990,
                 side: SIDE.LONG,
@@ -4183,7 +4210,6 @@ describe("PositionHouse_02", () => {
                 quantity: 10000,
                 _trader: trader0
             })
-            console.log(4242)
 
             await openMarketPosition({
                     quantity: BigNumber.from('10000'),
@@ -4194,7 +4220,6 @@ describe("PositionHouse_02", () => {
                     _positionManager: positionManager,
                 }
             );
-            console.log(4253)
 
             await openLimitPositionAndExpect({
                 limitPrice: 4990,
@@ -4203,10 +4228,8 @@ describe("PositionHouse_02", () => {
                 quantity: 20000,
                 _trader: trader0
             })
-            console.log(4262)
 
-            await positionHouse.cancelLimitOrder(positionManager.address, 1, 499000, 2)
-            console.log(4265)
+            await cancelLimitOrder(positionManager.address,trader0 ,  '2','499000', false)
 
             await openLimitPositionAndExpect({
                 limitPrice: 4990,
@@ -4357,16 +4380,12 @@ describe("PositionHouse_02", () => {
 
             console.log(await positionHouse.getListOrderPending(positionManager.address, trader0.address))
 
-
-            console.log(4404)
             await positionHouse.connect(trader0).closeLimitPosition(positionManager.address, 499000, 10)
 
             console.log(await positionHouse.getListOrderPending(positionManager.address, trader0.address))
 
-            console.log(4407)
-            await positionHouse.connect(trader0).cancelLimitOrder(positionManager.address, 1, 499000, 2)
+            await cancelLimitOrder(positionManager.address, trader0, '2', '499000', false)
 
-            console.log(4410)
             await openLimitPositionAndExpect({
                 limitPrice: 4980,
                 side: SIDE.LONG,
@@ -4479,7 +4498,7 @@ describe("PositionHouse_02", () => {
             await positionHouse.connect(trader0).closeLimitPosition(positionManager.address, 500000, 7);
             await positionHouse.connect(trader0).closeLimitPosition(positionManager.address, 500000, 2);
             console.log(await positionHouse.getListOrderPending(positionManager.address, trader0.address))
-            await positionHouse.connect(trader0).cancelLimitOrder(positionManager.address, 1, 500000, 3)
+            await cancelLimitOrder(positionManager.address, trader0, '3', '500000', true)
         })
 
         it("should close position while still have pending order", async function () {
@@ -4628,5 +4647,234 @@ describe("PositionHouse_02", () => {
 
             console.log(await positionHouse.getListOrderPending(positionManager.address, trader0.address))
         })
+
+        it("should open market order after 2 limit order matched at the same pip", async function () {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('20'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1
+            })
+
+            await cancelLimitOrder(positionManager.address, trader0, '1', '500000', false)
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5010,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('15'),
+                _trader: trader1
+            })
+
+            console.log((await positionManager.getLiquidityInPipRange(BigNumber.from('500000'), BigNumber.from('10'), true))[0])
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader0.address,
+                    instanceTrader: trader0,
+                    _positionManager: positionManager,
+                }
+            );
+
+        })
+
+        it("partial fill then cancel limit order, should get correct quantity of position", async function () {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4990,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+
+            console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).toString())
+
+            await cancelLimitOrder(positionManager.address, trader0, '1', '499000', false)
+
+            console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).toString())
+
+        })
+
+        it("should get correct quantity of position when partial filled", async function (){
+            await openLimitPositionAndExpect({
+                limitPrice: 4990,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+            console.log("before cancel limit")
+            await cancelLimitOrder(positionManager.address, trader0, "1", "499000", false)
+
+            console.log("before get position")
+            console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).quantity.toString())
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4990,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('2'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            console.log("before get liquidity in pip range")
+            console.log((await positionManager.getLiquidityInPipRange(498900, 50, true))[0][0])
+
+            console.log("get list order pending")
+            console.log((await positionHouse.getListOrderPending(positionManager.address, trader0.address))[0])
+
+            console.log("get position quantity")
+            console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).quantity.toString())
+
+        })
+
+        it("should get correct quantity of position when partial filled 2", async function (){
+            await openLimitPositionAndExpect({
+                limitPrice: 4990,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('9'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+            console.log("before cancel limit")
+            await cancelLimitOrder(positionManager.address, trader0, "1", "499000", false)
+
+            console.log("before get position")
+            console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).quantity.toString())
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4990,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('2'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            console.log("before get liquidity in pip range")
+            console.log((await positionManager.getLiquidityInPipRange(498900, 50, true))[0][0])
+
+            console.log("get list order pending")
+            console.log((await positionHouse.getListOrderPending(positionManager.address, trader0.address))[0])
+
+            console.log("get position quantity")
+            console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).quantity.toString())
+
+        })
+
+
+        it("should get order quantity and partial filled amount correctly", async function (){
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            console.log("get list order pending")
+            console.log((await positionHouse.getListOrderPending(positionManager.address, trader0.address)))
+
+        })
+
     })
 })

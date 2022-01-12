@@ -1,16 +1,15 @@
 import {BigNumber, BigNumberish, ContractFactory, Signer, Wallet} from 'ethers'
 import {ethers, waffle} from 'hardhat'
-import {loadFixture} from "ethereum-waffle";
+import {deployContract, loadFixture} from "ethereum-waffle";
 
 const {solidity} = waffle
 
-import {describe} from "mocha";
 import {expect, use} from 'chai'
-
-import {PositionManager, PositionHouse, ChainLinkPriceFeed} from "../../typeChain";
+import InsuranceFundArtifact from '../../artifacts/contracts/protocol/InsuranceFund.sol/InsuranceFund.json'
+import {PositionManager, PositionHouse, ChainLinkPriceFeed, BEP20Mintable, InsuranceFund} from "../../typeChain";
 import {
     ClaimFund, LimitOrderReturns,
-    MaintenanceDetail, OpenLimitPositionAndExpectParams,
+    MaintenanceDetail, NotionalAndUnrealizedPnlReturns, OpenLimitPositionAndExpectParams,
     PositionData,
     PositionLimitOrderID,
     priceToPip,
@@ -36,32 +35,52 @@ describe("PositionHouse_01", () => {
     let trader2: any;
     let trader3: any;
     let trader4: any;
-    let trader5: SignerWithAddress
+    let trader5: any
     let positionManager: PositionManager;
     let positionManagerFactory: ContractFactory;
     let positionManagerTestingTool: PositionManagerTestingTool
     let positionHouseTestingTool: PositionHouseTestingTool
+    let bep20Mintable: BEP20Mintable
+    let insuranceFund: InsuranceFund
 
     beforeEach(async () => {
-        [trader, trader1, trader2, trader3, trader4, trader5] = await ethers.getSigners()
+        [trader, trader1, trader2, trader3, trader4, trader5] = await ethers.getSigners();
+
+        // Deploy position house function contract
         const positionHouseFunction = await ethers.getContractFactory('PositionHouseFunction')
         const libraryIns = (await positionHouseFunction.deploy())
+
+        // Deploy mock busd contract
+        const bep20MintableFactory = await ethers.getContractFactory('BEP20Mintable')
+        bep20Mintable = (await bep20MintableFactory.deploy('BUSD Mock', 'BUSD')) as unknown as BEP20Mintable
+
+        // Deploy insurance fund contract
+        const insuranceFundFactory = await ethers.getContractFactory('InsuranceFund')
+        insuranceFund = (await insuranceFundFactory.deploy()) as unknown as InsuranceFund
+
+        // Deploy position manager contract
         positionManagerFactory = await ethers.getContractFactory("PositionManager")
-        // BTC-USD Perpetual, initial price is 5000
-        // each pip = 0.01
-        // => initial pip = 500000
-        //quoteAsset    BUSD_TestNet = 0x8301f2213c0eed49a7e28ae4c3e91722919b8b47
         positionManager = (await positionManagerFactory.deploy()) as unknown as PositionManager;
-        positionManagerTestingTool = new PositionManagerTestingTool(positionManager)
+
+        // Deploy position house contract
         const factory = await ethers.getContractFactory("PositionHouse", {
             libraries: {
                 PositionHouseFunction: libraryIns.address
             }
         })
         positionHouse = (await factory.deploy()) as unknown as PositionHouse;
+        await insuranceFund.connect(trader).initialize()
+        await insuranceFund.connect(trader).setCounterParty(positionHouse.address);
+
+        [trader, trader1, trader2, trader3, trader4, trader5].forEach(element => {
+            bep20Mintable.mint(element.address, BigNumber.from('10000000000000000000000000000000'))
+            bep20Mintable.connect(element).approve(insuranceFund.address, BigNumber.from('1000000000000000000000000000000000000'))
+        })
+        positionManagerTestingTool = new PositionManagerTestingTool(positionManager)
         positionHouseTestingTool = new PositionHouseTestingTool(positionHouse, positionManager)
-        await positionManager.initialize(BigNumber.from(500000), '0xd364238D7eC81547a38E3bF4CBB5206605A15Fee', ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
-        await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), '0xf1d0e7be179cb21f0e6bfe3616a3d7bce2f18aef'.toLowerCase())
+
+        await positionManager.initialize(BigNumber.from(500000), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
+        await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), insuranceFund.address)
     })
 
     const openMarketPosition = async ({
@@ -132,7 +151,7 @@ describe("PositionHouse_01", () => {
 
     async function getOrderIdByTx(tx: any) {
         const receipt = await tx.wait();
-        const orderId = ((receipt?.events || [])[1]?.args || [])['orderId'] || ((receipt?.events || [])[2]?.args || [])['orderId']
+        const orderId = ((receipt?.events || [])[1]?.args || [])['orderId'] || ((receipt?.events || [])[2]?.args || [])['orderId'] ||  ((receipt?.events || [])[3]?.args || [])['orderId']
         const priceLimit = ((receipt?.events || [])[1]?.args || [])['priceLimit']
         const orderIdOfTrader = ((receipt?.events || [])[1]?.args || [])['orderIdOfTrader'] || ((receipt?.events || [])[2]?.args || [])['orderIdOfTrader']
         return {
@@ -176,14 +195,18 @@ describe("PositionHouse_01", () => {
         // expect(positionLimitInOrder.).eq(limitPrice);
     }
 
-    async function cancelLimitOrder(positionManagerAddress: string, trader: SignerWithAddress, orderId : string, pip : string) {
+    async function cancelLimitOrder(positionManagerAddress: string, trader: SignerWithAddress, orderId : string, pip : string, isReduce : boolean) {
         const listPendingOrder = await positionHouse.connect(trader).getListOrderPending(positionManagerAddress, trader.address)
-        console.log(listPendingOrder[0].orderId.toString())
         const obj = listPendingOrder.find(x => () => {
             (x.orderId.toString() == orderId && x.pip.toString() == pip)
         });
-        console.log(obj)
-        await positionHouse.connect(trader).cancelLimitOrder(positionManagerAddress, obj.orderIdOfTrader, obj.pip, obj.orderId);
+        await positionHouse.connect(trader).cancelLimitOrder(positionManagerAddress, obj.orderIdOfTrader, isReduce);
+    }
+
+    async function getPositionNotionalAndUnrealizedPnl(positionManagerAddress: string, traderAddress: string) : Promise<NotionalAndUnrealizedPnlReturns> {
+        const oldPosition = await positionHouse.getPosition(positionManagerAddress, traderAddress)
+        return positionHouse.getPositionNotionalAndUnrealizedPnl(positionManagerAddress, traderAddress, BigNumber.from(1), oldPosition)
+
     }
 
     const closePosition = async ({
@@ -209,7 +232,6 @@ describe("PositionHouse_01", () => {
 
 
         it('should open market a position', async function () {
-            const [trader] = await ethers.getSigners()
             const quantity = toWeiBN('1')
             console.log(quantity)
             const leverage = 10
@@ -231,11 +253,10 @@ describe("PositionHouse_01", () => {
                     expectedSize: BigNumber.from('-100')
                 }
             );
-            await positionManagerTestingTool.debugPendingOrder(response1.pip, response1.orderId)
+            // await positionManagerTestingTool.debugPendingOrder(response1.pip, response1.orderId)
         });
 
         it('should open market a position with many open limit LONG', async function () {
-            const [trader] = await ethers.getSigners()
             const leverage = 10
 
             // await positionManager.openLimitPosition(
@@ -284,7 +305,6 @@ describe("PositionHouse_01", () => {
         });
 
         it('should open market a position with have many open limit SHORT', async function () {
-            const [trader] = await ethers.getSigners()
             const leverage = 10
 
             await openLimitPositionAndExpect({
@@ -374,10 +394,9 @@ describe("PositionHouse_01", () => {
 
                 console.log('open market done');
 
-                const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(
+                const positionNotionalAndPnL = await getPositionNotionalAndUnrealizedPnl(
                     positionManager.address,
-                    trader1.address,
-                    1
+                    trader1.address
                 )
                 console.log("positionNotionalAndPnL ", positionNotionalAndPnL.toString())
                 expect(positionNotionalAndPnL.unrealizedPnl).eq(0)
@@ -427,10 +446,9 @@ describe("PositionHouse_01", () => {
                     _positionManager: positionManager,
 
                 })
-                const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(
+                const positionNotionalAndPnL = await getPositionNotionalAndUnrealizedPnl(
                     positionManager.address,
-                    trader.address,
-                    1
+                    trader.address
                 )
 
                 expect(positionNotionalAndPnL.unrealizedPnl).eq(10);
@@ -486,10 +504,9 @@ describe("PositionHouse_01", () => {
 
                 })
 
-                const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(
+                const positionNotionalAndPnL = await getPositionNotionalAndUnrealizedPnl(
                     positionManager.address,
-                    trader.address,
-                    1
+                    trader.address
                 )
 
                 // unrealizedPnl = openNotional - positionNotional = 29950 - totalSize * currentPrice = 29950 - 6*4990 = 10
@@ -518,10 +535,9 @@ describe("PositionHouse_01", () => {
                     _positionManager: positionManager
                 });
 
-                const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(
+                const positionNotionalAndPnL1 = await getPositionNotionalAndUnrealizedPnl(
                     positionManager.address,
-                    trader.address,
-                    1
+                    trader.address
                 )
                 // because current price is now 4980 so trader0's pnl increased to 70
                 // calculated by pnl = openNotional - positionNotional = 29950 - totalSize * currentPrice = 29950 - 6 * 4980 = 70
@@ -572,10 +588,9 @@ describe("PositionHouse_01", () => {
 
                 })
 
-                const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(
+                const positionNotionalAndPnL = await getPositionNotionalAndUnrealizedPnl(
                     positionManager.address,
-                    trader.address,
-                    1
+                    trader.address
                 )
 
                 expect(positionNotionalAndPnL.unrealizedPnl).eq(100)
@@ -601,10 +616,9 @@ describe("PositionHouse_01", () => {
                     expectedNotional: BigNumber.from('50100')
                 });
 
-                const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(
+                const positionNotionalAndPnL1 = await getPositionNotionalAndUnrealizedPnl(
                     positionManager.address,
-                    trader.address,
-                    1
+                    trader.address
                 )
 
                 console.log("positionNotionalAndPnL1 :", positionNotionalAndPnL1.unrealizedPnl.toString())
@@ -655,10 +669,9 @@ describe("PositionHouse_01", () => {
 
                 })
 
-                const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(
+                const positionNotionalAndPnL = await getPositionNotionalAndUnrealizedPnl(
                     positionManager.address,
-                    trader.address,
-                    1
+                    trader.address
                 )
 
                 // unrealizedPnl for long order = positionNotional - openNotional = totalSize * currentPrice - 30050 = 6*5010 - 30050 = 10
@@ -685,10 +698,9 @@ describe("PositionHouse_01", () => {
                     _positionManager: positionManager
                 });
 
-                const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(
+                const positionNotionalAndPnL1 = await getPositionNotionalAndUnrealizedPnl(
                     positionManager.address,
-                    trader.address,
-                    1
+                    trader.address
                 )
                 // because current price is now 5020 so trader0's pnl increased to 70
                 // calculated by pnl = positionNotional - openNotional = totalSize * currentPrice - 30050 = 6 * 5020 - 30050 = 70
@@ -740,10 +752,9 @@ describe("PositionHouse_01", () => {
 
                 })
 
-                const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(
+                const positionNotionalAndPnL = await getPositionNotionalAndUnrealizedPnl(
                     positionManager.address,
-                    trader.address,
-                    1
+                    trader.address
                 )
 
                 // unrealizedPnl for long order = positionNotional - openNotional = totalSize * currentPrice - 5000 = 1*4990 - 5000 = -10
@@ -770,10 +781,9 @@ describe("PositionHouse_01", () => {
                     _positionManager: positionManager
                 });
 
-                const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(
+                const positionNotionalAndPnL1 = await getPositionNotionalAndUnrealizedPnl(
                     positionManager.address,
-                    trader.address,
-                    1
+                    trader.address
                 )
                 // calculated by pnl = positionNotional - openNotional = totalSize * currentPrice - 54900 = 11 * 4990 - 54900 = 10
                 expect(positionNotionalAndPnL1.unrealizedPnl).lte(0)
@@ -1029,7 +1039,7 @@ describe("PositionHouse_01", () => {
                 })
 
                 console.log("Before cancel limit order")
-                await cancelLimitOrder(positionManager.address, trader, pip, orderId);
+                await cancelLimitOrder(positionManager.address, trader, pip, orderId, false);
 
                 const positionData = await positionHouse.getPosition(positionManager.address, trader.address)
                 expect(positionData.quantity).eq(60);
@@ -1043,7 +1053,7 @@ describe("PositionHouse_01", () => {
                     quantity: 100
                 })
 
-                await cancelLimitOrder(positionManager.address, trader, pip, orderId);
+                await cancelLimitOrder(positionManager.address, trader, pip, orderId, false);
                 const positionData = await positionHouse.getPosition(positionManager.address, trader.address)
                 // margin = quantity * price / leverage = 4990 * 100 / 10
                 // expect(positionData.margin.toNumber()).eq(4990 * 100 / 10)
@@ -1089,7 +1099,7 @@ describe("PositionHouse_01", () => {
                 })) as unknown as PositionLimitOrderID
                 console.log(1277)
                 console.log("response pip", response.pip, Number(response.orderId))
-                await cancelLimitOrder(positionManager.address, trader, response.pip.toString(), response.orderId.toString());
+                await cancelLimitOrder(positionManager.address, trader, response.pip.toString(), response.orderId.toString(), false);
                 console.log(1280)
                 const positionData = await positionHouse.getPosition(positionManager.address, trader.address)
                 // margin = quantity * price / leverage = 4990 * 100 / 10
@@ -1142,7 +1152,7 @@ describe("PositionHouse_01", () => {
                     price: 4990,
                     expectedSize: BigNumber.from('-50')
                 })
-                await positionManagerTestingTool.debugPendingOrder(response1.pip, response1.orderId)
+                // await positionManagerTestingTool.debugPendingOrder(response1.pip, response1.orderId)
                 const pendingOrderDetails = await positionManager.getPendingOrderDetail(response1.pip, response1.orderId)
                 expect(pendingOrderDetails.partialFilled.toString()).eq('50')
                 const positionData1 = await positionHouse.getPosition(positionManager.address, trader.address)
@@ -1156,7 +1166,7 @@ describe("PositionHouse_01", () => {
                 })) as unknown as PositionLimitOrderID
 
                 console.log("response pip", response2.pip, Number(response2.orderId))
-                await cancelLimitOrder(positionManager.address, trader, response2.pip.toString(), response2.orderId.toString());
+                await cancelLimitOrder(positionManager.address, trader, response2.pip.toString(), response2.orderId.toString(), false);
                 const positionData2 = await positionHouse.getPosition(positionManager.address, trader.address)
                 // margin = quantity * price / leverage = 4990 * 100 / 10
                 // NEED UPDATE can't get margin, need leverage in limit order to calculate margin
@@ -1188,7 +1198,7 @@ describe("PositionHouse_01", () => {
                     quantity: 100
                 })) as unknown as PositionLimitOrderID
 
-                await cancelLimitOrder(positionManager.address, trader, response2.pip.toString(), response2.orderId.toString());
+                await cancelLimitOrder(positionManager.address, trader, response2.pip.toString(), response2.orderId.toString(), false);
 
                 // const pendingOrder1 = await positionHouse.getPendingOrder(positionManager.address, response1.pip, response1.orderId);
                 // expect(pendingOrder1.isFilled).eq(false)
@@ -1236,17 +1246,17 @@ describe("PositionHouse_01", () => {
                 })) as unknown as PositionLimitOrderID
 
                 // cancel order #1
-                await cancelLimitOrder(positionManager.address, trader, response1.pip.toString(), response1.orderId.toString());
-                console.log(`STRAT MARKET ORDER`)
+                await cancelLimitOrder(positionManager.address, trader, response1.pip.toString(), response1.orderId.toString(), false);
+                console.log(`START MARKET ORDER`)
 
                 await openMarketPosition({
                     trader: trader2,
                     instanceTrader: trader2,
                     leverage: 10,
-                    quantity: BigNumber.from('160'),
+                    quantity: BigNumber.from('100'),
                     side: SIDE.LONG,
                     // price: 5008,
-                    expectedSize: BigNumber.from('160')
+                    expectedSize: BigNumber.from('100')
                 })
 
                 // await openMarketPosition({
@@ -1282,7 +1292,7 @@ describe("PositionHouse_01", () => {
                 const positionData1 = await positionHouse.getPosition(positionManager.address, trader.address)
                 const positionDataTrader2 = await positionHouse.getPosition(positionManager.address, trader2.address)
                 console.log("line 1372", positionDataTrader2.quantity.toNumber())
-                expect(positionData1.quantity.toNumber()).eq(-160)
+                expect(positionData1.quantity.toNumber()).eq(-100)
 
 
             })
@@ -1329,7 +1339,7 @@ describe("PositionHouse_01", () => {
 
 
                     console.log('*** start get PnL ***');
-                    const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(positionManager.address, trader.address, 1);
+                    const positionNotionalAndPnL = await getPositionNotionalAndUnrealizedPnl(positionManager.address, trader.address);
 
                     expect(positionNotionalAndPnL.unrealizedPnl).eq(1000)
                     expect(positionNotionalAndPnL.positionNotional).eq(500000)
@@ -1370,7 +1380,7 @@ describe("PositionHouse_01", () => {
                     })
 
                     console.log('*** start get PnL ***');
-                    const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(positionManager.address, trader.address, 1);
+                    const positionNotionalAndPnL = await getPositionNotionalAndUnrealizedPnl(positionManager.address, trader.address);
 
                     expect(positionNotionalAndPnL.unrealizedPnl).eq(-1000)
                     expect(positionNotionalAndPnL.positionNotional).eq(502000)
@@ -1417,7 +1427,7 @@ describe("PositionHouse_01", () => {
 
 
                     console.log('*** start get PnL ***');
-                    const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(positionManager.address, trader.address, 1);
+                    const positionNotionalAndPnL = await getPositionNotionalAndUnrealizedPnl(positionManager.address, trader.address);
 
                     expect(positionNotionalAndPnL.unrealizedPnl).eq(1000)
                     expect(positionNotionalAndPnL.positionNotional).eq(500000)
@@ -1464,7 +1474,7 @@ describe("PositionHouse_01", () => {
 
 
                     console.log('*** start get PnL ***');
-                    const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(positionManager.address, trader.address, 1);
+                    const positionNotionalAndPnL = await getPositionNotionalAndUnrealizedPnl(positionManager.address, trader.address);
 
                     expect(positionNotionalAndPnL.unrealizedPnl).eq(-1000)
                     expect(positionNotionalAndPnL.positionNotional).eq(498000)
@@ -1511,7 +1521,7 @@ describe("PositionHouse_01", () => {
                     })
 
                     console.log('*** start get PnL ***');
-                    const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(positionManager.address, trader.address, 1);
+                    const positionNotionalAndPnL = await getPositionNotionalAndUnrealizedPnl(positionManager.address, trader.address);
                     expect(positionNotionalAndPnL.positionNotional).eq(500000)
                     expect(positionNotionalAndPnL.unrealizedPnl).eq(1000)
                 })
@@ -1570,7 +1580,7 @@ describe("PositionHouse_01", () => {
 
 
                     console.log('*** start get PnL ***');
-                    const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(positionManager.address, trader.address, 1);
+                    const positionNotionalAndPnL = await getPositionNotionalAndUnrealizedPnl(positionManager.address, trader.address);
 
                     expect(positionNotionalAndPnL.unrealizedPnl).eq(-1000)
                     expect(positionNotionalAndPnL.positionNotional).eq(753000);
@@ -1633,7 +1643,7 @@ describe("PositionHouse_01", () => {
 
 
                     console.log('*** start get PnL ***');
-                    const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(positionManager.address, trader.address, 1);
+                    const positionNotionalAndPnL = await getPositionNotionalAndUnrealizedPnl(positionManager.address, trader.address);
 
                     expect(positionNotionalAndPnL.unrealizedPnl).eq(500)
                     expect(positionNotionalAndPnL.positionNotional).eq(749250)
@@ -1695,7 +1705,7 @@ describe("PositionHouse_01", () => {
 
 
                     console.log('*** start get PnL ***');
-                    const positionNotionalAndPnL = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(positionManager.address, trader.address, 1);
+                    const positionNotionalAndPnL = await getPositionNotionalAndUnrealizedPnl(positionManager.address, trader.address);
 
                     expect(positionNotionalAndPnL.unrealizedPnl).eq(-1500)
                     expect(positionNotionalAndPnL.positionNotional).eq(746250)
@@ -2154,9 +2164,9 @@ describe("PositionHouse_01", () => {
                         expectedSize: BigNumber.from('-100')
                     });
 
-                    await positionManagerTestingTool.expectPendingOrderByLimitOrderResponse(response, {
-                        isFilled: true
-                    })
+                    // await positionManagerTestingTool.expectPendingOrderByLimitOrderResponse(response, {
+                    //     isFilled: true
+                    // })
 
                     await positionHouseTestingTool.expectPositionData(trader1, {
                         quantity: 100
@@ -2188,16 +2198,16 @@ describe("PositionHouse_01", () => {
                         expectedSize: BigNumber.from('-50')
                     })
 
-                    await positionManagerTestingTool.expectPendingOrderByLimitOrderResponse(response1, {
-                        isFilled: false,
-                        size: 100,
-                        partialFilled: 50
-                    })
+                    // await positionManagerTestingTool.expectPendingOrderByLimitOrderResponse(response1, {
+                    //     isFilled: false,
+                    //     size: 100,
+                    //     partialFilled: 50
+                    // })
 
-                    await positionHouseTestingTool.debugPosition(trader1)
-                    await positionHouseTestingTool.expectPositionData(trader1, {
-                        quantity: 150
-                    })
+                    // await positionHouseTestingTool.debugPosition(trader1)
+                    // await positionHouseTestingTool.expectPositionData(trader1, {
+                    //     quantity: 150
+                    // })
                     // await openMarketPosition({
                     //     instanceTrader: trader1,
                     //     trader: trader1.address,
@@ -2216,7 +2226,7 @@ describe("PositionHouse_01", () => {
                         price: 4980,
                         expectedSize: BigNumber.from('50')
                     })
-                    await positionManagerTestingTool.debugPendingOrder(response1.pip, response1.orderId)
+                    // await positionManagerTestingTool.debugPendingOrder(response1.pip, response1.orderId)
                 })
 
                 it('ERROR open reverse: close limit when has openMarketPosition SHORT and has partialFilled before 02', async () => {
@@ -2634,10 +2644,9 @@ describe("PositionHouse_01", () => {
 
                 const maintenanceDetail = (await positionHouse.getMaintenanceDetail(positionManager.address, trader.address)) as unknown as MaintenanceDetail;
                 const positionDataTrader0 = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData;
-                const positionNotionalAndPnLTrader0 = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(
+                const positionNotionalAndPnLTrader0 = await getPositionNotionalAndUnrealizedPnl(
                     positionManager.address,
-                    trader.address,
-                    1
+                    trader.address
                 )
 
 
@@ -2658,10 +2667,9 @@ describe("PositionHouse_01", () => {
 
                 await positionHouse.liquidate(positionManager.address, trader.address);
 
-                const positionNotionalAndPnLTrader0AfterLiquidate = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(
+                const positionNotionalAndPnLTrader0AfterLiquidate = await getPositionNotionalAndUnrealizedPnl(
                     positionManager.address,
-                    trader.address,
-                    1
+                    trader.address
                 )
                 const maintenanceDetailTrader0AfterLiquidate = (await positionHouse.getMaintenanceDetail(positionManager.address, trader.address)) as unknown as MaintenanceDetail;
 
@@ -2806,10 +2814,9 @@ describe("PositionHouse_01", () => {
 
             const maintenanceDetail = (await positionHouse.getMaintenanceDetail(positionManager.address, trader.address)) as unknown as MaintenanceDetail;
             const positionData = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData;
-            const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(
+            const positionNotionalAndPnL1 = await getPositionNotionalAndUnrealizedPnl(
                 positionManager.address,
-                trader.address,
-                1
+                trader.address
             )
 
 
@@ -2892,10 +2899,9 @@ describe("PositionHouse_01", () => {
 
             const maintenanceDetail = (await positionHouse.getMaintenanceDetail(positionManager.address, trader.address)) as unknown as MaintenanceDetail;
             const positionData = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData;
-            const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(
+            const positionNotionalAndPnL1 = await getPositionNotionalAndUnrealizedPnl(
                 positionManager.address,
-                trader.address,
-                1
+                trader.address
             )
 
 
@@ -2977,10 +2983,9 @@ describe("PositionHouse_01", () => {
             const maintenanceDetail = (await positionHouse.getMaintenanceDetail(positionManager.address, trader.address)) as unknown as MaintenanceDetail;
 
             const positionData = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData;
-            const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(
+            const positionNotionalAndPnL1 = await getPositionNotionalAndUnrealizedPnl(
                 positionManager.address,
-                trader.address,
-                1
+                trader.address
             )
 
 
@@ -3056,10 +3061,9 @@ describe("PositionHouse_01", () => {
             const maintenanceDetail = (await positionHouse.getMaintenanceDetail(positionManager.address, trader.address)) as unknown as MaintenanceDetail;
 
             const positionData = (await positionHouse.getPosition(positionManager.address, trader.address)) as unknown as PositionData;
-            const positionNotionalAndPnL1 = await positionHouse.getPositionNotionalAndUnrealizedPnlTest(
+            const positionNotionalAndPnL1 = await getPositionNotionalAndUnrealizedPnl(
                 positionManager.address,
-                trader.address,
-                1
+                trader.address
             )
 
 

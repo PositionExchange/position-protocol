@@ -220,7 +220,6 @@ library PositionHouseFunction {
 
         (bool isFilled, bool isBuy,
         uint256 quantity, uint256 partialFilled) = _positionManager.getPendingOrderDetail(limitOrder.pip, limitOrder.orderId);
-
         if (isFilled) {
             int256 _orderQuantity;
             if (reduceQuantity == 0 && entryPrice == 0) {
