@@ -25,10 +25,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
     using Position for Position.LiquidatedData;
     using PositionHouseFunction for PositionHouse;
 
-    //    modifier whenNotPaused() {
-    //        require(!paused, "Pausable: paused");
-    //        _;
-    //    }
     event OpenMarket(
         address trader,
         int256 quantity,
@@ -710,8 +706,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
         positionResp.marginToVault = - ((int256(remainMargin) + positionResp.realizedPnl +
         manualMargin[positionManagerAddress][_trader]) < 0 ? 0 :
         (int256(remainMargin) + positionResp.realizedPnl + manualMargin[positionManagerAddress][_trader]));
-        //        int256 _marginToVault = int256(remainMargin) + positionResp.realizedPnl + manualMargin[address(_positionManager)][_trader];
-        //        positionResp.marginToVault = - (_marginToVault < 0 ? 0 : _marginToVault);
         positionResp.unrealizedPnl = 0;
         canClaimAmountMap[positionManagerAddress][_trader] = 0;
         clearPosition(positionManagerAddress, _trader);
