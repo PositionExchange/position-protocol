@@ -188,6 +188,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
             uint128 _quantity = _rawQuantity.abs128();
             if(
                 oldPosition.quantity != 0
+                && !oldPosition.quantity.isSameSide(_rawQuantity)
                 && _positionManager.needClosePositionBeforeOpeningLimitOrder(
                     _rawQuantity.u8Side(),
                     _pip,
@@ -195,7 +196,6 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
                     oldPosition.quantity.u8Side(),
                     oldPosition.quantity.abs()
                 )
-                && oldPosition.quantity * _rawQuantity < 0
             ) {
                 PositionResp memory closePositionResp = internalClosePosition(_positionManager, _trader, PnlCalcOption.SPOT_PRICE, true, oldPosition);
                 if (_rawQuantity - closePositionResp.exchangedPositionSize == 0) {
