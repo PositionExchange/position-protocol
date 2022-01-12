@@ -188,6 +188,7 @@ contract PositionHouse is ReentrancyGuardUpgradeable, OwnableUpgradeable, Positi
             uint128 _quantity = _rawQuantity.abs128();
             if(
                 oldPosition.quantity != 0
+                && !oldPosition.quantity.isSameSide(_rawQuantity)
                 && _positionManager.needClosePositionBeforeOpeningLimitOrder(
                     _rawQuantity.u8Side(),
                     _pip,
