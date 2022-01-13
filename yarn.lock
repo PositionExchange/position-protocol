@@ -2328,13 +2328,6 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
-"@solidity-parser/parser@^0.13.2":
-  "integrity" "sha512-RwHnpRnfrnD2MSPveYoPh8nhofEvX7fgjHk1Oq+NNvCcLx4r1js91CO9o+F/F3fBzOCyvm8kKRTriFICX/odWw=="
-  "resolved" "https://registry.npmjs.org/@solidity-parser/parser/-/parser-0.13.2.tgz"
-  "version" "0.13.2"
-  dependencies:
-    "antlr4ts" "^0.5.0-alpha.4"
-
 "@solidity-parser/parser@^0.14.0":
   "integrity" "sha512-cX0JJRcmPtNUJpzD2K7FdA7qQsTOk1UZnFx2k7qAg9ZRvuaH5NBe5IEdBMXGlmf2+FmjhqbygJ26H8l2SV7aKQ=="
   "resolved" "https://registry.npmjs.org/@solidity-parser/parser/-/parser-0.14.0.tgz"
@@ -7186,6 +7179,11 @@
   "resolved" "https://registry.npmjs.org/emittery/-/emittery-0.4.1.tgz"
   "version" "0.4.1"
 
+"emoji-regex@^10.0.0":
+  "integrity" "sha512-KmJa8l6uHi1HrBI34udwlzZY1jOEuID/ft4d8BSSEdRyap7PwBEt910453PJa5MuGvxkLqlt4Uvhu7tttFHViw=="
+  "resolved" "https://registry.npmjs.org/emoji-regex/-/emoji-regex-10.0.0.tgz"
+  "version" "10.0.0"
+
 "emoji-regex@^7.0.1":
   "integrity" "sha512-CwBLREIQ7LvYFB0WyRvwhq5N5qPhc6PMjD6bYggFlI5YyDgl+0vxq5VHbMOFqLg7hfWzmu8T5Z1QofhmTIhItA=="
   "resolved" "https://registry.npmjs.org/emoji-regex/-/emoji-regex-7.0.3.tgz"
@@ -7196,7 +7194,7 @@
   "resolved" "https://registry.npmjs.org/emoji-regex/-/emoji-regex-8.0.0.tgz"
   "version" "8.0.0"
 
-"emoji-regex@^9.0.0", "emoji-regex@^9.2.2":
+"emoji-regex@^9.0.0":
   "integrity" "sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg=="
   "resolved" "https://registry.npmjs.org/emoji-regex/-/emoji-regex-9.2.2.tgz"
   "version" "9.2.2"
@@ -14488,16 +14486,16 @@
   "version" "0.2.0"
 
 "prettier-plugin-solidity@^1.0.0-beta.18":
-  "integrity" "sha512-ezWdsG/jIeClmYBzg8V9Voy8jujt+VxWF8OS3Vld+C3c+3cPVib8D9l8ahTod7O5Df1anK9zo+WiiS5wb1mLmg=="
-  "resolved" "https://registry.npmjs.org/prettier-plugin-solidity/-/prettier-plugin-solidity-1.0.0-beta.18.tgz"
-  "version" "1.0.0-beta.18"
+  "integrity" "sha512-xxRQ5ZiiZyUoMFLE9h7HnUDXI/daf1tnmL1msEdcKmyh7ZGQ4YklkYLC71bfBpYU2WruTb5/SFLUaEb3RApg5g=="
+  "resolved" "https://registry.npmjs.org/prettier-plugin-solidity/-/prettier-plugin-solidity-1.0.0-beta.19.tgz"
+  "version" "1.0.0-beta.19"
   dependencies:
-    "@solidity-parser/parser" "^0.13.2"
-    "emoji-regex" "^9.2.2"
+    "@solidity-parser/parser" "^0.14.0"
+    "emoji-regex" "^10.0.0"
     "escape-string-regexp" "^4.0.0"
     "semver" "^7.3.5"
     "solidity-comments-extractor" "^0.0.7"
-    "string-width" "^4.2.2"
+    "string-width" "^4.2.3"
 
 "prettier-plugin-solidity@1.0.0-alpha.59":
   "integrity" "sha512-6cE0SWaiYCBoJY4clCfsbWlEEOU4K42Ny6Tg4Jwprgts/q+AVfYnPQ5coRs7zIjYzc4RVspifYPeh+oAg8RpLw=="
@@ -14513,10 +14511,10 @@
     "semver" "^7.3.2"
     "string-width" "^4.2.0"
 
-"prettier@^2.0.5", "prettier@^2.1.2", "prettier@^2.3.0", "prettier@^2.4.0":
-  "integrity" "sha512-9fbDAXSBcc6Bs1mZrDYb3XKzDLm4EXXL9sC1LqKP5rZkT6KRr/rf9amVUcODVXgguK/isJz0d0hP72WeaKWsvA=="
-  "resolved" "https://registry.npmjs.org/prettier/-/prettier-2.4.1.tgz"
-  "version" "2.4.1"
+"prettier@^2.0.5", "prettier@^2.1.2", "prettier@^2.3.0", "prettier@^2.5.1":
+  "integrity" "sha512-vBZcPRUR5MZJwoyi3ZoyQlc1rXeEck8KgeC9AwwOn+exuxLxq5toTRDTSaVrXHxelDMHy9zlicw8u66yxoSUFg=="
+  "resolved" "https://registry.npmjs.org/prettier/-/prettier-2.5.1.tgz"
+  "version" "2.5.1"
 
 "pretty-format@^27.3.1":
   "integrity" "sha512-DR/c+pvFc52nLimLROYjnXPtolawm+uWDxr4FjuLDLUn+ktWnSN851KoHwHzzqq6rfCOjkzN8FLgDrSub6UDuA=="
@@ -16244,7 +16242,7 @@
     "is-fullwidth-code-point" "^1.0.0"
     "strip-ansi" "^3.0.0"
 
-"string-width@^1.0.2 || 2 || 3 || 4", "string-width@^4.1.0", "string-width@^4.2.0", "string-width@^4.2.2":
+"string-width@^1.0.2 || 2 || 3 || 4", "string-width@^4.1.0", "string-width@^4.2.0", "string-width@^4.2.3":
   "integrity" "sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g=="
   "resolved" "https://registry.npmjs.org/string-width/-/string-width-4.2.3.tgz"
   "version" "4.2.3"
