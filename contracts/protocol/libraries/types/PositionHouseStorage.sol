@@ -2,6 +2,7 @@ pragma solidity ^0.8.8;
 
 import "../position/PositionLimitOrder.sol";
 import "../../../interfaces/IInsuranceFund.sol";
+import "./LiquidationFeeRatio.sol";
 
 contract PositionHouseStorage {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
@@ -10,7 +11,6 @@ contract PositionHouseStorage {
 
     using Position for Position.Data;
     using Position for Position.LiquidatedData;
-    type PositionManager is address;
 
     enum PnlCalcOption {
         TWAP,
@@ -64,8 +64,7 @@ contract PositionHouseStorage {
     mapping(address => mapping(address => Position.Data)) public positionMap;
     //    mapping(address => int256[]) public cumulativePremiumFractionsMap;
 
-    mapping(address => mapping(address => Position.LiquidatedData))
-        public debtPosition;
+    mapping(address => mapping(address => Position.LiquidatedData)) public debtPosition;
     mapping(address => mapping(address => uint256)) public canClaimAmountMap;
 
     // update added margin type from int256 to uint256
@@ -81,7 +80,7 @@ contract PositionHouseStorage {
 
     uint256 maintenanceMarginRatio;
     uint256 partialLiquidationRatio;
-    uint256 liquidationFeeRatio;
+    LiquidationFeeRatio public liquidationFeeRatio;
     uint256 liquidationPenaltyRatio;
 
     IInsuranceFund public insuranceFund;

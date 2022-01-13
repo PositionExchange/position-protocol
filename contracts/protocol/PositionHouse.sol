@@ -29,6 +29,7 @@ contract PositionHouse is
     using Position for Position.Data;
     using Position for Position.LiquidatedData;
     using PositionHouseFunction for PositionHouse;
+    using LiquidationFeeRatioMath for LiquidationFeeRatio;
 
     //    modifier whenNotPaused() {
     //        require(!paused, "Pausable: paused");
@@ -83,7 +84,7 @@ contract PositionHouse is
         __Ownable_init();
         maintenanceMarginRatio = _maintenanceMarginRatio;
         partialLiquidationRatio = _partialLiquidationRatio;
-        liquidationFeeRatio = _liquidationFeeRatio;
+        liquidationFeeRatio = LiquidationFeeRatio.wrap(_liquidationFeeRatio);
         liquidationPenaltyRatio = _liquidationPenaltyRatio;
         insuranceFund = IInsuranceFund(_insuranceFund);
         paused = false;
@@ -515,7 +516,7 @@ contract PositionHouse is
                 // calculate amount quantity of position to reduce
                 int256 partiallyLiquidateQuantity = positionData
                     .quantity
-                    .getPartiallyLiquidate(liquidationFeeRatio);
+                    .getPartiallyLiquidate(liquidationFeeRatio.toUint());
                 // partially liquidate position by reduce position's quantity
                 positionResp = partialLiquidate(
                     _positionManager,
@@ -543,10 +544,7 @@ contract PositionHouse is
                         positionData.margin)
                 );
                 clearPosition(positionManagerAddress, _trader);
-                feeToLiquidator =
-                    (liquidationPenalty * liquidationFeeRatio) /
-                    2 /
-                    100;
+                feeToLiquidator = liquidationFeeRatio.getLiquidatorFee(liquidationPenalty);
             }
             withdraw(_positionManager, _caller, feeToLiquidator);
             // count as bad debt, transfer money to insurance fund and liquidator
@@ -1060,8 +1058,7 @@ contract PositionHouse is
             oldPosition
         );
         // TODO need to calculate remain margin with funding payment
-        uint256 remainMargin = (oldPosition.margin *
-            (100 - liquidationFeeRatio)) / 100;
+        uint256 remainMargin = liquidationFeeRatio.getRemainMargin(oldPosition.margin);
         // unchecked
         positionResp.marginToVault =
             int256(oldPosition.margin) -
