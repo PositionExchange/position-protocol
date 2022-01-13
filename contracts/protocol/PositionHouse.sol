@@ -597,10 +597,11 @@ contract PositionHouse is
     ) external whenNotPaused nonReentrant {
         address _trader = _msgSender();
 
-        require(
-            getPosition(address(_positionManager), _trader).quantity != 0,
-            Errors.VL_NO_POSITION_TO_REMOVE
-        );
+//        require(
+//            getPosition(address(_positionManager), _trader).quantity != 0,
+//            Errors.VL_NO_POSITION_TO_REMOVE
+//        ); DON'T NEED? duplicate getPosition() call inside getRemovableMargin()
+
         uint256 removableMargin = uint256(
             getRemovableMargin(_positionManager, _trader)
         );
