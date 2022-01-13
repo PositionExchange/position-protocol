@@ -1,6 +1,13 @@
 pragma solidity ^0.8.0;
 
 library Quantity {
+    function getPartiallyLiquidate(
+        int256 _quantity,
+        int256 _liquidationPenaltyRatio
+    ) internal pure returns (int256) {
+        return (_quantity * _liquidationPenaltyRatio) / 100;
+    }
+
     function isSameSide(int256 qA, int256 qB) internal pure returns (bool) {
         return qA * qB > 0;
     }
