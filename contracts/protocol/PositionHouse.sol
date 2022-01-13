@@ -1048,9 +1048,11 @@ contract PositionHouse is
                 _side,
                 _trader
             );
-        positionResp.exchangedQuoteAssetAmount =
-            _quantity.abs() *
-            (oldPosition.openNotional / oldPosition.quantity.abs());
+        positionResp.exchangedQuoteAssetAmount = _quantity
+            .getExchangedQuoteAssetAmount(
+                oldPosition.openNotional,
+                oldPosition.quantity.abs()
+            );
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
             _positionManager,
             _trader,
