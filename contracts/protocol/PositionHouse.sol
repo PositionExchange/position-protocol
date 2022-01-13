@@ -16,6 +16,8 @@ import "./libraries/types/PositionHouseStorage.sol";
 import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.sol";
 import {PositionHouseMath} from "./libraries/position/PositionHouseMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
+import {Int256Math} from "./libraries/Int256Math.sol";
+import "./libraries/helpers/Int256Math.sol";
 
 contract PositionHouse is
     ReentrancyGuardUpgradeable,
@@ -24,6 +26,7 @@ contract PositionHouse is
 {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
     using Quantity for int256;
+    using Int256Math for int256;
     using Quantity for int128;
 
     using Position for Position.Data;
