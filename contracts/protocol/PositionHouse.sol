@@ -602,9 +602,7 @@ contract PositionHouse is
 //            Errors.VL_NO_POSITION_TO_REMOVE
 //        ); DON'T NEED? duplicate getPosition() call inside getRemovableMargin()
 
-        uint256 removableMargin = uint256(
-            getRemovableMargin(_positionManager, _trader)
-        );
+        uint256 removableMargin = getRemovableMargin(_positionManager, _trader);
         require(
             _amount <= removableMargin,
             Errors.VL_INVALID_REMOVE_MARGIN
@@ -622,20 +620,16 @@ contract PositionHouse is
     function getRemovableMargin(
         IPositionManager _positionManager,
         address _trader
-    ) public view returns (int256) {
-        int256 addedMargin = manualMargin[address(_positionManager)][_trader];
+    ) public view returns (uint256) {
+        int256 _marginAdded = manualMargin[address(_positionManager)][_trader];
         (
             uint256 maintenanceMargin,
             int256 marginBalance,
 
         ) = getMaintenanceDetail(_positionManager, _trader);
-        int256 removableMargin = (marginBalance - int256(maintenanceMargin)) > 0
-            ? (marginBalance - int256(maintenanceMargin))
-            : int256(0);
-        return
-            addedMargin <= (marginBalance - int256(maintenanceMargin))
-                ? addedMargin
-                : removableMargin;
+        int256 _remainingMargin = marginBalance - int256(maintenanceMargin);
+        int256 _removableMargin = _remainingMargin > 0 ? _remainingMargin : int256(0);
+        return uint256(_marginAdded <= _remainingMargin ? _marginAdded : _removableMargin);
     }
 
     function clearPosition(address positionManagerAddress, address _trader)
