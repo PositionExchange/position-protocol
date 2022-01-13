@@ -49,6 +49,8 @@ describe("PositionHouse_01", () => {
         // Deploy position house function contract
         const positionHouseFunction = await ethers.getContractFactory('PositionHouseFunction')
         const libraryIns = (await positionHouseFunction.deploy())
+        const PositionHouseMath = await ethers.getContractFactory('PositionHouseMath')
+        const positionHouseMath = await PositionHouseMath.deploy()
 
         // Deploy mock busd contract
         const bep20MintableFactory = await ethers.getContractFactory('BEP20Mintable')
@@ -65,7 +67,8 @@ describe("PositionHouse_01", () => {
         // Deploy position house contract
         const factory = await ethers.getContractFactory("PositionHouse", {
             libraries: {
-                PositionHouseFunction: libraryIns.address
+                PositionHouseFunction: libraryIns.address,
+                PositionHouseMath: positionHouseMath.address
             }
         })
         positionHouse = (await factory.deploy()) as unknown as PositionHouse;
