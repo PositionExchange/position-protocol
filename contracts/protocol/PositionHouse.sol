@@ -589,11 +589,11 @@ contract PositionHouse is
     /**
      * @notice add margin to increase margin ratio
      * @param _positionManager IPositionManager address
-     * @param _marginRemoved added margin
+     * @param _amount amount to remove
      */
     function removeMargin(
         IPositionManager _positionManager,
-        uint256 _marginRemoved
+        uint256 _amount
     ) external whenNotPaused nonReentrant {
         address _trader = _msgSender();
 
@@ -605,17 +605,17 @@ contract PositionHouse is
             getRemovableMargin(_positionManager, _trader)
         );
         require(
-            _marginRemoved <= removableMargin,
+            _amount <= removableMargin,
             Errors.VL_INVALID_REMOVE_MARGIN
         );
 
         manualMargin[address(_positionManager)][_trader] -= int256(
-            _marginRemoved
+            _amount
         );
 
-        withdraw(_positionManager, _trader, _marginRemoved);
+        withdraw(_positionManager, _trader, _amount);
 
-        emit RemoveMargin(_trader, _marginRemoved, _positionManager);
+        emit RemoveMargin(_trader, _amount, _positionManager);
     }
 
     function getRemovableMargin(
