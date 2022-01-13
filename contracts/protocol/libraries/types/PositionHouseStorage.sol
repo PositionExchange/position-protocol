@@ -1,4 +1,4 @@
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.8;
 
 import "../position/PositionLimitOrder.sol";
 import "../../../interfaces/IInsuranceFund.sol";
@@ -10,6 +10,7 @@ contract PositionHouseStorage {
 
     using Position for Position.Data;
     using Position for Position.LiquidatedData;
+    type PositionManager is address;
 
     enum PnlCalcOption {
         TWAP,

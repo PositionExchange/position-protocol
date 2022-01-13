@@ -1,4 +1,4 @@
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 library Quantity {
     function getExchangedQuoteAssetAmount(
@@ -6,7 +6,7 @@ library Quantity {
         uint256 openNotional,
         uint256 oldPQuantity
     ) internal pure returns (uint256) {
-        return (Quantity.abs(quantity) * openNotional) / oldPQuantity;
+        return (abs(quantity) * openNotional) / oldPQuantity;
     }
 
     function getPartiallyLiquidate(

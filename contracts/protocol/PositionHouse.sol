@@ -1,4 +1,4 @@
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.8;
 
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -630,7 +630,7 @@ contract PositionHouse is
         ) = getMaintenanceDetail(_positionManager, _trader);
         int256 removableMargin = (marginBalance - int256(maintenanceMargin)) > 0
             ? (marginBalance - int256(maintenanceMargin))
-            : 0;
+            : int256(0);
         return
             addedMargin <= (marginBalance - int256(maintenanceMargin))
                 ? addedMargin
@@ -812,13 +812,15 @@ contract PositionHouse is
 
         positionResp.realizedPnl = unrealizedPnl;
         positionResp.marginToVault = -(
-            (int256(remainMargin) +
-                positionResp.realizedPnl +
-                manualMargin[positionManagerAddress][_trader]) < 0
-                ? 0
-                : (int256(remainMargin) +
+            (
+                (int256(remainMargin) +
                     positionResp.realizedPnl +
-                    manualMargin[positionManagerAddress][_trader])
+                    manualMargin[positionManagerAddress][_trader]) < 0
+                    ? int256(0)
+                    : (int256(remainMargin) +
+                        positionResp.realizedPnl +
+                        manualMargin[positionManagerAddress][_trader])
+            )
         );
         //        int256 _marginToVault = int256(remainMargin) + positionResp.realizedPnl + manualMargin[address(_positionManager)][_trader];
         //        positionResp.marginToVault = - (_marginToVault < 0 ? 0 : _marginToVault);
