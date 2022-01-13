@@ -4,11 +4,12 @@ import "../helpers/Quantity.sol";
 import "hardhat/console.sol";
 import "../../../interfaces/IPositionManager.sol";
 
-
 library Position {
-
     using Quantity for int256;
-    enum Side {LONG, SHORT}
+    enum Side {
+        LONG,
+        SHORT
+    }
     struct Data {
         // TODO restruct data
         int256 quantity;
@@ -43,15 +44,15 @@ library Position {
         self.quantity = newPosition.quantity;
         self.margin = newPosition.margin;
         self.openNotional = newPosition.openNotional;
-        self.lastUpdatedCumulativePremiumFraction = newPosition.lastUpdatedCumulativePremiumFraction;
+        self.lastUpdatedCumulativePremiumFraction = newPosition
+            .lastUpdatedCumulativePremiumFraction;
         self.blockNumber = newPosition.blockNumber;
         self.leverage = newPosition.leverage;
     }
 
-    function updateMargin(
-        Position.Data storage self,
-        uint256 newMargin
-    ) internal {
+    function updateMargin(Position.Data storage self, uint256 newMargin)
+        internal
+    {
         self.margin = newMargin;
     }
 
@@ -62,7 +63,8 @@ library Position {
         self.quantity += newPosition.quantity;
         self.margin -= newPosition.margin;
         self.openNotional -= newPosition.openNotional;
-        self.lastUpdatedCumulativePremiumFraction += newPosition.lastUpdatedCumulativePremiumFraction;
+        self.lastUpdatedCumulativePremiumFraction += newPosition
+            .lastUpdatedCumulativePremiumFraction;
         self.blockNumber += newPosition.blockNumber;
         self.leverage = self.leverage;
     }
@@ -73,9 +75,7 @@ library Position {
         self.notional = 0;
     }
 
-    function clear(
-        Position.Data storage self
-    ) internal {
+    function clear(Position.Data storage self) internal {
         self.quantity = 0;
         self.margin = 0;
         self.openNotional = 0;
@@ -84,16 +84,24 @@ library Position {
         self.leverage = 0;
     }
 
-    function side(Position.Data memory self) internal view returns (Position.Side) {
+    function side(Position.Data memory self)
+        internal
+        view
+        returns (Position.Side)
+    {
         return self.quantity > 0 ? Position.Side.LONG : Position.Side.SHORT;
     }
 
     function getEntryPrice(
         Position.Data memory self,
         address addressPositionManager
-    ) internal view returns (uint256){
-        IPositionManager _positionManager = IPositionManager(addressPositionManager);
-        return self.openNotional * _positionManager.getBaseBasisPoint() / self.quantity.abs();
+    ) internal view returns (uint256) {
+        IPositionManager _positionManager = IPositionManager(
+            addressPositionManager
+        );
+        return
+            (self.openNotional * _positionManager.getBaseBasisPoint()) /
+            self.quantity.abs();
     }
 
     function accumulateLimitOrder(
@@ -107,10 +115,13 @@ library Position {
             positionData.margin = self.margin + orderMargin;
             positionData.openNotional = self.openNotional + orderNotional;
         } else {
-            positionData.margin = self.margin > orderMargin ? self.margin - orderMargin : orderMargin - self.margin;
-            positionData.openNotional = self.openNotional > orderNotional ? self.openNotional - orderNotional : orderNotional - self.openNotional;
+            positionData.margin = self.margin > orderMargin
+                ? self.margin - orderMargin
+                : orderMargin - self.margin;
+            positionData.openNotional = self.openNotional > orderNotional
+                ? self.openNotional - orderNotional
+                : orderNotional - self.openNotional;
         }
         positionData.quantity = self.quantity + quantity;
     }
-
 }

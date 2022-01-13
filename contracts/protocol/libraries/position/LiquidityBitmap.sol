@@ -6,12 +6,18 @@ import "hardhat/console.sol";
 import "./BitMath.sol";
 
 library LiquidityBitmap {
-    uint256 public constant MAX_UINT256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
+    uint256 public constant MAX_UINT256 =
+        115792089237316195423570985008687907853269984665640564039457584007913129639935;
+
     /// @notice Get the position in the mapping
     /// @param pip The bip index for computing the position
     /// @return mapIndex the index in the map
     /// @return bitPos the position in the bitmap
-    function position(uint128 pip) private pure returns (uint128 mapIndex, uint8 bitPos) {
+    function position(uint128 pip)
+        private
+        pure
+        returns (uint128 mapIndex, uint8 bitPos)
+    {
         mapIndex = pip >> 8;
         bitPos = uint8((pip) & 0xff);
         // % 256
@@ -25,10 +31,7 @@ library LiquidityBitmap {
         mapping(uint128 => uint256) storage self,
         uint128 pip,
         bool lte
-    ) internal view returns (
-        uint128 next
-    ) {
-
+    ) internal view returns (uint128 next) {
         if (lte) {
             // main is find the next pip has liquidity
             (uint128 wordPos, uint8 bitPos) = position(pip);
@@ -41,13 +44,12 @@ library LiquidityBitmap {
             bool initialized = masked != 0;
             // overflow/underflow is possible, but prevented externally by limiting both tickSpacing and tick
             next = initialized
-            ? (pip - (bitPos - BitMath.mostSignificantBit(masked)))
-            : 0;
+                ? (pip - (bitPos - BitMath.mostSignificantBit(masked)))
+                : 0;
 
             //            if (!hasLiquidity && next != 0) {
             //                next = next + 1;
             //            }
-
         } else {
             // start from the word of the next tick, since the current tick state doesn't matter
             (uint128 wordPos, uint8 bitPos) = position(pip);
@@ -58,8 +60,8 @@ library LiquidityBitmap {
             bool initialized = masked != 0;
             // overflow/underflow is possible, but prevented externally by limiting both tickSpacing and tick
             next = initialized
-            ? (pip + (BitMath.leastSignificantBit(masked) - bitPos))  // +1
-            : 0;
+                ? (pip + (BitMath.leastSignificantBit(masked) - bitPos)) // +1
+                : 0;
 
             //            if (!hasLiquidity && next != 0) {
             //                next = next + 1;
@@ -73,14 +75,20 @@ library LiquidityBitmap {
         uint128 pip,
         uint128 maxWords,
         bool lte
-    ) internal view returns (
-        uint128 next
-    ) {
+    ) internal view returns (uint128 next) {
         uint128 startWord = pip >> 8;
         if (lte) {
-            for (uint128 i = startWord; i > (startWord < maxWords ? 0 : startWord - maxWords); i--) {
+            for (
+                uint128 i = startWord;
+                i > (startWord < maxWords ? 0 : startWord - maxWords);
+                i--
+            ) {
                 if (self[i] != 0) {
-                    next = findHasLiquidityInOneWords(self, i < startWord ? 256 * i + 255 : pip, true);
+                    next = findHasLiquidityInOneWords(
+                        self,
+                        i < startWord ? 256 * i + 255 : pip,
+                        true
+                    );
                     if (next != 0) {
                         return next;
                     }
@@ -89,7 +97,11 @@ library LiquidityBitmap {
         } else {
             for (uint128 i = startWord; i < startWord + maxWords; i++) {
                 if (self[i] != 0) {
-                    next = findHasLiquidityInOneWords(self, i > startWord ? 256 * i : pip, false);
+                    next = findHasLiquidityInOneWords(
+                        self,
+                        i > startWord ? 256 * i : pip,
+                        false
+                    );
                     if (next != 0) {
                         return next;
                     }
@@ -104,9 +116,7 @@ library LiquidityBitmap {
         uint128 startPip,
         uint256 dataLength,
         bool toHigher
-    ) internal view returns (
-        uint128[] memory
-    ) {
+    ) internal view returns (uint128[] memory) {
         uint128 startWord = startPip >> 8;
         uint128 index = 0;
         uint128[] memory allPip = new uint128[](uint128(dataLength));
@@ -114,16 +124,20 @@ library LiquidityBitmap {
             for (uint128 i = startWord; i >= startWord - 1000; i--) {
                 if (self[i] != 0) {
                     uint128 next;
-                    next = findHasLiquidityInOneWords(self, i < startWord ? 256*i + 255 : startPip, true);
+                    next = findHasLiquidityInOneWords(
+                        self,
+                        i < startWord ? 256 * i + 255 : startPip,
+                        true
+                    );
                     if (next != 0) {
                         allPip[index] = next;
-                        index ++;
+                        index++;
                     }
-                    while(true){
-                        next = findHasLiquidityInOneWords(self, next-1, true);
+                    while (true) {
+                        next = findHasLiquidityInOneWords(self, next - 1, true);
                         if (next != 0 && index <= dataLength) {
                             allPip[index] = next;
-                            index ++;
+                            index++;
                         } else {
                             break;
                         }
@@ -135,16 +149,24 @@ library LiquidityBitmap {
             for (uint128 i = startWord; i <= startWord + 1000; i++) {
                 if (self[i] != 0) {
                     uint128 next;
-                    next = findHasLiquidityInOneWords(self, i > startWord ? 256 * i : startPip, false);
+                    next = findHasLiquidityInOneWords(
+                        self,
+                        i > startWord ? 256 * i : startPip,
+                        false
+                    );
                     if (next != 0) {
                         allPip[index] = next;
-                        index ++;
+                        index++;
                     }
-                    while(true){
-                        next = findHasLiquidityInOneWords(self, next+1, false);
+                    while (true) {
+                        next = findHasLiquidityInOneWords(
+                            self,
+                            next + 1,
+                            false
+                        );
                         if (next != 0 && index <= dataLength) {
                             allPip[index] = next;
-                            index ++;
+                            index++;
                         } else {
                             break;
                         }
@@ -157,14 +179,13 @@ library LiquidityBitmap {
         return allPip;
     }
 
-    function hasLiquidity(
-        mapping(uint128 => uint256) storage self,
-        uint128 pip
-    ) internal view returns (
-        bool
-    ) {
+    function hasLiquidity(mapping(uint128 => uint256) storage self, uint128 pip)
+        internal
+        view
+        returns (bool)
+    {
         (uint128 mapIndex, uint8 bitPos) = position(pip);
-        return (self[mapIndex] & 1 << bitPos) != 0;
+        return (self[mapIndex] & (1 << bitPos)) != 0;
     }
 
     /// @notice Set all bits in a given range
@@ -182,11 +203,13 @@ library LiquidityBitmap {
         if (toMapIndex == fromMapIndex) {
             // in the same storage
             // Set all the bits in given range of a number
-            self[toMapIndex] |= (((1 << (fromBitPos - 1)) - 1) ^ ((1 << toBitPos) - 1));
+            self[toMapIndex] |= (((1 << (fromBitPos - 1)) - 1) ^
+                ((1 << toBitPos) - 1));
         } else {
             // need to shift the map index
             // TODO fromMapIndex needs set separately
-            self[fromMapIndex] |= (((1 << (fromBitPos - 1)) - 1) ^ ((1 << 255) - 1));
+            self[fromMapIndex] |= (((1 << (fromBitPos - 1)) - 1) ^
+                ((1 << 255) - 1));
             for (uint128 i = fromMapIndex + 1; i < toMapIndex; i++) {
                 // pass uint256.MAX to avoid gas for computing
                 self[i] = MAX_UINT256;
@@ -217,7 +240,11 @@ library LiquidityBitmap {
             //                fromBitPos = toBitPos;
             //                toBitPos = n;
             //            }
-            self[toMapIndex] &= toggleBitsFromLToR(MAX_UINT256, fromBitPos, toBitPos);
+            self[toMapIndex] &= toggleBitsFromLToR(
+                MAX_UINT256,
+                fromBitPos,
+                toBitPos
+            );
         } else {
             //TODO check overflow here
             fromBitPos--;
@@ -242,7 +269,11 @@ library LiquidityBitmap {
         }
     }
 
-    function toggleBitsFromLToR(uint256 n, uint8 l, uint8 r) private returns (uint256) {
+    function toggleBitsFromLToR(
+        uint256 n,
+        uint8 l,
+        uint8 r
+    ) private returns (uint256) {
         // calculating a number 'num'
         // having 'r' number of bits
         // and bits in the range l
@@ -256,9 +287,7 @@ library LiquidityBitmap {
     }
 
     // Function to toggle the last m bits
-    function toggleLastMBits(uint256 n, uint8 m) private returns (uint256)
-    {
-
+    function toggleLastMBits(uint256 n, uint8 m) private returns (uint256) {
         // Calculating a number 'num' having
         // 'm' bits and all are set
         uint256 num = (1 << m) - 1;
@@ -267,5 +296,4 @@ library LiquidityBitmap {
         // return the number
         return (n ^ num);
     }
-
 }
