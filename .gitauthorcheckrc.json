@@ -3,6 +3,6 @@
     "position.exchange"
   ],
   "hooks": {
-    "pre-commit": "git-author-check"
+    "pre-commit": "git-author-check && yarn prettier"
   }
 }
