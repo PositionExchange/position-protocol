@@ -811,15 +811,17 @@ contract PositionHouse is
             );
 
         positionResp.realizedPnl = unrealizedPnl;
-        positionResp.marginToVault = -((
-            (int256(remainMargin) +
-                positionResp.realizedPnl +
-                manualMargin[positionManagerAddress][_trader]) < 0
-                ? int256(0)
-                : (int256(remainMargin) +
+        positionResp.marginToVault = -(
+            (
+                (int256(remainMargin) +
                     positionResp.realizedPnl +
-                    manualMargin[positionManagerAddress][_trader])
-        ));
+                    manualMargin[positionManagerAddress][_trader]) < 0
+                    ? int256(0)
+                    : (int256(remainMargin) +
+                        positionResp.realizedPnl +
+                        manualMargin[positionManagerAddress][_trader])
+            )
+        );
         //        int256 _marginToVault = int256(remainMargin) + positionResp.realizedPnl + manualMargin[address(_positionManager)][_trader];
         //        positionResp.marginToVault = - (_marginToVault < 0 ? 0 : _marginToVault);
         positionResp.unrealizedPnl = 0;
