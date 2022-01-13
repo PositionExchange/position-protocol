@@ -1,6 +1,21 @@
 pragma solidity ^0.8.0;
 
 library Quantity {
+    function getExchangedQuoteAssetAmount(
+        int256 quantity,
+        uint256 openNotional,
+        uint256 oldPQuantity
+    ) internal pure returns (uint256) {
+        return (Quantity.abs(quantity) * openNotional) / oldPQuantity;
+    }
+
+    function getPartiallyLiquidate(
+        int256 _quantity,
+        uint256 _liquidationPenaltyRatio
+    ) internal pure returns (int256) {
+        return (_quantity * int256(_liquidationPenaltyRatio)) / 100;
+    }
+
     function isSameSide(int256 qA, int256 qB) internal pure returns (bool) {
         return qA * qB > 0;
     }

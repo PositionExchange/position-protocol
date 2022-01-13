@@ -14,6 +14,7 @@ import "./libraries/position/PositionLimitOrder.sol";
 import "../interfaces/IInsuranceFund.sol";
 import "./libraries/types/PositionHouseStorage.sol";
 import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.sol";
+import {PositionHouseMath} from "./libraries/position/PositionHouseMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
 
 contract PositionHouse is
@@ -319,9 +320,11 @@ contract PositionHouse is
                     1;
                 limitOrders[positionManagerAddress][_trader].push(_newOrder);
             }
-            _newOrder.entryPrice =
-                (oldPosition.openNotional * baseBasisPoint) /
-                oldPosition.quantity.abs();
+            _newOrder.entryPrice = PositionHouseMath.entryPriceFromNotional(
+                oldPosition.openNotional,
+                oldPosition.quantity.abs(),
+                baseBasisPoint
+            );
             reduceLimitOrders[positionManagerAddress][_trader].push(_newOrder);
         }
     }
@@ -510,8 +513,9 @@ contract PositionHouse is
             // partially liquidate position
             if (marginRatio >= partialLiquidationRatio && marginRatio < 100) {
                 // calculate amount quantity of position to reduce
-                int256 partiallyLiquidateQuantity = (positionData.quantity *
-                    int256(liquidationPenaltyRatio)) / 100;
+                int256 partiallyLiquidateQuantity = positionData
+                    .quantity
+                    .getPartiallyLiquidate(liquidationFeeRatio);
                 // partially liquidate position by reduce position's quantity
                 positionResp = partialLiquidate(
                     _positionManager,
@@ -1044,9 +1048,11 @@ contract PositionHouse is
                 _side,
                 _trader
             );
-        positionResp.exchangedQuoteAssetAmount =
-            _quantity.abs() *
-            (oldPosition.openNotional / oldPosition.quantity.abs());
+        positionResp.exchangedQuoteAssetAmount = _quantity
+            .getExchangedQuoteAssetAmount(
+                oldPosition.openNotional,
+                oldPosition.quantity.abs()
+            );
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
             _positionManager,
             _trader,
