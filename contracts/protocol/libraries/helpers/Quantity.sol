@@ -24,6 +24,10 @@ library Quantity {
         return quantity > 0 ? 1 : 2;
     }
 
+    function abs(int256 quantity) internal pure returns (uint256) {
+        return uint256(quantity >= 0 ? quantity : -quantity);
+    }
+
     function abs128(int256 quantity) internal pure returns (uint128) {
         return uint128(abs(quantity));
     }

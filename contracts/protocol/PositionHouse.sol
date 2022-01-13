@@ -16,8 +16,7 @@ import "./libraries/types/PositionHouseStorage.sol";
 import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.sol";
 import {PositionHouseMath} from "./libraries/position/PositionHouseMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
-import {Int256Math} from "./libraries/Int256Math.sol";
-import "./libraries/helpers/Int256Math.sol";
+import {Int256Math} from "./libraries/helpers/Int256Math.sol";
 
 contract PositionHouse is
     ReentrancyGuardUpgradeable,
