@@ -1,4 +1,4 @@
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.8;
 
 import "./Position.sol";
 import "../../../interfaces/IPositionManager.sol";
@@ -342,7 +342,7 @@ library PositionHouseFunction {
             } else if (reduceQuantity != 0 && entryPrice == 0) {
                 int256 _partialQuantityTemp = partialFilled > reduceQuantity
                     ? int256(partialFilled - reduceQuantity)
-                    : 0;
+                    : int256(0);
                 _partialQuantity = isBuy
                     ? _partialQuantityTemp
                     : -_partialQuantityTemp;
@@ -405,7 +405,7 @@ library PositionHouseFunction {
                             isBuy: isBuy,
                             quantity: quantity,
                             partialFilled: partialFilled,
-                            pip: listLimitOrder[i].pip,
+                            pip: int256(int128(listLimitOrder[i].pip)),
                             leverage: listLimitOrder[i].leverage,
                             blockNumber: listLimitOrder[i].blockNumber,
                             orderIdOfTrader: i,
@@ -430,7 +430,7 @@ library PositionHouseFunction {
                             isBuy: isBuy,
                             quantity: quantity,
                             partialFilled: partialFilled,
-                            pip: reduceLimitOrder[i].pip,
+                            pip: int256(int128(reduceLimitOrder[i].pip)),
                             leverage: reduceLimitOrder[i].leverage,
                             blockNumber: reduceLimitOrder[i].blockNumber,
                             orderIdOfTrader: i,
