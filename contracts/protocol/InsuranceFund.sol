@@ -10,10 +10,11 @@ import "../interfaces/IUniswapV2Factory.sol";
 import "../interfaces/IUniswapV2Router.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
 
-
-contract InsuranceFund is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
-
-
+contract InsuranceFund is
+    Initializable,
+    ReentrancyGuardUpgradeable,
+    OwnableUpgradeable
+{
     uint256 public totalFee;
     uint256 public totalBurn;
 
@@ -23,19 +24,16 @@ contract InsuranceFund is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     IERC20 public busd;
     IUniswapV2Router02 public router;
     IUniswapV2Factory public factory;
-    modifier onlyCounterParty(){
+    modifier onlyCounterParty() {
         require(counterParty == _msgSender(), Errors.VL_NOT_COUNTERPARTY);
         _;
     }
 
-
-    modifier onlyGovernance(){
+    modifier onlyGovernance() {
         _;
     }
 
-
     function initialize() public initializer {
-
         __ReentrancyGuard_init();
         __Ownable_init();
 
@@ -43,11 +41,13 @@ contract InsuranceFund is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
         busd = IERC20(0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56);
         router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
         factory = IUniswapV2Factory(0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73);
-
     }
 
-
-    function deposit(address token, address trader, uint256 amount) public {
+    function deposit(
+        address token,
+        address trader,
+        uint256 amount
+    ) public {
         IERC20(token).transferFrom(trader, address(this), amount);
     }
 
@@ -59,15 +59,17 @@ contract InsuranceFund is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     //
     //    }
 
-    function withdraw(address token, address trader, uint256 amount) public onlyCounterParty {
-
+    function withdraw(
+        address token,
+        address trader,
+        uint256 amount
+    ) public onlyCounterParty {
         // TODO sold posi to pay for trader
         // if insurance fund not enough amount for trader, should sold posi and pay for trader
         //        if (IERC20(token).balanceOf(address(this)) < amount) {
         //
         //        }
         IERC20(token).transfer(trader, amount);
-
     }
 
     function updateTotalFee(uint256 fee) public onlyCounterParty {
@@ -75,14 +77,17 @@ contract InsuranceFund is Initializable, ReentrancyGuardUpgradeable, OwnableUpgr
     }
 
     // Buy POSI on market and burn it
-    function buyBackAndBurn(address token, uint256 amount) public onlyGovernance {
+    function buyBackAndBurn(address token, uint256 amount)
+        public
+        onlyGovernance
+    {
         // TODO implement
 
         //        IUniswapV2Pair pair = getSwappingPair();
 
-
         totalBurn += amount;
     }
+
     //
     //    function sold() private {
     //

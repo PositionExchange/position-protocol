@@ -32,13 +32,12 @@ library Twap {
     ) private pure returns (Observation memory) {
         uint32 delta = blockTimestamp - last.blockTimestamp;
 
-
         return
-        Observation({
-        blockTimestamp : blockTimestamp,
-        pipCumulative : last.pipCumulative + uint128(pip) * delta,
-        initialized : true
-        });
+            Observation({
+                blockTimestamp: blockTimestamp,
+                pipCumulative: last.pipCumulative + uint128(pip) * delta,
+                initialized: true
+            });
     }
 
     /// @notice Initialize the twap array by writing the first slot. Called once for the lifecycle of the observations array
@@ -47,13 +46,13 @@ library Twap {
     /// @return cardinality The number of populated elements in the twap array
     /// @return cardinalityNext The new length of the twap array, independent of population
     function initialize(Observation[65535] storage self, uint32 time)
-    internal
-    returns (uint16 cardinality, uint16 cardinalityNext)
+        internal
+        returns (uint16 cardinality, uint16 cardinalityNext)
     {
         self[0] = Observation({
-        blockTimestamp : time,
-        pipCumulative : 0,
-        initialized : true
+            blockTimestamp: time,
+            pipCumulative: 0,
+            initialized: true
         });
         return (1, 1);
     }
@@ -92,7 +91,6 @@ library Twap {
 
         indexUpdated = (index + 1) % cardinalityUpdated;
         self[indexUpdated] = transform(last, blockTimestamp, pip);
-
     }
 
     /// @notice Prepares the twap array to store up to `next` observations
@@ -105,7 +103,7 @@ library Twap {
         uint16 current,
         uint16 next
     ) internal returns (uint16) {
-        require(current > 0, 'I');
+        require(current > 0, "I");
         // no-op if the passed next value isn't greater than the current next value
         if (next <= current) return current;
         // store in each slot to prevent fresh SSTOREs in swaps
@@ -128,8 +126,8 @@ library Twap {
         // if there hasn't been overflow, no need to adjust
         if (a <= time && b <= time) return a <= b;
 
-        uint256 aAdjusted = a > time ? a : a + 2 ** 32;
-        uint256 bAdjusted = b > time ? b : b + 2 ** 32;
+        uint256 aAdjusted = a > time ? a : a + 2**32;
+        uint256 bAdjusted = b > time ? b : b + 2**32;
 
         return aAdjusted <= bAdjusted;
     }
@@ -151,7 +149,11 @@ library Twap {
         uint32 target,
         uint16 index,
         uint16 cardinality
-    ) private view returns (Observation memory beforeOrAt, Observation memory atOrAfter) {
+    )
+        private
+        view
+        returns (Observation memory beforeOrAt, Observation memory atOrAfter)
+    {
         uint256 l = (index + 1) % cardinality;
         // oldest observation
         uint256 r = l + cardinality - 1;
@@ -173,7 +175,8 @@ library Twap {
             bool targetAtOrAfter = lte(time, beforeOrAt.blockTimestamp, target);
 
             // check if we've found the answer!
-            if (targetAtOrAfter && lte(time, target, atOrAfter.blockTimestamp)) break;
+            if (targetAtOrAfter && lte(time, target, atOrAfter.blockTimestamp))
+                break;
 
             if (!targetAtOrAfter) r = i - 1;
             else l = i + 1;
@@ -198,7 +201,11 @@ library Twap {
         uint128 pip,
         uint16 index,
         uint16 cardinality
-    ) private view returns (Observation memory beforeOrAt, Observation memory atOrAfter) {
+    )
+        private
+        view
+        returns (Observation memory beforeOrAt, Observation memory atOrAfter)
+    {
         // optimistically set before to the newest observation
         beforeOrAt = self[index];
 
@@ -218,7 +225,7 @@ library Twap {
         if (!beforeOrAt.initialized) beforeOrAt = self[0];
 
         // ensure that the target is chronologically at or after the oldest observation
-        require(lte(time, beforeOrAt.blockTimestamp, target), 'OLD');
+        require(lte(time, beforeOrAt.blockTimestamp, target), "OLD");
 
         // if we've reached this point, we have to binary search
         return binarySearch(self, time, target, index, cardinality);
@@ -251,8 +258,17 @@ library Twap {
 
         uint32 target = time - secondsAgo;
 
-        (Observation memory beforeOrAt, Observation memory atOrAfter) =
-        getSurroundingObservations(self, time, target, pip, index, cardinality);
+        (
+            Observation memory beforeOrAt,
+            Observation memory atOrAfter
+        ) = getSurroundingObservations(
+                self,
+                time,
+                target,
+                pip,
+                index,
+                cardinality
+            );
 
         if (target == beforeOrAt.blockTimestamp) {
             // we're at the left boundary
@@ -262,13 +278,13 @@ library Twap {
             return (atOrAfter.pipCumulative);
         } else {
             // we're in the middle
-            uint32 observationTimeDelta = atOrAfter.blockTimestamp - beforeOrAt.blockTimestamp;
+            uint32 observationTimeDelta = atOrAfter.blockTimestamp -
+                beforeOrAt.blockTimestamp;
             uint32 targetDelta = target - beforeOrAt.blockTimestamp;
-            return (
-            beforeOrAt.pipCumulative +
-            ((atOrAfter.pipCumulative - beforeOrAt.pipCumulative) / observationTimeDelta) *
-            targetDelta
-            );
+            return (beforeOrAt.pipCumulative +
+                ((atOrAfter.pipCumulative - beforeOrAt.pipCumulative) /
+                    observationTimeDelta) *
+                targetDelta);
         }
     }
 
@@ -289,7 +305,7 @@ library Twap {
         uint16 index,
         uint16 cardinality
     ) internal view returns (uint128[] memory pipCumulatives) {
-        require(cardinality > 0, 'I');
+        require(cardinality > 0, "I");
 
         pipCumulatives = new uint128[](secondsAgos.length);
         for (uint256 i = 0; i < secondsAgos.length; i++) {

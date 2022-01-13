@@ -5,11 +5,11 @@ import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Cont
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import {IChainLinkPriceFeed} from '../interfaces/IChainLinkPriceFeed.sol';
+import {IChainLinkPriceFeed} from "../interfaces/IChainLinkPriceFeed.sol";
+
 // , Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable
 contract ChainLinkPriceFeed is IChainLinkPriceFeed {
-
-    uint256 private constant TOKEN_DIGIT = 10 ** 18;
+    uint256 private constant TOKEN_DIGIT = 10**18;
 
     // key by currency symbol, eg ETH
     mapping(bytes32 => AggregatorV3Interface) public priceFeedMap;
@@ -23,7 +23,8 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
             priceFeedKeys.push(_priceFeedKey);
         }
         priceFeedMap[_priceFeedKey] = AggregatorV3Interface(_aggregator);
-        priceFeedDecimalMap[_priceFeedKey] = AggregatorV3Interface(_aggregator).decimals();
+        priceFeedDecimalMap[_priceFeedKey] = AggregatorV3Interface(_aggregator)
+            .decimals();
     }
 
     //TODO require permission
@@ -49,31 +50,69 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
     // VIEW FUNCTIONS
     //
 
-    function getAggregator(bytes32 _priceFeedKey) public view returns (AggregatorV3Interface) {
+    function getAggregator(bytes32 _priceFeedKey)
+        public
+        view
+        returns (AggregatorV3Interface)
+    {
         return priceFeedMap[_priceFeedKey];
     }
 
-    function getLatestRoundDataTest(AggregatorV3Interface _aggregator) public view returns (uint80 round, int256 latestPrice, uint256 latestTimestamp) {
-        (round, latestPrice, , latestTimestamp,) = _aggregator.latestRoundData();
+    function getLatestRoundDataTest(AggregatorV3Interface _aggregator)
+        public
+        view
+        returns (
+            uint80 round,
+            int256 latestPrice,
+            uint256 latestTimestamp
+        )
+    {
+        (round, latestPrice, , latestTimestamp, ) = _aggregator
+            .latestRoundData();
     }
 
-    function getRoundDataTest(AggregatorV3Interface _aggregator, uint80 _round) public view returns (int256 latestPrice, uint256 startedAt, uint256 latestTimestamp, uint80 answeredInRound) {
-        (, latestPrice, startedAt, latestTimestamp, answeredInRound) = _aggregator.getRoundData(_round);
+    function getRoundDataTest(AggregatorV3Interface _aggregator, uint80 _round)
+        public
+        view
+        returns (
+            int256 latestPrice,
+            uint256 startedAt,
+            uint256 latestTimestamp,
+            uint80 answeredInRound
+        )
+    {
+        (
+            ,
+            latestPrice,
+            startedAt,
+            latestTimestamp,
+            answeredInRound
+        ) = _aggregator.getRoundData(_round);
     }
 
     //
     // INTERFACE IMPLEMENTATION
     //
 
-    function getPrice(bytes32 _priceFeedKey) external view override returns (uint256) {
+    function getPrice(bytes32 _priceFeedKey)
+        external
+        view
+        override
+        returns (uint256)
+    {
         AggregatorV3Interface aggregator = getAggregator(_priceFeedKey);
         requireNonEmptyAddress(address(aggregator));
 
-        (, uint256 latestPrice,) = getLatestRoundData(aggregator);
+        (, uint256 latestPrice, ) = getLatestRoundData(aggregator);
         return formatDecimals(latestPrice, priceFeedDecimalMap[_priceFeedKey]);
     }
 
-    function getLatestTimestamp(bytes32 _priceFeedKey) external view override returns (uint256) {
+    function getLatestTimestamp(bytes32 _priceFeedKey)
+        external
+        view
+        override
+        returns (uint256)
+    {
         AggregatorV3Interface aggregator = getAggregator(_priceFeedKey);
         requireNonEmptyAddress(address(aggregator));
 
@@ -81,7 +120,12 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
         return latestTimestamp;
     }
 
-    function getTwapPrice(bytes32 _priceFeedKey, uint256 _interval) external view override returns (uint256) {
+    function getTwapPrice(bytes32 _priceFeedKey, uint256 _interval)
+        external
+        view
+        override
+        returns (uint256)
+    {
         AggregatorV3Interface aggregator = getAggregator(_priceFeedKey);
         requireNonEmptyAddress(address(aggregator));
         require(_interval != 0, "interval can't be 0");
@@ -101,7 +145,11 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
         //         base           current previous now
 
         uint8 decimal = priceFeedDecimalMap[_priceFeedKey];
-        (uint80 round, uint256 latestPrice, uint256 latestTimestamp) = getLatestRoundData(aggregator);
+        (
+            uint80 round,
+            uint256 latestPrice,
+            uint256 latestTimestamp
+        ) = getLatestRoundData(aggregator);
         uint256 baseTimestamp = block.timestamp - _interval;
         // if latest updated timestamp is earlier than target timestamp, return the latest price.
         if (latestTimestamp < baseTimestamp || round == 0) {
@@ -119,7 +167,10 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
             }
 
             round = round - 1;
-            (, uint256 currentPrice, uint256 currentTimestamp) = getRoundData(aggregator, round);
+            (, uint256 currentPrice, uint256 currentTimestamp) = getRoundData(
+                aggregator,
+                round
+            );
 
             // check if current round timestamp is earlier than target timestamp
             if (currentTimestamp <= baseTimestamp) {
@@ -127,7 +178,9 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
                 // now is 1000, _interval is 100, then target timestamp is 900. If timestamp of current round is 970,
                 // and timestamp of NEXT round is 880, then the weighted time period will be (970 - 900) = 70,
                 // instead of (970 - 880)
-                weightedPrice = weightedPrice + (currentPrice * (previousTimestamp - baseTimestamp));
+                weightedPrice =
+                    weightedPrice +
+                    (currentPrice * (previousTimestamp - baseTimestamp));
                 break;
             }
 
@@ -139,72 +192,102 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
         return formatDecimals(weightedPrice / _interval, decimal);
     }
 
-    function getPreviousPrice(bytes32 _priceFeedKey, uint256 _numOfRoundBack) external view override returns (uint256) {
-        AggregatorV3Interface aggregator = getAggregator(_priceFeedKey);
-        requireNonEmptyAddress(address(aggregator));
-
-        (uint80 round, , , ,) = aggregator.latestRoundData();
-        require(round > 0 && round >= _numOfRoundBack, "Not enough history");
-        (, int256 previousPrice, , ,) = aggregator.getRoundData(round - uint80(_numOfRoundBack));
-        requirePositivePrice(previousPrice);
-        return formatDecimals(uint256(previousPrice), priceFeedDecimalMap[_priceFeedKey]);
-    }
-
-    function getPreviousTimestamp(bytes32 _priceFeedKey, uint256 _numOfRoundBack)
-    external
-    view
-    override
-    returns (uint256)
+    function getPreviousPrice(bytes32 _priceFeedKey, uint256 _numOfRoundBack)
+        external
+        view
+        override
+        returns (uint256)
     {
         AggregatorV3Interface aggregator = getAggregator(_priceFeedKey);
         requireNonEmptyAddress(address(aggregator));
 
-        (uint80 round, , , ,) = aggregator.latestRoundData();
+        (uint80 round, , , , ) = aggregator.latestRoundData();
         require(round > 0 && round >= _numOfRoundBack, "Not enough history");
-        (, int256 previousPrice, , uint256 previousTimestamp,) =
-        aggregator.getRoundData(round - uint80(_numOfRoundBack));
+        (, int256 previousPrice, , , ) = aggregator.getRoundData(
+            round - uint80(_numOfRoundBack)
+        );
+        requirePositivePrice(previousPrice);
+        return
+            formatDecimals(
+                uint256(previousPrice),
+                priceFeedDecimalMap[_priceFeedKey]
+            );
+    }
+
+    function getPreviousTimestamp(
+        bytes32 _priceFeedKey,
+        uint256 _numOfRoundBack
+    ) external view override returns (uint256) {
+        AggregatorV3Interface aggregator = getAggregator(_priceFeedKey);
+        requireNonEmptyAddress(address(aggregator));
+
+        (uint80 round, , , , ) = aggregator.latestRoundData();
+        require(round > 0 && round >= _numOfRoundBack, "Not enough history");
+        (, int256 previousPrice, , uint256 previousTimestamp, ) = aggregator
+            .getRoundData(round - uint80(_numOfRoundBack));
         requirePositivePrice(previousPrice);
         return previousTimestamp;
     }
 
     function getLatestRoundData(AggregatorV3Interface _aggregator)
-    internal
-    view
-    returns (
-        uint80,
-        uint256 finalPrice,
-        uint256
-    )
+        internal
+        view
+        returns (
+            uint80,
+            uint256 finalPrice,
+            uint256
+        )
     {
-        (uint80 round, int256 latestPrice, , uint256 latestTimestamp,) = _aggregator.latestRoundData();
+        (
+            uint80 round,
+            int256 latestPrice,
+            ,
+            uint256 latestTimestamp,
+
+        ) = _aggregator.latestRoundData();
         finalPrice = uint256(latestPrice);
         if (latestPrice < 0) {
             requireEnoughHistory(round);
-            (round, finalPrice, latestTimestamp) = getRoundData(_aggregator, round - 1);
+            (round, finalPrice, latestTimestamp) = getRoundData(
+                _aggregator,
+                round - 1
+            );
         }
         return (round, finalPrice, latestTimestamp);
     }
 
     function getRoundData(AggregatorV3Interface _aggregator, uint80 _round)
-    internal
-    view
-    returns (
-        uint80,
-        uint256,
-        uint256
-    )
+        internal
+        view
+        returns (
+            uint80,
+            uint256,
+            uint256
+        )
     {
-        (uint80 round, int256 latestPrice, , uint256 latestTimestamp,) = _aggregator.getRoundData(_round);
+        (
+            uint80 round,
+            int256 latestPrice,
+            ,
+            uint256 latestTimestamp,
+
+        ) = _aggregator.getRoundData(_round);
         while (latestPrice < 0) {
             requireEnoughHistory(round);
             round = round - 1;
-            (, latestPrice, , latestTimestamp,) = _aggregator.getRoundData(round);
+            (, latestPrice, , latestTimestamp, ) = _aggregator.getRoundData(
+                round
+            );
         }
         return (round, uint256(latestPrice), latestTimestamp);
     }
 
-    function formatDecimals(uint256 _price, uint8 _decimals) internal pure returns (uint256) {
-        return _price * TOKEN_DIGIT / (10 ** uint256(_decimals));
+    function formatDecimals(uint256 _price, uint8 _decimals)
+        internal
+        pure
+        returns (uint256)
+    {
+        return (_price * TOKEN_DIGIT) / (10**uint256(_decimals));
     }
 
     //

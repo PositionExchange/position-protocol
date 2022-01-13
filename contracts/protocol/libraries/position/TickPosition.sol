@@ -29,7 +29,11 @@ library TickPosition {
         bool isBuy
     ) internal returns (uint64) {
         self.currentIndex++;
-        if (!hasLiquidity && self.filledIndex != self.currentIndex && self.liquidity != 0) {
+        if (
+            !hasLiquidity &&
+            self.filledIndex != self.currentIndex &&
+            self.liquidity != 0
+        ) {
             // means it has liquidity but is not set currentIndex yet
             // reset the filledIndex to fill all
             self.filledIndex = self.currentIndex;
@@ -48,15 +52,16 @@ library TickPosition {
         return self.orderQueue[orderId].updateWhenClose();
     }
 
-    function getQueueOrder(
-        TickPosition.Data storage self,
-        uint64 orderId
-    ) internal view returns (
-        bool isFilled,
-        bool isBuy,
-        uint256 size,
-        uint256 partialFilled
-    ) {
+    function getQueueOrder(TickPosition.Data storage self, uint64 orderId)
+        internal
+        view
+        returns (
+            bool isFilled,
+            bool isBuy,
+            uint256 size,
+            uint256 partialFilled
+        )
+    {
         (isBuy, size, partialFilled) = self.orderQueue[orderId].getData();
         if (self.filledIndex > orderId && size != 0) {
             isFilled = true;
@@ -67,10 +72,9 @@ library TickPosition {
         }
     }
 
-    function partiallyFill(
-        TickPosition.Data storage self,
-        uint128 amount
-    ) internal {
+    function partiallyFill(TickPosition.Data storage self, uint128 amount)
+        internal
+    {
         self.liquidity -= amount;
         unchecked {
             uint64 index = self.filledIndex;
@@ -81,18 +85,20 @@ library TickPosition {
             }
             index--;
             self.filledIndex = index;
-            self.orderQueue[index].updatePartialFill(uint120(totalSize - amount));
+            self.orderQueue[index].updatePartialFill(
+                uint120(totalSize - amount)
+            );
         }
     }
 
-    function cancelLimitOrder(
-        TickPosition.Data storage self,
-        uint64 orderId
-    ) internal returns(uint256, uint256) {
-        (bool isBuy,
-        uint256 size,
-        uint256 partialFilled) = self.orderQueue[orderId].getData();
-        if (self.liquidity > uint128(size - partialFilled)){
+    function cancelLimitOrder(TickPosition.Data storage self, uint64 orderId)
+        internal
+        returns (uint256, uint256)
+    {
+        (bool isBuy, uint256 size, uint256 partialFilled) = self
+            .orderQueue[orderId]
+            .getData();
+        if (self.liquidity > uint128(size - partialFilled)) {
             self.liquidity = self.liquidity - uint128(size - partialFilled);
         }
         self.orderQueue[orderId].update(isBuy, partialFilled);
@@ -105,10 +111,9 @@ library TickPosition {
         uint64 orderId,
         uint256 amountClose
     ) internal returns (uint256 remainAmountClose) {
-
-        (bool isBuy,
-        uint256 size,
-        uint256 partialFilled) = self.orderQueue[orderId].getData();
+        (bool isBuy, uint256 size, uint256 partialFilled) = self
+            .orderQueue[orderId]
+            .getData();
 
         uint256 amount = amountClose > partialFilled ? 0 : amountClose;
         if (amountClose > partialFilled) {
@@ -120,7 +125,5 @@ library TickPosition {
             self.orderQueue[orderId].update(isBuy, amount);
             remainAmountClose = 0;
         }
-
-
     }
 }

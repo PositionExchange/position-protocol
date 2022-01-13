@@ -5,9 +5,7 @@ import "../../../interfaces/IChainLinkPriceFeed.sol";
 import "../position/TickPosition.sol";
 import "../position/LiquidityBitmap.sol";
 
-
 contract PositionManagerStorage {
-
     using TickPosition for TickPosition.Data;
     using LiquidityBitmap for mapping(uint128 => uint256);
 
@@ -50,7 +48,10 @@ contract PositionManagerStorage {
         uint256 blockNumber;
     }
 
-    enum TwapCalcOption {RESERVE_ASSET, INPUT_ASSET}
+    enum TwapCalcOption {
+        RESERVE_ASSET,
+        INPUT_ASSET
+    }
 
     struct TwapPriceCalcParams {
         TwapCalcOption opt;
@@ -76,11 +77,9 @@ contract PositionManagerStorage {
     // array of reserveSnapshots
     ReserveSnapshot[] public reserveSnapshots;
 
-
     SingleSlot public singleSlot;
     mapping(uint128 => TickPosition.Data) public tickPosition;
     mapping(uint128 => uint256) public tickStore;
     // a packed array of bit, where liquidity is filled or not
     mapping(uint128 => uint256) public liquidityBitmap;
-
 }

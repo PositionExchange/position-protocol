@@ -22,11 +22,10 @@ contract TwapTest {
     }
 
     function initialize(InitializeParams calldata params) external {
-        require(cardinality == 0, 'already initialized');
+        require(cardinality == 0, "already initialized");
         time = params.time;
         pip = params.pip;
         (cardinality, cardinalityNext) = observations.initialize(params.time);
-
     }
 
     function advanceTime(uint32 by) public {
@@ -44,7 +43,13 @@ contract TwapTest {
         console.log("index before %s", index);
         console.log("time %s", time);
 
-        (index, cardinality) = observations.write(index, time, pip, cardinality, cardinalityNext);
+        (index, cardinality) = observations.write(
+            index,
+            time,
+            pip,
+            cardinality,
+            cardinalityNext
+        );
         console.log("index after %s", index);
 
         console.log("cardinality %s", cardinality);
@@ -84,16 +89,20 @@ contract TwapTest {
     }
 
     function observe(uint32[] calldata secondsAgos)
-    external
-    view
-    returns (uint128[] memory pipCumulatives)
+        external
+        view
+        returns (uint128[] memory pipCumulatives)
     {
-//        console.log("time ")
+        //        console.log("time ")
         return observations.observe(time, secondsAgos, pip, index, cardinality);
     }
 
-    function getGasCostOfObserve(uint32[] calldata secondsAgos) external view returns (uint256) {
-        (uint32 _time, uint128 _pip,  uint16 _index) = (time, pip, index);
+    function getGasCostOfObserve(uint32[] calldata secondsAgos)
+        external
+        view
+        returns (uint256)
+    {
+        (uint32 _time, uint128 _pip, uint16 _index) = (time, pip, index);
         uint256 gasBefore = gasleft();
         observations.observe(_time, secondsAgos, _pip, _index, cardinality);
         return gasBefore - gasleft();
