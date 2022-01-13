@@ -14,6 +14,7 @@ import "./libraries/position/PositionLimitOrder.sol";
 import "../interfaces/IInsuranceFund.sol";
 import "./libraries/types/PositionHouseStorage.sol";
 import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.sol";
+import {PositionHouseMath} from "./libraries/position/PositionHouseMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
 
 contract PositionHouse is
@@ -319,9 +320,11 @@ contract PositionHouse is
                     1;
                 limitOrders[positionManagerAddress][_trader].push(_newOrder);
             }
-            _newOrder.entryPrice =
-                (oldPosition.openNotional * baseBasisPoint) /
-                oldPosition.quantity.abs();
+            _newOrder.entryPrice = PositionHouseMath.entryPriceFromNotional(
+                oldPosition.openNotional,
+                oldPosition.quantity.abs(),
+                baseBasisPoint
+            );
             reduceLimitOrders[positionManagerAddress][_trader].push(_newOrder);
         }
     }
