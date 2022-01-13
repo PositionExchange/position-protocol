@@ -594,26 +594,22 @@ contract PositionHouse is
      * @param _positionManager IPositionManager address
      * @param _amount amount to remove
      */
-    function removeMargin(
-        IPositionManager _positionManager,
-        uint256 _amount
-    ) external whenNotPaused nonReentrant {
+    function removeMargin(IPositionManager _positionManager, uint256 _amount)
+        external
+        whenNotPaused
+        nonReentrant
+    {
         address _trader = _msgSender();
 
-//        require(
-//            getPosition(address(_positionManager), _trader).quantity != 0,
-//            Errors.VL_NO_POSITION_TO_REMOVE
-//        ); DON'T NEED? duplicate getPosition() call inside getRemovableMargin()
+        //        require(
+        //            getPosition(address(_positionManager), _trader).quantity != 0,
+        //            Errors.VL_NO_POSITION_TO_REMOVE
+        //        ); DON'T NEED? duplicate getPosition() call inside getRemovableMargin()
 
         uint256 removableMargin = getRemovableMargin(_positionManager, _trader);
-        require(
-            _amount <= removableMargin,
-            Errors.VL_INVALID_REMOVE_MARGIN
-        );
+        require(_amount <= removableMargin, Errors.VL_INVALID_REMOVE_MARGIN);
 
-        manualMargin[address(_positionManager)][_trader] -= int256(
-            _amount
-        );
+        manualMargin[address(_positionManager)][_trader] -= int256(_amount);
 
         withdraw(_positionManager, _trader, _amount);
 
@@ -631,7 +627,12 @@ contract PositionHouse is
 
         ) = getMaintenanceDetail(_positionManager, _trader);
         int256 _remainingMargin = marginBalance - int256(maintenanceMargin);
-        return uint256(_marginAdded <= _remainingMargin ? _marginAdded : _remainingMargin.kPositive());
+        return
+            uint256(
+                _marginAdded <= _remainingMargin
+                    ? _marginAdded
+                    : _remainingMargin.kPositive()
+            );
     }
 
     function clearPosition(address positionManagerAddress, address _trader)
@@ -808,7 +809,10 @@ contract PositionHouse is
             );
 
         positionResp.realizedPnl = unrealizedPnl;
-        positionResp.marginToVault = -int256(remainMargin).add(positionResp.realizedPnl).add(manualMargin[positionManagerAddress][_trader]).kPositive();
+        positionResp.marginToVault = -int256(remainMargin)
+            .add(positionResp.realizedPnl)
+            .add(manualMargin[positionManagerAddress][_trader])
+            .kPositive();
         //        int256 _marginToVault = int256(remainMargin) + positionResp.realizedPnl + manualMargin[address(_positionManager)][_trader];
         //        positionResp.marginToVault = - (_marginToVault < 0 ? 0 : _marginToVault);
         positionResp.unrealizedPnl = 0;

@@ -1,7 +1,6 @@
 pragma solidity >=0.8.0;
 
 library Int256Math {
-
     /**
      * @dev Keeps positive side else return 0
      * @returns uint256 number
