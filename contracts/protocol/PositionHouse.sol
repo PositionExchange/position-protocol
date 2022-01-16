@@ -16,6 +16,7 @@ import "./libraries/types/PositionHouseStorage.sol";
 import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.sol";
 import {PositionHouseMath} from "./libraries/position/PositionHouseMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
+import {Int256Math} from "./libraries/helpers/Int256Math.sol";
 
 contract PositionHouse is
     ReentrancyGuardUpgradeable,
@@ -24,6 +25,7 @@ contract PositionHouse is
 {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
     using Quantity for int256;
+    using Int256Math for int256;
     using Quantity for int128;
 
     using Position for Position.Data;
@@ -494,8 +496,6 @@ contract PositionHouse is
             _trader
         );
 
-        // TODO before liquidate should we check can claimFund, because trader has close position limit before liquidate
-        // require trader's margin ratio higher than partial liquidation ratio
         require(
             marginRatio >= partialLiquidationRatio,
             Errors.VL_NOT_ENOUGH_MARGIN_RATIO
@@ -515,7 +515,7 @@ contract PositionHouse is
                 // calculate amount quantity of position to reduce
                 int256 partiallyLiquidateQuantity = positionData
                     .quantity
-                    .getPartiallyLiquidate(liquidationFeeRatio);
+                    .getPartiallyLiquidate(liquidationPenaltyRatio);
                 // partially liquidate position by reduce position's quantity
                 positionResp = partialLiquidate(
                     _positionManager,
@@ -589,52 +589,42 @@ contract PositionHouse is
     /**
      * @notice add margin to increase margin ratio
      * @param _positionManager IPositionManager address
-     * @param _marginRemoved added margin
+     * @param _amount amount to remove
      */
-    function removeMargin(
-        IPositionManager _positionManager,
-        uint256 _marginRemoved
-    ) external whenNotPaused nonReentrant {
+    function removeMargin(IPositionManager _positionManager, uint256 _amount)
+        external
+        whenNotPaused
+        nonReentrant
+    {
         address _trader = _msgSender();
 
-        require(
-            getPosition(address(_positionManager), _trader).quantity != 0,
-            Errors.VL_NO_POSITION_TO_REMOVE
-        );
-        uint256 removableMargin = uint256(
-            getRemovableMargin(_positionManager, _trader)
-        );
-        require(
-            _marginRemoved <= removableMargin,
-            Errors.VL_INVALID_REMOVE_MARGIN
-        );
+        uint256 removableMargin = getRemovableMargin(_positionManager, _trader);
+        require(_amount <= removableMargin, Errors.VL_INVALID_REMOVE_MARGIN);
 
-        manualMargin[address(_positionManager)][_trader] -= int256(
-            _marginRemoved
-        );
+        manualMargin[address(_positionManager)][_trader] -= int256(_amount);
 
-        withdraw(_positionManager, _trader, _marginRemoved);
+        withdraw(_positionManager, _trader, _amount);
 
-        emit RemoveMargin(_trader, _marginRemoved, _positionManager);
+        emit RemoveMargin(_trader, _amount, _positionManager);
     }
 
     function getRemovableMargin(
         IPositionManager _positionManager,
         address _trader
-    ) public view returns (int256) {
-        int256 addedMargin = manualMargin[address(_positionManager)][_trader];
+    ) public view returns (uint256) {
+        int256 _marginAdded = manualMargin[address(_positionManager)][_trader];
         (
             uint256 maintenanceMargin,
             int256 marginBalance,
 
         ) = getMaintenanceDetail(_positionManager, _trader);
-        int256 removableMargin = (marginBalance - int256(maintenanceMargin)) > 0
-            ? (marginBalance - int256(maintenanceMargin))
-            : int256(0);
+        int256 _remainingMargin = marginBalance - int256(maintenanceMargin);
         return
-            addedMargin <= (marginBalance - int256(maintenanceMargin))
-                ? addedMargin
-                : removableMargin;
+            uint256(
+                _marginAdded <= _remainingMargin
+                    ? _marginAdded
+                    : _remainingMargin.kPositive()
+            );
     }
 
     function clearPosition(address positionManagerAddress, address _trader)
@@ -811,17 +801,10 @@ contract PositionHouse is
             );
 
         positionResp.realizedPnl = unrealizedPnl;
-        positionResp.marginToVault = -(
-            (
-                (int256(remainMargin) +
-                    positionResp.realizedPnl +
-                    manualMargin[positionManagerAddress][_trader]) < 0
-                    ? int256(0)
-                    : (int256(remainMargin) +
-                        positionResp.realizedPnl +
-                        manualMargin[positionManagerAddress][_trader])
-            )
-        );
+        positionResp.marginToVault = -int256(remainMargin)
+            .add(positionResp.realizedPnl)
+            .add(manualMargin[positionManagerAddress][_trader])
+            .kPositive();
         //        int256 _marginToVault = int256(remainMargin) + positionResp.realizedPnl + manualMargin[address(_positionManager)][_trader];
         //        positionResp.marginToVault = - (_marginToVault < 0 ? 0 : _marginToVault);
         positionResp.unrealizedPnl = 0;
@@ -991,16 +974,6 @@ contract PositionHouse is
     //
     // INTERNAL FUNCTION OF POSITION HOUSE
     //
-
-    //    function openMarketOrder(
-    //        IPositionManager _positionManager,
-    //        uint256 _quantity,
-    //        Position.Side _side
-    //    ) internal returns (int256 exchangedQuantity, uint256 openNotional) {
-    //        address _trader = _msgSender();
-    //        // TODO higher gas price but lower contract's size
-    //        (exchangedQuantity, openNotional) = PositionHouseFunction.openMarketOrder(address(_positionManager), _quantity, _side, _trader);
-    //    }
 
     function calcRemainMarginWithFundingPayment(
         IPositionManager _positionManager,
