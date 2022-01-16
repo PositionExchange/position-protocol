@@ -517,7 +517,7 @@ contract PositionHouse is
                 // calculate amount quantity of position to reduce
                 int256 partiallyLiquidateQuantity = positionData
                     .quantity
-                    .getPartiallyLiquidate(liquidationFeeRatio);
+                    .getPartiallyLiquidate(liquidationPenaltyRatio);
                 // partially liquidate position by reduce position's quantity
                 positionResp = partialLiquidate(
                     _positionManager,

@@ -2840,7 +2840,7 @@ describe("PositionHouse_01", () => {
                 quantity: 20,
                 _trader: trader1
             })
-
+            console.log("before liquidate")
             await positionHouse.liquidate(positionManager.address, trader.address);
 
 
