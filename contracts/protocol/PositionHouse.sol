@@ -496,8 +496,6 @@ contract PositionHouse is
             _trader
         );
 
-        // TODO before liquidate should we check can claimFund, because trader has close position limit before liquidate
-        // require trader's margin ratio higher than partial liquidation ratio
         require(
             marginRatio >= partialLiquidationRatio,
             Errors.VL_NOT_ENOUGH_MARGIN_RATIO
@@ -599,11 +597,6 @@ contract PositionHouse is
         nonReentrant
     {
         address _trader = _msgSender();
-
-        //        require(
-        //            getPosition(address(_positionManager), _trader).quantity != 0,
-        //            Errors.VL_NO_POSITION_TO_REMOVE
-        //        ); DON'T NEED? duplicate getPosition() call inside getRemovableMargin()
 
         uint256 removableMargin = getRemovableMargin(_positionManager, _trader);
         require(_amount <= removableMargin, Errors.VL_INVALID_REMOVE_MARGIN);
@@ -981,16 +974,6 @@ contract PositionHouse is
     //
     // INTERNAL FUNCTION OF POSITION HOUSE
     //
-
-    //    function openMarketOrder(
-    //        IPositionManager _positionManager,
-    //        uint256 _quantity,
-    //        Position.Side _side
-    //    ) internal returns (int256 exchangedQuantity, uint256 openNotional) {
-    //        address _trader = _msgSender();
-    //        // TODO higher gas price but lower contract's size
-    //        (exchangedQuantity, openNotional) = PositionHouseFunction.openMarketOrder(address(_positionManager), _quantity, _side, _trader);
-    //    }
 
     function calcRemainMarginWithFundingPayment(
         IPositionManager _positionManager,
