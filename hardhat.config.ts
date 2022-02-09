@@ -39,12 +39,12 @@ module.exports = {
         bsc_testnet: {
             url: BSC_TESTNET_URL,
             chainId: 97,
-            accounts: [PRIV_TESTNET_ACCOUNT],
+            accounts: PRIV_TESTNET_ACCOUNT ? [PRIV_TESTNET_ACCOUNT] : [],
         },
         bsc_mainnet: {
             url: BSC_MAINNET_URL,
             chainId: 56,
-            accounts: [PRIV_MAINNET_ACCOUNT],
+            accounts: PRIV_MAINNET_ACCOUNT ? [PRIV_MAINNET_ACCOUNT] : [],
         },
 
     },
