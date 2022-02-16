@@ -1,14 +1,13 @@
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./LimitOrder.sol";
-
 import "hardhat/console.sol";
 
 /*
  * A library storing data and logic at a pip
  */
-
 library TickPosition {
     using SafeMath for uint128;
     using SafeMath for uint64;
