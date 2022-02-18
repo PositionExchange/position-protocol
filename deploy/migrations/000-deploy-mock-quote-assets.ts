@@ -10,7 +10,7 @@ const migrations: MigrationDefinition = {
             const bep20Mintable = await context.hre.ethers.getContractFactory('BEP20Mintable')
             if(await context.db.findAddressByKey(`Mock:${symbol}`) ) return;
             const deployTx = await bep20Mintable.deploy(name, symbol)
-            await deployTx.deployTransaction.wait(3)
+            await deployTx.deployTransaction.wait(0)
             await verifyContract(context.hre, deployTx.address, [name, symbol])
             await context.db.saveAddressByKey(`Mock:${symbol}`, deployTx.address)
         }

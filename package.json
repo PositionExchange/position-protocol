@@ -19,8 +19,8 @@
   "devDependencies": {
     "@endemolshinegroup/git-author-check": "^1.0.1",
     "@nomiclabs/hardhat-ethers": "^2.0.2",
-    "@nomiclabs/hardhat-etherscan": "^2.1.7",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "@positionlab/hardhat-etherscan": "^0.1.1",
     "@typechain/ethers-v5": "^7.0.1",
     "@typechain/hardhat": "^2.3.0",
     "@typechain/truffle-v5": "^5.0.0",

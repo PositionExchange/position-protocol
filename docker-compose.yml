@@ -1,0 +1,43 @@
+version: '2.2'
+services:
+  postgresql:
+    image: postgres:12.5-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: blockscout
+  ganache:
+    image: trufflesuite/ganache-cli:v6.12.2
+    ports:
+      - "8545:8545"
+    entrypoint: [
+        "node",
+        "/app/ganache-core.docker.cli.js",
+        "--chainId",
+        "11337",
+        "--networkId",
+        "11337",
+        "-m",
+        "rhythm usual believe memory hub sunny domain miss fuel fantasy patch roof"
+    ]
+  blockscout:
+    image: registry.digitalocean.com/posi/blockscout:latest
+    ports:
+      - "4000:4000"
+    command: ["/bin/sh", "-c", "mix do ecto.create, ecto.migrate; mix phx.server"]
+    environment:
+      CHAIN_ID: 11337
+      COIN: ETH
+      COIN_NAME: Ethereum
+      NETWORK: (ETH)
+      SUBNETWORK: Ethereum Testnet
+      ETHEREUM_JSONRPC_VARIANT: ganache
+      ETHEREUM_JSONRPC_HTTP_URL: http://ganache:8545
+      ETHEREUM_JSONRPC_WS_URL: ws://ganache:8545
+      DATABASE_URL: "postgresql://user:password@postgresql:5432/blockscout?ssl=false"
+      BLOCKSCOUT_HOST: localhost:4000
+      SUPPORTED_CHAINS: "[]"
+      BLOCKSCOUT_VERSION: latest
+      ECTO_USE_SSL: false

@@ -1,11 +1,11 @@
 import "@nomiclabs/hardhat-waffle";
 import '@nomiclabs/hardhat-ethers';
-import '@nomiclabs/hardhat-etherscan';
+import '@positionlab/hardhat-etherscan';
 import "@typechain/hardhat";
 import "@openzeppelin/hardhat-upgrades"
 import "hardhat-contract-sizer"
 import {task} from "hardhat/config";
-import "@nomiclabs/hardhat-etherscan";
+// import "@nomiclabs/hardhat-etherscan";
 import {BSC_MAINNET_URL, BSC_TESTNET_URL, GAS_PRICE, PRIV_TESTNET_ACCOUNT, PRIV_MAINNET_ACCOUNT} from "./constants";
 import "./scripts/deploy";
 // const BSC_TESTNET_URL =
@@ -41,6 +41,11 @@ module.exports = {
             chainId: 97,
             accounts: [PRIV_TESTNET_ACCOUNT],
         },
+        qc: {
+            url: "https://ganache.nonprodposi.com/",
+            chainId: 1337,
+            accounts: ["0x6fee781693a3a6bf1208e946a526496c63e5cbf0be3afdc7dcc635e7a4a8acbd"],
+        },
         bsc_mainnet: {
             url: BSC_MAINNET_URL,
             chainId: 56,
@@ -71,6 +76,15 @@ module.exports = {
             },
             {
                 version: "0.6.0",
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 200,
+                    },
+                },
+            },
+            {
+                version: "0.8.2",
                 settings: {
                     optimizer: {
                         enabled: true,

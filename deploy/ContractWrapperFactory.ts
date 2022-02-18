@@ -45,12 +45,12 @@ export class ContractWrapperFactory {
         const PositionManager = await this.hre.ethers.getContractFactory("PositionManager")
         const contractAddress = await this.db.findAddressByKey(saveKey);
         console.log("contractAddress", contractAddress)
-        if (contractAddress) {
-            const upgraded = await this.hre.upgrades.upgradeProxy(contractAddress, PositionManager);
-            console.log(`Starting verify upgrade Position Manager ${symbol}`)
-            await this.verifyImplContract(upgraded.deployTransaction)
-            console.log(`Upgrade Position Manager ${symbol}`)
-        } else {
+        // if (contractAddress) {
+        //     const upgraded = await this.hre.upgrades.upgradeProxy(contractAddress, PositionManager);
+        //     console.log(`Starting verify upgrade Position Manager ${symbol}`)
+        //     await this.verifyImplContract(upgraded.deployTransaction)
+        //     console.log(`Upgrade Position Manager ${symbol}`)
+        // } else {
             const contractArgs = [
                 args.initialPrice,
                 args.quoteAsset,
@@ -65,76 +65,95 @@ export class ContractWrapperFactory {
             ];
 
             //@ts-ignore
-            const instance = await upgrades.deployProxy(PositionManager, contractArgs);
+            const deployTx = await PositionManager.deploy(contractArgs)
+            await deployTx.deployTransaction.wait(0)
+            // const instance = await upgrades.deployProxy(PositionManager, contractArgs);
             console.log("wait for deploy")
-            await instance.deployed();
-            const address = instance.address.toString().toLowerCase();
-            console.log(`${symbol} positionManager address : ${address}`)
-            // console.log(`Starting verify Position Manager ${symbol}`);
+            // await instance.deployed();
+            // const address = instance.address.toString().toLowerCase();
+            console.log(`${symbol} positionManager address : ${deployTx.address}`)
+            console.log(`Starting verify Position Manager ${symbol}`);
             // await this.verifyImplContract(instance.deployTransaction);
-            await this.db.saveAddressByKey(saveKey, address);
-        }
+            await verifyContract(this.hre, deployTx.address, contractArgs)
+            await this.db.saveAddressByKey(`${deployTx.address}:verified`, 'yes')
+            await this.db.saveAddressByKey(saveKey, deployTx.address);
+        // }
     }
 
     async createPositionHouse(args: CreatePositionHouseInput) {
         console.log(`into create PositionHouse`);
         const positionHouseFunctionContractAddress = await this.db.findAddressByKey(`PositionHouseFunction`);
         console.log(`positionHouseFunctionContractAddress ${positionHouseFunctionContractAddress}`);
+
+        const positionHouseMathContractAddress = await this.db.findAddressByKey(`PositionHouseMath`);
+        console.log(`positionHouseMathContractAddress ${positionHouseMathContractAddress}`);
+
         const PositionHouse = await this.hre.ethers.getContractFactory("PositionHouse", {
             libraries: {
-                PositionHouseFunction: positionHouseFunctionContractAddress
+                PositionHouseFunction: positionHouseFunctionContractAddress,
+                PositionHouseMath: positionHouseMathContractAddress
             }
         })
         const positionHouseContractAddress = await this.db.findAddressByKey(`PositionHouse`);
 
-        if (positionHouseContractAddress) {
-            console.log('Start upgrade position house')
-            const upgraded = await this.hre.upgrades.upgradeProxy(positionHouseContractAddress, PositionHouse, {unsafeAllowLinkedLibraries: true});
-            console.log('Starting verify upgrade PositionHouse');
-            await this.verifyImplContract(upgraded.deployTransaction);
+        // if (positionHouseContractAddress) {
+        //     console.log('Start upgrade position house')
+        //     const upgraded = await this.hre.upgrades.upgradeProxy(positionHouseContractAddress, PositionHouse, {unsafeAllowLinkedLibraries: true});
+        //     console.log('Starting verify upgrade PositionHouse');
+        //     await this.verifyImplContract(upgraded.deployTransaction);
+        //
+        // } else {
+        const contractArgs = [
+            args.maintenanceMarginRatio,
+            args.partialLiquidationRatio,
+            args.liquidationFeeRatio,
+            args.liquidationPenaltyRatio,
+            args.insuranceFund,
+            // args.feePool
+        ];
 
-        } else {
-            const contractArgs = [
-                args.maintenanceMarginRatio,
-                args.partialLiquidationRatio,
-                args.liquidationFeeRatio,
-                args.liquidationPenaltyRatio,
-                args.insuranceFund,
-                // args.feePool
-            ];
-
-            //@ts-ignore
-            const instance = await upgrades.deployProxy(PositionHouse, contractArgs, {unsafeAllowLinkedLibraries: true});
-            console.log("wait for deploy")
-            await instance.deployed();
-
-            const address = instance.address.toString().toLowerCase();
-            console.log(`PositionHouse address : ${address}`)
-            // console.log('Starting verify PositionHouse');
-            // await this.verifyImplContract(instance.deployTransaction);
-            await this.db.saveAddressByKey('PositionHouse', address);
-        }
+        //@ts-ignore
+        console.log("before deploy position house")
+        const deployTx = await PositionHouse.deploy(contractArgs)
+        console.log("after deploy")
+        await deployTx.deployTransaction.wait(0)
+        // const instance = await upgrades.deployProxy(PositionHouse, contractArgs, {unsafeAllowLinkedLibraries: true});
+        console.log("wait for deploy")
+        // await instance.deployed();
+        // const address = instance.address.toString().toLowerCase();
+        console.log(`PositionHouse address : ${deployTx.address}`)
+        console.log('Starting verify PositionHouse');
+        // await this.verifyImplContract(instance.deployTransaction);
+        await verifyContract(this.hre, deployTx.address, contractArgs)
+        await this.db.saveAddressByKey(`${deployTx.address}:verified`, 'yes')
+        await this.db.saveAddressByKey('PositionHouse', deployTx.address);
+        // }
     }
+
 
     async createInsuranceFund(args: CreateInsuranceFund) {
         const InsuranceFund = await this.hre.ethers.getContractFactory("InsuranceFund");
         const insuranceFundContractAddress = await this.db.findAddressByKey(`InsuranceFund`);
-        if (insuranceFundContractAddress) {
-            const upgraded = await this.hre.upgrades.upgradeProxy(insuranceFundContractAddress, InsuranceFund);
-            await this.verifyImplContract(upgraded.deployTransaction);
-        } else {
-            const contractArgs = [];
-            const instance = await this.hre.upgrades.deployProxy(InsuranceFund, contractArgs);
-            console.log("wait for deploy insurance fund");
-            await instance.deployed();
-            // console.log(instance.deployTransaction)
-            const address = instance.address.toString().toLowerCase();
-            console.log(`InsuranceFund address : ${address}`)
-            // console.log('Starting verify Insurance Fund');
-            // await this.verifyImplContract(instance.deployTransaction);
-            await this.db.saveAddressByKey('InsuranceFund', address);
+        // if (insuranceFundContractAddress) {
+        //     const upgraded = await this.hre.upgrades.upgradeProxy(insuranceFundContractAddress, InsuranceFund);
+        //     await this.verifyImplContract(upgraded.deployTransaction);
+        // } else {
+        const contractArgs = [];
+        // const instance = await this.hre.upgrades.deployProxy(InsuranceFund, contractArgs);
+        const deployTx = await InsuranceFund.deploy(contractArgs)
+        await deployTx.deployTransaction.wait(0)
+        console.log("wait for deploy insurance fund");
+        // await instance.deployed();
+        // console.log(instance.deployTransaction)
+        // const address = instance.address.toString().toLowerCase();
+        console.log(`InsuranceFund address : ${deployTx.address}`)
+        console.log('Starting verify Insurance Fund');
+        // await this.verifyImplContract(instance.deployTransaction);
+        await verifyContract(this.hre, deployTx.address, contractArgs)
+        await this.db.saveAddressByKey(`${deployTx.address}:verified`, 'yes')
+        await this.db.saveAddressByKey('InsuranceFund', deployTx.address);
 
-        }
+        // }
 
     }
 
@@ -146,7 +165,7 @@ export class ContractWrapperFactory {
         // if (!positionHouseFunctionContractAddress) {
         const contractArgs = [];
         const deployTx = await PositionHouseFunction.deploy();
-        await deployTx.deployTransaction.wait(3)
+        await deployTx.deployTransaction.wait(0)
         console.log("wait for deploy position house function fund");
         // await instance.deployed();
         // // console.log(instance.deployTransaction)
@@ -155,6 +174,29 @@ export class ContractWrapperFactory {
         // // console.log('Starting verify Insurance Fund');
         // // await this.verifyImplContract(instance.deployTransaction);
         await this.db.saveAddressByKey('PositionHouseFunction', deployTx.address.toLowerCase());
+
+        // }
+
+
+    }
+
+    async createPositionHouseMathLibrary(args: CreatePositionHouseFunction) {
+        const PositionHouseMath = await this.hre.ethers.getContractFactory("PositionHouseMath");
+        const positionHouseMathContractAddress = await this.db.findAddressByKey(`PositionHouseMath`);
+
+
+        // if (!positionHouseFunctionContractAddress) {
+        const contractArgs = [];
+        const deployTx = await PositionHouseMath.deploy();
+        await deployTx.deployTransaction.wait(0)
+        console.log("wait for deploy position house math fund");
+        // await instance.deployed();
+        // // console.log(instance.deployTransaction)
+        // const address = instance.address.toString().toLowerCase();
+        // console.log(`InsuranceFund address : ${address}`)
+        // // console.log('Starting verify Insurance Fund');
+        // // await this.verifyImplContract(instance.deployTransaction);
+        await this.db.saveAddressByKey('PositionHouseMath', deployTx.address.toLowerCase());
 
         // }
 
