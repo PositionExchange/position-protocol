@@ -70,6 +70,10 @@ contract PositionHouse is
 
     event Liquidate(address positionManager, address trader);
 
+    event WhitelistPositionManagerAdded(address pmAddress);
+
+    event WhitelistPositionManagerRemoved(address pmAddress);
+
     function initialize(
         uint256 _maintenanceMarginRatio,
         uint256 _partialLiquidationRatio,
@@ -1062,20 +1066,22 @@ contract PositionHouse is
         liquidationPenaltyRatio = _liquidationPenaltyRatio;
     }
 
-    function getWhitelistManager(address _positionManager) public view returns (bool) {
+    function isWhitelistManager(address _positionManager) public view returns (bool) {
         return whitelistManager[_positionManager];
     }
 
     function setWhitelistManager(address _positionManager) public onlyOwner {
         whitelistManager[_positionManager] = true;
+        emit WhitelistPositionManagerAdded(_positionManager);
     }
 
     function removeWhitelistManager(address _positionManager) public onlyOwner {
         whitelistManager[_positionManager] = false;
+        emit WhitelistPositionManagerRemoved(_positionManager);
     }
 
     modifier onlyWhitelistManager(address _positionManager) {
-        require(whitelistManager[_positionManager], Errors.VL_NOT_WHITELIST_MANAGER);
+        require(isWhitelistManager(_positionManager), Errors.VL_NOT_WHITELIST_MANAGER);
         _;
     }
 

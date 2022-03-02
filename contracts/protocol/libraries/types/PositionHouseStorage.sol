@@ -81,7 +81,7 @@ contract PositionHouseStorage {
     mapping(address => int256[]) public cumulativePremiumFractions;
 
     // Whitelist for position manager address
-    mapping(address => bool) public whitelistManager;
+    mapping(address => bool) internal whitelistManager;
 
     uint256 maintenanceMarginRatio;
     uint256 partialLiquidationRatio;
