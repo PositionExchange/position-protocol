@@ -34,6 +34,7 @@ library Errors {
     string public constant VL_LONG_PRICE_THAN_CURRENT_PRICE = "16"; // '!B'
     string public constant VL_SHORT_PRICE_LESS_CURRENT_PRICE = "17"; // '!S'
     string public constant VL_INVALID_SIZE = "18"; // ''
+    string public constant VL_NOT_WHITELIST_MANAGER = "19"; // ''
 
     enum CollateralManagerErrors {
         NO_ERROR

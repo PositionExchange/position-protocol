@@ -33,11 +33,6 @@ contract PositionHouse is
     using Position for Position.LiquidatedData;
     using PositionHouseFunction for PositionHouse;
 
-    //    modifier whenNotPaused() {
-    //        require(!paused, "Pausable: paused");
-    //        _;
-    //    }
-
     event OpenMarket(
         address trader,
         int256 quantity,
@@ -74,6 +69,10 @@ contract PositionHouse is
     );
 
     event Liquidate(address positionManager, address trader);
+
+    event WhitelistPositionManagerAdded(address pmAddress);
+
+    event WhitelistPositionManagerRemoved(address pmAddress);
 
     function initialize(
         uint256 _maintenanceMarginRatio,
@@ -950,7 +949,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         address _trader,
         uint256 amount
-    ) internal {
+    ) internal onlyWhitelistManager(address(_positionManager)) {
         insuranceFund.withdraw(
             address(_positionManager.getQuoteAsset()),
             _trader,
@@ -963,7 +962,7 @@ contract PositionHouse is
         address _trader,
         uint256 amount,
         uint256 fee
-    ) internal {
+    ) internal onlyWhitelistManager(address(_positionManager)) {
         insuranceFund.deposit(
             address(_positionManager.getQuoteAsset()),
             _trader,
@@ -1065,6 +1064,25 @@ contract PositionHouse is
         onlyOwner
     {
         liquidationPenaltyRatio = _liquidationPenaltyRatio;
+    }
+
+    function isWhitelistManager(address _positionManager) public view returns (bool) {
+        return whitelistManager[_positionManager];
+    }
+
+    function setWhitelistManager(address _positionManager) public onlyOwner {
+        whitelistManager[_positionManager] = true;
+        emit WhitelistPositionManagerAdded(_positionManager);
+    }
+
+    function removeWhitelistManager(address _positionManager) public onlyOwner {
+        whitelistManager[_positionManager] = false;
+        emit WhitelistPositionManagerRemoved(_positionManager);
+    }
+
+    modifier onlyWhitelistManager(address _positionManager) {
+        require(isWhitelistManager(_positionManager), Errors.VL_NOT_WHITELIST_MANAGER);
+        _;
     }
 
     modifier whenNotPaused() {
