@@ -48,8 +48,9 @@ describe('Position Manager', async function () {
         const tx = await marketBuy(size, isBuy)
         const receipt = await ethers.provider.getTransactionReceipt(tx.hash)
         const interfaceEvent = new ethers.utils.Interface(["event MarketFilled(bool isBuy, uint256 indexed amount, uint128 toPip, uint256 passedPipcount, uint128 partialFilledQuantity)"]);
-        const data = receipt.logs[2].data
-        const topics = receipt.logs[2].topics
+
+        const data = receipt.logs[1].data
+        const topics = receipt.logs[1].topics
         const event = interfaceEvent.decodeEventLog("MarketFilled", data, topics)
         expect(event.isBuy).to.equal(isBuy)
         expect(event.amount).to.equal(expectOut)
@@ -150,9 +151,8 @@ describe('Position Manager', async function () {
             const sellPip = 240
             const orderId = await createLimitOrderAndVerify(sellPip, 10, false);
             // market buy
-            const [caller] = await ethers.getSigners()
-            await expect(marketBuy(8)).to.emit(positionManager, 'Swap')
-                .withArgs(caller.address, 8, 8)
+            await shouldBuyMarketAndVerify(8,8,true)
+
             // limit order should partial fill
             const orderDetail = await positionManager.getPendingOrderDetail(sellPip, Number(orderId).toString());
             console.log("orderDetail: ", orderDetail)
@@ -165,9 +165,9 @@ describe('Position Manager', async function () {
             // buy market 12
             const sellPip = 240
             const orderId = await createLimitOrderAndVerify(sellPip, 10, false);
-            const [caller] = await ethers.getSigners()
-            await expect(marketBuy(12)).to.emit(positionManager, 'Swap')
-                .withArgs(caller.address, 12, 10)
+            // market buy
+            await shouldBuyMarketAndVerify(12,10,true)
+
             expect(await positionManager.hasLiquidity(sellPip)).eq(false)
             const orderDetail = await positionManager.getPendingOrderDetail(sellPip, Number(orderId).toString());
             expect(orderDetail.partialFilled.toNumber()).eq(0)
@@ -179,9 +179,9 @@ describe('Position Manager', async function () {
             // buy market 10
             const sellPip = 240
             const orderId = await createLimitOrderAndVerify(sellPip, 10, false);
-            const [caller] = await ethers.getSigners()
-            await expect(marketBuy(10)).to.emit(positionManager, 'Swap')
-                .withArgs(caller.address, 10, 10)
+            // market buy
+            await shouldBuyMarketAndVerify(10,10,true)
+
             expect(await positionManager.hasLiquidity(sellPip)).eq(false)
             const orderDetail = await positionManager.getPendingOrderDetail(sellPip, Number(orderId).toString());
             expect(orderDetail.partialFilled.toNumber()).eq(0)
