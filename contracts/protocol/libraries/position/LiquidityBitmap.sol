@@ -78,15 +78,28 @@ library LiquidityBitmap {
     ) internal view returns (uint128 next) {
         uint128 startWord = pip >> 8;
         if (lte) {
-            for (
-                uint128 i = startWord;
-                i > (startWord < maxWords ? 0 : startWord - maxWords);
-                i--
-            ) {
-                if (self[i] != 0) {
+            if (startWord != 0) {
+                for (
+                    uint128 i = startWord;
+                    i > (startWord < maxWords ? 0 : startWord - maxWords);
+                    i--
+                ) {
+                    if (self[i] != 0) {
+                        next = findHasLiquidityInOneWords(
+                            self,
+                            i < startWord ? 256 * i + 255 : pip,
+                            true
+                        );
+                        if (next != 0) {
+                            return next;
+                        }
+                    }
+                }
+            } else {
+                if (self[startWord] != 0) {
                     next = findHasLiquidityInOneWords(
                         self,
-                        i < startWord ? 256 * i + 255 : pip,
+                        pip,
                         true
                     );
                     if (next != 0) {
