@@ -190,7 +190,6 @@ export interface PendingOrder {
 export interface LimitOrderReturns {
     orderId: string;
     pip: string;
-    orderIdOfTrader: string;
 }
 
 export interface NotionalAndUnrealizedPnlReturns {

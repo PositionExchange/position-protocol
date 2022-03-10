@@ -202,7 +202,7 @@ library PositionHouseFunction {
     // TODO edit access modifier cause this function called write function in position manager
     function clearAllFilledOrder(
         IPositionManager _positionManager,
-        PositionLimitOrder.Data[] memory listLimitOrder,
+        PositionLimitOrder.Data[] memory limitOrder,
         PositionLimitOrder.Data[] memory reduceLimitOrder
     )
         public
@@ -212,25 +212,25 @@ library PositionHouseFunction {
         )
     {
         PositionLimitOrder.Data[]
-            memory subListLimitOrder = new PositionLimitOrder.Data[](
-                listLimitOrder.length
+            memory subLimitOrder = new PositionLimitOrder.Data[](
+                limitOrder.length
             );
         PositionLimitOrder.Data[]
             memory subReduceLimitOrder = new PositionLimitOrder.Data[](
                 reduceLimitOrder.length
             );
-        if (listLimitOrder.length > 0) {
+        if (limitOrder.length > 0) {
             uint256 index = 0;
-            for (uint256 i = 0; i < listLimitOrder.length; i++) {
+            for (uint256 i = 0; i < limitOrder.length; i++) {
                 (bool isFilled, , , ) = _positionManager.getPendingOrderDetail(
-                    listLimitOrder[i].pip,
-                    listLimitOrder[i].orderId
+                    limitOrder[i].pip,
+                    limitOrder[i].orderId
                 );
                 if (isFilled != true) {
-                    subListLimitOrder[index] = listLimitOrder[i];
+                    subLimitOrder[index] = limitOrder[i];
                     _positionManager.updatePartialFilledOrder(
-                        listLimitOrder[i].pip,
-                        listLimitOrder[i].orderId
+                        limitOrder[i].pip,
+                        limitOrder[i].orderId
                     );
                     index++;
                 }
@@ -253,7 +253,7 @@ library PositionHouseFunction {
                 }
             }
         }
-        return (subListLimitOrder, subReduceLimitOrder);
+        return (subLimitOrder, subReduceLimitOrder);
     }
 
     function calculateLimitOrder(
@@ -378,27 +378,27 @@ library PositionHouseFunction {
     function getListOrderPending(
         address addressPositionManager,
         address _trader,
-        PositionLimitOrder.Data[] memory listLimitOrder,
+        PositionLimitOrder.Data[] memory limitOrder,
         PositionLimitOrder.Data[] memory reduceLimitOrder
     ) public view returns (PositionHouseStorage.LimitOrderPending[] memory) {
         IPositionManager _positionManager = IPositionManager(
             addressPositionManager
         );
-        if (listLimitOrder.length + reduceLimitOrder.length > 0) {
+        if (limitOrder.length + reduceLimitOrder.length > 0) {
             PositionHouseStorage.LimitOrderPending[]
                 memory listPendingOrderData = new PositionHouseStorage.LimitOrderPending[](
-                    listLimitOrder.length + reduceLimitOrder.length + 1
+                    limitOrder.length + reduceLimitOrder.length + 1
                 );
             uint256 index = 0;
-            for (uint256 i = 0; i < listLimitOrder.length; i++) {
+            for (uint256 i = 0; i < limitOrder.length; i++) {
                 (
                     bool isFilled,
                     bool isBuy,
                     uint256 quantity,
                     uint256 partialFilled
                 ) = _positionManager.getPendingOrderDetail(
-                        listLimitOrder[i].pip,
-                        listLimitOrder[i].orderId
+                        limitOrder[i].pip,
+                        limitOrder[i].orderId
                     );
                 if (!isFilled) {
                     listPendingOrderData[index] = PositionHouseStorage
@@ -406,11 +406,12 @@ library PositionHouseFunction {
                             isBuy: isBuy,
                             quantity: quantity,
                             partialFilled: partialFilled,
-                            pip: int256(int128(listLimitOrder[i].pip)),
-                            leverage: listLimitOrder[i].leverage,
-                            blockNumber: listLimitOrder[i].blockNumber,
-                            orderIdOfTrader: i,
-                            orderId: listLimitOrder[i].orderId
+                            pip: limitOrder[i].pip,
+                            leverage: limitOrder[i].leverage,
+                            blockNumber: limitOrder[i].blockNumber,
+                            isReduce: false,
+                            orderIdx: i,
+                            orderId: limitOrder[i].orderId
                         });
                     index++;
                 }
@@ -431,10 +432,11 @@ library PositionHouseFunction {
                             isBuy: isBuy,
                             quantity: quantity,
                             partialFilled: partialFilled,
-                            pip: int256(int128(reduceLimitOrder[i].pip)),
+                            pip: reduceLimitOrder[i].pip,
                             leverage: reduceLimitOrder[i].leverage,
                             blockNumber: reduceLimitOrder[i].blockNumber,
-                            orderIdOfTrader: i,
+                            isReduce: true,
+                            orderIdx: i,
                             orderId: reduceLimitOrder[i].orderId
                         });
                     index++;

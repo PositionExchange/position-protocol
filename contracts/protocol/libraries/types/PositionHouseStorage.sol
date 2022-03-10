@@ -34,10 +34,12 @@ contract PositionHouseStorage {
         bool isBuy;
         uint256 quantity;
         uint256 partialFilled;
-        int256 pip;
-        uint256 leverage;
+        uint128 pip;
+        // can change leverage to uint16 to save gas
+        uint16 leverage;
+        bool isReduce;
         uint256 blockNumber;
-        uint256 orderIdOfTrader;
+        uint256 orderIdx;
         uint256 orderId;
     }
 

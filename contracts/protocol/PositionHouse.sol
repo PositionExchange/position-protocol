@@ -349,7 +349,7 @@ contract PositionHouse is
         PositionLimitOrder.Data[] storage _orders = _isReduce
             ? reduceLimitOrders[_pmAddress][_trader]
             : limitOrders[_pmAddress][_trader];
-        require(_orderIdx < _orders.length, "invalid order");
+        require(_orderIdx < _orders.length, Errors.VL_INVALID_ORDER);
         // save gas
         PositionLimitOrder.Data memory _order = _orders[_orderIdx];
         // blank limit order data
@@ -551,7 +551,7 @@ contract PositionHouse is
             withdraw(_positionManager, _caller, feeToLiquidator);
             // count as bad debt, transfer money to insurance fund and liquidator
         }
-        emit Liquidate(address(_positionManager), _trader);
+        emit Liquidate(positionManagerAddress, _trader);
     }
 
     /**
@@ -816,12 +816,13 @@ contract PositionHouse is
         IPositionManager _positionManager,
         address _trader
     ) public view returns (LimitOrderPending[] memory) {
+        address _pmAddress = address(_positionManager);
         return
             PositionHouseFunction.getListOrderPending(
-                address(_positionManager),
+                _pmAddress,
                 _trader,
-                limitOrders[address(_positionManager)][_trader],
-                reduceLimitOrders[address(_positionManager)][_trader]
+                limitOrders[_pmAddress][_trader],
+                reduceLimitOrders[_pmAddress][_trader]
             );
     }
 
