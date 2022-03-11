@@ -29,8 +29,8 @@ contract PositionManager is
         bool isBuy,
         uint256 indexed amount,
         uint128 toPip,
-        uint256 passedPipcount,
-        uint128 partialFilledQuantity
+        uint256 passedPipCount,
+        uint128 remainingLiquidity
     );
     event LimitOrderCreated(
         uint64 orderId,
@@ -38,7 +38,7 @@ contract PositionManager is
         uint128 size,
         bool isBuy
     );
-    event LimitOrderCancelled(uint64 orderId, uint128 pip, uint256 size);
+    event LimitOrderCancelled(uint64 orderId, uint128 pip, uint256 remainingSize);
 
     event UpdateMaxFindingWordsIndex(uint128 newMaxFindingWordsIndex);
     event UpdateBasisPoint(uint256 newBasicPoint);
@@ -228,9 +228,9 @@ contract PositionManager is
     function cancelLimitOrder(uint128 pip, uint64 orderId)
         external
         onlyCounterParty
-        returns (uint256 size, uint256 partialFilled)
+        returns (uint256 remainingSize, uint256 partialFilled)
     {
-        (size, partialFilled) = tickPosition[pip].cancelLimitOrder(orderId);
+        (remainingSize, partialFilled) = tickPosition[pip].cancelLimitOrder(orderId);
         if (
             orderId == tickPosition[pip].currentIndex &&
             orderId <= tickPosition[pip].filledIndex
@@ -238,7 +238,7 @@ contract PositionManager is
             liquidityBitmap.toggleSingleBit(pip, false);
             singleSlot.isFullBuy = 0;
         }
-        emit LimitOrderCancelled(orderId, pip, size);
+        emit LimitOrderCancelled(orderId, pip, remainingSize);
     }
 
     function openLimitPosition(
@@ -349,7 +349,7 @@ contract PositionManager is
         uint128 startPip;
         //        int128 startWord = _initialSingleSlot.pip >> 8;
         //        int128 wordIndex = startWord;
-        uint128 partialFilledQuantity;
+        uint128 remainingLiquidity;
         uint8 isFullBuy = 0;
         bool isSkipFirstPip;
         uint256 passedPipCount = 0;
@@ -398,7 +398,7 @@ contract PositionManager is
                         openNotional += ((state.remainingSize *
                             pipToPrice(step.pipNext)) / BASE_BASIC_POINT);
                         // remaining liquidity at current pip
-                        partialFilledQuantity =
+                        remainingLiquidity =
                             liquidity -
                             uint128(state.remainingSize);
                         state.remainingSize = 0;
@@ -436,10 +436,10 @@ contract PositionManager is
         }
         if (_initialSingleSlot.pip != state.pip) {
             // all ticks in shifted range must be marked as filled
-            if (!(partialFilledQuantity > 0 && startPip == state.pip)) {
+            if (!(remainingLiquidity > 0 && startPip == state.pip)) {
                 liquidityBitmap.unsetBitsRange(
                     startPip,
-                    partialFilledQuantity > 0
+                    remainingLiquidity > 0
                         ? (isBuy ? state.pip - 1 : state.pip + 1)
                         : state.pip
                 );
@@ -455,7 +455,7 @@ contract PositionManager is
             sizeOut,
             maxPip != 0 ? maxPip : state.pip,
             passedPipCount,
-            partialFilledQuantity
+            remainingLiquidity
         );
     }
 

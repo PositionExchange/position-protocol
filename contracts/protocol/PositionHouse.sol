@@ -37,7 +37,7 @@ contract PositionHouse is
         address trader,
         int256 quantity,
         uint256 leverage,
-        uint256 priceMarket,
+        uint256 entryPrice,
         IPositionManager positionManager
     );
     event OpenLimit(
@@ -105,7 +105,7 @@ contract PositionHouse is
         uint256 _leverage
     ) public whenNotPaused nonReentrant {
         address _trader = _msgSender();
-        address pmAddr = address(_positionManager);
+        address _pmAddress = address(_positionManager);
         int256 pQuantity = _side == Position.Side.LONG
             ? int256(_quantity)
             : -int256(_quantity);
@@ -127,14 +127,14 @@ contract PositionHouse is
         // check if old position quantity is the same side with the new one
         if (oldPosition.quantity == 0 || oldPosition.side() == _side) {
             pResp = PositionHouseFunction.increasePosition(
-                pmAddr,
+                _pmAddress,
                 _side,
                 int256(_quantity),
                 _leverage,
                 _trader,
                 oldPosition,
-                positionMap[pmAddr][_trader],
-                cumulativePremiumFractions[pmAddr]
+                positionMap[_pmAddress][_trader],
+                cumulativePremiumFractions[_pmAddress]
             );
         } else {
             pResp = openReversePosition(
@@ -147,7 +147,7 @@ contract PositionHouse is
             );
         }
         // update position state
-        positionMap[pmAddr][_trader].update(pResp.position);
+        positionMap[_pmAddress][_trader].update(pResp.position);
 
         if (pResp.marginToVault > 0) {
             //transfer from trader to vault
@@ -336,7 +336,7 @@ contract PositionHouse is
      * @param _positionManager position manager
      * @param _orderIdx order index in the limit orders (increase or reduce) list
      * @param _isReduce is that a reduce limit order?
-     * The external service must determine that by a variable in getListPendingOrders
+     * The external service must determine that by a variable in getListOrderPending
      */
     function cancelLimitOrder(
         IPositionManager _positionManager,
