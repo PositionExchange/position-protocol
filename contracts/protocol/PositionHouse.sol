@@ -161,7 +161,7 @@ contract PositionHouse is
             _trader,
             pQuantity,
             _leverage,
-            pResp.exchangedQuoteAssetAmount / _quantity,
+            (pResp.exchangedQuoteAssetAmount * _positionManager.getBasisPoint()) / _quantity,
             _positionManager
         );
     }
