@@ -37,7 +37,7 @@ contract PositionHouseStorage {
         uint128 pip;
         // can change leverage to uint16 to save gas
         uint16 leverage;
-        bool isReduce;
+        uint8 isReduce;
         uint256 blockNumber;
         uint256 orderIdx;
         uint256 orderId;

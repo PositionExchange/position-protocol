@@ -105,7 +105,7 @@ contract PositionHouse is
         uint256 _leverage
     ) public whenNotPaused nonReentrant {
         address _trader = _msgSender();
-        address pmAddr = address(_positionManager);
+        address _pmAddress = address(_positionManager);
         int256 pQuantity = _side == Position.Side.LONG
             ? int256(_quantity)
             : -int256(_quantity);
@@ -127,14 +127,14 @@ contract PositionHouse is
         // check if old position quantity is the same side with the new one
         if (oldPosition.quantity == 0 || oldPosition.side() == _side) {
             pResp = PositionHouseFunction.increasePosition(
-                pmAddr,
+                _pmAddress,
                 _side,
                 int256(_quantity),
                 _leverage,
                 _trader,
                 oldPosition,
-                positionMap[pmAddr][_trader],
-                cumulativePremiumFractions[pmAddr]
+                positionMap[_pmAddress][_trader],
+                cumulativePremiumFractions[_pmAddress]
             );
         } else {
             pResp = openReversePosition(
@@ -147,7 +147,7 @@ contract PositionHouse is
             );
         }
         // update position state
-        positionMap[pmAddr][_trader].update(pResp.position);
+        positionMap[_pmAddress][_trader].update(pResp.position);
 
         if (pResp.marginToVault > 0) {
             //transfer from trader to vault
@@ -341,12 +341,12 @@ contract PositionHouse is
     function cancelLimitOrder(
         IPositionManager _positionManager,
         uint64 _orderIdx,
-        bool _isReduce
+        uint8 _isReduce
     ) external whenNotPaused nonReentrant {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
         // declare a pointer to reduceLimitOrders or limitOrders
-        PositionLimitOrder.Data[] storage _orders = _isReduce
+        PositionLimitOrder.Data[] storage _orders = _isReduce == 1
             ? reduceLimitOrders[_pmAddress][_trader]
             : limitOrders[_pmAddress][_trader];
         require(_orderIdx < _orders.length, Errors.VL_INVALID_ORDER);

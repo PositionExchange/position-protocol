@@ -409,7 +409,7 @@ library PositionHouseFunction {
                             pip: limitOrder[i].pip,
                             leverage: limitOrder[i].leverage,
                             blockNumber: limitOrder[i].blockNumber,
-                            isReduce: false,
+                            isReduce: 0,
                             orderIdx: i,
                             orderId: limitOrder[i].orderId
                         });
@@ -435,7 +435,7 @@ library PositionHouseFunction {
                             pip: reduceLimitOrder[i].pip,
                             leverage: reduceLimitOrder[i].leverage,
                             blockNumber: reduceLimitOrder[i].blockNumber,
-                            isReduce: true,
+                            isReduce: 1,
                             orderIdx: i,
                             orderId: reduceLimitOrder[i].orderId
                         });
