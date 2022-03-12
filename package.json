@@ -55,10 +55,12 @@
     "dotenv": "^10.0.0",
     "ethereumjs-util": "^7.1.0",
     "hardhat-contract-sizer": "^2.1.1",
+    "hardhat-gas-reporter": "^1.0.8",
     "mocha-chai-jest-snapshot": "^1.1.2",
     "nedb": "^1.8.0",
     "nedb-promises": "^5.0.1",
-    "semaphore": "^1.1.0"
+    "semaphore": "^1.1.0",
+    "solidity-coverage": "^0.7.20"
   },
   "scripts": {
     "compile": "hardhat compile",
