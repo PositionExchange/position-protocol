@@ -8,6 +8,8 @@ import {task} from "hardhat/config";
 import "@nomiclabs/hardhat-etherscan";
 import {BSC_MAINNET_URL, BSC_TESTNET_URL, GAS_PRICE, PRIV_TESTNET_ACCOUNT, PRIV_MAINNET_ACCOUNT} from "./constants";
 import "./scripts/deploy";
+import "hardhat-gas-reporter";
+import "solidity-coverage";
 // const BSC_TESTNET_URL =
 //     `${process.env["BSC_TESTNET_ENDPOINT"]}` || "https://data-seed-prebsc-1-s1.binance.org:8545/"
 // const BSC_MAINNET_URL = `${process.env["BSC_MAINNET_ENDPOINT"]}`
