@@ -118,6 +118,10 @@ contract PositionManager is
         return BASE_BASIC_POINT;
     }
 
+    function getBasisPoint() public view returns (uint256) {
+        return basisPoint;
+    }
+
     function getCurrentPip() public view returns (uint128) {
         return singleSlot.pip;
     }
