@@ -202,7 +202,7 @@ library PositionHouseFunction {
     // TODO edit access modifier cause this function called write function in position manager
     function clearAllFilledOrder(
         IPositionManager _positionManager,
-        PositionLimitOrder.Data[] memory limitOrder,
+        PositionLimitOrder.Data[] memory limitOrders,
         PositionLimitOrder.Data[] memory reduceLimitOrder
     )
         public
