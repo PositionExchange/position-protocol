@@ -8,6 +8,8 @@ interface IPositionManager {
 
     function getBaseBasisPoint() external view returns (uint256);
 
+    function getBasisPoint() external view returns (uint256);
+
     function getCurrentSingleSlot() external view returns (uint128, uint8);
 
     function getLiquidityInCurrentPip() external view returns (uint128);

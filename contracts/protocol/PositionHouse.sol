@@ -37,7 +37,7 @@ contract PositionHouse is
         address trader,
         int256 quantity,
         uint256 leverage,
-        uint256 priceMarket,
+        uint256 entryPrice,
         IPositionManager positionManager
     );
     event OpenLimit(
@@ -161,7 +161,7 @@ contract PositionHouse is
             _trader,
             pQuantity,
             _leverage,
-            pResp.exchangedQuoteAssetAmount / _quantity,
+            (pResp.exchangedQuoteAssetAmount * _positionManager.getBasisPoint()) / _quantity,
             _positionManager
         );
     }
@@ -336,7 +336,7 @@ contract PositionHouse is
      * @param _positionManager position manager
      * @param _orderIdx order index in the limit orders (increase or reduce) list
      * @param _isReduce is that a reduce limit order?
-     * The external service must determine that by a variable in getListPendingOrders
+     * The external service must determine that by a variable in getListOrderPending
      */
     function cancelLimitOrder(
         IPositionManager _positionManager,
