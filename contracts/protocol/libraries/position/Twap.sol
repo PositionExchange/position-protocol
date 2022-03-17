@@ -21,36 +21,36 @@ library Twap {
 
     /// @notice Transforms a previous observation into a new observation, given the passage of time and the current pip value
     /// @dev blockTimestamp _must_ be chronologically equal to or greater than last.blockTimestamp, safe for 0 or 1 overflows
-    /// @param last The specified observation to be transformed
-    /// @param blockTimestamp The timestamp of the new observation
-    /// @param pip The active pip at the time of the new observation
+    /// @param _last The specified observation to be transformed
+    /// @param _blockTimestamp The timestamp of the new observation
+    /// @param _pip The active pip at the time of the new observation
     /// @return Observation The newly populated observation
     function transform(
-        Observation memory last,
-        uint32 blockTimestamp,
-        uint128 pip
+        Observation memory _last,
+        uint32 _blockTimestamp,
+        uint128 _pip
     ) private pure returns (Observation memory) {
-        uint32 delta = blockTimestamp - last.blockTimestamp;
+        uint32 delta = _blockTimestamp - _last.blockTimestamp;
 
         return
             Observation({
-                blockTimestamp: blockTimestamp,
-                pipCumulative: last.pipCumulative + uint128(pip) * delta,
+                blockTimestamp: _blockTimestamp,
+                pipCumulative: _last.pipCumulative + uint128(_pip) * delta,
                 initialized: true
             });
     }
 
     /// @notice Initialize the twap array by writing the first slot. Called once for the lifecycle of the observations array
-    /// @param self The stored twap array
-    /// @param time The time of the twap initialization, via block.timestamp truncated to uint32
+    /// @param _self The stored twap array
+    /// @param _time The time of the twap initialization, via block.timestamp truncated to uint32
     /// @return cardinality The number of populated elements in the twap array
     /// @return cardinalityNext The new length of the twap array, independent of population
-    function initialize(Observation[65535] storage self, uint32 time)
+    function initialize(Observation[65535] storage _self, uint32 _time)
         internal
         returns (uint16 cardinality, uint16 cardinalityNext)
     {
-        self[0] = Observation({
-            blockTimestamp: time,
+        _self[0] = Observation({
+            blockTimestamp: _time,
             pipCumulative: 0,
             initialized: true
         });
@@ -61,73 +61,73 @@ library Twap {
     /// @dev Writable at most once per block. Index represents the most recently written element. cardinality and index must be tracked externally.
     /// If the index is at the end of the allowable array length (according to cardinality), and the next cardinality
     /// is greater than the current one, cardinality may be increased. This restriction is created to preserve ordering.
-    /// @param self The stored twap array
-    /// @param index The index of the observation that was most recently written to the observations array
-    /// @param blockTimestamp The timestamp of the new observation
-    /// @param pip The active pip at the time of the new observation
-    /// @param cardinality The number of populated elements in the twap array
-    /// @param cardinalityNext The new length of the twap array, independent of population
+    /// @param _self The stored twap array
+    /// @param _index The index of the observation that was most recently written to the observations array
+    /// @param _blockTimestamp The timestamp of the new observation
+    /// @param _pip The active pip at the time of the new observation
+    /// @param _cardinality The number of populated elements in the twap array
+    /// @param _cardinalityNext The new length of the twap array, independent of population
     /// @return indexUpdated The new index of the most recently written element in the twap array
     /// @return cardinalityUpdated The new cardinality of the twap array
     function write(
-        Observation[65535] storage self,
-        uint16 index,
-        uint32 blockTimestamp,
-        uint128 pip,
-        uint16 cardinality,
-        uint16 cardinalityNext
+        Observation[65535] storage _self,
+        uint16 _index,
+        uint32 _blockTimestamp,
+        uint128 _pip,
+        uint16 _cardinality,
+        uint16 _cardinalityNext
     ) internal returns (uint16 indexUpdated, uint16 cardinalityUpdated) {
-        Observation memory last = self[index];
+        Observation memory last = _self[_index];
 
         // early return if we've already written an observation this block
-        if (last.blockTimestamp == blockTimestamp) return (index, cardinality);
+        if (last.blockTimestamp == _blockTimestamp) return (_index, _cardinality);
 
         // if the conditions are right, we can bump the cardinality
-        if (cardinalityNext > cardinality && index == (cardinality - 1)) {
-            cardinalityUpdated = cardinalityNext;
+        if (_cardinalityNext > _cardinality && _index == (_cardinality - 1)) {
+            cardinalityUpdated = _cardinalityNext;
         } else {
-            cardinalityUpdated = cardinality;
+            cardinalityUpdated = _cardinality;
         }
 
-        indexUpdated = (index + 1) % cardinalityUpdated;
-        self[indexUpdated] = transform(last, blockTimestamp, pip);
+        indexUpdated = (_index + 1) % cardinalityUpdated;
+        _self[indexUpdated] = transform(last, _blockTimestamp, _pip);
     }
 
     /// @notice Prepares the twap array to store up to `next` observations
-    /// @param self The stored twap array
-    /// @param current The current next cardinality of the twap array
-    /// @param next The proposed next cardinality which will be populated in the twap array
+    /// @param _self The stored twap array
+    /// @param _current The current next cardinality of the twap array
+    /// @param _next The proposed next cardinality which will be populated in the twap array
     /// @return next The next cardinality which will be populated in the twap array
     function grow(
-        Observation[65535] storage self,
-        uint16 current,
-        uint16 next
+        Observation[65535] storage _self,
+        uint16 _current,
+        uint16 _next
     ) internal returns (uint16) {
-        require(current > 0, "I");
+        require(_current > 0, "I");
         // no-op if the passed next value isn't greater than the current next value
-        if (next <= current) return current;
+        if (_next <= _current) return _current;
         // store in each slot to prevent fresh SSTOREs in swaps
         // this data will not be used because the initialized boolean is still false
-        for (uint16 i = current; i < next; i++) self[i].blockTimestamp = 1;
-        return next;
+        for (uint16 i = _current; i < _next; i++) _self[i].blockTimestamp = 1;
+        return _next;
     }
 
     /// @notice comparator for 32-bit timestamps
     /// @dev safe for 0 or 1 overflows, a and b _must_ be chronologically before or equal to time
-    /// @param time A timestamp truncated to 32 bits
-    /// @param a A comparison timestamp from which to determine the relative position of `time`
-    /// @param b From which to determine the relative position of `time`
+    /// @param _time A timestamp truncated to 32 bits
+    /// @param _a A comparison timestamp from which to determine the relative position of `time`
+    /// @param _b From which to determine the relative position of `time`
     /// @return bool Whether `a` is chronologically <= `b`
     function lte(
-        uint32 time,
-        uint32 a,
-        uint32 b
+        uint32 _time,
+        uint32 _a,
+        uint32 _b
     ) private pure returns (bool) {
         // if there hasn't been overflow, no need to adjust
-        if (a <= time && b <= time) return a <= b;
+        if (_a <= _time && _b <= _time) return _a <= _b;
 
-        uint256 aAdjusted = a > time ? a : a + 2**32;
-        uint256 bAdjusted = b > time ? b : b + 2**32;
+        uint256 aAdjusted = _a > _time ? _a : _a + 2**32;
+        uint256 bAdjusted = _b > _time ? _b : _b + 2**32;
 
         return aAdjusted <= bAdjusted;
     }
@@ -136,33 +136,33 @@ library Twap {
     /// The result may be the same observation, or adjacent observations.
     /// @dev The answer must be contained in the array, used when the target is located within the stored observation
     /// boundaries: older than the most recent observation and younger, or the same age as, the oldest observation
-    /// @param self The stored twap array
-    /// @param time The current block.timestamp
-    /// @param target The timestamp at which the reserved observation should be for
-    /// @param index The index of the observation that was most recently written to the observations array
-    /// @param cardinality The number of populated elements in the twap array
+    /// @param _self The stored twap array
+    /// @param _time The current block.timestamp
+    /// @param _target The timestamp at which the reserved observation should be for
+    /// @param _index The index of the observation that was most recently written to the observations array
+    /// @param _cardinality The number of populated elements in the twap array
     /// @return beforeOrAt The observation recorded before, or at, the target
     /// @return atOrAfter The observation recorded at, or after, the target
     function binarySearch(
-        Observation[65535] storage self,
-        uint32 time,
-        uint32 target,
-        uint16 index,
-        uint16 cardinality
+        Observation[65535] storage _self,
+        uint32 _time,
+        uint32 _target,
+        uint16 _index,
+        uint16 _cardinality
     )
         private
         view
         returns (Observation memory beforeOrAt, Observation memory atOrAfter)
     {
-        uint256 l = (index + 1) % cardinality;
+        uint256 l = (_index + 1) % _cardinality;
         // oldest observation
-        uint256 r = l + cardinality - 1;
+        uint256 r = l + _cardinality - 1;
         // newest observation
         uint256 i;
         while (true) {
             i = (l + r) / 2;
 
-            beforeOrAt = self[i % cardinality];
+            beforeOrAt = _self[i % _cardinality];
 
             // we've landed on an uninitialized pip, keep searching higher (more recently)
             if (!beforeOrAt.initialized) {
@@ -170,12 +170,12 @@ library Twap {
                 continue;
             }
 
-            atOrAfter = self[(i + 1) % cardinality];
+            atOrAfter = _self[(i + 1) % _cardinality];
 
-            bool targetAtOrAfter = lte(time, beforeOrAt.blockTimestamp, target);
+            bool targetAtOrAfter = lte(_time, beforeOrAt.blockTimestamp, _target);
 
             // check if we've found the answer!
-            if (targetAtOrAfter && lte(time, target, atOrAfter.blockTimestamp))
+            if (targetAtOrAfter && lte(_time, _target, atOrAfter.blockTimestamp))
                 break;
 
             if (!targetAtOrAfter) r = i - 1;
@@ -186,88 +186,88 @@ library Twap {
     /// @notice Fetches the observations beforeOrAt and atOrAfter a given target, i.e. where [beforeOrAt, atOrAfter] is satisfied
     /// @dev Assumes there is at least 1 initialized observation.
     /// Used by observeSingle() to compute the counterfactual accumulator values as of a given block timestamp.
-    /// @param self The stored twap array
-    /// @param time The current block.timestamp
-    /// @param target The timestamp at which the reserved observation should be for
-    /// @param pip The active pip at the time of the returned or simulated observation
-    /// @param index The index of the observation that was most recently written to the observations array
-    /// @param cardinality The number of populated elements in the twap array
+    /// @param _self The stored twap array
+    /// @param _time The current block.timestamp
+    /// @param _target The timestamp at which the reserved observation should be for
+    /// @param _pip The active pip at the time of the returned or simulated observation
+    /// @param _index The index of the observation that was most recently written to the observations array
+    /// @param _cardinality The number of populated elements in the twap array
     /// @return beforeOrAt The observation which occurred at, or before, the given timestamp
     /// @return atOrAfter The observation which occurred at, or after, the given timestamp
     function getSurroundingObservations(
-        Observation[65535] storage self,
-        uint32 time,
-        uint32 target,
-        uint128 pip,
-        uint16 index,
-        uint16 cardinality
+        Observation[65535] storage _self,
+        uint32 _time,
+        uint32 _target,
+        uint128 _pip,
+        uint16 _index,
+        uint16 _cardinality
     )
         private
         view
         returns (Observation memory beforeOrAt, Observation memory atOrAfter)
     {
         // optimistically set before to the newest observation
-        beforeOrAt = self[index];
+        beforeOrAt = _self[_index];
 
         // if the target is chronologically at or after the newest observation, we can early return
-        if (lte(time, beforeOrAt.blockTimestamp, target)) {
-            if (beforeOrAt.blockTimestamp == target) {
+        if (lte(_time, beforeOrAt.blockTimestamp, _target)) {
+            if (beforeOrAt.blockTimestamp == _target) {
                 // if newest observation equals target, we're in the same block, so we can ignore atOrAfter
                 return (beforeOrAt, atOrAfter);
             } else {
                 // otherwise, we need to transform
-                return (beforeOrAt, transform(beforeOrAt, target, pip));
+                return (beforeOrAt, transform(beforeOrAt, _target, _pip));
             }
         }
 
         // now, set before to the oldest observation
-        beforeOrAt = self[(index + 1) % cardinality];
-        if (!beforeOrAt.initialized) beforeOrAt = self[0];
+        beforeOrAt = _self[(_index + 1) % _cardinality];
+        if (!beforeOrAt.initialized) beforeOrAt = _self[0];
 
         // ensure that the target is chronologically at or after the oldest observation
-        require(lte(time, beforeOrAt.blockTimestamp, target), "OLD");
+        require(lte(_time, beforeOrAt.blockTimestamp, _target), "OLD");
 
         // if we've reached this point, we have to binary search
-        return binarySearch(self, time, target, index, cardinality);
+        return binarySearch(_self, _time, _target, _index, _cardinality);
     }
 
     /// @dev Reverts if an observation at or before the desired observation timestamp does not exist.
     /// 0 may be passed as `secondsAgo' to return the current cumulative values.
     /// If called with a timestamp falling between two observations, returns the counterfactual accumulator values
     /// at exactly the timestamp between the two observations.
-    /// @param self The stored twap array
-    /// @param time The current block timestamp
-    /// @param secondsAgo The amount of time to look back, in seconds, at which point to return an observation
-    /// @param pip The current pip
-    /// @param index The index of the observation that was most recently written to the observations array
-    /// @param cardinality The number of populated elements in the twap array
+    /// @param _self The stored twap array
+    /// @param _time The current block timestamp
+    /// @param _secondsAgo The amount of time to look back, in seconds, at which point to return an observation
+    /// @param _pip The current pip
+    /// @param _index The index of the observation that was most recently written to the observations array
+    /// @param _cardinality The number of populated elements in the twap array
     /// @return pipCumulative The pip * time elapsed since the pool was first initialized, as of `secondsAgo`
     function observeSingle(
-        Observation[65535] storage self,
-        uint32 time,
-        uint32 secondsAgo,
-        uint128 pip,
-        uint16 index,
-        uint16 cardinality
+        Observation[65535] storage _self,
+        uint32 _time,
+        uint32 _secondsAgo,
+        uint128 _pip,
+        uint16 _index,
+        uint16 _cardinality
     ) internal view returns (uint128 pipCumulative) {
-        if (secondsAgo == 0) {
-            Observation memory last = self[index];
-            if (last.blockTimestamp != time) last = transform(last, time, pip);
+        if (_secondsAgo == 0) {
+            Observation memory last = _self[_index];
+            if (last.blockTimestamp != _time) last = transform(last, _time, _pip);
             return (last.pipCumulative);
         }
 
-        uint32 target = time - secondsAgo;
+        uint32 target = _time - _secondsAgo;
 
         (
             Observation memory beforeOrAt,
             Observation memory atOrAfter
         ) = getSurroundingObservations(
-                self,
-                time,
+                _self,
+                _time,
                 target,
-                pip,
-                index,
-                cardinality
+                _pip,
+                _index,
+                _cardinality
             );
 
         if (target == beforeOrAt.blockTimestamp) {
@@ -290,32 +290,32 @@ library Twap {
 
     /// @notice Returns the accumulator values as of each time seconds ago from the given time in the array of `secondsAgos`
     /// @dev Reverts if `secondsAgos` > oldest observation
-    /// @param self The stored twap array
-    /// @param time The current block.timestamp
-    /// @param secondsAgos Each amount of time to look back, in seconds, at which point to return an observation
-    /// @param pip The current pip
-    /// @param index The index of the observation that was most recently written to the observations array
-    /// @param cardinality The number of populated elements in the twap array
+    /// @param _self The stored twap array
+    /// @param _time The current block.timestamp
+    /// @param _secondsAgos Each amount of time to look back, in seconds, at which point to return an observation
+    /// @param _pip The current pip
+    /// @param _index The index of the observation that was most recently written to the observations array
+    /// @param _cardinality The number of populated elements in the twap array
     /// @return pipCumulatives The pip * time elapsed since the pool was first initialized, as of each `secondsAgo`
     function observe(
-        Observation[65535] storage self,
-        uint32 time,
-        uint32[] memory secondsAgos,
-        uint128 pip,
-        uint16 index,
-        uint16 cardinality
+        Observation[65535] storage _self,
+        uint32 _time,
+        uint32[] memory _secondsAgos,
+        uint128 _pip,
+        uint16 _index,
+        uint16 _cardinality
     ) internal view returns (uint128[] memory pipCumulatives) {
-        require(cardinality > 0, "I");
+        require(_cardinality > 0, "I");
 
-        pipCumulatives = new uint128[](secondsAgos.length);
-        for (uint256 i = 0; i < secondsAgos.length; i++) {
+        pipCumulatives = new uint128[](_secondsAgos.length);
+        for (uint256 i = 0; i < _secondsAgos.length; i++) {
             (pipCumulatives[i]) = observeSingle(
-                self,
-                time,
-                secondsAgos[i],
-                pip,
-                index,
-                cardinality
+                _self,
+                _time,
+                _secondsAgos[i],
+                _pip,
+                _index,
+                _cardinality
             );
         }
     }

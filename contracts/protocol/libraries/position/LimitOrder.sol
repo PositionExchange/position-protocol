@@ -12,7 +12,7 @@ library LimitOrder {
         uint120 partialFilled;
     }
 
-    function getData(LimitOrder.Data storage self)
+    function getData(LimitOrder.Data storage _self)
         internal
         view
         returns (
@@ -21,42 +21,42 @@ library LimitOrder {
             uint256 partialFilled
         )
     {
-        isBuy = self.isBuy == 1;
-        size = uint256(self.size);
-        partialFilled = uint256(self.partialFilled);
+        isBuy = _self.isBuy == 1;
+        size = uint256(_self.size);
+        partialFilled = uint256(_self.partialFilled);
     }
 
     function update(
-        LimitOrder.Data storage self,
-        bool isBuy,
-        uint256 size
+        LimitOrder.Data storage _self,
+        bool _isBuy,
+        uint256 _size
     ) internal {
-        self.isBuy = isBuy ? 1 : 2;
-        self.size = uint120(size);
+        _self.isBuy = _isBuy ? 1 : 2;
+        _self.size = uint120(_size);
     }
 
-    function updatePartialFill(LimitOrder.Data storage self, uint120 remainSize)
+    function updatePartialFill(LimitOrder.Data storage _self, uint120 _remainSize)
         internal
     {
         // remainingSize should be negative
-        self.partialFilled += self.size - remainSize;
+        _self.partialFilled += _self.size - _remainSize;
     }
 
-    function updateWhenClose(LimitOrder.Data storage self)
+    function updateWhenClose(LimitOrder.Data storage _self)
         internal
         returns (uint256)
     {
-        self.size -= self.partialFilled;
-        self.partialFilled = 0;
-        return (uint256(self.size));
+        _self.size -= _self.partialFilled;
+        _self.partialFilled = 0;
+        return (uint256(_self.size));
     }
 
-    function getPartialFilled(LimitOrder.Data storage self)
+    function getPartialFilled(LimitOrder.Data storage _self)
         internal
         view
         returns (bool isPartial, uint256 remainingSize)
     {
-        remainingSize = self.size - self.partialFilled;
+        remainingSize = _self.size - _self.partialFilled;
         isPartial = remainingSize > 0;
     }
 }

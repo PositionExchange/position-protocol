@@ -45,11 +45,11 @@ contract InsuranceFund is
     }
 
     function deposit(
-        address token,
-        address trader,
-        uint256 amount
+        address _token,
+        address _trader,
+        uint256 _amount
     ) public onlyCounterParty{
-        IERC20(token).transferFrom(trader, address(this), amount);
+        IERC20(_token).transferFrom(_trader, address(this), _amount);
     }
 
     //    function transferFeeFromTrader(address token, address trader, uint256 amountFee) public {
@@ -61,24 +61,24 @@ contract InsuranceFund is
     //    }
 
     function withdraw(
-        address token,
-        address trader,
-        uint256 amount
+        address _token,
+        address _trader,
+        uint256 _amount
     ) public onlyCounterParty {
         // TODO sold posi to pay for trader
         // if insurance fund not enough amount for trader, should sold posi and pay for trader
-        //        if (IERC20(token).balanceOf(address(this)) < amount) {
+        //        if (IERC20(_token).balanceOf(address(this)) < amount) {
         //
         //        }
-        IERC20(token).transfer(trader, amount);
+        IERC20(_token).transfer(_trader, _amount);
     }
 
-    function updateTotalFee(uint256 fee) public onlyCounterParty {
-        totalFee += fee;
+    function updateTotalFee(uint256 _fee) public onlyCounterParty {
+        totalFee += _fee;
     }
 
     // Buy POSI on market and burn it
-    function buyBackAndBurn(address token, uint256 amount)
+    function buyBackAndBurn(address _token, uint256 _amount)
         public
         onlyGovernance
     {
@@ -86,7 +86,7 @@ contract InsuranceFund is
 
         //        IUniswapV2Pair pair = getSwappingPair();
 
-        totalBurn += amount;
+        totalBurn += _amount;
     }
 
     //

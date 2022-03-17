@@ -126,14 +126,10 @@ describe("PositionHouse_02", () => {
         _positionManager?: PositionManager
     }
 
-    async function getOrderIdByTx(tx: any) {
+    async function getOrderIdByTx(tx) {
         const receipt = await tx.wait();
         const orderId = ((receipt?.events || [])[1]?.args || [])['orderId']
-        const priceLimit = ((receipt?.events || [])[1]?.args || [])['priceLimit']
-        return {
-            orderId,
-            priceLimit,
-        }
+        return orderId
     }
 
     async function openLimitPositionAndExpect({
@@ -150,7 +146,7 @@ describe("PositionHouse_02", () => {
         if (!_trader) throw Error("No trader")
         const tx = await positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(Number(limitPrice)), leverage)
         console.log("GAS USED LIMIT", (await tx.wait()).gasUsed.toString())
-        const {orderId, priceLimit} = await getOrderIdByTx(tx)
+        const orderId = await getOrderIdByTx(tx)
 
         return {
             orderId: orderId,
@@ -267,12 +263,12 @@ describe("PositionHouse_02", () => {
         expect(positionData.quantity).eq(0);
     }
 
-    async function cancelLimitOrder(positionManagerAddress: string, trader: SignerWithAddress, orderId : string, pip : string, isReduce : boolean) {
+    async function cancelLimitOrder(positionManagerAddress: string, trader: SignerWithAddress, orderId : string, pip : string) {
         const listPendingOrder = await positionHouse.connect(trader).getListOrderPending(positionManagerAddress, trader.address)
         const obj = listPendingOrder.find(x => () => {
             (x.orderId.toString() == orderId && x.pip.toString() == pip)
         });
-        await positionHouse.connect(trader).cancelLimitOrder(positionManagerAddress, obj.orderIdOfTrader, isReduce);
+        await positionHouse.connect(trader).cancelLimitOrder(positionManagerAddress, obj.orderIdx, obj.isReduce);
     }
 
     describe('Increase size in order', async () => {
@@ -4007,7 +4003,7 @@ describe("PositionHouse_02", () => {
                 _trader: trader1
             })
 
-            await cancelLimitOrder(positionManager.address, trader0,  '1', '499000',false);
+            await cancelLimitOrder(positionManager.address, trader0,  '1', '499000');
             // console.log("cancel success");
             // console.log(await positionHouse.connect(trader0).getPosition(positionManager.address, trader0.address))
 
@@ -4180,7 +4176,7 @@ describe("PositionHouse_02", () => {
             })
             console.log(4206)
 
-            await cancelLimitOrder(positionManager.address, trader0,  '1', '498000',false)
+            await cancelLimitOrder(positionManager.address, trader0,  '1', '498000')
             console.log(4209)
 
             await openLimitPositionAndExpect({
@@ -4235,7 +4231,7 @@ describe("PositionHouse_02", () => {
                 _trader: trader0
             })
 
-            await cancelLimitOrder(positionManager.address,trader0 ,  '2','499000', false)
+            await cancelLimitOrder(positionManager.address,trader0 ,  '2','499000')
 
             await openLimitPositionAndExpect({
                 limitPrice: 4990,
@@ -4390,7 +4386,7 @@ describe("PositionHouse_02", () => {
 
             console.log(await positionHouse.getListOrderPending(positionManager.address, trader0.address))
 
-            await cancelLimitOrder(positionManager.address, trader0, '2', '499000', false)
+            await cancelLimitOrder(positionManager.address, trader0, '2', '499000')
 
             await openLimitPositionAndExpect({
                 limitPrice: 4980,
@@ -4504,7 +4500,7 @@ describe("PositionHouse_02", () => {
             await positionHouse.connect(trader0).closeLimitPosition(positionManager.address, 500000, 7);
             await positionHouse.connect(trader0).closeLimitPosition(positionManager.address, 500000, 2);
             console.log(await positionHouse.getListOrderPending(positionManager.address, trader0.address))
-            await cancelLimitOrder(positionManager.address, trader0, '3', '500000', true)
+            await cancelLimitOrder(positionManager.address, trader0, '3', '500000')
         })
 
         it("should close position while still have pending order", async function () {
@@ -4681,7 +4677,7 @@ describe("PositionHouse_02", () => {
                 _trader: trader1
             })
 
-            await cancelLimitOrder(positionManager.address, trader0, '1', '500000', false)
+            await cancelLimitOrder(positionManager.address, trader0, '1', '500000')
 
             await openLimitPositionAndExpect({
                 limitPrice: 5010,
@@ -4745,7 +4741,7 @@ describe("PositionHouse_02", () => {
 
             console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).toString())
 
-            await cancelLimitOrder(positionManager.address, trader0, '1', '499000', false)
+            await cancelLimitOrder(positionManager.address, trader0, '1', '499000')
 
             console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).toString())
 
@@ -4770,7 +4766,7 @@ describe("PositionHouse_02", () => {
                 }
             );
             console.log("before cancel limit")
-            await cancelLimitOrder(positionManager.address, trader0, "1", "499000", false)
+            await cancelLimitOrder(positionManager.address, trader0, "1", "499000")
 
             console.log("before get position")
             console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).quantity.toString())
@@ -4823,7 +4819,7 @@ describe("PositionHouse_02", () => {
                 }
             );
             console.log("before cancel limit")
-            await cancelLimitOrder(positionManager.address, trader0, "1", "499000", false)
+            await cancelLimitOrder(positionManager.address, trader0, "1", "499000")
 
             console.log("before get position")
             console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).quantity.toString())

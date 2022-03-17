@@ -3,11 +3,11 @@ pragma solidity >=0.8.0;
 
 library Quantity {
     function getExchangedQuoteAssetAmount(
-        int256 quantity,
-        uint256 openNotional,
-        uint256 oldPQuantity
+        int256 _quantity,
+        uint256 _openNotional,
+        uint256 _oldPQuantity
     ) internal pure returns (uint256) {
-        return (abs(quantity) * openNotional) / oldPQuantity;
+        return (abs(_quantity) * _openNotional) / _oldPQuantity;
     }
 
     function getPartiallyLiquidate(
@@ -21,16 +21,16 @@ library Quantity {
         return qA * qB > 0;
     }
 
-    function u8Side(int256 quantity) internal pure returns (uint8) {
-        return quantity > 0 ? 1 : 2;
+    function u8Side(int256 _quantity) internal pure returns (uint8) {
+        return _quantity > 0 ? 1 : 2;
     }
 
-    function abs(int256 quantity) internal pure returns (uint256) {
-        return uint256(quantity >= 0 ? quantity : -quantity);
+    function abs(int256 _quantity) internal pure returns (uint256) {
+        return uint256(_quantity >= 0 ? _quantity : -_quantity);
     }
 
-    function abs128(int256 quantity) internal pure returns (uint128) {
-        return uint128(abs(quantity));
+    function abs128(int256 _quantity) internal pure returns (uint128) {
+        return uint128(abs(_quantity));
     }
 
     function sumWithUint256(int256 a, uint256 b)
