@@ -22,27 +22,27 @@ library PositionHouseFunction {
     //    }
 
     function handleMarketPart(
-        Position.Data memory totalPosition,
-        Position.Data memory marketPosition,
+        Position.Data memory _totalPosition,
+        Position.Data memory _marketPosition,
         uint256 _newQuantity,
         uint256 _newNotional,
-        int256 newQuantityInt,
+        int256 _newQuantityInt,
         uint256 _leverage,
-        int256[] memory cumulativePremiumFractions
+        int256[] memory _cumulativePremiumFractions
     ) public view returns (Position.Data memory newData) {
-        if (newQuantityInt * totalPosition.quantity >= 0) {
+        if (_newQuantityInt * _totalPosition.quantity >= 0) {
             newData = Position.Data(
-                marketPosition.quantity + newQuantityInt,
+                _marketPosition.quantity + _newQuantityInt,
                 handleMarginInIncrease(
                     _newNotional / _leverage,
-                    marketPosition,
-                    totalPosition,
-                    cumulativePremiumFractions
+                    _marketPosition,
+                    _totalPosition,
+                    _cumulativePremiumFractions
                 ),
                 handleNotionalInIncrease(
                     _newNotional,
-                    marketPosition,
-                    totalPosition
+                    _marketPosition,
+                    _totalPosition
                 ),
                 // TODO update latest cumulative premium fraction
                 0,
@@ -51,18 +51,18 @@ library PositionHouseFunction {
             );
         } else {
             newData = Position.Data(
-                marketPosition.quantity + newQuantityInt,
+                _marketPosition.quantity + _newQuantityInt,
                 handleMarginInOpenReverse(
-                    (totalPosition.margin * _newQuantity) /
-                        totalPosition.quantity.abs(),
-                    marketPosition,
-                    totalPosition,
-                    cumulativePremiumFractions
+                    (_totalPosition.margin * _newQuantity) /
+                        _totalPosition.quantity.abs(),
+                    _marketPosition,
+                    _totalPosition,
+                    _cumulativePremiumFractions
                 ),
                 handleNotionalInOpenReverse(
                     _newNotional,
-                    marketPosition,
-                    totalPosition
+                    _marketPosition,
+                    _totalPosition
                 ),
                 // TODO update latest cumulative premium fraction
                 0,
@@ -75,27 +75,27 @@ library PositionHouseFunction {
     // There are 4 cases could happen:
     //      1. oldPosition created by limitOrder, new marketOrder reversed it => ON = positionResp.exchangedQuoteAssetAmount
     //      2. oldPosition created by marketOrder, new marketOrder reversed it => ON = oldPosition.openNotional - positionResp.exchangedQuoteAssetAmount
-    //      3. oldPosition created by both marketOrder and limitOrder, new marketOrder reversed it => ON = oldPosition.openNotional (of marketPosition only) - positionResp.exchangedQuoteAssetAmount
-    //      4. oldPosition increased by limitOrder and reversed by marketOrder, new MarketOrder reversed it => ON = oldPosition.openNotional (of marketPosition only) + positionResp.exchangedQuoteAssetAmount
+    //      3. oldPosition created by both marketOrder and limitOrder, new marketOrder reversed it => ON = oldPosition.openNotional (of _marketPosition only) - positionResp.exchangedQuoteAssetAmount
+    //      4. oldPosition increased by limitOrder and reversed by marketOrder, new MarketOrder reversed it => ON = oldPosition.openNotional (of _marketPosition only) + positionResp.exchangedQuoteAssetAmount
     function handleNotionalInOpenReverse(
-        uint256 exchangedQuoteAmount,
-        Position.Data memory marketPositionData,
-        Position.Data memory totalPositionData
+        uint256 _exchangedQuoteAmount,
+        Position.Data memory _marketPositionData,
+        Position.Data memory _totalPositionData
     ) public view returns (uint256 openNotional) {
-        //        int256 newPositionSide = totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
-        if (marketPositionData.quantity * totalPositionData.quantity < 0) {
+        //        int256 newPositionSide = _totalPositionData.quantity < 0 ? int256(1) : int256(- 1);
+        if (_marketPositionData.quantity * _totalPositionData.quantity < 0) {
             openNotional =
-                marketPositionData.openNotional +
-                exchangedQuoteAmount;
+                _marketPositionData.openNotional +
+                _exchangedQuoteAmount;
         } else {
-            if (marketPositionData.openNotional > exchangedQuoteAmount) {
+            if (_marketPositionData.openNotional > _exchangedQuoteAmount) {
                 openNotional =
-                    marketPositionData.openNotional -
-                    exchangedQuoteAmount;
+                    _marketPositionData.openNotional -
+                    _exchangedQuoteAmount;
             } else {
                 openNotional =
-                    exchangedQuoteAmount -
-                    marketPositionData.openNotional;
+                    _exchangedQuoteAmount -
+                    _marketPositionData.openNotional;
             }
         }
     }
@@ -107,27 +107,27 @@ library PositionHouseFunction {
     //      4. Old position created by long limit and no market, reverse position is short => margin = reduceMarginRequirement - oldMarketMargin
     //      5. Old position created by short limit and long market, reverse position is short => margin = oldMarketMargin - reduceMarginRequirement
     function handleMarginInOpenReverse(
-        uint256 reduceMarginRequirement,
-        Position.Data memory marketPositionData,
-        Position.Data memory totalPositionData,
-        int256[] memory cumulativePremiumFractions
+        uint256 _reduceMarginRequirement,
+        Position.Data memory _marketPositionData,
+        Position.Data memory _totalPositionData,
+        int256[] memory _cumulativePremiumFractions
     ) public view returns (uint256 margin) {
-        int256 newPositionSide = totalPositionData.quantity < 0
+        int256 newPositionSide = _totalPositionData.quantity < 0
             ? int256(1)
             : int256(-1);
-        if (marketPositionData.quantity * totalPositionData.quantity < 0) {
-            margin = marketPositionData.margin + reduceMarginRequirement;
+        if (_marketPositionData.quantity * _totalPositionData.quantity < 0) {
+            margin = _marketPositionData.margin + _reduceMarginRequirement;
         } else {
-            if (marketPositionData.margin > reduceMarginRequirement) {
-                margin = marketPositionData.margin - reduceMarginRequirement;
+            if (_marketPositionData.margin > _reduceMarginRequirement) {
+                margin = _marketPositionData.margin - _reduceMarginRequirement;
             } else {
-                margin = reduceMarginRequirement - marketPositionData.margin;
+                margin = _reduceMarginRequirement - _marketPositionData.margin;
             }
         }
         margin = calcRemainMarginWithFundingPayment(
-            totalPositionData,
+            _totalPositionData,
             margin,
-            cumulativePremiumFractions
+            _cumulativePremiumFractions
         );
     }
 
@@ -138,24 +138,24 @@ library PositionHouseFunction {
     //      4. Old position created by long limit and no market, increase position is long => notional = oldNotional + exchangedQuoteAssetAmount
     //      5. Old position created by short limit and long market, increase position is long => notional = oldNotional + exchangedQuoteAssetAmount
     function handleNotionalInIncrease(
-        uint256 exchangedQuoteAmount,
-        Position.Data memory marketPositionData,
-        Position.Data memory totalPositionData
+        uint256 _exchangedQuoteAmount,
+        Position.Data memory _marketPositionData,
+        Position.Data memory _totalPositionData
     ) public view returns (uint256 openNotional) {
-        if (marketPositionData.quantity * totalPositionData.quantity < 0) {
-            if (marketPositionData.openNotional > exchangedQuoteAmount) {
+        if (_marketPositionData.quantity * _totalPositionData.quantity < 0) {
+            if (_marketPositionData.openNotional > _exchangedQuoteAmount) {
                 openNotional =
-                    marketPositionData.openNotional -
-                    exchangedQuoteAmount;
+                    _marketPositionData.openNotional -
+                    _exchangedQuoteAmount;
             } else {
                 openNotional =
-                    exchangedQuoteAmount -
-                    marketPositionData.openNotional;
+                    _exchangedQuoteAmount -
+                    _marketPositionData.openNotional;
             }
         } else {
             openNotional =
-                marketPositionData.openNotional +
-                exchangedQuoteAmount;
+                _marketPositionData.openNotional +
+                _exchangedQuoteAmount;
         }
     }
 
@@ -167,43 +167,43 @@ library PositionHouseFunction {
     //      5. Old position created by short limit and long market, increase position is long market => margin = oldMarketMargin + increaseMarginRequirement
     //      6. Old position created by no limit and long market, increase position is long market => margin = oldMarketMargin + increaseMarginRequirement
     function handleMarginInIncrease(
-        uint256 increaseMarginRequirement,
-        Position.Data memory marketPositionData,
-        Position.Data memory totalPositionData,
-        int256[] memory cumulativePremiumFractions
+        uint256 _increaseMarginRequirement,
+        Position.Data memory _marketPositionData,
+        Position.Data memory _totalPositionData,
+        int256[] memory _cumulativePremiumFractions
     ) public view returns (uint256 margin) {
-        if (marketPositionData.quantity * totalPositionData.quantity < 0) {
-            if (marketPositionData.margin > increaseMarginRequirement) {
-                margin = marketPositionData.margin - increaseMarginRequirement;
+        if (_marketPositionData.quantity * _totalPositionData.quantity < 0) {
+            if (_marketPositionData.margin > _increaseMarginRequirement) {
+                margin = _marketPositionData.margin - _increaseMarginRequirement;
             } else {
-                margin = increaseMarginRequirement - marketPositionData.margin;
+                margin = _increaseMarginRequirement - _marketPositionData.margin;
             }
         } else {
-            margin = marketPositionData.margin + increaseMarginRequirement;
+            margin = _marketPositionData.margin + _increaseMarginRequirement;
         }
         margin = calcRemainMarginWithFundingPayment(
-            totalPositionData,
+            _totalPositionData,
             margin,
-            cumulativePremiumFractions
+            _cumulativePremiumFractions
         );
     }
 
-    function handleQuantity(int256 oldMarketQuantity, int256 newQuantity)
+    function handleQuantity(int256 _oldMarketQuantity, int256 _newQuantity)
         public
         view
         returns (int256 quantity)
     {
-        if (oldMarketQuantity * newQuantity >= 0) {
-            return oldMarketQuantity + newQuantity;
+        if (_oldMarketQuantity * _newQuantity >= 0) {
+            return _oldMarketQuantity + _newQuantity;
         }
-        return oldMarketQuantity - newQuantity;
+        return _oldMarketQuantity - _newQuantity;
     }
 
     // TODO edit access modifier cause this function called write function in position manager
     function clearAllFilledOrder(
         IPositionManager _positionManager,
-        PositionLimitOrder.Data[] memory limitOrders,
-        PositionLimitOrder.Data[] memory reduceLimitOrder
+        PositionLimitOrder.Data[] memory _limitOrders,
+        PositionLimitOrder.Data[] memory _reduceLimitOrders
     )
         public
         returns (
@@ -212,52 +212,52 @@ library PositionHouseFunction {
         )
     {
         PositionLimitOrder.Data[]
-            memory subLimitOrder = new PositionLimitOrder.Data[](
-                limitOrder.length
+            memory subLimitOrders = new PositionLimitOrder.Data[](
+                _limitOrders.length
             );
         PositionLimitOrder.Data[]
-            memory subReduceLimitOrder = new PositionLimitOrder.Data[](
-                reduceLimitOrder.length
+            memory subReduceLimitOrders = new PositionLimitOrder.Data[](
+                _reduceLimitOrders.length
             );
-        if (limitOrder.length > 0) {
+        if (_limitOrders.length > 0) {
             uint256 index = 0;
-            for (uint256 i = 0; i < limitOrder.length; i++) {
+            for (uint256 i = 0; i < _limitOrders.length; i++) {
                 (bool isFilled, , , ) = _positionManager.getPendingOrderDetail(
-                    limitOrder[i].pip,
-                    limitOrder[i].orderId
+                    _limitOrders[i].pip,
+                    _limitOrders[i].orderId
                 );
                 if (isFilled != true) {
-                    subLimitOrder[index] = limitOrder[i];
+                    subLimitOrders[index] = _limitOrders[i];
                     _positionManager.updatePartialFilledOrder(
-                        limitOrder[i].pip,
-                        limitOrder[i].orderId
+                        _limitOrders[i].pip,
+                        _limitOrders[i].orderId
                     );
                     index++;
                 }
             }
         }
-        if (reduceLimitOrder.length > 0) {
+        if (_reduceLimitOrders.length > 0) {
             uint256 index = 0;
-            for (uint256 i = 0; i < reduceLimitOrder.length; i++) {
+            for (uint256 i = 0; i < _reduceLimitOrders.length; i++) {
                 (bool isFilled, , , ) = _positionManager.getPendingOrderDetail(
-                    reduceLimitOrder[i].pip,
-                    reduceLimitOrder[i].orderId
+                    _reduceLimitOrders[i].pip,
+                    _reduceLimitOrders[i].orderId
                 );
                 if (isFilled != true) {
-                    subReduceLimitOrder[index] = reduceLimitOrder[i];
+                    subReduceLimitOrders[index] = _reduceLimitOrders[i];
                     _positionManager.updatePartialFilledOrder(
-                        reduceLimitOrder[i].pip,
-                        reduceLimitOrder[i].orderId
+                        _reduceLimitOrders[i].pip,
+                        _reduceLimitOrders[i].orderId
                     );
                     index++;
                 }
             }
         }
-        return (subLimitOrder, subReduceLimitOrder);
+        return (subLimitOrders, subReduceLimitOrders);
     }
 
     function calculateLimitOrder(
-        address positionManager,
+        address _positionManager,
         PositionLimitOrder.Data[] memory _limitOrders,
         PositionLimitOrder.Data[] memory _reduceOrders,
         Position.Data memory _positionData
@@ -265,7 +265,7 @@ library PositionHouseFunction {
         for (uint256 i = 0; i < _limitOrders.length; i++) {
             if (_limitOrders[i].pip != 0) {
                 _positionData = accumulateLimitOrderToPositionData(
-                    positionManager,
+                    _positionManager,
                     _limitOrders[i],
                     _positionData,
                     _limitOrders[i].entryPrice,
@@ -276,7 +276,7 @@ library PositionHouseFunction {
         for (uint256 i = 0; i < _reduceOrders.length; i++) {
             if (_reduceOrders[i].pip != 0) {
                 _positionData = accumulateLimitOrderToPositionData(
-                    positionManager,
+                    _positionManager,
                     _reduceOrders[i],
                     _positionData,
                     _reduceOrders[i].entryPrice,
@@ -288,14 +288,14 @@ library PositionHouseFunction {
     }
 
     function accumulateLimitOrderToPositionData(
-        address addressPositionManager,
-        PositionLimitOrder.Data memory limitOrder,
-        Position.Data memory positionData,
-        uint256 entryPrice,
-        uint256 reduceQuantity
+        address _addressPositionManager,
+        PositionLimitOrder.Data memory _limitOrder,
+        Position.Data memory _positionData,
+        uint256 _entryPrice,
+        uint256 _reduceQuantity
     ) public view returns (Position.Data memory) {
         IPositionManager _positionManager = IPositionManager(
-            addressPositionManager
+            _addressPositionManager
         );
 
         (
@@ -304,31 +304,31 @@ library PositionHouseFunction {
             uint256 quantity,
             uint256 partialFilled
         ) = _positionManager.getPendingOrderDetail(
-                limitOrder.pip,
-                limitOrder.orderId
+                _limitOrder.pip,
+                _limitOrder.orderId
             );
         if (isFilled) {
             int256 _orderQuantity;
-            if (reduceQuantity == 0 && entryPrice == 0) {
+            if (_reduceQuantity == 0 && _entryPrice == 0) {
                 _orderQuantity = isBuy ? int256(quantity) : -int256(quantity);
-            } else if (reduceQuantity != 0 && entryPrice == 0) {
+            } else if (_reduceQuantity != 0 && _entryPrice == 0) {
                 _orderQuantity = isBuy
-                    ? int256(quantity - reduceQuantity)
-                    : -int256(quantity - reduceQuantity);
+                    ? int256(quantity - _reduceQuantity)
+                    : -int256(quantity - _reduceQuantity);
             } else {
                 _orderQuantity = isBuy
-                    ? int256(reduceQuantity)
-                    : -int256(reduceQuantity);
+                    ? int256(_reduceQuantity)
+                    : -int256(_reduceQuantity);
             }
-            uint256 _orderNotional = entryPrice == 0
+            uint256 _orderNotional = _entryPrice == 0
                 ? ((_orderQuantity.abs() *
-                    _positionManager.pipToPrice(limitOrder.pip)) /
+                    _positionManager.pipToPrice(_limitOrder.pip)) /
                     _positionManager.getBaseBasisPoint())
-                : ((_orderQuantity.abs() * entryPrice) /
+                : ((_orderQuantity.abs() * _entryPrice) /
                     _positionManager.getBaseBasisPoint());
             // IMPORTANT UPDATE FORMULA WITH LEVERAGE
-            uint256 _orderMargin = _orderNotional / limitOrder.leverage;
-            positionData = positionData.accumulateLimitOrder(
+            uint256 _orderMargin = _orderNotional / _limitOrder.leverage;
+            _positionData = _positionData.accumulateLimitOrder(
                 _orderQuantity,
                 _orderMargin,
                 _orderNotional
@@ -336,69 +336,69 @@ library PositionHouseFunction {
         } else if (!isFilled && partialFilled != 0) {
             // partial filled
             int256 _partialQuantity;
-            if (reduceQuantity == 0 && entryPrice == 0) {
+            if (_reduceQuantity == 0 && _entryPrice == 0) {
                 _partialQuantity = isBuy
                     ? int256(partialFilled)
                     : -int256(partialFilled);
-            } else if (reduceQuantity != 0 && entryPrice == 0) {
-                int256 _partialQuantityTemp = partialFilled > reduceQuantity
-                    ? int256(partialFilled - reduceQuantity)
+            } else if (_reduceQuantity != 0 && _entryPrice == 0) {
+                int256 _partialQuantityTemp = partialFilled > _reduceQuantity
+                    ? int256(partialFilled - _reduceQuantity)
                     : int256(0);
                 _partialQuantity = isBuy
                     ? _partialQuantityTemp
                     : -_partialQuantityTemp;
             } else {
-                int256 _partialQuantityTemp = partialFilled > reduceQuantity
-                    ? int256(reduceQuantity)
+                int256 _partialQuantityTemp = partialFilled > _reduceQuantity
+                    ? int256(_reduceQuantity)
                     : int256(partialFilled);
                 _partialQuantity = isBuy
                     ? _partialQuantityTemp
                     : -_partialQuantityTemp;
             }
-            uint256 _partialOpenNotional = entryPrice == 0
+            uint256 _partialOpenNotional = _entryPrice == 0
                 ? ((_partialQuantity.abs() *
-                    _positionManager.pipToPrice(limitOrder.pip)) /
+                    _positionManager.pipToPrice(_limitOrder.pip)) /
                     _positionManager.getBaseBasisPoint())
-                : ((_partialQuantity.abs() * entryPrice) /
+                : ((_partialQuantity.abs() * _entryPrice) /
                     _positionManager.getBaseBasisPoint());
             // IMPORTANT UPDATE FORMULA WITH LEVERAGE
-            uint256 _partialMargin = _partialOpenNotional / limitOrder.leverage;
-            positionData = positionData.accumulateLimitOrder(
+            uint256 _partialMargin = _partialOpenNotional / _limitOrder.leverage;
+            _positionData = _positionData.accumulateLimitOrder(
                 _partialQuantity,
                 _partialMargin,
                 _partialOpenNotional
             );
         }
-        positionData.leverage = positionData.leverage >= limitOrder.leverage
-            ? positionData.leverage
-            : limitOrder.leverage;
-        return positionData;
+        _positionData.leverage = _positionData.leverage >= _limitOrder.leverage
+            ? _positionData.leverage
+            : _limitOrder.leverage;
+        return _positionData;
     }
 
     function getListOrderPending(
-        address addressPositionManager,
+        address _addressPositionManager,
         address _trader,
-        PositionLimitOrder.Data[] memory limitOrder,
-        PositionLimitOrder.Data[] memory reduceLimitOrder
+        PositionLimitOrder.Data[] memory _limitOrders,
+        PositionLimitOrder.Data[] memory _reduceLimitOrders
     ) public view returns (PositionHouseStorage.LimitOrderPending[] memory) {
         IPositionManager _positionManager = IPositionManager(
-            addressPositionManager
+            _addressPositionManager
         );
-        if (limitOrder.length + reduceLimitOrder.length > 0) {
+        if (_limitOrders.length + _reduceLimitOrders.length > 0) {
             PositionHouseStorage.LimitOrderPending[]
                 memory listPendingOrderData = new PositionHouseStorage.LimitOrderPending[](
-                    limitOrder.length + reduceLimitOrder.length + 1
+                    _limitOrders.length + _reduceLimitOrders.length + 1
                 );
             uint256 index = 0;
-            for (uint256 i = 0; i < limitOrder.length; i++) {
+            for (uint256 i = 0; i < _limitOrders.length; i++) {
                 (
                     bool isFilled,
                     bool isBuy,
                     uint256 quantity,
                     uint256 partialFilled
                 ) = _positionManager.getPendingOrderDetail(
-                        limitOrder[i].pip,
-                        limitOrder[i].orderId
+                        _limitOrders[i].pip,
+                        _limitOrders[i].orderId
                     );
                 if (!isFilled) {
                     listPendingOrderData[index] = PositionHouseStorage
@@ -406,38 +406,38 @@ library PositionHouseFunction {
                             isBuy: isBuy,
                             quantity: quantity,
                             partialFilled: partialFilled,
-                            pip: limitOrder[i].pip,
-                            leverage: limitOrder[i].leverage,
-                            blockNumber: limitOrder[i].blockNumber,
+                            pip: _limitOrders[i].pip,
+                            leverage: _limitOrders[i].leverage,
+                            blockNumber: _limitOrders[i].blockNumber,
                             isReduce: 0,
                             orderIdx: i,
-                            orderId: limitOrder[i].orderId
+                            orderId: _limitOrders[i].orderId
                         });
                     index++;
                 }
             }
-            for (uint256 i = 0; i < reduceLimitOrder.length; i++) {
+            for (uint256 i = 0; i < _reduceLimitOrders.length; i++) {
                 (
                     bool isFilled,
                     bool isBuy,
                     uint256 quantity,
                     uint256 partialFilled
                 ) = _positionManager.getPendingOrderDetail(
-                        reduceLimitOrder[i].pip,
-                        reduceLimitOrder[i].orderId
+                        _reduceLimitOrders[i].pip,
+                        _reduceLimitOrders[i].orderId
                     );
-                if (!isFilled && reduceLimitOrder[i].reduceLimitOrderId == 0) {
+                if (!isFilled && _reduceLimitOrders[i].reduceLimitOrderId == 0) {
                     listPendingOrderData[index] = PositionHouseStorage
                         .LimitOrderPending({
                             isBuy: isBuy,
                             quantity: quantity,
                             partialFilled: partialFilled,
-                            pip: reduceLimitOrder[i].pip,
-                            leverage: reduceLimitOrder[i].leverage,
-                            blockNumber: reduceLimitOrder[i].blockNumber,
+                            pip: _reduceLimitOrders[i].pip,
+                            leverage: _reduceLimitOrders[i].leverage,
+                            blockNumber: _reduceLimitOrders[i].blockNumber,
                             isReduce: 1,
                             orderIdx: i,
-                            orderId: reduceLimitOrder[i].orderId
+                            orderId: _reduceLimitOrders[i].orderId
                         });
                     index++;
                 }
@@ -454,19 +454,19 @@ library PositionHouseFunction {
     }
 
     function getPositionNotionalAndUnrealizedPnl(
-        address addressPositionManager,
+        address _addressPositionManager,
         address _trader,
         PositionHouseStorage.PnlCalcOption _pnlCalcOption,
-        Position.Data memory position
+        Position.Data memory _position
     ) public view returns (uint256 positionNotional, int256 unrealizedPnl) {
         IPositionManager positionManager = IPositionManager(
-            addressPositionManager
+            _addressPositionManager
         );
 
-        uint256 oldPositionNotional = position.openNotional;
+        uint256 oldPositionNotional = _position.openNotional;
         if (_pnlCalcOption == PositionHouseStorage.PnlCalcOption.SPOT_PRICE) {
             positionNotional =
-                (positionManager.getPrice() * position.quantity.abs()) /
+                (positionManager.getPrice() * _position.quantity.abs()) /
                 positionManager.getBaseBasisPoint();
         } else if (_pnlCalcOption == PositionHouseStorage.PnlCalcOption.TWAP) {
             // TODO get twap price
@@ -474,7 +474,7 @@ library PositionHouseFunction {
             // TODO get oracle price
         }
 
-        if (position.side() == Position.Side.LONG) {
+        if (_position.side() == Position.Side.LONG) {
             unrealizedPnl =
                 int256(positionNotional) -
                 int256(oldPositionNotional);
@@ -486,9 +486,9 @@ library PositionHouseFunction {
     }
 
     function calcMaintenanceDetail(
-        Position.Data memory positionData,
-        uint256 maintenanceMarginRatio,
-        int256 unrealizedPnl
+        Position.Data memory _positionData,
+        uint256 _maintenanceMarginRatio,
+        int256 _unrealizedPnl
     )
         public
         view
@@ -499,9 +499,9 @@ library PositionHouseFunction {
         )
     {
         maintenanceMargin =
-            (positionData.margin * maintenanceMarginRatio) /
+            (_positionData.margin * _maintenanceMarginRatio) /
             100;
-        marginBalance = int256(positionData.margin) + unrealizedPnl;
+        marginBalance = int256(_positionData.margin) + _unrealizedPnl;
         if (marginBalance <= 0) {
             marginRatio = 100;
         } else {
@@ -512,12 +512,12 @@ library PositionHouseFunction {
     function getClaimAmount(
         address _positionManagerAddress,
         address _trader,
-        Position.Data memory positionData,
+        Position.Data memory _positionData,
         PositionLimitOrder.Data[] memory _limitOrders,
         PositionLimitOrder.Data[] memory _reduceOrders,
-        Position.Data memory positionMapData,
-        uint256 canClaimAmountInMap,
-        int256 manualMarginInMap
+        Position.Data memory _positionMapData,
+        uint256 _canClaimAmountInMap,
+        int256 _manualMarginInMap
     ) public view returns (int256 totalClaimableAmount) {
         IPositionManager _positionManager = IPositionManager(
             _positionManagerAddress
@@ -539,28 +539,28 @@ library PositionHouseFunction {
                         (
                             indexReduce,
                             totalClaimableAmount,
-                            positionData
+                            _positionData
                         ) = calculatePnlFromReduceOrder(
                             _positionManager,
                             indexReduce,
                             totalClaimableAmount,
-                            positionData,
+                            _positionData,
                             _reduceOrders,
-                            positionMapData
+                            _positionMapData
                         );
                     }
-                    positionData = accumulateLimitOrderToPositionData(
+                    _positionData = accumulateLimitOrderToPositionData(
                         _positionManagerAddress,
                         _limitOrders[indexLimit],
-                        positionData,
+                        _positionData,
                         _limitOrders[indexLimit].entryPrice,
                         _limitOrders[indexLimit].reduceQuantity
                     );
                 } else {
-                    positionData = accumulateLimitOrderToPositionData(
+                    _positionData = accumulateLimitOrderToPositionData(
                         _positionManagerAddress,
                         _limitOrders[indexLimit],
-                        positionData,
+                        _positionData,
                         _limitOrders[indexLimit].entryPrice,
                         _limitOrders[indexLimit].reduceQuantity
                     );
@@ -590,9 +590,9 @@ library PositionHouseFunction {
 
         totalClaimableAmount =
             totalClaimableAmount +
-            int256(canClaimAmountInMap) +
-            manualMarginInMap +
-            int256(positionMapData.margin);
+            int256(_canClaimAmountInMap) +
+            _manualMarginInMap +
+            int256(_positionMapData.margin);
         if (totalClaimableAmount <= 0) {
             totalClaimableAmount = 0;
         }
@@ -604,7 +604,7 @@ library PositionHouseFunction {
         int256 _totalClaimableAmount,
         Position.Data memory _positionData,
         PositionLimitOrder.Data[] memory _reduceOrders,
-        Position.Data memory positionMapData
+        Position.Data memory _positionMapData
     )
         public
         view
@@ -642,7 +642,7 @@ library PositionHouseFunction {
                         ((
                             _positionData.openNotional != 0
                                 ? _positionData.openNotional
-                                : positionMapData.openNotional
+                                : _positionMapData.openNotional
                         ) *
                             (
                                 (partialFilled <
@@ -655,7 +655,7 @@ library PositionHouseFunction {
                             (
                                 _positionData.quantity.abs() != 0
                                     ? _positionData.quantity.abs()
-                                    : positionMapData.quantity.abs()
+                                    : _positionMapData.quantity.abs()
                             )
                     );
                 _totalClaimableAmount += _reduceOrders[_indexReduce].isBuy == 2
@@ -682,13 +682,13 @@ library PositionHouseFunction {
 
     // TODO edit access modifier cause this function called write function in position manager
     function openMarketOrder(
-        address addressPositionManager,
+        address _addressPositionManager,
         uint256 _quantity,
         Position.Side _side,
         address _trader
     ) internal returns (int256 exchangedQuantity, uint256 openNotional) {
         IPositionManager _positionManager = IPositionManager(
-            addressPositionManager
+            _addressPositionManager
         );
 
         uint256 exchangedSize;
@@ -703,40 +703,40 @@ library PositionHouseFunction {
     }
 
     function increasePosition(
-        address addressPositionManager,
+        address _addressPositionManager,
         Position.Side _side,
         int256 _quantity,
         uint256 _leverage,
         address _trader,
-        Position.Data memory totalPosition,
-        Position.Data memory marketPosition,
-        int256[] memory cumulativePremiumFraction
+        Position.Data memory _totalPosition,
+        Position.Data memory _marketPosition,
+        int256[] memory _cumulativePremiumFractions
     ) public returns (PositionHouseStorage.PositionResp memory positionResp) {
-        //        IPositionManager _positionManager = IPositionManager(addressPositionManager);
+        //        IPositionManager _positionManager = IPositionManager(_addressPositionManager);
         (
             positionResp.exchangedPositionSize,
             positionResp.exchangedQuoteAssetAmount
         ) = openMarketOrder(
-            addressPositionManager,
+            _addressPositionManager,
             _quantity.abs(),
             _side,
             _trader
         );
         if (positionResp.exchangedPositionSize != 0) {
-            //            Position.Data memory marketPosition = positionMap[address(_positionManager)][_trader];
-            int256 _newSize = marketPosition.quantity +
+            //            Position.Data memory _marketPosition = positionMap[address(_positionManager)][_trader];
+            int256 _newSize = _marketPosition.quantity +
                 positionResp.exchangedPositionSize;
             uint256 increaseMarginRequirement = positionResp
                 .exchangedQuoteAssetAmount / _leverage;
             // TODO update function latestCumulativePremiumFraction
 
-            //            Position.Data memory totalPosition = getPosition(address(_positionManager), _trader);
+            //            Position.Data memory _totalPosition = getPosition(address(_positionManager), _trader);
 
             (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
-                addressPositionManager,
+                _addressPositionManager,
                 _trader,
                 PositionHouseStorage.PnlCalcOption.SPOT_PRICE,
-                totalPosition
+                _totalPosition
             );
 
             positionResp.unrealizedPnl = unrealizedPnl;
@@ -747,14 +747,14 @@ library PositionHouseFunction {
                 _newSize,
                 handleMarginInIncrease(
                     increaseMarginRequirement,
-                    marketPosition,
-                    totalPosition,
-                    cumulativePremiumFraction
+                    _marketPosition,
+                    _totalPosition,
+                    _cumulativePremiumFractions
                 ),
                 handleNotionalInIncrease(
                     positionResp.exchangedQuoteAssetAmount,
-                    marketPosition,
-                    totalPosition
+                    _marketPosition,
+                    _totalPosition
                 ),
                 0,
                 block.number,
@@ -764,40 +764,40 @@ library PositionHouseFunction {
     }
 
     function openReversePosition(
-        address addressPositionManager,
+        address _addressPositionManager,
         Position.Side _side,
         int256 _quantity,
         uint256 _leverage,
         address _trader,
-        Position.Data memory totalPosition,
-        Position.Data memory marketPosition,
-        int256[] memory cumulativePremiumFraction
+        Position.Data memory _totalPosition,
+        Position.Data memory _marketPosition,
+        int256[] memory _cumulativePremiumFractions
     ) public returns (PositionHouseStorage.PositionResp memory positionResp) {
         IPositionManager _positionManager = IPositionManager(
-            addressPositionManager
+            _addressPositionManager
         );
-        uint256 reduceMarginRequirement = (totalPosition.margin *
-            _quantity.abs()) / totalPosition.quantity.abs();
-        int256 totalQuantity = marketPosition.quantity + _quantity;
+        uint256 reduceMarginRequirement = (_totalPosition.margin *
+            _quantity.abs()) / _totalPosition.quantity.abs();
+        int256 totalQuantity = _marketPosition.quantity + _quantity;
         (positionResp.exchangedPositionSize, ) = openMarketOrder(
-            addressPositionManager,
+            _addressPositionManager,
             _quantity.abs(),
             _side,
             _trader
         );
 
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
-            addressPositionManager,
+            _addressPositionManager,
             _trader,
             PositionHouseStorage.PnlCalcOption.SPOT_PRICE,
-            totalPosition
+            _totalPosition
         );
         positionResp.realizedPnl =
             (unrealizedPnl * int256(positionResp.exchangedPositionSize)) /
-            totalPosition.quantity;
+            _totalPosition.quantity;
         positionResp.exchangedQuoteAssetAmount =
             (_quantity.abs() *
-                totalPosition.getEntryPrice(addressPositionManager)) /
+                _totalPosition.getEntryPrice(_addressPositionManager)) /
             _positionManager.getBaseBasisPoint();
         // NOTICE margin to vault can be negative
         positionResp.marginToVault = -(int256(reduceMarginRequirement) +
@@ -809,14 +809,14 @@ library PositionHouseFunction {
                 totalQuantity,
                 handleMarginInOpenReverse(
                     reduceMarginRequirement,
-                    marketPosition,
-                    totalPosition,
-                    cumulativePremiumFraction
+                    _marketPosition,
+                    _totalPosition,
+                    _cumulativePremiumFractions
                 ),
                 handleNotionalInOpenReverse(
                     positionResp.exchangedQuoteAssetAmount,
-                    marketPosition,
-                    totalPosition
+                    _marketPosition,
+                    _totalPosition
                 ),
                 0,
                 block.number,
@@ -827,34 +827,34 @@ library PositionHouseFunction {
     }
 
     function calcRemainMarginWithFundingPayment(
-        Position.Data memory oldPosition,
-        uint256 deltaMargin,
-        int256[] memory cumulativePremiumFractions
+        Position.Data memory _oldPosition,
+        uint256 _deltaMargin,
+        int256[] memory _cumulativePremiumFractions
     ) internal view returns (uint256 remainMargin) {
         int256 fundingPayment;
         // calculate fundingPayment
         int256 latestCumulativePremiumFraction = getLatestCumulativePremiumFraction(
-                cumulativePremiumFractions
+                _cumulativePremiumFractions
             );
-        if (oldPosition.quantity != 0) {
+        if (_oldPosition.quantity != 0) {
             fundingPayment =
                 (latestCumulativePremiumFraction -
-                    oldPosition.lastUpdatedCumulativePremiumFraction) *
-                oldPosition.quantity;
+                    _oldPosition.lastUpdatedCumulativePremiumFraction) *
+                _oldPosition.quantity;
         }
 
         // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt
-        if (int256(deltaMargin) + fundingPayment >= 0) {
-            remainMargin = uint256(int256(deltaMargin) + fundingPayment);
+        if (int256(_deltaMargin) + fundingPayment >= 0) {
+            remainMargin = uint256(int256(_deltaMargin) + fundingPayment);
         }
     }
 
     function getLatestCumulativePremiumFraction(
-        int256[] memory cumulativePremiumFractions
+        int256[] memory _cumulativePremiumFractions
     ) public view returns (int256) {
-        uint256 len = cumulativePremiumFractions.length;
+        uint256 len = _cumulativePremiumFractions.length;
         if (len > 0) {
-            return cumulativePremiumFractions[len - 1];
+            return _cumulativePremiumFractions[len - 1];
         }
     }
 }

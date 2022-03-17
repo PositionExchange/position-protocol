@@ -130,8 +130,8 @@ contract PositionManager is
         return (uint256(singleSlot.pip) * BASE_BASIC_POINT) / basisPoint;
     }
 
-    function pipToPrice(uint128 pip) public view returns (uint256) {
-        return (uint256(pip) * BASE_BASIC_POINT) / basisPoint;
+    function pipToPrice(uint128 _pip) public view returns (uint256) {
+        return (uint256(_pip) * BASE_BASIC_POINT) / basisPoint;
     }
 
     function getLiquidityInCurrentPip() public view returns (uint128) {
@@ -141,19 +141,19 @@ contract PositionManager is
                 : 0;
     }
 
-    function calcAdjustMargin(uint256 adjustMargin)
+    function calcAdjustMargin(uint256 _adjustMargin)
         public
         view
         returns (uint256)
     {
-        return adjustMargin;
+        return _adjustMargin;
     }
 
-    function hasLiquidity(uint128 pip) public view returns (bool) {
-        return liquidityBitmap.hasLiquidity(pip);
+    function hasLiquidity(uint128 _pip) public view returns (bool) {
+        return liquidityBitmap.hasLiquidity(_pip);
     }
 
-    function getPendingOrderDetail(uint128 pip, uint64 orderId)
+    function getPendingOrderDetail(uint128 _pip, uint64 _orderId)
         public
         view
         returns (
@@ -163,10 +163,10 @@ contract PositionManager is
             uint256 partialFilled
         )
     {
-        (isFilled, isBuy, size, partialFilled) = tickPosition[pip]
-            .getQueueOrder(orderId);
+        (isFilled, isBuy, size, partialFilled) = tickPosition[_pip]
+            .getQueueOrder(_orderId);
 
-        if (!liquidityBitmap.hasLiquidity(pip)) {
+        if (!liquidityBitmap.hasLiquidity(_pip)) {
             isFilled = true;
         }
         if (size != 0 && size == partialFilled) {
@@ -208,9 +208,9 @@ contract PositionManager is
         fee = calcFee(notional);
     }
 
-    function updatePartialFilledOrder(uint128 pip, uint64 orderId) public {
-        uint256 newSize = tickPosition[pip].updateOrderWhenClose(orderId);
-        emit LimitOrderUpdated(orderId, pip, newSize);
+    function updatePartialFilledOrder(uint128 _pip, uint64 _orderId) public {
+        uint256 newSize = tickPosition[_pip].updateOrderWhenClose(_orderId);
+        emit LimitOrderUpdated(_orderId, _pip, newSize);
     }
 
     /**
@@ -225,26 +225,26 @@ contract PositionManager is
         return 0;
     }
 
-    function cancelLimitOrder(uint128 pip, uint64 orderId)
+    function cancelLimitOrder(uint128 _pip, uint64 _orderId)
         external
         onlyCounterParty
         returns (uint256 size, uint256 partialFilled)
     {
-        (size, partialFilled) = tickPosition[pip].cancelLimitOrder(orderId);
+        (size, partialFilled) = tickPosition[_pip].cancelLimitOrder(_orderId);
         if (
-            orderId == tickPosition[pip].currentIndex &&
-            orderId <= tickPosition[pip].filledIndex
+            _orderId == tickPosition[_pip].currentIndex &&
+            _orderId <= tickPosition[_pip].filledIndex
         ) {
-            liquidityBitmap.toggleSingleBit(pip, false);
+            liquidityBitmap.toggleSingleBit(_pip, false);
             singleSlot.isFullBuy = 0;
         }
-        emit LimitOrderCancelled(orderId, pip, size);
+        emit LimitOrderCancelled(_orderId, _pip, size);
     }
 
     function openLimitPosition(
-        uint128 pip,
-        uint128 size,
-        bool isBuy
+        uint128 _pip,
+        uint128 _size,
+        bool _isBuy
     )
         external
         whenNotPaused
@@ -255,95 +255,95 @@ contract PositionManager is
             uint256 openNotional
         )
     {
-        if (isBuy && singleSlot.pip != 0) {
+        if (_isBuy && singleSlot.pip != 0) {
             require(
-                pip <= singleSlot.pip &&
-                    int128(pip) >=
+                _pip <= singleSlot.pip &&
+                    int128(_pip) >=
                     (int128(singleSlot.pip) -
                         int128(maxFindingWordsIndex * 250)),
                 Errors.VL_LONG_PRICE_THAN_CURRENT_PRICE
             );
         } else {
             require(
-                pip >= singleSlot.pip &&
-                    pip <= (singleSlot.pip + maxFindingWordsIndex * 250),
+                _pip >= singleSlot.pip &&
+                    _pip <= (singleSlot.pip + maxFindingWordsIndex * 250),
                 Errors.VL_SHORT_PRICE_LESS_CURRENT_PRICE
             );
         }
         SingleSlot memory _singleSlot = singleSlot;
-        bool hasLiquidity = liquidityBitmap.hasLiquidity(pip);
+        bool hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
         //save gas
         if (
-            pip == _singleSlot.pip &&
+            _pip == _singleSlot.pip &&
             hasLiquidity &&
-            _singleSlot.isFullBuy != (isBuy ? 1 : 2)
+            _singleSlot.isFullBuy != (_isBuy ? 1 : 2)
         ) {
             // open market
             (sizeOut, openNotional) = openMarketPositionWithMaxPip(
-                size,
-                isBuy,
-                pip
+                _size,
+                _isBuy,
+                _pip
             );
-            hasLiquidity = liquidityBitmap.hasLiquidity(pip);
+            hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
         }
-        if (size > sizeOut) {
+        if (_size > sizeOut) {
             if (
-                pip == _singleSlot.pip &&
-                _singleSlot.isFullBuy != (isBuy ? 1 : 2)
+                _pip == _singleSlot.pip &&
+                _singleSlot.isFullBuy != (_isBuy ? 1 : 2)
             ) {
-                singleSlot.isFullBuy = isBuy ? 1 : 2;
+                singleSlot.isFullBuy = _isBuy ? 1 : 2;
             }
             //TODO validate pip
             // convert tick to price
             // save at that pip has how many liquidity
-            orderId = tickPosition[pip].insertLimitOrder(
-                size - uint128(sizeOut),
+            orderId = tickPosition[_pip].insertLimitOrder(
+                _size - uint128(sizeOut),
                 hasLiquidity,
-                isBuy
+                _isBuy
             );
             if (!hasLiquidity) {
                 //set the bit to mark it has liquidity
-                liquidityBitmap.toggleSingleBit(pip, true);
+                liquidityBitmap.toggleSingleBit(_pip, true);
             }
         }
         // TODO update emit event
-        emit LimitOrderCreated(orderId, pip, size, isBuy);
+        emit LimitOrderCreated(orderId, _pip, _size, _isBuy);
     }
 
     function openMarketPositionWithMaxPip(
-        uint256 size,
-        bool isBuy,
-        uint128 maxPip
+        uint256 _size,
+        bool _isBuy,
+        uint128 _maxPip
     )
         public
         whenNotPaused
         onlyCounterParty
         returns (uint256 sizeOut, uint256 openNotional)
     {
-        return _internalOpenMarketOrder(size, isBuy, maxPip);
+        return _internalOpenMarketOrder(_size, _isBuy, _maxPip);
     }
 
-    function openMarketPosition(uint256 size, bool isBuy)
+    function openMarketPosition(uint256 _size, bool _isBuy)
         external
         whenNotPaused
         onlyCounterParty
         returns (uint256 sizeOut, uint256 openNotional)
     {
-        return _internalOpenMarketOrder(size, isBuy, 0);
+        return _internalOpenMarketOrder(_size, _isBuy, 0);
     }
 
     function _internalOpenMarketOrder(
-        uint256 size,
-        bool isBuy,
-        uint128 maxPip
+        uint256 _size,
+        bool _isBuy,
+        uint128 _maxPip
     ) internal returns (uint256 sizeOut, uint256 openNotional) {
-        require(size != 0, Errors.VL_INVALID_SIZE);
+        require(_size != 0, Errors.VL_INVALID_SIZE);
         // TODO lock
         // get current tick liquidity
         SingleSlot memory _initialSingleSlot = singleSlot;
         //save gas
         SwapState memory state = SwapState({
-            remainingSize: size,
+            remainingSize: _size,
             pip: _initialSingleSlot.pip
         });
         uint128 startPip;
@@ -357,7 +357,7 @@ contract PositionManager is
             _initialSingleSlot.isFullBuy
         );
         if (currentLiquiditySide != CurrentLiquiditySide.NotSet) {
-            if (isBuy)
+            if (_isBuy)
                 // if buy and latest liquidity is buy. skip current pip
                 isSkipFirstPip =
                     currentLiquiditySide == CurrentLiquiditySide.Buy;
@@ -372,13 +372,13 @@ contract PositionManager is
             (step.pipNext) = liquidityBitmap.findHasLiquidityInMultipleWords(
                 state.pip,
                 maxFindingWordsIndex,
-                !isBuy
+                !_isBuy
             );
-            if (maxPip != 0 && step.pipNext != maxPip) break;
+            if (_maxPip != 0 && step.pipNext != _maxPip) break;
             if (step.pipNext == 0) {
                 // no more next pip
                 // state pip back 1 pip
-                if (isBuy) {
+                if (_isBuy) {
                     state.pip--;
                 } else {
                     state.pip++;
@@ -404,7 +404,7 @@ contract PositionManager is
                         state.remainingSize = 0;
                         state.pip = step.pipNext;
                         isFullBuy = uint8(
-                            !isBuy
+                            !_isBuy
                                 ? CurrentLiquiditySide.Buy
                                 : CurrentLiquiditySide.Sell
                         );
@@ -414,7 +414,7 @@ contract PositionManager is
                         openNotional += ((liquidity *
                             pipToPrice(step.pipNext)) / BASE_BASIC_POINT);
                         state.pip = state.remainingSize > 0
-                            ? (isBuy ? step.pipNext + 1 : step.pipNext - 1)
+                            ? (_isBuy ? step.pipNext + 1 : step.pipNext - 1)
                             : step.pipNext;
                         passedPipCount++;
                     } else {
@@ -430,7 +430,7 @@ contract PositionManager is
                     }
                 } else {
                     isSkipFirstPip = false;
-                    state.pip = isBuy ? step.pipNext + 1 : step.pipNext - 1;
+                    state.pip = _isBuy ? step.pipNext + 1 : step.pipNext - 1;
                 }
             }
         }
@@ -440,20 +440,20 @@ contract PositionManager is
                 liquidityBitmap.unsetBitsRange(
                     startPip,
                     partialFilledQuantity > 0
-                        ? (isBuy ? state.pip - 1 : state.pip + 1)
+                        ? (_isBuy ? state.pip - 1 : state.pip + 1)
                         : state.pip
                 );
             }
             // TODO write a checkpoint that we shift a range of ticks
         }
-        singleSlot.pip = maxPip != 0 ? maxPip : state.pip;
+        singleSlot.pip = _maxPip != 0 ? _maxPip : state.pip;
         singleSlot.isFullBuy = isFullBuy;
-        sizeOut = size - state.remainingSize;
+        sizeOut = _size - state.remainingSize;
         addReserveSnapshot();
         emit MarketFilled(
-            isBuy,
+            _isBuy,
             sizeOut,
-            maxPip != 0 ? maxPip : state.pip,
+            _maxPip != 0 ? _maxPip : state.pip,
             passedPipCount,
             partialFilledQuantity
         );
@@ -465,27 +465,27 @@ contract PositionManager is
     }
 
     function getLiquidityInPipRange(
-        uint128 fromPip,
-        uint256 dataLength,
-        bool toHigher
+        uint128 _fromPip,
+        uint256 _dataLength,
+        bool _toHigher
     ) public view returns (LiquidityOfEachPip[] memory, uint128) {
-        uint128[] memory allInitializedPip = new uint128[](uint128(dataLength));
-        allInitializedPip = liquidityBitmap.findAllLiquidityInMultipleWords(
-            fromPip,
-            dataLength,
-            toHigher
+        uint128[] memory allInitializedPips = new uint128[](uint128(_dataLength));
+        allInitializedPips = liquidityBitmap.findAllLiquidityInMultipleWords(
+            _fromPip,
+            _dataLength,
+            _toHigher
         );
         LiquidityOfEachPip[] memory allLiquidity = new LiquidityOfEachPip[](
-            dataLength
+            _dataLength
         );
 
-        for (uint256 i = 0; i < dataLength; i++) {
+        for (uint256 i = 0; i < _dataLength; i++) {
             allLiquidity[i] = LiquidityOfEachPip({
-                pip: allInitializedPip[i],
-                liquidity: tickPosition[allInitializedPip[i]].liquidity
+                pip: allInitializedPips[i],
+                liquidity: tickPosition[allInitializedPips[i]].liquidity
             });
         }
-        return (allLiquidity, allInitializedPip[dataLength - 1]);
+        return (allLiquidity, allInitializedPips[_dataLength - 1]);
     }
 
     function getQuoteAsset() public view returns (IERC20) {
@@ -510,9 +510,9 @@ contract PositionManager is
         emit UpdateBaseBasicPoint(_newBaseBasisPoint);
     }
 
-    function updateTollRatio(uint256 newTollRatio) public onlyOwner {
-        tollRatio = newTollRatio;
-        emit UpdateTollRatio(newTollRatio);
+    function updateTollRatio(uint256 _newTollRatio) public onlyOwner {
+        tollRatio = _newTollRatio;
+        emit UpdateTollRatio(_newTollRatio);
     }
 
     function setCounterParty(address _counterParty) public onlyOwner {
@@ -671,13 +671,13 @@ contract PositionManager is
         return weightedPrice / _intervalInSeconds;
     }
 
-    function getPriceWithSpecificSnapshot(TwapPriceCalcParams memory params)
+    function getPriceWithSpecificSnapshot(TwapPriceCalcParams memory _params)
         internal
         view
         virtual
         returns (uint256)
     {
-        return pipToPrice(reserveSnapshots[params.snapshotIndex].pip);
+        return pipToPrice(reserveSnapshots[_params.snapshotIndex].pip);
     }
 
     //
