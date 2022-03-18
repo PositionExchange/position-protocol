@@ -78,6 +78,9 @@ library TickPosition {
         unchecked {
             uint64 index = _self.filledIndex;
             uint128 totalSize = 0;
+            if (_self.orderQueue[index].size == _self.orderQueue[index].partialFilled) {
+                index++;
+            }
             while (totalSize < _amount) {
                 totalSize += _self.orderQueue[index].size;
                 index++;
