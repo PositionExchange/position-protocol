@@ -4919,5 +4919,65 @@ describe("PositionHouse_02", () => {
             console.log((await positionHouse.getPosition(positionManager.address, trader0.address)).toString())
 
         })
+
+        it("test partial fill after close a limit order", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader0
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('2'),
+                _trader: trader0
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader0
+            })
+
+            const listOrderPending1 = await positionHouse.getListOrderPending(positionManager.address, trader0.address)
+            console.log("listOrderPending1", listOrderPending1[0].partialFilled.toString())
+            await expect(listOrderPending1[0].partialFilled.toString()).eq("5")
+            console.log("cancel limit order")
+            await positionHouse.connect(trader0).cancelLimitOrder(positionManager.address, 0, 0)
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader0
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('2'),
+                _trader: trader0
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader0
+            })
+
+            const listOrderPending2 = await positionHouse.getListOrderPending(positionManager.address, trader0.address)
+            console.log("listOrderPending2", listOrderPending2[0].partialFilled.toString())
+            await expect(listOrderPending2[0].partialFilled.toString()).eq("5")
+        })
     })
 })
