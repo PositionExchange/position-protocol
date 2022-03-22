@@ -818,7 +818,7 @@ library PositionHouseFunction {
 
     function calcRemainMarginWithFundingPayment(
         Position.Data memory _oldPosition,
-        uint256 _deltaMargin,
+        uint256 _pMargin,
         int256[] memory _cumulativePremiumFractions
     ) internal view returns (uint256 remainMargin) {
         int256 fundingPayment;
@@ -833,8 +833,8 @@ library PositionHouseFunction {
         }
 
         // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt
-        if (int256(_deltaMargin) + fundingPayment >= 0) {
-            remainMargin = uint256(int256(_deltaMargin) + fundingPayment);
+        if (int256(_pMargin) + fundingPayment >= 0) {
+            remainMargin = uint256(int256(_pMargin) + fundingPayment);
         }
     }
 
