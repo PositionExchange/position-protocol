@@ -507,9 +507,9 @@ library PositionHouseFunction {
         address _pmAddress,
         address _trader,
         Position.Data memory _positionData,
+        Position.Data memory _positionDataWithoutLimit,
         PositionLimitOrder.Data[] memory _limitOrders,
         PositionLimitOrder.Data[] memory _reduceLimitOrders,
-        Position.Data memory _positionDataWithoutLimit,
         uint256 _canClaimAmountInMap,
         int256 _manualMarginInMap
     ) public view returns (int256 totalClaimableAmount) {

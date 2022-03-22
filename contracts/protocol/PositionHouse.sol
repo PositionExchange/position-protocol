@@ -110,7 +110,7 @@ contract PositionHouse is
             ? int256(_quantity)
             : -int256(_quantity);
         Position.Data memory oldPosition = getPosition(
-            address(_positionManager),
+            _pmAddress,
             _trader
         );
         if (oldPosition.quantity == 0) {
@@ -449,9 +449,9 @@ contract PositionHouse is
                 _pmAddress,
                 _trader,
                 positionData,
+                positionMap[_pmAddress][_trader],
                 limitOrders[_pmAddress][_trader],
                 reduceLimitOrders[_pmAddress][_trader],
-                positionMap[_pmAddress][_trader],
                 canClaimAmountMap[_pmAddress][_trader],
                 manualMargin[_pmAddress][_trader]
             );
