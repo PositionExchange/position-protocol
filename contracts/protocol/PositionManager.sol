@@ -234,6 +234,7 @@ contract PositionManager is
         onlyCounterParty
         returns (uint256 remainingSize, uint256 partialFilled)
     {
+        require(hasLiquidity(_pip) && _orderId >= tickPosition[_pip].filledIndex, Errors.VL_ONLY_PENDING_ORDER);
         (remainingSize, partialFilled) = tickPosition[_pip].cancelLimitOrder(_orderId);
         if (
             _orderId == tickPosition[_pip].currentIndex &&
