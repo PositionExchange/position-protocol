@@ -236,10 +236,7 @@ contract PositionManager is
     {
         require(hasLiquidity(_pip) && _orderId >= tickPosition[_pip].filledIndex, Errors.VL_ONLY_PENDING_ORDER);
         (remainingSize, partialFilled) = tickPosition[_pip].cancelLimitOrder(_orderId);
-        if (
-            _orderId == tickPosition[_pip].currentIndex &&
-            _orderId - 1 <= tickPosition[_pip].filledIndex
-        ) {
+        if (tickPosition[_pip].liquidity == 0) {
             liquidityBitmap.toggleSingleBit(_pip, false);
             singleSlot.isFullBuy = 0;
         }
