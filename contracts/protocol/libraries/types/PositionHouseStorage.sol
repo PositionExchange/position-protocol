@@ -21,7 +21,6 @@ contract PositionHouseStorage {
 
     struct PositionResp {
         Position.Data position;
-        // NOTICE margin to vault can be negative
         int256 marginToVault;
         int256 realizedPnl;
         int256 unrealizedPnl;
