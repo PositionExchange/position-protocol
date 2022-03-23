@@ -4979,5 +4979,135 @@ describe("PositionHouse_02", () => {
             console.log("listOrderPending2", listOrderPending2[0].partialFilled.toString())
             await expect(listOrderPending2[0].partialFilled.toString()).eq("5")
         })
+
+        it("should uninitialize pip when cancel the last order in pip", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader0
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('4'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+            await cancelLimitOrder(positionManager.address, trader0, "2", "500000")
+
+            expect(await positionManager.hasLiquidity(BigNumber.from("500000"))).eq(false)
+        })
+
+        it("should uninitialize pip when cancel all of the pending orders in pip", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader0
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader0
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader0
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader0
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('4'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+            await cancelLimitOrder(positionManager.address, trader0, "4", "500000")
+            await cancelLimitOrder(positionManager.address, trader0, "5", "500000")
+            await cancelLimitOrder(positionManager.address, trader0, "2", "500000")
+            await cancelLimitOrder(positionManager.address, trader0, "3", "500000")
+
+
+            expect(await positionManager.hasLiquidity(BigNumber.from("500000"))).eq(false)
+        })
+
+        it("should change nothing when cancel a fully filled order", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader0
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader0
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5100,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('1'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('7'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+            const position = await positionHouse.getPosition(positionManager.address, trader0.address)
+            expect(position.quantity.toString()).eq("-7")
+            await expect(positionHouse.cancelLimitOrder(positionManager.address, 1, 0)).to.be.revertedWith("21")
+            expect(position.quantity.toString()).eq("-7")
+        })
     })
 })

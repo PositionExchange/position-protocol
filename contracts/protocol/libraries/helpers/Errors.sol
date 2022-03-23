@@ -36,6 +36,7 @@ library Errors {
     string public constant VL_INVALID_SIZE = "18"; // ''
     string public constant VL_NOT_WHITELIST_MANAGER = "19"; // ''
     string public constant VL_INVALID_ORDER = "20"; // ''
+    string public constant VL_ONLY_PENDING_ORDER = "21"; // ''
 
     enum CollateralManagerErrors {
         NO_ERROR
