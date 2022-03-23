@@ -4979,5 +4979,36 @@ describe("PositionHouse_02", () => {
             console.log("listOrderPending2", listOrderPending2[0].partialFilled.toString())
             await expect(listOrderPending2[0].partialFilled.toString()).eq("5")
         })
+
+        it("should uninitialize pip when cancel the last order in pip", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader0
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('4'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+            await cancelLimitOrder(positionManager.address, trader0, "2", "500000")
+
+            expect(await positionManager.hasLiquidity(BigNumber.from("500000"))).eq(false)
+        })
     })
 })

@@ -237,7 +237,7 @@ contract PositionManager is
         (remainingSize, partialFilled) = tickPosition[_pip].cancelLimitOrder(_orderId);
         if (
             _orderId == tickPosition[_pip].currentIndex &&
-            _orderId <= tickPosition[_pip].filledIndex
+            _orderId - 1 <= tickPosition[_pip].filledIndex
         ) {
             liquidityBitmap.toggleSingleBit(_pip, false);
             singleSlot.isFullBuy = 0;
