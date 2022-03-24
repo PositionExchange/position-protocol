@@ -104,7 +104,6 @@ library TickPosition {
             _self.liquidity = _self.liquidity - uint128(size - partialFilled);
         }
         _self.orderQueue[_orderId].update(isBuy, partialFilled);
-
         return (size - partialFilled, partialFilled);
     }
 

@@ -288,6 +288,7 @@ contract PositionManager is
             );
             hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
         }
+        uint128 remainingSize = _size - uint128(sizeOut);
         if (_size > sizeOut) {
             if (
                 _pip == _singleSlot.pip &&
@@ -295,21 +296,18 @@ contract PositionManager is
             ) {
                 singleSlot.isFullBuy = _isBuy ? 1 : 2;
             }
-            //TODO validate pip
-            // convert tick to price
             // save at that pip has how many liquidity
             orderId = tickPosition[_pip].insertLimitOrder(
-                _size - uint128(sizeOut),
+                remainingSize,
                 hasLiquidity,
                 _isBuy
             );
             if (!hasLiquidity) {
-                //set the bit to mark it has liquidity
+                // set the bit to mark it has liquidity
                 liquidityBitmap.toggleSingleBit(_pip, true);
             }
         }
-        // TODO update emit event
-        emit LimitOrderCreated(orderId, _pip, _size, _isBuy);
+        emit LimitOrderCreated(orderId, _pip, remainingSize, _isBuy);
     }
 
     function openMarketPositionWithMaxPip(
@@ -349,8 +347,6 @@ contract PositionManager is
             pip: _initialSingleSlot.pip
         });
         uint128 startPip;
-        //        int128 startWord = _initialSingleSlot.pip >> 8;
-        //        int128 wordIndex = startWord;
         uint128 remainingLiquidity;
         uint8 isFullBuy = 0;
         bool isSkipFirstPip;
