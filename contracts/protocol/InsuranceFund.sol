@@ -29,6 +29,7 @@ contract InsuranceFund is
     IUniswapV2Factory public factory;
 
     event BuyBackAndBurned(address _token, uint256 _tokenAmount, uint256 _posiAmount);
+    event SoldPosiForFund(uint256 _posiAmount, uint256 _tokenAmount);
 
     modifier onlyCounterParty() {
         require(counterParty == _msgSender(), Errors.VL_NOT_COUNTERPARTY);
@@ -67,11 +68,14 @@ contract InsuranceFund is
         address _trader,
         uint256 _amount
     ) public onlyCounterParty {
-        // TODO sold posi to pay for trader
-        // if insurance fund not enough amount for trader, should sold posi and pay for trader
-        //        if (IERC20(_token).balanceOf(address(this)) < amount) {
-        //
-        //        }
+        // if insurance fund not enough amount for trader, should sell posi and pay for trader
+        uint256 _tokenBalance = IERC20(_token).balanceOf(address(this));
+        if(_tokenBalance < _amount){
+            uint256 _gap = _amount - _tokenBalance;
+            (uint256 _posiIn, ) = router.getAmountsIn(_gap, getPosiToTokenRoute(_token));
+            router.swapExactTokensForTokensSupportingFeeOnTransferTokens(_posiIn, 0, getPosiToTokenRoute(_token), address(this), block.timestamp);
+            emit SoldPosiForFund(_posiIn, _gap);
+        }
         IERC20(_token).transfer(_trader, _amount);
     }
 
