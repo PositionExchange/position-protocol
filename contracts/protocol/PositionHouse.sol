@@ -90,7 +90,6 @@ contract PositionHouse is
         liquidationFeeRatio = _liquidationFeeRatio;
         liquidationPenaltyRatio = _liquidationPenaltyRatio;
         insuranceFund = IInsuranceFund(_insuranceFund);
-        paused = false;
     }
 
     /**
