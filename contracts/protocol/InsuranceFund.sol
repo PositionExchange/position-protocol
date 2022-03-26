@@ -16,8 +16,10 @@ contract InsuranceFund is
     ReentrancyGuardUpgradeable,
     OwnableUpgradeable
 {
+    address constant public BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+
     uint256 public totalFee;
-    uint256 public totalBurn;
+    uint256 public totalBurned;
 
     address private counterParty;
 
@@ -25,14 +27,14 @@ contract InsuranceFund is
     IERC20 public busd;
     IUniswapV2Router02 public router;
     IUniswapV2Factory public factory;
+
+    event BuyBackAndBurned(address _token, uint256 _tokenAmount, uint256 _posiAmount);
+
     modifier onlyCounterParty() {
         require(counterParty == _msgSender(), Errors.VL_NOT_COUNTERPARTY);
         _;
     }
 
-    modifier onlyGovernance() {
-        _;
-    }
 
     function initialize() public initializer {
         __ReentrancyGuard_init();
@@ -48,7 +50,7 @@ contract InsuranceFund is
         address _token,
         address _trader,
         uint256 _amount
-    ) public onlyCounterParty{
+    ) public onlyCounterParty {
         IERC20(_token).transferFrom(_trader, address(this), _amount);
     }
 
@@ -80,40 +82,37 @@ contract InsuranceFund is
     // Buy POSI on market and burn it
     function buyBackAndBurn(address _token, uint256 _amount)
         public
-        onlyGovernance
+        onlyOwner
     {
-        // TODO implement
+        // buy back
+        uint256 _posiBalanceBefore = posi.balanceOf(address(this));
+        router.swapExactTokensForTokensSupportingFeeOnTransferTokens(_amount, 0, getTokenToPosiRoute(_token), address(this), block.timestamp);
+        uint256 _posiBalanceAfter = posi.balanceOf(address(this));
+        uint256 _posiAmount = _posiBalanceAfter - _posiBalanceBefore;
 
-        //        IUniswapV2Pair pair = getSwappingPair();
+        // burn
+        posi.transfer(BURN_ADDRESS, _posiAmount);
 
-        totalBurn += _amount;
+        totalBurned += _posiAmount;
+        emit BuyBackAndBurned(_token, _amount, _posiAmount);
     }
-
-    //
-    //    function sold() private {
-    //
-    //    }
-    //
-    //    function getSwappingPair() private view returns (IUniswapV2Pair) {
-    //        return IUniswapV2Pair(
-    //            factory.getPair(address(posi), address(busd))
-    //        );
-    //    }
-    //
-    //    function getBusdPosiRoute() private view returns (address[] memory paths) {
-    //        paths = new address[](2);
-    //        paths[0] = address(busd);
-    //        paths[1] = address(posi);
-    //    }
-    //
-    //    function getPosiBusdRoute() private view returns (address[] memory paths) {
-    //        paths = new address[](2);
-    //        paths[0] = address(posi);
-    //        paths[1] = address(busd);
-    //    }
 
     function setCounterParty(address _counterParty) public onlyOwner {
         require(_counterParty != address(0), Errors.VL_EMPTY_ADDRESS);
         counterParty = _counterParty;
     }
+
+
+    function getTokenToPosiRoute(address token) private view returns(address[] memory paths){
+        paths = new address[](2);
+        paths[0] = token;
+        paths[1] = address(posi);
+    }
+
+    function getPosiToTokenRoute(address token) private view returns(address[] memory paths){
+        paths = new address[](2);
+        paths[0] = address(posi);
+        paths[1] = token;
+    }
+
 }
