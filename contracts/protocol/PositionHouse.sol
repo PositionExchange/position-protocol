@@ -20,13 +20,15 @@ import {Errors} from "./libraries/helpers/Errors.sol";
 import {Int256Math} from "./libraries/helpers/Int256Math.sol";
 import {WhitelistManager} from "./modules/WhitelistManager.sol";
 import {CumulativePremiumFractions} from "./modules/CumulativePremiumFractions.sol";
+import {LimitOrderManager} from "./modules/LimitOrder.sol";
 
 contract PositionHouse is
     ReentrancyGuardUpgradeable,
     OwnableUpgradeable,
     PositionHouseStorage,
     WhitelistManager,
-    CumulativePremiumFractions
+    CumulativePremiumFractions,
+    LimitOrderManager
 {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
     using Quantity for int256;
@@ -305,7 +307,7 @@ contract PositionHouse is
             oldPosition.quantity == 0 ||
             _quantity.isSameSide(oldPosition.quantity)
         ) {
-            limitOrders[_pmAddress][_trader].push(_newOrder);
+            _pushLimit(_pmAddress,_trader, _newOrder);
         } else {
             // limit order reducing position
             uint256 baseBasisPoint = _positionManager.getBaseBasisPoint();
@@ -317,16 +319,16 @@ contract PositionHouse is
             else {
                 _newOrder.reduceQuantity = oldPosition.quantity.abs();
                 _newOrder.reduceLimitOrderId =
-                    reduceLimitOrders[_pmAddress][_trader].length +
+                _getReduceLimitOrders(_pmAddress, _trader).length +
                     1;
-                limitOrders[_pmAddress][_trader].push(_newOrder);
+                _pushLimit(_pmAddress,_trader, _newOrder);
             }
             _newOrder.entryPrice = PositionHouseMath.entryPriceFromNotional(
                 oldPosition.openNotional,
                 oldPosition.quantity.abs(),
                 baseBasisPoint
             );
-            reduceLimitOrders[_pmAddress][_trader].push(_newOrder);
+            _pushReduceLimit(_pmAddress, _trader, _newOrder);
         }
     }
 
@@ -345,15 +347,10 @@ contract PositionHouse is
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
         // declare a pointer to reduceLimitOrders or limitOrders
-        PositionLimitOrder.Data[] storage _orders = _isReduce == 1
-            ? reduceLimitOrders[_pmAddress][_trader]
-            : limitOrders[_pmAddress][_trader];
+        PositionLimitOrder.Data[] storage _orders = _getLimitOrderPointer(_pmAddress, _trader, _isReduce);
         require(_orderIdx < _orders.length, Errors.VL_INVALID_ORDER);
         // save gas
         PositionLimitOrder.Data memory _order = _orders[_orderIdx];
-        // blank limit order data
-        // we set the deleted order to a blank data
-        // because we don't want to mess with order index (orderIdx)
         PositionLimitOrder.Data memory blankLimitOrderData;
 
         (uint256 refundQuantity, uint256 partialFilled) = _positionManager
@@ -361,9 +358,7 @@ contract PositionHouse is
         if (partialFilled == 0) {
             _orders[_orderIdx] = blankLimitOrderData;
             if (_order.reduceLimitOrderId != 0) {
-                reduceLimitOrders[_pmAddress][_trader][
-                    _order.reduceLimitOrderId - 1
-                ] = blankLimitOrderData;
+                _blankReduceLimitOrder(_pmAddress, _trader, _order.reduceLimitOrderId - 1);
             }
         }
 
@@ -450,8 +445,8 @@ contract PositionHouse is
                 _trader,
                 positionData,
                 positionMap[_pmAddress][_trader],
-                limitOrders[_pmAddress][_trader],
-                reduceLimitOrders[_pmAddress][_trader],
+                _getLimitOrders(_pmAddress, _trader),
+                _getReduceLimitOrders(_pmAddress, _trader),
                 canClaimAmountMap[_pmAddress][_trader],
                 manualMargin[_pmAddress][_trader]
             );
@@ -639,30 +634,22 @@ contract PositionHouse is
             PositionLimitOrder.Data[] memory subReduceLimitOrders
         ) = PositionHouseFunction.clearAllFilledOrder(
                 IPositionManager(_pmAddress),
-                limitOrders[_pmAddress][_trader],
-                reduceLimitOrders[_pmAddress][_trader]
+                _getLimitOrders(_pmAddress, _trader),
+                _getReduceLimitOrders(_pmAddress, _trader)
             );
-        if (limitOrders[_pmAddress][_trader].length > 0) {
-            delete limitOrders[_pmAddress][_trader];
-        }
+        _emptyLimitOrders(_pmAddress, _trader);
         for (uint256 i = 0; i < subListLimitOrders.length; i++) {
             if (subListLimitOrders[i].pip == 0) {
                 break;
             }
-            limitOrders[_pmAddress][_trader].push(
-                subListLimitOrders[i]
-            );
+            _pushLimit(_pmAddress, _trader, subListLimitOrders[i]);
         }
-        if (reduceLimitOrders[_pmAddress][_trader].length > 0) {
-            delete reduceLimitOrders[_pmAddress][_trader];
-        }
+        _emptyReduceLimitOrders(_pmAddress, _trader);
         for (uint256 i = 0; i < subReduceLimitOrders.length; i++) {
             if (subReduceLimitOrders[i].pip == 0) {
                 break;
             }
-            reduceLimitOrders[_pmAddress][_trader].push(
-                subReduceLimitOrders[i]
-            );
+            _pushReduceLimit(_pmAddress, _trader, subReduceLimitOrders[i]);
         }
     }
 
@@ -818,8 +805,8 @@ contract PositionHouse is
             PositionHouseFunction.getListOrderPending(
                 _pmAddress,
                 _trader,
-                limitOrders[_pmAddress][_trader],
-                reduceLimitOrders[_pmAddress][_trader]
+                _getLimitOrders(_pmAddress, _trader),
+                _getReduceLimitOrders(_pmAddress, _trader)
             );
     }
 
@@ -829,12 +816,8 @@ contract PositionHouse is
         returns (Position.Data memory positionData)
     {
         positionData = positionMap[_pmAddress][_trader];
-        PositionLimitOrder.Data[] memory _limitOrders = limitOrders[
-            _pmAddress
-        ][_trader];
-        PositionLimitOrder.Data[] memory _reduceOrders = reduceLimitOrders[
-            _pmAddress
-        ][_trader];
+        PositionLimitOrder.Data[] memory _limitOrders = _getLimitOrders(_pmAddress, _trader);
+        PositionLimitOrder.Data[] memory _reduceOrders = _getReduceLimitOrders(_pmAddress, _trader);
         positionData = PositionHouseFunction.calculateLimitOrder(
             _pmAddress,
             _limitOrders,
