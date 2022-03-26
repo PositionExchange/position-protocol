@@ -31,6 +31,10 @@ contract InsuranceFund is
     event BuyBackAndBurned(address _token, uint256 _tokenAmount, uint256 _posiAmount);
     event SoldPosiForFund(uint256 _posiAmount, uint256 _tokenAmount);
 
+    event Deposit(address indexed _token, address indexed _trader, uint256 _amount);
+    event Withdraw(address indexed _token, address indexed _trader, uint256 _amount);
+    event CounterPartyTransferred(address _old, address _new);
+
     modifier onlyCounterParty() {
         require(counterParty == _msgSender(), Errors.VL_NOT_COUNTERPARTY);
         _;
@@ -53,6 +57,7 @@ contract InsuranceFund is
         uint256 _amount
     ) public onlyCounterParty {
         IERC20(_token).transferFrom(_trader, address(this), _amount);
+        emit Deposit(_token, _trader, _amount);
     }
 
     //    function transferFeeFromTrader(address token, address trader, uint256 amountFee) public {
@@ -77,6 +82,7 @@ contract InsuranceFund is
             emit SoldPosiForFund(_posiIn, _gap);
         }
         IERC20(_token).transfer(_trader, _amount);
+        emit Withdraw(_token, _trader, _amount);
     }
 
     function updateTotalFee(uint256 _fee) public onlyCounterParty {
@@ -103,6 +109,7 @@ contract InsuranceFund is
 
     function setCounterParty(address _counterParty) public onlyOwner {
         require(_counterParty != address(0), Errors.VL_EMPTY_ADDRESS);
+        emit CounterPartyTransferred(counterParty, _counterParty);
         counterParty = _counterParty;
     }
 
