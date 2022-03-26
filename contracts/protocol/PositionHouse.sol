@@ -18,11 +18,13 @@ import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.
 import {PositionHouseMath} from "./libraries/position/PositionHouseMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
 import {Int256Math} from "./libraries/helpers/Int256Math.sol";
+import {WhitelistManager} from "./modules/WhitelistManager.sol";
 
 contract PositionHouse is
     ReentrancyGuardUpgradeable,
     OwnableUpgradeable,
-    PositionHouseStorage
+    PositionHouseStorage,
+    WhitelistManager
 {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
     using Quantity for int256;
@@ -69,10 +71,6 @@ contract PositionHouse is
     );
 
     event Liquidated(address pmAddress, address trader);
-
-    event WhitelistPositionManagerAdded(address pmAddress);
-
-    event WhitelistPositionManagerRemoved(address pmAddress);
 
     function initialize(
         uint256 _maintenanceMarginRatio,
@@ -1066,24 +1064,14 @@ contract PositionHouse is
         liquidationPenaltyRatio = _liquidationPenaltyRatio;
     }
 
-    function isWhitelistManager(address _positionManager) public view returns (bool) {
-        return whitelistManager[_positionManager];
+    function updateWhitelistManager(address _positionManager, bool _isWhitelist) public onlyOwner {
+        if(_isWhitelist){
+            _setWhitelistManager(_positionManager);
+        }else{
+            _removeWhitelistManager(_positionManager);
+        }
     }
 
-    function setWhitelistManager(address _positionManager) public onlyOwner {
-        whitelistManager[_positionManager] = true;
-        emit WhitelistPositionManagerAdded(_positionManager);
-    }
-
-    function removeWhitelistManager(address _positionManager) public onlyOwner {
-        whitelistManager[_positionManager] = false;
-        emit WhitelistPositionManagerRemoved(_positionManager);
-    }
-
-    modifier onlyWhitelistManager(address _positionManager) {
-        require(isWhitelistManager(_positionManager), Errors.VL_NOT_WHITELIST_MANAGER);
-        _;
-    }
 
     modifier whenNotPaused() {
         //        require(!paused, "Pausable: paused");
