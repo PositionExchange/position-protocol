@@ -104,6 +104,7 @@ contract PositionManager is
 
     function updatePartialFilledOrder(uint128 _pip, uint64 _orderId)
         public
+        whenNotPaused
         onlyCounterParty
     {
         uint256 newSize = tickPosition[_pip].updateOrderWhenClose(_orderId);
@@ -112,6 +113,7 @@ contract PositionManager is
 
     function cancelLimitOrder(uint128 _pip, uint64 _orderId)
         external
+        whenNotPaused
         onlyCounterParty
         returns (uint256 remainingSize, uint256 partialFilled)
     {
@@ -225,6 +227,7 @@ contract PositionManager is
      */
     function settleFunding()
         external
+        whenNotPaused
         onlyCounterParty
         returns (int256 premiumFraction)
     {
