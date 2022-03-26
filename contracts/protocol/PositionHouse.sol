@@ -5,6 +5,7 @@ import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Cont
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "../interfaces/IPositionManager.sol";
 import "./libraries/position/Position.sol";
@@ -22,7 +23,8 @@ import {Int256Math} from "./libraries/helpers/Int256Math.sol";
 contract PositionHouse is
     ReentrancyGuardUpgradeable,
     OwnableUpgradeable,
-    PositionHouseStorage
+    PositionHouseStorage,
+    PausableUpgradeable
 {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
     using Quantity for int256;
@@ -1085,32 +1087,13 @@ contract PositionHouse is
         _;
     }
 
-    modifier whenNotPaused() {
-        //        require(!paused, "Pausable: paused");
-        _;
+    function setPauseStatus(bool _isPause) public onlyOwner {
+        if(_isPause) {
+            _pause();
+        }else{
+            _unpause();
+        }
     }
-
-    modifier whenPaused() {
-        //        require(paused, "Pausable: not paused");
-        _;
-    }
-
-    //    function pause() public onlyOwner whenNotPaused {
-    //        paused = true;
-    //    }
-    //
-    //    function unpause() public onlyOwner whenPaused {
-    //        paused = false;
-    //    }
-
-    //    function pause() public onlyOwner whenNotPaused {
-    //        paused = true;
-    //    }
-    //
-    //    function unpause() public onlyOwner {
-    //        require(paused, "Pausable: not paused");
-    //        paused = false;
-    //    }
 
     // NEW REQUIRE: restriction mode
     // In restriction mode, no one can do multi open/close/liquidate position in the same block.
