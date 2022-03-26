@@ -78,9 +78,6 @@ contract PositionHouseStorage {
     mapping(address => mapping(address => PositionLimitOrder.Data[]))
         public reduceLimitOrders;
 
-    // Cumulative premium fraction
-    mapping(address => int256[]) public cumulativePremiumFractions;
-
     uint256 maintenanceMarginRatio;
     uint256 partialLiquidationRatio;
     uint256 liquidationFeeRatio;

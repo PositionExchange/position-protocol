@@ -19,12 +19,14 @@ import {PositionHouseMath} from "./libraries/position/PositionHouseMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
 import {Int256Math} from "./libraries/helpers/Int256Math.sol";
 import {WhitelistManager} from "./modules/WhitelistManager.sol";
+import {CumulativePremiumFractions} from "./modules/CumulativePremiumFractions.sol";
 
 contract PositionHouse is
     ReentrancyGuardUpgradeable,
     OwnableUpgradeable,
     PositionHouseStorage,
-    WhitelistManager
+    WhitelistManager,
+    CumulativePremiumFractions
 {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
     using Quantity for int256;
@@ -132,7 +134,7 @@ contract PositionHouse is
                 _trader,
                 oldPosition,
                 positionMap[_pmAddress][_trader],
-                cumulativePremiumFractions[_pmAddress]
+                getCumulativePremiumFractions(_pmAddress)
             );
         } else {
             pResp = openReversePosition(
@@ -279,7 +281,7 @@ contract PositionHouse is
                     openNotional,
                     _rawQuantity > 0 ? int256(sizeOut) : -int256(sizeOut),
                     _leverage,
-                    cumulativePremiumFractions[_pmAddress]
+                    getCumulativePremiumFractions(_pmAddress)
                 );
                 positionMap[_pmAddress][_trader].update(newData);
             }
@@ -683,7 +685,7 @@ contract PositionHouse is
                     _trader,
                     _oldPosition,
                     positionMap[_pmAddress][_trader],
-                    cumulativePremiumFractions[_pmAddress]
+                    getCumulativePremiumFractions(_pmAddress)
                 );
                 return positionResp;
             }
@@ -728,7 +730,7 @@ contract PositionHouse is
                     _trader,
                     _oldPosition,
                     positionMap[_pmAddress][_trader],
-                    cumulativePremiumFractions[_pmAddress]
+                    getCumulativePremiumFractions(_pmAddress)
                 );
             positionResp = PositionResp({
                 position: increasePositionResp.position,
@@ -923,24 +925,10 @@ contract PositionHouse is
             : (maintenanceMargin * 100) / uint256(marginBalance);
     }
 
-    function getLatestCumulativePremiumFraction(
-        IPositionManager _positionManager
-    ) public view returns (int256) {
-        uint256 len = cumulativePremiumFractions[address(_positionManager)]
-            .length;
-        if (len > 0) {
-            return
-                cumulativePremiumFractions[address(_positionManager)][len - 1];
-        }
-        return 0;
-    }
 
     function payFunding(IPositionManager _positionManager) external onlyOwner {
         int256 premiumFraction = _positionManager.settleFunding();
-        cumulativePremiumFractions[address(_positionManager)].push(
-            premiumFraction +
-                getLatestCumulativePremiumFraction(_positionManager)
-        );
+        CumulativePremiumFractions._add(address(_positionManager), premiumFraction);
     }
 
     function withdraw(
@@ -989,7 +977,7 @@ contract PositionHouse is
     {
         // calculate fundingPayment
         latestCumulativePremiumFraction = getLatestCumulativePremiumFraction(
-            _positionManager
+            address(_positionManager)
         );
         if (_oldPosition.quantity != 0) {
             fundingPayment =
