@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Errors} from "../libraries/helpers/Errors.sol";
 
-contract WhitelistManager {
+abstract contract WhitelistManager {
     // Whitelist for position manager address
     mapping(address => bool) internal whitelistManager;
 
