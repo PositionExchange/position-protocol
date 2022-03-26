@@ -990,16 +990,13 @@ contract PositionHouse is
             _oldPosition
         );
         // TODO need to calculate remain margin with funding payment
-        uint256 remainMargin = (_oldPosition.margin *
-            (100 - liquidationFeeRatio)) / 100;
+        uint256 _newMargin = PositionHouseMath.calculatePartialLiquidateMargin(_oldPosition.margin, liquidationFeeRatio);
         // unchecked
-        positionResp.marginToVault =
-            int256(_oldPosition.margin) -
-            int256(remainMargin);
+        positionResp.marginToVault = int256(_newMargin);
         positionResp.unrealizedPnl = unrealizedPnl;
         debtPosition[_pmAddress][_trader].updateDebt(
             -_quantity,
-            _oldPosition.margin - remainMargin,
+            _newMargin,
             positionResp.exchangedQuoteAssetAmount
         );
         return positionResp;
