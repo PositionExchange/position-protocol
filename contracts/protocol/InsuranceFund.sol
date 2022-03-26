@@ -113,6 +113,11 @@ contract InsuranceFund is
         counterParty = _counterParty;
     }
 
+    // approve token for router in order to swap tokens
+    function approveTokenForRouter(address _token) public onlyOwner {
+        IERC20(_token).approve(address(router), uint256(-1));
+    }
+
 
     function getTokenToPosiRoute(address token) private view returns(address[] memory paths){
         paths = new address[](2);
