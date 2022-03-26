@@ -794,7 +794,7 @@ contract PositionHouse is
             uint256 badDebt,
             int256 fundingPayment,
         ) = calcRemainMarginWithFundingPayment(
-                _positionManager,
+                _pmAddress,
                 _oldPosition,
                 _oldPosition.margin
             );
@@ -910,7 +910,7 @@ contract PositionHouse is
             ,
 
         ) = calcRemainMarginWithFundingPayment(
-                _positionManager,
+                _pmAddress,
                 positionData,
                 positionData.margin
             );
@@ -961,38 +961,7 @@ contract PositionHouse is
     // INTERNAL FUNCTION OF POSITION HOUSE
     //
 
-    function calcRemainMarginWithFundingPayment(
-        IPositionManager _positionManager,
-        Position.Data memory _oldPosition,
-        uint256 _pMargin
-    )
-        internal
-        view
-        returns (
-            uint256 remainMargin,
-            uint256 badDebt,
-            int256 fundingPayment,
-            int256 latestCumulativePremiumFraction
-        )
-    {
-        // calculate fundingPayment
-        latestCumulativePremiumFraction = getLatestCumulativePremiumFraction(
-            address(_positionManager)
-        );
-        if (_oldPosition.quantity != 0) {
-            fundingPayment =
-                (latestCumulativePremiumFraction -
-                    _oldPosition.lastUpdatedCumulativePremiumFraction) *
-                _oldPosition.quantity;
-        }
 
-        // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt
-        if (int256(_pMargin) + fundingPayment >= 0) {
-            remainMargin = uint256(int256(_pMargin) + fundingPayment);
-        } else {
-            badDebt = uint256(-fundingPayment - int256(_pMargin));
-        }
-    }
 
     function partialLiquidate(
         IPositionManager _positionManager,
