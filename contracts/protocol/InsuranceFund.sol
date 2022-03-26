@@ -77,9 +77,9 @@ contract InsuranceFund is
         uint256 _tokenBalance = IERC20(_token).balanceOf(address(this));
         if(_tokenBalance < _amount){
             uint256 _gap = _amount - _tokenBalance;
-            (uint256 _posiIn, ) = router.getAmountsIn(_gap, getPosiToTokenRoute(_token));
-            router.swapExactTokensForTokensSupportingFeeOnTransferTokens(_posiIn, 0, getPosiToTokenRoute(_token), address(this), block.timestamp);
-            emit SoldPosiForFund(_posiIn, _gap);
+            uint256[] memory _amountIns = router.getAmountsIn(_gap, getPosiToTokenRoute(_token));
+            router.swapExactTokensForTokensSupportingFeeOnTransferTokens(_amountIns[0], 0, getPosiToTokenRoute(_token), address(this), block.timestamp);
+            emit SoldPosiForFund(_amountIns[0], _gap);
         }
         IERC20(_token).transfer(_trader, _amount);
         emit Withdraw(_token, _trader, _amount);
