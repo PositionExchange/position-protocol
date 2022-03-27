@@ -20,7 +20,7 @@ abstract contract CumulativePremiumFractions {
         return 0;
     }
 
-    function getCumulativePremiumFractions(address _pmAddress) public view returns (int256[] memory) {
+    function getCumulativePremiumFractions(address _pmAddress) public view virtual returns (int256[] memory) {
         return cumulativePremiumFractions[_pmAddress];
     }
 

@@ -223,115 +223,6 @@ contract PositionHouse is
         );
     }
 
-    function _internalOpenLimitOrder(
-        IPositionManager _positionManager,
-        address _trader,
-        uint128 _pip,
-        int256 _rawQuantity,
-        uint256 _leverage
-    ) internal returns (uint64 orderId, uint256 sizeOut) {
-        {
-            address _pmAddress = address(_positionManager);
-            Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
-            require(
-                _leverage >= oldPosition.leverage &&
-                    _leverage <= 125 &&
-                    _leverage > 0,
-                Errors.VL_INVALID_LEVERAGE
-            );
-            uint256 openNotional;
-            uint128 _quantity = _rawQuantity.abs128();
-            if (
-                oldPosition.quantity != 0 &&
-                !oldPosition.quantity.isSameSide(_rawQuantity) &&
-                _positionManager.needClosePositionBeforeOpeningLimitOrder(
-                    _rawQuantity.u8Side(),
-                    _pip,
-                    _quantity,
-                    oldPosition.quantity.u8Side(),
-                    oldPosition.quantity.abs()
-                )
-            ) {
-                PositionResp memory closePositionResp = internalClosePosition(
-                    _positionManager,
-                    _trader,
-                    PnlCalcOption.SPOT_PRICE,
-                    true,
-                    oldPosition
-                );
-                if (
-                    _rawQuantity - closePositionResp.exchangedPositionSize == 0
-                ) {
-                    // TODO deposit margin to vault of position resp
-                    //                            positionResp = closePositionResp;
-                    //                            deposit(_positionManager, _trader, positionResp.marginToVault.abs(), 0);
-                } else {
-                    _quantity -= (closePositionResp.exchangedPositionSize)
-                        .abs128();
-                }
-            }
-            (orderId, sizeOut, openNotional) = _positionManager
-                .openLimitPosition(_pip, _quantity, _rawQuantity > 0);
-            if (sizeOut != 0) {
-                // case: open a limit order at the last price
-                // the order must be partially executed
-                // then update the current position
-                Position.Data memory newData;
-                newData = PositionHouseFunction.handleMarketPart(
-                    oldPosition,
-                    positionMap[_pmAddress][_trader],
-                    openNotional,
-                    _rawQuantity > 0 ? int256(sizeOut) : -int256(sizeOut),
-                    _leverage,
-                    getCumulativePremiumFractions(_pmAddress)
-                );
-                positionMap[_pmAddress][_trader].update(newData);
-            }
-        }
-    }
-
-    // check the new limit order is fully reduce, increase or both reduce and increase
-    function _storeLimitOrder(
-        PositionLimitOrder.Data memory _newOrder,
-        IPositionManager _positionManager,
-        address _trader,
-        int256 _quantity,
-        uint256 _sizeOut
-    ) internal {
-        address _pmAddress = address(_positionManager);
-        Position.Data memory oldPosition = getPosition(
-            _pmAddress,
-            _trader
-        );
-        if (
-            oldPosition.quantity == 0 ||
-            _quantity.isSameSide(oldPosition.quantity)
-        ) {
-            _pushLimit(_pmAddress,_trader, _newOrder);
-        } else {
-            // limit order reducing position
-            uint256 baseBasisPoint = _positionManager.getBaseBasisPoint();
-            // if new limit order is smaller than old position then just reduce old position
-            if (oldPosition.quantity.abs() > _quantity.abs()) {
-                _newOrder.reduceQuantity = _quantity.abs() - _sizeOut;
-            }
-            // else new limit order is larger than old position then close old position and open new opposite position
-            else {
-                _newOrder.reduceQuantity = oldPosition.quantity.abs();
-                _newOrder.reduceLimitOrderId =
-                _getReduceLimitOrders(_pmAddress, _trader).length +
-                    1;
-                _pushLimit(_pmAddress,_trader, _newOrder);
-            }
-            _newOrder.entryPrice = PositionHouseMath.entryPriceFromNotional(
-                oldPosition.openNotional,
-                oldPosition.quantity.abs(),
-                baseBasisPoint
-            );
-            _pushReduceLimit(_pmAddress, _trader, _newOrder);
-        }
-    }
-
     /**
      * @dev cancel a limit order
      * @param _positionManager position manager
@@ -743,7 +634,7 @@ contract PositionHouse is
         PnlCalcOption _pnlCalcOption,
         bool _isInOpenLimit,
         Position.Data memory _oldPosition
-    ) internal returns (PositionResp memory positionResp) {
+    ) internal override returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
             _positionManager,
@@ -813,6 +704,7 @@ contract PositionHouse is
     function getPosition(address _pmAddress, address _trader)
         public
         view
+        override
         returns (Position.Data memory positionData)
     {
         positionData = positionMap[_pmAddress][_trader];
@@ -983,6 +875,18 @@ contract PositionHouse is
             positionResp.exchangedQuoteAssetAmount
         );
         return positionResp;
+    }
+
+    function _updatePositionMap(address _pmAddress, address _trader, Position.Data memory newData) internal override {
+        positionMap[_pmAddress][_trader].update(newData);
+    }
+
+    function _getPositionMap(address _pmAddress, address _trader) internal view override returns(Position.Data memory) {
+        return positionMap[_pmAddress][_trader];
+    }
+
+    function getCumulativePremiumFractions(address _pmAddress) public view override(CumulativePremiumFractions, LimitOrderManager) returns (int256[] memory){
+        return CumulativePremiumFractions.getCumulativePremiumFractions(_pmAddress);
     }
 
     // UPDATE VARIABLE STORAGE
