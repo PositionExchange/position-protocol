@@ -1,6 +1,6 @@
 {
-    "require": "ts-node/register/files",
-    "timeout": 20000,
-    "color": true,
-    "extension": ["ts", "js", "yaml"]
+  "require": "ts-node/register/files",
+  "timeout": 20000,
+  "color": true,
+  "extension": ["ts", "js", "yaml"]
 }
