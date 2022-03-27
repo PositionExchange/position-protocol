@@ -8,8 +8,10 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {IChainLinkPriceFeed} from "../interfaces/IChainLinkPriceFeed.sol";
 
-// , Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable
-contract ChainLinkPriceFeed is IChainLinkPriceFeed {
+contract ChainLinkPriceFeed is
+    OwnableUpgradeable,
+    IChainLinkPriceFeed
+{
     uint256 private constant TOKEN_DIGIT = 10**18;
 
     // key by currency symbol, eg ETH
@@ -17,8 +19,14 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
     bytes32[] public priceFeedKeys;
     mapping(bytes32 => uint8) public priceFeedDecimalMap;
 
-    //TODO require permission
-    function addAggregator(bytes32 _priceFeedKey, address _aggregator) public {
+    function initialize() public initializer {
+        __Ownable_init();
+    }
+
+    function addAggregator(bytes32 _priceFeedKey, address _aggregator)
+        external
+        onlyOwner
+    {
         requireNonEmptyAddress(_aggregator);
         if (address(priceFeedMap[_priceFeedKey]) == address(0)) {
             priceFeedKeys.push(_priceFeedKey);
@@ -28,8 +36,10 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
             .decimals();
     }
 
-    //TODO require permission
-    function removeAggregator(bytes32 _priceFeedKey) external {
+    function removeAggregator(bytes32 _priceFeedKey)
+        external
+        onlyOwner
+    {
         requireNonEmptyAddress(address(getAggregator(_priceFeedKey)));
         delete priceFeedMap[_priceFeedKey];
         delete priceFeedDecimalMap[_priceFeedKey];
@@ -47,9 +57,9 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
         }
     }
 
-    //
-    // VIEW FUNCTIONS
-    //
+    //------------------------------------------------------------------------------------------------------------------
+    // VIEWS FUNCTIONS
+    //------------------------------------------------------------------------------------------------------------------
 
     function getAggregator(bytes32 _priceFeedKey)
         public
@@ -91,9 +101,10 @@ contract ChainLinkPriceFeed is IChainLinkPriceFeed {
         ) = _aggregator.getRoundData(_round);
     }
 
-    //
+
+    //------------------------------------------------------------------------------------------------------------------
     // INTERFACE IMPLEMENTATION
-    //
+    //------------------------------------------------------------------------------------------------------------------
 
     function getPrice(bytes32 _priceFeedKey)
         external

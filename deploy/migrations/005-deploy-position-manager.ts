@@ -16,6 +16,7 @@ const migrations: MigrationDefinition = {
              priceFeed: string;
              */
             const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouse');
+            const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
             await context.factory.createPositionManager({
                 quoteAsset: await context.db.getMockContract(`BUSD`),
                 initialPrice: 6350000,
@@ -25,7 +26,7 @@ const migrations: MigrationDefinition = {
                 tollRatio: 10000,
                 maxFindingWordsIndex: 1800,
                 fundingPeriod: 1000,
-                priceFeed: '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(),
+                priceFeed: chainLinkPriceFeedContractAddress,
                 quote: 'BUSD',
                 counterParty: positionHouseFunctionContractAddress
             })
@@ -43,6 +44,7 @@ const migrations: MigrationDefinition = {
              priceFeed: string;
              */
             const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouse');
+            const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
             await context.factory.createPositionManager({
                 quoteAsset: await context.db.getMockContract(`BUSD`),
                 initialPrice: 4000,
@@ -52,7 +54,7 @@ const migrations: MigrationDefinition = {
                 tollRatio: 10000,
                 maxFindingWordsIndex: 10,
                 fundingPeriod: 1000,
-                priceFeed: '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(),
+                priceFeed: chainLinkPriceFeedContractAddress,
                 quote: 'BUSD',
                 counterParty: positionHouseFunctionContractAddress
             })

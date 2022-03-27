@@ -81,6 +81,4 @@ contract PositionHouseStorage {
     uint256 liquidationPenaltyRatio;
 
     IInsuranceFund public insuranceFund;
-
-    bool public paused;
 }
