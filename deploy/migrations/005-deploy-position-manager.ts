@@ -19,8 +19,93 @@ const migrations: MigrationDefinition = {
             const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
             await context.factory.createPositionManager({
                 quoteAsset: await context.db.getMockContract(`BUSD`),
-                initialPrice: 6350000,
+                initialPrice: 6500000,
                 priceFeedKey: 'BTC',
+                basisPoint: 100,
+                baseBasisPoint: 10000,
+                tollRatio: 10000,
+                maxFindingWordsIndex: 1800,
+                fundingPeriod: 1000,
+                priceFeed: chainLinkPriceFeedContractAddress,
+                quote: 'BUSD',
+                counterParty: positionHouseFunctionContractAddress
+            })
+        },
+        // add multi pair
+        'deploy ETHBUSD position manager': async () => {
+            /**
+             quoteAsset: string;
+             initialPrice: number;
+             priceFeedKey: string;
+             basisPoint: number;
+             baseBasisPoint: number;
+             tollRatio: number;
+             maxFindingWordsIndex: number;
+             fundingPeriod: number;
+             priceFeed: string;
+             */
+            const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouse');
+            const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
+            await context.factory.createPositionManager({
+                quoteAsset: await context.db.getMockContract(`BUSD`),
+                initialPrice: 5000000,
+                priceFeedKey: 'ETH',
+                basisPoint: 100,
+                baseBasisPoint: 10000,
+                tollRatio: 10000,
+                maxFindingWordsIndex: 1800,
+                fundingPeriod: 1000,
+                priceFeed: chainLinkPriceFeedContractAddress,
+                quote: 'BUSD',
+                counterParty: positionHouseFunctionContractAddress
+            })
+        },
+        'deploy BNBBUSD position manager': async () => {
+            /**
+             quoteAsset: string;
+             initialPrice: number;
+             priceFeedKey: string;
+             basisPoint: number;
+             baseBasisPoint: number;
+             tollRatio: number;
+             maxFindingWordsIndex: number;
+             fundingPeriod: number;
+             priceFeed: string;
+             */
+            const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouse');
+            const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
+            await context.factory.createPositionManager({
+                quoteAsset: await context.db.getMockContract(`BUSD`),
+                initialPrice: 3500000,
+                priceFeedKey: 'BNB',
+                basisPoint: 100,
+                baseBasisPoint: 10000,
+                tollRatio: 10000,
+                maxFindingWordsIndex: 1800,
+                fundingPeriod: 1000,
+                priceFeed: chainLinkPriceFeedContractAddress,
+                quote: 'BUSD',
+                counterParty: positionHouseFunctionContractAddress
+            })
+        },
+        'deploy SOLBUSD position manager': async () => {
+            /**
+             quoteAsset: string;
+             initialPrice: number;
+             priceFeedKey: string;
+             basisPoint: number;
+             baseBasisPoint: number;
+             tollRatio: number;
+             maxFindingWordsIndex: number;
+             fundingPeriod: number;
+             priceFeed: string;
+             */
+            const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouse');
+            const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
+            await context.factory.createPositionManager({
+                quoteAsset: await context.db.getMockContract(`BUSD`),
+                initialPrice: 2000000,
+                priceFeedKey: 'SOL',
                 basisPoint: 100,
                 baseBasisPoint: 10000,
                 tollRatio: 10000,
