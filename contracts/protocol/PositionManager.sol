@@ -143,7 +143,7 @@ contract PositionManager is
             _singleSlot.isFullBuy != (_isBuy ? 1 : 2)
         ) {
             // open market
-            (sizeOut, openNotional) = openMarketPositionWithMaxPip(
+            (sizeOut, openNotional) = _openMarketPositionWithMaxPip(
                 _size,
                 _isBuy,
                 _pip
@@ -172,19 +172,6 @@ contract PositionManager is
         emit LimitOrderCreated(orderId, _pip, remainingSize, _isBuy);
     }
 
-    function openMarketPositionWithMaxPip(
-        uint256 _size,
-        bool _isBuy,
-        uint128 _maxPip
-    )
-        public
-        whenNotPaused
-        onlyCounterParty
-        override
-        returns (uint256 sizeOut, uint256 openNotional)
-    {
-        return _internalOpenMarketOrder(_size, _isBuy, _maxPip);
-    }
 
     function openMarketPosition(uint256 _size, bool _isBuy)
         external
@@ -281,12 +268,13 @@ contract PositionManager is
         return _adjustMargin;
     }
 
-    function hasLiquidity(uint128 _pip) public view returns (bool) {
+    function hasLiquidity(uint128 _pip) public override view returns (bool) {
         return liquidityBitmap.hasLiquidity(_pip);
     }
 
     function getPendingOrderDetail(uint128 _pip, uint64 _orderId)
         public
+        override
         view
         returns (
             bool isFilled,
@@ -312,7 +300,7 @@ contract PositionManager is
         uint128 _quantity,
         uint8 _pSide,
         uint256 _pQuantity
-    ) public view returns (bool) {
+    ) public override view returns (bool) {
         //save gas
         SingleSlot memory _singleSlot = singleSlot;
         return
@@ -328,6 +316,7 @@ contract PositionManager is
         uint256 _leverage
     )
         public
+        override
         view
         returns (
             uint256 notional,
@@ -345,23 +334,20 @@ contract PositionManager is
      * @param _positionNotional quote asset amount
      * @return total tx fee
      */
-    function calcFee(uint256 _positionNotional) public view override returns (uint256) {
+    function calcFee(uint256 _positionNotional) public override view returns (uint256) {
         if (tollRatio != 0) {
             return _positionNotional / tollRatio;
         }
         return 0;
     }
 
-    struct LiquidityOfEachPip {
-        uint128 pip;
-        uint256 liquidity;
-    }
+
 
     function getLiquidityInPipRange(
         uint128 _fromPip,
         uint256 _dataLength,
         bool _toHigher
-    ) public view returns (LiquidityOfEachPip[] memory, uint128) {
+    ) public override view returns (LiquidityOfEachPip[] memory, uint128) {
         uint128[] memory allInitializedPips = new uint128[](
             uint128(_dataLength)
         );
@@ -383,7 +369,7 @@ contract PositionManager is
         return (allLiquidity, allInitializedPips[_dataLength - 1]);
     }
 
-    function getQuoteAsset() public view returns (IERC20) {
+    function getQuoteAsset() public override view returns (IERC20) {
         return quoteAsset;
     }
 
@@ -391,7 +377,7 @@ contract PositionManager is
      * @notice get underlying price provided by oracle
      * @return underlying price
      */
-    function getUnderlyingPrice() public view returns (uint256) {
+    function getUnderlyingPrice() public override view returns (uint256) {
         return priceFeed.getPrice(priceFeedKey) * BASE_BASIC_POINT;
     }
 
@@ -414,6 +400,7 @@ contract PositionManager is
      */
     function getTwapPrice(uint256 _intervalInSeconds)
         public
+        override
         view
         returns (uint256)
     {
@@ -422,6 +409,7 @@ contract PositionManager is
 
     function implGetReserveTwapPrice(uint256 _intervalInSeconds)
         public
+        override
         view
         returns (uint256)
     {
@@ -435,7 +423,7 @@ contract PositionManager is
     function calcTwap(
         TwapPriceCalcParams memory _params,
         uint256 _intervalInSeconds
-    ) public view returns (uint256) {
+    ) public override view returns (uint256) {
         uint256 currentPrice = _getPriceWithSpecificSnapshot(_params);
         if (_intervalInSeconds == 0) {
             return currentPrice;
@@ -493,44 +481,46 @@ contract PositionManager is
     // ONLY OWNER FUNCTIONS
     //******************************************************************************************************************
 
-    function pause() public onlyOwner {
+    function pause() public override onlyOwner {
         _pause();
     }
 
-    function unpause() public onlyOwner {
+    function unpause() public override onlyOwner {
         _unpause();
     }
 
     function updateMaxFindingWordsIndex(uint128 _newMaxFindingWordsIndex)
         public
+        override
         onlyOwner
     {
         maxFindingWordsIndex = _newMaxFindingWordsIndex;
         emit UpdateMaxFindingWordsIndex(_newMaxFindingWordsIndex);
     }
 
-    function updateBasisPoint(uint256 _newBasisPoint) public onlyOwner {
+    function updateBasisPoint(uint256 _newBasisPoint) public override onlyOwner {
         basisPoint = _newBasisPoint;
         emit UpdateBasisPoint(_newBasisPoint);
     }
 
-    function updateBaseBasicPoint(uint256 _newBaseBasisPoint) public onlyOwner {
+    function updateBaseBasicPoint(uint256 _newBaseBasisPoint) public override onlyOwner {
         BASE_BASIC_POINT = _newBaseBasisPoint;
         emit UpdateBaseBasicPoint(_newBaseBasisPoint);
     }
 
-    function updateTollRatio(uint256 _newTollRatio) public onlyOwner {
+    function updateTollRatio(uint256 _newTollRatio) public override onlyOwner {
         tollRatio = _newTollRatio;
         emit UpdateTollRatio(_newTollRatio);
     }
 
-    function setCounterParty(address _counterParty) public onlyOwner {
+    function setCounterParty(address _counterParty) public override onlyOwner {
         require(_counterParty != address(0), Errors.VL_EMPTY_ADDRESS);
         counterParty = _counterParty;
     }
 
     function updateSpotPriceTwapInterval(uint256 _spotPriceTwapInterval)
         public
+        override
         onlyOwner
     {
         spotPriceTwapInterval = _spotPriceTwapInterval;
@@ -540,6 +530,18 @@ contract PositionManager is
     //******************************************************************************************************************
     // INTERNAL FUNCTIONS
     //******************************************************************************************************************
+
+
+    function _openMarketPositionWithMaxPip(
+        uint256 _size,
+        bool _isBuy,
+        uint128 _maxPip
+    )
+        internal
+        returns (uint256 sizeOut, uint256 openNotional)
+    {
+        return _internalOpenMarketOrder(_size, _isBuy, _maxPip);
+    }
 
     function _msgSender()
         internal

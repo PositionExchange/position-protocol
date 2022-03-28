@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../protocol/libraries/types/PositionManagerStorage.sol";
 
 interface IPositionManager {
 
@@ -39,6 +40,25 @@ interface IPositionManager {
 
 
     // FUNCTIONS
+    function pause() external;
+
+    function unpause() external;
+
+    function updateMaxFindingWordsIndex(uint128 _newMaxFindingWordsIndex) external;
+
+    function updateBasisPoint(uint256 _newBasisPoint) external;
+
+    function updateBaseBasicPoint(uint256 _newBaseBasisPoint) external;
+
+    function updateTollRatio(uint256 _newTollRatio) external;
+
+    function setCounterParty(address _counterParty) external;
+
+    function updateSpotPriceTwapInterval(uint256 _spotPriceTwapInterval) external;
+
+
+    function hasLiquidity(uint128 _pip) external returns (bool);
+
     function getCurrentPip() external view returns (uint128);
 
     function getBaseBasisPoint() external view returns (uint256);
@@ -55,8 +75,29 @@ interface IPositionManager {
 
     function getQuoteAsset() external view returns (IERC20);
 
+    function getUnderlyingPrice() external view returns (uint256);
 
     function updatePartialFilledOrder(uint128 pip, uint64 orderId) external;
+
+    function getUnderlyingTwapPrice(uint256 _intervalInSeconds)
+        external
+        view
+        returns (uint256);
+
+    function implGetReserveTwapPrice(uint256 _intervalInSeconds)
+        external
+        view
+        returns (uint256);
+
+    function getTwapPrice(uint256 _intervalInSeconds)
+        external
+        view
+        returns (uint256);
+
+    function calcTwap(
+        PositionManagerStorage.TwapPriceCalcParams memory _params,
+        uint256 _intervalInSeconds
+    ) external view returns (uint256);
 
     function getPendingOrderDetail(uint128 pip, uint64 orderId)
         external
@@ -100,6 +141,12 @@ interface IPositionManager {
             uint256 sizeOut,
             uint256 openNotional
         );
+
+    function getLiquidityInPipRange(
+        uint128 _fromPip,
+        uint256 _dataLength,
+        bool _toHigher
+    ) external view returns (PositionManagerStorage.LiquidityOfEachPip[] memory, uint128);
 
     function openMarketPosition(uint256 size, bool isBuy)
         external
