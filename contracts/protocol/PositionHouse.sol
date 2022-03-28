@@ -9,7 +9,6 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "../interfaces/IPositionManager.sol";
 import "./libraries/position/Position.sol";
-import "hardhat/console.sol";
 import "./PositionManager.sol";
 import "./libraries/helpers/Quantity.sol";
 import "./libraries/position/PositionLimitOrder.sol";
@@ -22,7 +21,10 @@ import {Int256Math} from "./libraries/helpers/Int256Math.sol";
 import {WhitelistManager} from "./modules/WhitelistManager.sol";
 import {CumulativePremiumFractions} from "./modules/CumulativePremiumFractions.sol";
 import {LimitOrderManager} from "./modules/LimitOrder.sol";
-import "./modules/ClaimableAmountManager.sol";
+import {ClaimableAmountManager} from "./modules/ClaimableAmountManager.sol";
+
+// TODO remove on production
+import "hardhat/console.sol";
 
 contract PositionHouse is
     ReentrancyGuardUpgradeable,
