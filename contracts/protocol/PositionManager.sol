@@ -41,6 +41,7 @@ contract PositionManager is
         bool isBuy
     );
     event LimitOrderCancelled(
+        bool isBuy,
         uint64 orderId,
         uint128 pip,
         uint256 remainingSize
@@ -121,14 +122,15 @@ contract PositionManager is
             hasLiquidity(_pip) && _orderId >= tickPosition[_pip].filledIndex,
             Errors.VL_ONLY_PENDING_ORDER
         );
-        (remainingSize, partialFilled) = tickPosition[_pip].cancelLimitOrder(
+        bool isBuy;
+        (remainingSize, partialFilled, isBuy) = tickPosition[_pip].cancelLimitOrder(
             _orderId
         );
         if (tickPosition[_pip].liquidity == 0) {
             liquidityBitmap.toggleSingleBit(_pip, false);
             singleSlot.isFullBuy = 0;
         }
-        emit LimitOrderCancelled(_orderId, _pip, remainingSize);
+        emit LimitOrderCancelled(isBuy, _orderId, _pip, remainingSize);
     }
 
     function openLimitPosition(
