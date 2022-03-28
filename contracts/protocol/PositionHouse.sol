@@ -287,25 +287,6 @@ contract PositionHouse is
         );
     }
 
-    function getClaimAmount(address _pmAddress, address _trader)
-        public
-        view
-        returns (int256 totalClaimableAmount)
-    {
-        Position.Data memory positionData = getPosition(_pmAddress, _trader);
-        return
-            PositionHouseFunction.getClaimAmount(
-                _pmAddress,
-                _trader,
-                positionData,
-                positionMap[_pmAddress][_trader],
-                _getLimitOrders(_pmAddress, _trader),
-                _getReduceLimitOrders(_pmAddress, _trader),
-                getClaimableAmount(_pmAddress, _trader),
-                manualMargin[_pmAddress][_trader]
-            );
-    }
-
     function claimFund(IPositionManager _positionManager)
         external
         whenNotPaused
@@ -452,6 +433,50 @@ contract PositionHouse is
         emit MarginRemoved(_trader, _amount, _positionManager);
     }
 
+    // OWNER UPDATE VARIABLE STORAGE
+    function payFunding(IPositionManager _positionManager) external onlyOwner {
+        int256 premiumFraction = _positionManager.settleFunding();
+        CumulativePremiumFractions._add(
+            address(_positionManager),
+            premiumFraction
+        );
+    }
+
+    function updatePartialLiquidationRatio(uint256 _partialLiquidationRatio)
+        external
+        onlyOwner
+    {
+        partialLiquidationRatio = _partialLiquidationRatio;
+    }
+
+    function updateLiquidationPenaltyRatio(uint256 _liquidationPenaltyRatio)
+        external
+        onlyOwner
+    {
+        liquidationPenaltyRatio = _liquidationPenaltyRatio;
+    }
+
+    function updateWhitelistManager(address _positionManager, bool _isWhitelist)
+        external
+        onlyOwner
+    {
+        if (_isWhitelist) {
+            _setWhitelistManager(_positionManager);
+        } else {
+            _removeWhitelistManager(_positionManager);
+        }
+    }
+
+    function setPauseStatus(bool _isPause) external onlyOwner {
+        if (_isPause) {
+            _pause();
+        } else {
+            _unpause();
+        }
+    }
+
+    // PUBLIC VIEW QUERY
+
     function getRemovableMargin(
         IPositionManager _positionManager,
         address _trader
@@ -471,117 +496,23 @@ contract PositionHouse is
             );
     }
 
-    function clearPosition(address _pmAddress, address _trader) internal {
-        positionMap[_pmAddress][_trader].clear();
-        debtPosition[_pmAddress][_trader].clearDebt();
-        manualMargin[_pmAddress][_trader] = 0;
-        ClaimableAmountManager._reset(_pmAddress, _trader);
-        (
-            PositionLimitOrder.Data[] memory subListLimitOrders,
-            PositionLimitOrder.Data[] memory subReduceLimitOrders
-        ) = PositionHouseFunction.clearAllFilledOrder(
-                IPositionManager(_pmAddress),
-                _getLimitOrders(_pmAddress, _trader),
-                _getReduceLimitOrders(_pmAddress, _trader)
-            );
-        _emptyLimitOrders(_pmAddress, _trader);
-        for (uint256 i = 0; i < subListLimitOrders.length; i++) {
-            if (subListLimitOrders[i].pip == 0) {
-                break;
-            }
-            _pushLimit(_pmAddress, _trader, subListLimitOrders[i]);
-        }
-        _emptyReduceLimitOrders(_pmAddress, _trader);
-        for (uint256 i = 0; i < subReduceLimitOrders.length; i++) {
-            if (subReduceLimitOrders[i].pip == 0) {
-                break;
-            }
-            _pushReduceLimit(_pmAddress, _trader, subReduceLimitOrders[i]);
-        }
-    }
-
-    function openReversePosition(
-        IPositionManager _positionManager,
-        Position.Side _side,
-        int256 _quantity,
-        uint256 _leverage,
-        address _trader,
-        Position.Data memory _oldPosition
-    ) internal returns (PositionResp memory positionResp) {
-        address _pmAddress = address(_positionManager);
-        if (_quantity.abs() < _oldPosition.quantity.abs()) {
-            {
-                positionResp = PositionHouseFunction.openReversePosition(
-                    _pmAddress,
-                    _side,
-                    _quantity,
-                    _leverage,
-                    _trader,
-                    _oldPosition,
-                    positionMap[_pmAddress][_trader],
-                    getCumulativePremiumFractions(_pmAddress)
-                );
-                return positionResp;
-            }
-        }
-        // if new position is larger then close old and open new
+    function getClaimAmount(address _pmAddress, address _trader)
+        public
+        view
+        returns (int256 totalClaimableAmount)
+    {
+        Position.Data memory positionData = getPosition(_pmAddress, _trader);
         return
-            closeAndOpenReversePosition(
-                _positionManager,
-                _side,
-                _quantity,
-                _leverage,
-                _oldPosition
+            PositionHouseFunction.getClaimAmount(
+                _pmAddress,
+                _trader,
+                positionData,
+                positionMap[_pmAddress][_trader],
+                _getLimitOrders(_pmAddress, _trader),
+                _getReduceLimitOrders(_pmAddress, _trader),
+                getClaimableAmount(_pmAddress, _trader),
+                manualMargin[_pmAddress][_trader]
             );
-    }
-
-    function closeAndOpenReversePosition(
-        IPositionManager _positionManager,
-        Position.Side _side,
-        int256 _quantity,
-        uint256 _leverage,
-        Position.Data memory _oldPosition
-    ) internal returns (PositionResp memory positionResp) {
-        address _trader = _msgSender();
-        address _pmAddress = address(_positionManager);
-        PositionResp memory closePositionResp = _internalClosePosition(
-            _positionManager,
-            _trader,
-            PnlCalcOption.SPOT_PRICE,
-            false,
-            _oldPosition
-        );
-        if (_quantity - closePositionResp.exchangedPositionSize == 0) {
-            positionResp = closePositionResp;
-        } else {
-            _oldPosition = getPosition(_pmAddress, _trader);
-            PositionResp memory increasePositionResp = PositionHouseFunction
-                .increasePosition(
-                    address(_positionManager),
-                    _side,
-                    _quantity - closePositionResp.exchangedPositionSize,
-                    _leverage,
-                    _trader,
-                    _oldPosition,
-                    positionMap[_pmAddress][_trader],
-                    getCumulativePremiumFractions(_pmAddress)
-                );
-            positionResp = PositionResp({
-                position: increasePositionResp.position,
-                exchangedQuoteAssetAmount: closePositionResp
-                    .exchangedQuoteAssetAmount +
-                    increasePositionResp.exchangedQuoteAssetAmount,
-                fundingPayment: 0,
-                exchangedPositionSize: closePositionResp.exchangedPositionSize +
-                    increasePositionResp.exchangedPositionSize,
-                realizedPnl: closePositionResp.realizedPnl +
-                    increasePositionResp.realizedPnl,
-                unrealizedPnl: 0,
-                marginToVault: closePositionResp.marginToVault +
-                    increasePositionResp.marginToVault
-            });
-        }
-        return positionResp;
     }
 
     function _internalClosePosition(
@@ -762,12 +693,133 @@ contract PositionHouse is
             : (maintenanceMargin * 100) / uint256(marginBalance);
     }
 
-    function payFunding(IPositionManager _positionManager) external onlyOwner {
-        int256 premiumFraction = _positionManager.settleFunding();
-        CumulativePremiumFractions._add(
-            address(_positionManager),
-            premiumFraction
+    function getCumulativePremiumFractions(address _pmAddress)
+        public
+        view
+        override(CumulativePremiumFractions, LimitOrderManager)
+        returns (int256[] memory)
+    {
+        return
+            CumulativePremiumFractions.getCumulativePremiumFractions(
+                _pmAddress
+            );
+    }
+
+    //
+    // INTERNAL FUNCTIONS
+    //
+
+    function clearPosition(address _pmAddress, address _trader) internal {
+        positionMap[_pmAddress][_trader].clear();
+        debtPosition[_pmAddress][_trader].clearDebt();
+        manualMargin[_pmAddress][_trader] = 0;
+        ClaimableAmountManager._reset(_pmAddress, _trader);
+        (
+            PositionLimitOrder.Data[] memory subListLimitOrders,
+            PositionLimitOrder.Data[] memory subReduceLimitOrders
+        ) = PositionHouseFunction.clearAllFilledOrder(
+                IPositionManager(_pmAddress),
+                _getLimitOrders(_pmAddress, _trader),
+                _getReduceLimitOrders(_pmAddress, _trader)
+            );
+        _emptyLimitOrders(_pmAddress, _trader);
+        for (uint256 i = 0; i < subListLimitOrders.length; i++) {
+            if (subListLimitOrders[i].pip == 0) {
+                break;
+            }
+            _pushLimit(_pmAddress, _trader, subListLimitOrders[i]);
+        }
+        _emptyReduceLimitOrders(_pmAddress, _trader);
+        for (uint256 i = 0; i < subReduceLimitOrders.length; i++) {
+            if (subReduceLimitOrders[i].pip == 0) {
+                break;
+            }
+            _pushReduceLimit(_pmAddress, _trader, subReduceLimitOrders[i]);
+        }
+    }
+
+    function openReversePosition(
+        IPositionManager _positionManager,
+        Position.Side _side,
+        int256 _quantity,
+        uint256 _leverage,
+        address _trader,
+        Position.Data memory _oldPosition
+    ) internal returns (PositionResp memory positionResp) {
+        address _pmAddress = address(_positionManager);
+        if (_quantity.abs() < _oldPosition.quantity.abs()) {
+            {
+                positionResp = PositionHouseFunction.openReversePosition(
+                    _pmAddress,
+                    _side,
+                    _quantity,
+                    _leverage,
+                    _trader,
+                    _oldPosition,
+                    positionMap[_pmAddress][_trader],
+                    getCumulativePremiumFractions(_pmAddress)
+                );
+                return positionResp;
+            }
+        }
+        // if new position is larger then close old and open new
+        return
+            closeAndOpenReversePosition(
+                _positionManager,
+                _side,
+                _quantity,
+                _leverage,
+                _oldPosition
+            );
+    }
+
+    function closeAndOpenReversePosition(
+        IPositionManager _positionManager,
+        Position.Side _side,
+        int256 _quantity,
+        uint256 _leverage,
+        Position.Data memory _oldPosition
+    ) internal returns (PositionResp memory positionResp) {
+        address _trader = _msgSender();
+        address _pmAddress = address(_positionManager);
+        PositionResp memory closePositionResp = _internalClosePosition(
+            _positionManager,
+            _trader,
+            PnlCalcOption.SPOT_PRICE,
+            false,
+            _oldPosition
         );
+        if (_quantity - closePositionResp.exchangedPositionSize == 0) {
+            positionResp = closePositionResp;
+        } else {
+            _oldPosition = getPosition(_pmAddress, _trader);
+            PositionResp memory increasePositionResp = PositionHouseFunction
+                .increasePosition(
+                    address(_positionManager),
+                    _side,
+                    _quantity - closePositionResp.exchangedPositionSize,
+                    _leverage,
+                    _trader,
+                    _oldPosition,
+                    positionMap[_pmAddress][_trader],
+                    getCumulativePremiumFractions(_pmAddress)
+                );
+            positionResp = PositionResp({
+                position: increasePositionResp.position,
+                exchangedQuoteAssetAmount: closePositionResp
+                    .exchangedQuoteAssetAmount +
+                    increasePositionResp.exchangedQuoteAssetAmount,
+                fundingPayment: 0,
+                exchangedPositionSize: closePositionResp.exchangedPositionSize +
+                    increasePositionResp.exchangedPositionSize,
+                realizedPnl: closePositionResp.realizedPnl +
+                    increasePositionResp.realizedPnl,
+                unrealizedPnl: 0,
+                marginToVault: closePositionResp.marginToVault +
+                    increasePositionResp.marginToVault
+            });
+        }
+        return positionResp;
     }
 
     function withdraw(
@@ -795,10 +847,6 @@ contract PositionHouse is
         );
         insuranceFund.updateTotalFee(_fee);
     }
-
-    //
-    // INTERNAL FUNCTION OF POSITION HOUSE
-    //
 
     function partialLiquidate(
         IPositionManager _positionManager,
@@ -852,53 +900,6 @@ contract PositionHouse is
         returns (Position.Data memory)
     {
         return positionMap[_pmAddress][_trader];
-    }
-
-    function getCumulativePremiumFractions(address _pmAddress)
-        public
-        view
-        override(CumulativePremiumFractions, LimitOrderManager)
-        returns (int256[] memory)
-    {
-        return
-            CumulativePremiumFractions.getCumulativePremiumFractions(
-                _pmAddress
-            );
-    }
-
-    // UPDATE VARIABLE STORAGE
-
-    function updatePartialLiquidationRatio(uint256 _partialLiquidationRatio)
-        external
-        onlyOwner
-    {
-        partialLiquidationRatio = _partialLiquidationRatio;
-    }
-
-    function updateLiquidationPenaltyRatio(uint256 _liquidationPenaltyRatio)
-        external
-        onlyOwner
-    {
-        liquidationPenaltyRatio = _liquidationPenaltyRatio;
-    }
-
-    function updateWhitelistManager(address _positionManager, bool _isWhitelist)
-        external
-        onlyOwner
-    {
-        if (_isWhitelist) {
-            _setWhitelistManager(_positionManager);
-        } else {
-            _removeWhitelistManager(_positionManager);
-        }
-    }
-
-    function setPauseStatus(bool _isPause) external onlyOwner {
-        if (_isPause) {
-            _pause();
-        } else {
-            _unpause();
-        }
     }
 
     // NEW REQUIRE: restriction mode
