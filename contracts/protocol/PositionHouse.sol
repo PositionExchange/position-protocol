@@ -102,64 +102,12 @@ contract PositionHouse is
         Position.Side _side,
         uint256 _quantity,
         uint256 _leverage
-    ) public whenNotPaused nonReentrant {
-        address _trader = _msgSender();
-        address _pmAddress = address(_positionManager);
-        int256 pQuantity = _side == Position.Side.LONG
-            ? int256(_quantity)
-            : -int256(_quantity);
-        Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
-        if (oldPosition.quantity == 0) {
-            oldPosition.leverage = 1;
-        }
-        //leverage must be greater than old position and in range of allowed leverage
-        require(
-            _leverage >= oldPosition.leverage &&
-                _leverage <= 125 &&
-                _leverage > 0,
-            Errors.VL_INVALID_LEVERAGE
-        );
-        PositionResp memory pResp;
-        // check if old position quantity is the same side with the new one
-        if (oldPosition.quantity == 0 || oldPosition.side() == _side) {
-            pResp = PositionHouseFunction.increasePosition(
-                _pmAddress,
-                _side,
-                int256(_quantity),
-                _leverage,
-                _trader,
-                oldPosition,
-                positionMap[_pmAddress][_trader],
-                getCumulativePremiumFractions(_pmAddress)
-            );
-        } else {
-            pResp = openReversePosition(
-                _positionManager,
-                _side,
-                pQuantity,
-                _leverage,
-                _trader,
-                oldPosition
-            );
-        }
-        // update position state
-        positionMap[_pmAddress][_trader].update(pResp.position);
-
-        if (pResp.marginToVault > 0) {
-            //transfer from trader to vault
-            uint256 fee = _positionManager.calcFee(pResp.position.openNotional);
-            deposit(_positionManager, _trader, pResp.marginToVault.abs(), fee);
-        } else if (pResp.marginToVault < 0) {
-            // withdraw from vault to user
-            withdraw(_positionManager, _trader, pResp.marginToVault.abs());
-        }
-        emit OpenMarket(
-            _trader,
-            pQuantity,
-            _leverage,
-            (pResp.exchangedQuoteAssetAmount *
-                _positionManager.getBasisPoint()) / _quantity,
-            _positionManager
+    ) external whenNotPaused nonReentrant {
+        _internalOpenMarketPosition(
+            _positionManager,
+            _side,
+            _quantity,
+            _leverage
         );
     }
 
@@ -246,7 +194,7 @@ contract PositionHouse is
             _quantity > 0 && _quantity <= positionData.quantity.abs(),
             Errors.VL_INVALID_CLOSE_QUANTITY
         );
-        openMarketPosition(
+        _internalOpenMarketPosition(
             _positionManager,
             positionData.quantity > 0
                 ? Position.Side.SHORT
@@ -515,68 +463,6 @@ contract PositionHouse is
             );
     }
 
-    function _internalClosePosition(
-        IPositionManager _positionManager,
-        address _trader,
-        PnlCalcOption _pnlCalcOption,
-        bool _isInOpenLimit,
-        Position.Data memory _oldPosition
-    ) internal override returns (PositionResp memory positionResp) {
-        address _pmAddress = address(_positionManager);
-        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
-            _positionManager,
-            _trader,
-            _pnlCalcOption,
-            _oldPosition
-        );
-        uint256 openMarketQuantity = _oldPosition.quantity.abs();
-        require(
-            openMarketQuantity != 0,
-            Errors.VL_INVALID_QUANTITY_INTERNAL_CLOSE
-        );
-        if (_isInOpenLimit) {
-            uint256 liquidityInCurrentPip = uint256(
-                _positionManager.getLiquidityInCurrentPip()
-            );
-            openMarketQuantity = liquidityInCurrentPip >
-                _oldPosition.quantity.abs()
-                ? _oldPosition.quantity.abs()
-                : liquidityInCurrentPip;
-        }
-
-        (
-            positionResp.exchangedPositionSize,
-            positionResp.exchangedQuoteAssetAmount
-        ) = PositionHouseFunction.openMarketOrder(
-            _pmAddress,
-            openMarketQuantity,
-            _oldPosition.quantity > 0
-                ? Position.Side.SHORT
-                : Position.Side.LONG,
-            _trader
-        );
-
-        (
-            uint256 remainMargin,
-            uint256 badDebt,
-            int256 fundingPayment,
-
-        ) = calcRemainMarginWithFundingPayment(
-                _pmAddress,
-                _oldPosition,
-                _oldPosition.margin
-            );
-
-        positionResp.realizedPnl = unrealizedPnl;
-        positionResp.marginToVault = -int256(remainMargin)
-            .add(positionResp.realizedPnl)
-            .add(manualMargin[_pmAddress][_trader])
-            .kPositive();
-        positionResp.unrealizedPnl = 0;
-        ClaimableAmountManager._reset(_pmAddress, _trader);
-        clearPosition(_pmAddress, _trader);
-    }
-
     function getListOrderPending(
         IPositionManager _positionManager,
         address _trader
@@ -708,6 +594,134 @@ contract PositionHouse is
     //
     // INTERNAL FUNCTIONS
     //
+
+    function _internalOpenMarketPosition(
+        IPositionManager _positionManager,
+        Position.Side _side,
+        uint256 _quantity,
+        uint256 _leverage
+    ) internal {
+        address _trader = _msgSender();
+        address _pmAddress = address(_positionManager);
+        int256 pQuantity = _side == Position.Side.LONG
+            ? int256(_quantity)
+            : -int256(_quantity);
+        Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
+        if (oldPosition.quantity == 0) {
+            oldPosition.leverage = 1;
+        }
+        //leverage must be greater than old position and in range of allowed leverage
+        require(
+            _leverage >= oldPosition.leverage &&
+                _leverage <= 125 &&
+                _leverage > 0,
+            Errors.VL_INVALID_LEVERAGE
+        );
+        PositionResp memory pResp;
+        // check if old position quantity is the same side with the new one
+        if (oldPosition.quantity == 0 || oldPosition.side() == _side) {
+            pResp = PositionHouseFunction.increasePosition(
+                _pmAddress,
+                _side,
+                int256(_quantity),
+                _leverage,
+                _trader,
+                oldPosition,
+                positionMap[_pmAddress][_trader],
+                getCumulativePremiumFractions(_pmAddress)
+            );
+        } else {
+            pResp = openReversePosition(
+                _positionManager,
+                _side,
+                pQuantity,
+                _leverage,
+                _trader,
+                oldPosition
+            );
+        }
+        // update position state
+        positionMap[_pmAddress][_trader].update(pResp.position);
+
+        if (pResp.marginToVault > 0) {
+            //transfer from trader to vault
+            uint256 fee = _positionManager.calcFee(pResp.position.openNotional);
+            deposit(_positionManager, _trader, pResp.marginToVault.abs(), fee);
+        } else if (pResp.marginToVault < 0) {
+            // withdraw from vault to user
+            withdraw(_positionManager, _trader, pResp.marginToVault.abs());
+        }
+        emit OpenMarket(
+            _trader,
+            pQuantity,
+            _leverage,
+            (pResp.exchangedQuoteAssetAmount *
+                _positionManager.getBasisPoint()) / _quantity,
+            _positionManager
+        );
+    }
+
+    function _internalClosePosition(
+        IPositionManager _positionManager,
+        address _trader,
+        PnlCalcOption _pnlCalcOption,
+        bool _isInOpenLimit,
+        Position.Data memory _oldPosition
+    ) internal override returns (PositionResp memory positionResp) {
+        address _pmAddress = address(_positionManager);
+        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
+            _positionManager,
+            _trader,
+            _pnlCalcOption,
+            _oldPosition
+        );
+        uint256 openMarketQuantity = _oldPosition.quantity.abs();
+        require(
+            openMarketQuantity != 0,
+            Errors.VL_INVALID_QUANTITY_INTERNAL_CLOSE
+        );
+        if (_isInOpenLimit) {
+            uint256 liquidityInCurrentPip = uint256(
+                _positionManager.getLiquidityInCurrentPip()
+            );
+            openMarketQuantity = liquidityInCurrentPip >
+                _oldPosition.quantity.abs()
+                ? _oldPosition.quantity.abs()
+                : liquidityInCurrentPip;
+        }
+
+        (
+            positionResp.exchangedPositionSize,
+            positionResp.exchangedQuoteAssetAmount
+        ) = PositionHouseFunction.openMarketOrder(
+            _pmAddress,
+            openMarketQuantity,
+            _oldPosition.quantity > 0
+                ? Position.Side.SHORT
+                : Position.Side.LONG,
+            _trader
+        );
+
+        (
+            uint256 remainMargin,
+            uint256 badDebt,
+            int256 fundingPayment,
+
+        ) = calcRemainMarginWithFundingPayment(
+                _pmAddress,
+                _oldPosition,
+                _oldPosition.margin
+            );
+
+        positionResp.realizedPnl = unrealizedPnl;
+        positionResp.marginToVault = -int256(remainMargin)
+            .add(positionResp.realizedPnl)
+            .add(manualMargin[_pmAddress][_trader])
+            .kPositive();
+        positionResp.unrealizedPnl = 0;
+        ClaimableAmountManager._reset(_pmAddress, _trader);
+        clearPosition(_pmAddress, _trader);
+    }
 
     function clearPosition(address _pmAddress, address _trader) internal {
         positionMap[_pmAddress][_trader].clear();
