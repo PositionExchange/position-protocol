@@ -12,6 +12,10 @@ const migrations: MigrationDefinition = {
             console.log(`PositionHouseFunction  ${positionHouseFunctionContractAddress}`);
             await context.factory.createPositionHouseFunctionLibrary({})
 
+            const positionHouseMathContractAddress = await context.db.findAddressByKey('PositionHouseMath');
+            console.log(`PositionHouseMath  ${positionHouseMathContractAddress}`);
+            await context.factory.createPositionHouseMathLibrary({})
+
         }
     })
 }
