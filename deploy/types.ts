@@ -60,6 +60,11 @@ export interface CreatePositionHouseFunction {
 
 }
 
+export interface CreateChainLinkPriceFeed {
+
+}
+
+
 
 export interface PositionManager {
     symbol: string,

@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./libraries/position/TickPosition.sol";
@@ -18,6 +19,7 @@ import "hardhat/console.sol";
 
 contract PositionManager is
     ReentrancyGuardUpgradeable,
+    PausableUpgradeable,
     OwnableUpgradeable,
     PositionManagerStorage
 {
@@ -58,24 +60,6 @@ contract PositionManager is
         _;
     }
 
-    modifier whenNotPaused() {
-        require(!paused, "Pausable: paused");
-        _;
-    }
-
-    modifier whenPaused() {
-        require(paused, "Pausable: not paused");
-        _;
-    }
-
-    function pause() public onlyOwner whenNotPaused {
-        paused = true;
-    }
-
-    function unpause() public onlyOwner whenPaused {
-        paused = false;
-    }
-
     function initialize(
         uint128 _initialPip,
         address _quoteAsset,
@@ -98,6 +82,7 @@ contract PositionManager is
 
         __ReentrancyGuard_init();
         __Ownable_init();
+        __Pausable_init();
 
         priceFeedKey = _priceFeedKey;
         singleSlot.pip = _initialPip;
@@ -114,127 +99,21 @@ contract PositionManager is
         maxFindingWordsIndex = _maxFindingWordsIndex;
         priceFeed = IChainLinkPriceFeed(_priceFeed);
         counterParty = _counterParty;
-        paused = false;
         emit ReserveSnapshotted(_initialPip, block.timestamp);
     }
 
-    function getBaseBasisPoint() public view returns (uint256) {
-        return BASE_BASIC_POINT;
-    }
-
-    function getBasisPoint() public view returns (uint256) {
-        return basisPoint;
-    }
-
-    function getCurrentPip() public view returns (uint128) {
-        return singleSlot.pip;
-    }
-
-    function getCurrentSingleSlot() public view returns (uint128, uint8) {
-        return (singleSlot.pip, singleSlot.isFullBuy);
-    }
-
-    function getPrice() public view returns (uint256) {
-        return (uint256(singleSlot.pip) * BASE_BASIC_POINT) / basisPoint;
-    }
-
-    function pipToPrice(uint128 _pip) public view returns (uint256) {
-        return (uint256(_pip) * BASE_BASIC_POINT) / basisPoint;
-    }
-
-    function getLiquidityInCurrentPip() public view returns (uint128) {
-        return
-            liquidityBitmap.hasLiquidity(singleSlot.pip)
-                ? tickPosition[singleSlot.pip].liquidity
-                : 0;
-    }
-
-    function calcAdjustMargin(uint256 _adjustMargin)
+    function updatePartialFilledOrder(uint128 _pip, uint64 _orderId)
         public
-        view
-        returns (uint256)
+        whenNotPaused
+        onlyCounterParty
     {
-        return _adjustMargin;
-    }
-
-    function hasLiquidity(uint128 _pip) public view returns (bool) {
-        return liquidityBitmap.hasLiquidity(_pip);
-    }
-
-    function getPendingOrderDetail(uint128 _pip, uint64 _orderId)
-        public
-        view
-        returns (
-            bool isFilled,
-            bool isBuy,
-            uint256 size,
-            uint256 partialFilled
-        )
-    {
-        (isFilled, isBuy, size, partialFilled) = tickPosition[_pip]
-            .getQueueOrder(_orderId);
-
-        if (!liquidityBitmap.hasLiquidity(_pip)) {
-            isFilled = true;
-        }
-        if (size != 0 && size == partialFilled) {
-            isFilled = true;
-        }
-    }
-
-    function needClosePositionBeforeOpeningLimitOrder(
-        uint8 _side,
-        uint256 _pip,
-        uint128 _quantity,
-        uint8 _pSide,
-        uint256 _pQuantity
-    ) public view returns (bool) {
-        //save gas
-        SingleSlot memory _singleSlot = singleSlot;
-        return
-            _pip == _singleSlot.pip &&
-            _singleSlot.isFullBuy != _side &&
-            _pQuantity <= _quantity &&
-            _pQuantity <= getLiquidityInCurrentPip();
-    }
-
-    function getNotionalMarginAndFee(
-        uint256 _pQuantity,
-        uint128 _pip,
-        uint256 _leverage
-    )
-        public
-        view
-        returns (
-            uint256 notional,
-            uint256 margin,
-            uint256 fee
-        )
-    {
-        notional = (_pQuantity * pipToPrice(_pip)) / getBaseBasisPoint();
-        margin = notional / _leverage;
-        fee = calcFee(notional);
-    }
-
-    function updatePartialFilledOrder(uint128 _pip, uint64 _orderId) public {
         uint256 newSize = tickPosition[_pip].updateOrderWhenClose(_orderId);
         emit LimitOrderUpdated(_orderId, _pip, newSize);
     }
 
-    /**
-     * @notice calculate total fee (including toll and spread) by input quote asset amount
-     * @param _positionNotional quote asset amount
-     * @return total tx fee
-     */
-    function calcFee(uint256 _positionNotional) public view returns (uint256) {
-        if (tollRatio != 0) {
-            return _positionNotional / tollRatio;
-        }
-        return 0;
-    }
-
     function cancelLimitOrder(uint128 _pip, uint64 _orderId)
         external
+        whenNotPaused
         onlyCounterParty
         returns (uint256 remainingSize, uint256 partialFilled)
     {
@@ -339,6 +218,369 @@ contract PositionManager is
         returns (uint256 sizeOut, uint256 openNotional)
     {
         return _internalOpenMarketOrder(_size, _isBuy, 0);
+    }
+
+    /**
+     * @notice update funding rate
+     * @dev only allow to update while reaching `nextFundingTime`
+     * @return premiumFraction of this period in 18 digits
+     */
+    function settleFunding()
+        external
+        whenNotPaused
+        onlyCounterParty
+        returns (int256 premiumFraction)
+    {
+        require(
+            block.timestamp >= nextFundingTime,
+            Errors.VL_SETTLE_FUNDING_TOO_EARLY
+        );
+
+        // premium = twapMarketPrice - twapIndexPrice
+        // timeFraction = fundingPeriod(1 hour) / 1 day
+        // premiumFraction = premium * timeFraction
+        uint256 underlyingPrice = getUnderlyingTwapPrice(spotPriceTwapInterval);
+        int256 premium = int256(getTwapPrice(spotPriceTwapInterval)) -
+            int256(underlyingPrice);
+        premiumFraction = (premium * int256(fundingPeriod)) / int256(1 days);
+
+        // update funding rate = premiumFraction / twapIndexPrice
+        _updateFundingRate(premiumFraction, underlyingPrice);
+
+        // in order to prevent multiple funding settlement during very short time after network congestion
+        uint256 minNextValidFundingTime = block.timestamp + fundingBufferPeriod;
+
+        // floor((nextFundingTime + fundingPeriod) / 3600) * 3600
+        uint256 nextFundingTimeOnHourStart = ((nextFundingTime +
+            fundingPeriod) / (1 hours)) * (1 hours);
+
+        // max(nextFundingTimeOnHourStart, minNextValidFundingTime)
+        nextFundingTime = nextFundingTimeOnHourStart > minNextValidFundingTime
+            ? nextFundingTimeOnHourStart
+            : minNextValidFundingTime;
+
+        return premiumFraction;
+    }
+
+    //******************************************************************************************************************
+    // VIEW FUNCTIONS
+    //******************************************************************************************************************
+
+    function getBaseBasisPoint() public view returns (uint256) {
+        return BASE_BASIC_POINT;
+    }
+
+    function getBasisPoint() public view returns (uint256) {
+        return basisPoint;
+    }
+
+    function getCurrentPip() public view returns (uint128) {
+        return singleSlot.pip;
+    }
+
+    function getCurrentSingleSlot() public view returns (uint128, uint8) {
+        return (singleSlot.pip, singleSlot.isFullBuy);
+    }
+
+    function getPrice() public view returns (uint256) {
+        return (uint256(singleSlot.pip) * BASE_BASIC_POINT) / basisPoint;
+    }
+
+    function pipToPrice(uint128 _pip) public view returns (uint256) {
+        return (uint256(_pip) * BASE_BASIC_POINT) / basisPoint;
+    }
+
+    function getLiquidityInCurrentPip() public view returns (uint128) {
+        return
+            liquidityBitmap.hasLiquidity(singleSlot.pip)
+                ? tickPosition[singleSlot.pip].liquidity
+                : 0;
+    }
+
+    function calcAdjustMargin(uint256 _adjustMargin)
+        public
+        view
+        returns (uint256)
+    {
+        return _adjustMargin;
+    }
+
+    function hasLiquidity(uint128 _pip) public view returns (bool) {
+        return liquidityBitmap.hasLiquidity(_pip);
+    }
+
+    function getPendingOrderDetail(uint128 _pip, uint64 _orderId)
+        public
+        view
+        returns (
+            bool isFilled,
+            bool isBuy,
+            uint256 size,
+            uint256 partialFilled
+        )
+    {
+        (isFilled, isBuy, size, partialFilled) = tickPosition[_pip]
+            .getQueueOrder(_orderId);
+
+        if (!liquidityBitmap.hasLiquidity(_pip)) {
+            isFilled = true;
+        }
+        if (size != 0 && size == partialFilled) {
+            isFilled = true;
+        }
+    }
+
+    function needClosePositionBeforeOpeningLimitOrder(
+        uint8 _side,
+        uint256 _pip,
+        uint128 _quantity,
+        uint8 _pSide,
+        uint256 _pQuantity
+    ) public view returns (bool) {
+        //save gas
+        SingleSlot memory _singleSlot = singleSlot;
+        return
+            _pip == _singleSlot.pip &&
+            _singleSlot.isFullBuy != _side &&
+            _pQuantity <= _quantity &&
+            _pQuantity <= getLiquidityInCurrentPip();
+    }
+
+    function getNotionalMarginAndFee(
+        uint256 _pQuantity,
+        uint128 _pip,
+        uint256 _leverage
+    )
+        public
+        view
+        returns (
+            uint256 notional,
+            uint256 margin,
+            uint256 fee
+        )
+    {
+        notional = (_pQuantity * pipToPrice(_pip)) / getBaseBasisPoint();
+        margin = notional / _leverage;
+        fee = calcFee(notional);
+    }
+
+    /**
+     * @notice calculate total fee (including toll and spread) by input quote asset amount
+     * @param _positionNotional quote asset amount
+     * @return total tx fee
+     */
+    function calcFee(uint256 _positionNotional) public view returns (uint256) {
+        if (tollRatio != 0) {
+            return _positionNotional / tollRatio;
+        }
+        return 0;
+    }
+
+    struct LiquidityOfEachPip {
+        uint128 pip;
+        uint256 liquidity;
+    }
+
+    function getLiquidityInPipRange(
+        uint128 _fromPip,
+        uint256 _dataLength,
+        bool _toHigher
+    ) public view returns (LiquidityOfEachPip[] memory, uint128) {
+        uint128[] memory allInitializedPips = new uint128[](
+            uint128(_dataLength)
+        );
+        allInitializedPips = liquidityBitmap.findAllLiquidityInMultipleWords(
+            _fromPip,
+            _dataLength,
+            _toHigher
+        );
+        LiquidityOfEachPip[] memory allLiquidity = new LiquidityOfEachPip[](
+            _dataLength
+        );
+
+        for (uint256 i = 0; i < _dataLength; i++) {
+            allLiquidity[i] = LiquidityOfEachPip({
+                pip: allInitializedPips[i],
+                liquidity: tickPosition[allInitializedPips[i]].liquidity
+            });
+        }
+        return (allLiquidity, allInitializedPips[_dataLength - 1]);
+    }
+
+    function getQuoteAsset() public view returns (IERC20) {
+        return quoteAsset;
+    }
+
+    /**
+     * @notice get underlying price provided by oracle
+     * @return underlying price
+     */
+    function getUnderlyingPrice() public view returns (uint256) {
+        return priceFeed.getPrice(priceFeedKey) * BASE_BASIC_POINT;
+    }
+
+    /**
+     * @notice get underlying twap price provided by oracle
+     * @return underlying price
+     */
+    function getUnderlyingTwapPrice(uint256 _intervalInSeconds)
+        public
+        view
+        returns (uint256)
+    {
+        return
+            priceFeed.getTwapPrice(priceFeedKey, _intervalInSeconds) *
+            BASE_BASIC_POINT;
+    }
+
+    /**
+     * @notice get twap price
+     */
+    function getTwapPrice(uint256 _intervalInSeconds)
+        public
+        view
+        returns (uint256)
+    {
+        return implGetReserveTwapPrice(_intervalInSeconds);
+    }
+
+    function implGetReserveTwapPrice(uint256 _intervalInSeconds)
+        public
+        view
+        returns (uint256)
+    {
+        TwapPriceCalcParams memory params;
+        // Can remove this line
+        params.opt = TwapCalcOption.RESERVE_ASSET;
+        params.snapshotIndex = reserveSnapshots.length - 1;
+        return calcTwap(params, _intervalInSeconds);
+    }
+
+    function calcTwap(
+        TwapPriceCalcParams memory _params,
+        uint256 _intervalInSeconds
+    ) public view returns (uint256) {
+        uint256 currentPrice = _getPriceWithSpecificSnapshot(_params);
+        if (_intervalInSeconds == 0) {
+            return currentPrice;
+        }
+
+        uint256 baseTimestamp = block.timestamp - _intervalInSeconds;
+        ReserveSnapshot memory currentSnapshot = reserveSnapshots[
+            _params.snapshotIndex
+        ];
+        // return the latest snapshot price directly
+        // if only one snapshot or the timestamp of latest snapshot is earlier than asking for
+        if (
+            reserveSnapshots.length == 1 ||
+            currentSnapshot.timestamp <= baseTimestamp
+        ) {
+            return currentPrice;
+        }
+
+        uint256 previousTimestamp = currentSnapshot.timestamp;
+        // period same as cumulativeTime
+        uint256 period = block.timestamp - previousTimestamp;
+        uint256 weightedPrice = currentPrice * period;
+        while (true) {
+            // if snapshot history is too short
+            if (_params.snapshotIndex == 0) {
+                return weightedPrice / period;
+            }
+
+            _params.snapshotIndex = _params.snapshotIndex - 1;
+            currentSnapshot = reserveSnapshots[_params.snapshotIndex];
+            currentPrice = _getPriceWithSpecificSnapshot(_params);
+
+            // check if current snapshot timestamp is earlier than target timestamp
+            if (currentSnapshot.timestamp <= baseTimestamp) {
+                // weighted time period will be (target timestamp - previous timestamp). For example,
+                // now is 1000, _intervalInSeconds is 100, then target timestamp is 900. If timestamp of current snapshot is 970,
+                // and timestamp of NEXT snapshot is 880, then the weighted time period will be (970 - 900) = 70,
+                // instead of (970 - 880)
+                weightedPrice =
+                    weightedPrice +
+                    (currentPrice * (previousTimestamp - baseTimestamp));
+                break;
+            }
+
+            uint256 timeFraction = previousTimestamp -
+                currentSnapshot.timestamp;
+            weightedPrice = weightedPrice + (currentPrice * timeFraction);
+            period = period + timeFraction;
+            previousTimestamp = currentSnapshot.timestamp;
+        }
+        return weightedPrice / _intervalInSeconds;
+    }
+
+    //******************************************************************************************************************
+    // ONLY OWNER FUNCTIONS
+    //******************************************************************************************************************
+
+    function pause() public onlyOwner {
+        _pause();
+    }
+
+    function unpause() public onlyOwner {
+        _unpause();
+    }
+
+    function updateMaxFindingWordsIndex(uint128 _newMaxFindingWordsIndex)
+        public
+        onlyOwner
+    {
+        maxFindingWordsIndex = _newMaxFindingWordsIndex;
+        emit UpdateMaxFindingWordsIndex(_newMaxFindingWordsIndex);
+    }
+
+    function updateBasisPoint(uint256 _newBasisPoint) public onlyOwner {
+        basisPoint = _newBasisPoint;
+        emit UpdateBasisPoint(_newBasisPoint);
+    }
+
+    function updateBaseBasicPoint(uint256 _newBaseBasisPoint) public onlyOwner {
+        BASE_BASIC_POINT = _newBaseBasisPoint;
+        emit UpdateBaseBasicPoint(_newBaseBasisPoint);
+    }
+
+    function updateTollRatio(uint256 _newTollRatio) public onlyOwner {
+        tollRatio = _newTollRatio;
+        emit UpdateTollRatio(_newTollRatio);
+    }
+
+    function setCounterParty(address _counterParty) public onlyOwner {
+        require(_counterParty != address(0), Errors.VL_EMPTY_ADDRESS);
+        counterParty = _counterParty;
+    }
+
+    function updateSpotPriceTwapInterval(uint256 _spotPriceTwapInterval)
+        public
+        onlyOwner
+    {
+        spotPriceTwapInterval = _spotPriceTwapInterval;
+        emit UpdateSpotPriceTwapInterval(_spotPriceTwapInterval);
+    }
+
+    //******************************************************************************************************************
+    // INTERNAL FUNCTIONS
+    //******************************************************************************************************************
+
+    function _msgSender()
+        internal
+        view
+        override(ContextUpgradeable)
+        returns (address)
+    {
+        return msg.sender;
+    }
+
+    function _msgData()
+        internal
+        view
+        override(ContextUpgradeable)
+        returns (bytes calldata)
+    {
+        return msg.data;
     }
 
     function _internalOpenMarketOrder(
@@ -456,7 +698,7 @@ contract PositionManager is
         singleSlot.pip = _maxPip != 0 ? _maxPip : state.pip;
         singleSlot.isFullBuy = isFullBuy;
         sizeOut = _size - state.remainingSize;
-        addReserveSnapshot();
+        _addReserveSnapshot();
         emit MarketFilled(
             _isBuy,
             sizeOut,
@@ -466,221 +708,7 @@ contract PositionManager is
         );
     }
 
-    struct LiquidityOfEachPip {
-        uint128 pip;
-        uint256 liquidity;
-    }
-
-    function getLiquidityInPipRange(
-        uint128 _fromPip,
-        uint256 _dataLength,
-        bool _toHigher
-    ) public view returns (LiquidityOfEachPip[] memory, uint128) {
-        uint128[] memory allInitializedPips = new uint128[](
-            uint128(_dataLength)
-        );
-        allInitializedPips = liquidityBitmap.findAllLiquidityInMultipleWords(
-            _fromPip,
-            _dataLength,
-            _toHigher
-        );
-        LiquidityOfEachPip[] memory allLiquidity = new LiquidityOfEachPip[](
-            _dataLength
-        );
-
-        for (uint256 i = 0; i < _dataLength; i++) {
-            allLiquidity[i] = LiquidityOfEachPip({
-                pip: allInitializedPips[i],
-                liquidity: tickPosition[allInitializedPips[i]].liquidity
-            });
-        }
-        return (allLiquidity, allInitializedPips[_dataLength - 1]);
-    }
-
-    function getQuoteAsset() public view returns (IERC20) {
-        return quoteAsset;
-    }
-
-    function updateMaxFindingWordsIndex(uint128 _newMaxFindingWordsIndex)
-        public
-        onlyOwner
-    {
-        maxFindingWordsIndex = _newMaxFindingWordsIndex;
-        emit UpdateMaxFindingWordsIndex(_newMaxFindingWordsIndex);
-    }
-
-    function updateBasisPoint(uint256 _newBasisPoint) public onlyOwner {
-        basisPoint = _newBasisPoint;
-        emit UpdateBasisPoint(_newBasisPoint);
-    }
-
-    function updateBaseBasicPoint(uint256 _newBaseBasisPoint) public onlyOwner {
-        BASE_BASIC_POINT = _newBaseBasisPoint;
-        emit UpdateBaseBasicPoint(_newBaseBasisPoint);
-    }
-
-    function updateTollRatio(uint256 _newTollRatio) public onlyOwner {
-        tollRatio = _newTollRatio;
-        emit UpdateTollRatio(_newTollRatio);
-    }
-
-    function setCounterParty(address _counterParty) public onlyOwner {
-        require(_counterParty != address(0), Errors.VL_EMPTY_ADDRESS);
-        counterParty = _counterParty;
-    }
-
-    function updateSpotPriceTwapInterval(uint256 _spotPriceTwapInterval)
-        public
-        onlyOwner
-    {
-        spotPriceTwapInterval = _spotPriceTwapInterval;
-        emit UpdateSpotPriceTwapInterval(_spotPriceTwapInterval);
-    }
-
-    /**
-     * @notice update funding rate
-     * @dev only allow to update while reaching `nextFundingTime`
-     * @return premiumFraction of this period in 18 digits
-     */
-    function settleFunding()
-        external
-        onlyCounterParty
-        returns (int256 premiumFraction)
-    {
-        require(
-            block.timestamp >= nextFundingTime,
-            Errors.VL_SETTLE_FUNDING_TOO_EARLY
-        );
-
-        // premium = twapMarketPrice - twapIndexPrice
-        // timeFraction = fundingPeriod(1 hour) / 1 day
-        // premiumFraction = premium * timeFraction
-        uint256 underlyingPrice = getUnderlyingTwapPrice(spotPriceTwapInterval);
-        int256 premium = int256(getTwapPrice(spotPriceTwapInterval)) -
-            int256(underlyingPrice);
-        premiumFraction = (premium * int256(fundingPeriod)) / int256(1 days);
-
-        // update funding rate = premiumFraction / twapIndexPrice
-        updateFundingRate(premiumFraction, underlyingPrice);
-
-        // in order to prevent multiple funding settlement during very short time after network congestion
-        uint256 minNextValidFundingTime = block.timestamp + fundingBufferPeriod;
-
-        // floor((nextFundingTime + fundingPeriod) / 3600) * 3600
-        uint256 nextFundingTimeOnHourStart = ((nextFundingTime +
-            fundingPeriod) / (1 hours)) * (1 hours);
-
-        // max(nextFundingTimeOnHourStart, minNextValidFundingTime)
-        nextFundingTime = nextFundingTimeOnHourStart > minNextValidFundingTime
-            ? nextFundingTimeOnHourStart
-            : minNextValidFundingTime;
-
-        return premiumFraction;
-    }
-
-    /**
-     * @notice get underlying price provided by oracle
-     * @return underlying price
-     */
-    function getUnderlyingPrice() public view returns (uint256) {
-        return priceFeed.getPrice(priceFeedKey) * BASE_BASIC_POINT;
-    }
-
-    /**
-     * @notice get underlying twap price provided by oracle
-     * @return underlying price
-     */
-    function getUnderlyingTwapPrice(uint256 _intervalInSeconds)
-        public
-        view
-        returns (uint256)
-    {
-        return
-            priceFeed.getTwapPrice(priceFeedKey, _intervalInSeconds) *
-            BASE_BASIC_POINT;
-    }
-
-    /**
-     * @notice get twap price
-     */
-    function getTwapPrice(uint256 _intervalInSeconds)
-        public
-        view
-        returns (uint256)
-    {
-        return implGetReserveTwapPrice(_intervalInSeconds);
-    }
-
-    function implGetReserveTwapPrice(uint256 _intervalInSeconds)
-        public
-        view
-        returns (uint256)
-    {
-        TwapPriceCalcParams memory params;
-        // Can remove this line
-        params.opt = TwapCalcOption.RESERVE_ASSET;
-        params.snapshotIndex = reserveSnapshots.length - 1;
-        return calcTwap(params, _intervalInSeconds);
-    }
-
-    function calcTwap(
-        TwapPriceCalcParams memory _params,
-        uint256 _intervalInSeconds
-    ) public view returns (uint256) {
-        uint256 currentPrice = getPriceWithSpecificSnapshot(_params);
-        if (_intervalInSeconds == 0) {
-            return currentPrice;
-        }
-
-        uint256 baseTimestamp = block.timestamp - _intervalInSeconds;
-        ReserveSnapshot memory currentSnapshot = reserveSnapshots[
-            _params.snapshotIndex
-        ];
-        // return the latest snapshot price directly
-        // if only one snapshot or the timestamp of latest snapshot is earlier than asking for
-        if (
-            reserveSnapshots.length == 1 ||
-            currentSnapshot.timestamp <= baseTimestamp
-        ) {
-            return currentPrice;
-        }
-
-        uint256 previousTimestamp = currentSnapshot.timestamp;
-        // period same as cumulativeTime
-        uint256 period = block.timestamp - previousTimestamp;
-        uint256 weightedPrice = currentPrice * period;
-        while (true) {
-            // if snapshot history is too short
-            if (_params.snapshotIndex == 0) {
-                return weightedPrice / period;
-            }
-
-            _params.snapshotIndex = _params.snapshotIndex - 1;
-            currentSnapshot = reserveSnapshots[_params.snapshotIndex];
-            currentPrice = getPriceWithSpecificSnapshot(_params);
-
-            // check if current snapshot timestamp is earlier than target timestamp
-            if (currentSnapshot.timestamp <= baseTimestamp) {
-                // weighted time period will be (target timestamp - previous timestamp). For example,
-                // now is 1000, _intervalInSeconds is 100, then target timestamp is 900. If timestamp of current snapshot is 970,
-                // and timestamp of NEXT snapshot is 880, then the weighted time period will be (970 - 900) = 70,
-                // instead of (970 - 880)
-                weightedPrice =
-                    weightedPrice +
-                    (currentPrice * (previousTimestamp - baseTimestamp));
-                break;
-            }
-
-            uint256 timeFraction = previousTimestamp -
-                currentSnapshot.timestamp;
-            weightedPrice = weightedPrice + (currentPrice * timeFraction);
-            period = period + timeFraction;
-            previousTimestamp = currentSnapshot.timestamp;
-        }
-        return weightedPrice / _intervalInSeconds;
-    }
-
-    function getPriceWithSpecificSnapshot(TwapPriceCalcParams memory _params)
+    function _getPriceWithSpecificSnapshot(TwapPriceCalcParams memory _params)
         internal
         view
         virtual
@@ -689,19 +717,16 @@ contract PositionManager is
         return pipToPrice(reserveSnapshots[_params.snapshotIndex].pip);
     }
 
-    //
-    // INTERNAL FUNCTIONS
-    //
     // update funding rate = premiumFraction / twapIndexPrice
-    function updateFundingRate(
+    function _updateFundingRate(
         int256 _premiumFraction,
         uint256 _underlyingPrice
-    ) private {
+    ) internal {
         fundingRate = _premiumFraction / int256(_underlyingPrice);
         emit FundingRateUpdated(fundingRate, _underlyingPrice);
     }
 
-    function addReserveSnapshot() internal {
+    function _addReserveSnapshot() internal {
         uint256 currentBlock = block.number;
         ReserveSnapshot memory latestSnapshot = reserveSnapshots[
             reserveSnapshots.length - 1

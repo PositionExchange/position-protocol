@@ -29,7 +29,7 @@ contract PositionManagerStorage {
 
     bool public isOpen;
 
-    bool public paused;
+//    bool public paused;
 
     IChainLinkPriceFeed public priceFeed;
 

@@ -5,6 +5,7 @@ import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Cont
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "../interfaces/IPositionManager.sol";
 import "./libraries/position/Position.sol";
@@ -30,7 +31,8 @@ contract PositionHouse is
     WhitelistManager,
     CumulativePremiumFractions,
     ClaimableAmountManager,
-    LimitOrderManager
+    LimitOrderManager,
+    PausableUpgradeable
 {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
     using Quantity for int256;
@@ -84,7 +86,6 @@ contract PositionHouse is
         liquidationFeeRatio = _liquidationFeeRatio;
         liquidationPenaltyRatio = _liquidationPenaltyRatio;
         insuranceFund = IInsuranceFund(_insuranceFund);
-        paused = false;
     }
 
     /**
@@ -883,37 +884,19 @@ contract PositionHouse is
     {
         if (_isWhitelist) {
             _setWhitelistManager(_positionManager);
-        } else {
+        }else{
             _removeWhitelistManager(_positionManager);
         }
     }
 
-    modifier whenNotPaused() {
-        //        require(!paused, "Pausable: paused");
-        _;
+
+    function setPauseStatus(bool _isPause) public onlyOwner {
+        if(_isPause) {
+            _pause();
+        }else{
+            _unpause();
+        }
     }
-
-    modifier whenPaused() {
-        //        require(paused, "Pausable: not paused");
-        _;
-    }
-
-    //    function pause() public onlyOwner whenNotPaused {
-    //        paused = true;
-    //    }
-    //
-    //    function unpause() public onlyOwner whenPaused {
-    //        paused = false;
-    //    }
-
-    //    function pause() public onlyOwner whenNotPaused {
-    //        paused = true;
-    //    }
-    //
-    //    function unpause() public onlyOwner {
-    //        require(paused, "Pausable: not paused");
-    //        paused = false;
-    //    }
 
     // NEW REQUIRE: restriction mode
     // In restriction mode, no one can do multi open/close/liquidate position in the same block.
