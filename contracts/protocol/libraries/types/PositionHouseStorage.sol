@@ -68,7 +68,7 @@ contract PositionHouseStorage {
 
     mapping(address => mapping(address => Position.LiquidatedData))
         public debtPosition;
-    mapping(address => mapping(address => uint256)) public canClaimAmountMap;
+
 
     // update added margin type from int256 to uint256
     mapping(address => mapping(address => int256)) public manualMargin;

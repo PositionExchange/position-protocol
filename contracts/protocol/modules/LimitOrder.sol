@@ -7,13 +7,81 @@ import "../libraries/position/PositionLimitOrder.sol";
 import "../libraries/helpers/Quantity.sol";
 import "../libraries/types/PositionHouseStorage.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
+import "./ClaimableAmountManager.sol";
 
-abstract contract LimitOrderManager {
+abstract contract LimitOrderManager is ClaimableAmountManager {
+    event OpenLimit(
+        uint64 orderId,
+        address trader,
+        int256 quantity,
+        uint256 leverage,
+        uint128 pip,
+        IPositionManager positionManager
+    );
+
     using Quantity for int256;
     // increase orders
-    mapping(address => mapping(address => PositionLimitOrder.Data[])) private limitOrders;
+    mapping(address => mapping(address => PositionLimitOrder.Data[]))
+        private limitOrders;
     // reduce orders
-    mapping(address => mapping(address => PositionLimitOrder.Data[])) private reduceLimitOrders;
+    mapping(address => mapping(address => PositionLimitOrder.Data[]))
+        private reduceLimitOrders;
+
+    function _internalOpenLimitOrder(
+        IPositionManager _positionManager,
+        Position.Side _side,
+        uint256 _uQuantity,
+        uint128 _pip,
+        uint256 _leverage
+    ) internal {
+        address _trader = msg.sender;
+        PositionHouseStorage.OpenLimitResp memory openLimitResp;
+        int256 _quantity = _side == Position.Side.LONG
+            ? int256(_uQuantity)
+            : -int256(_uQuantity);
+        (openLimitResp.orderId, openLimitResp.sizeOut) = _openLimitOrder(
+            _positionManager,
+            _trader,
+            _pip,
+            _quantity,
+            _leverage
+        );
+        if (openLimitResp.sizeOut < _uQuantity) {
+            PositionLimitOrder.Data memory _newOrder = PositionLimitOrder.Data({
+                pip: _pip,
+                orderId: openLimitResp.orderId,
+                leverage: uint16(_leverage),
+                isBuy: _side == Position.Side.LONG ? 1 : 2,
+                entryPrice: 0,
+                reduceLimitOrderId: 0,
+                reduceQuantity: 0,
+                blockNumber: block.number
+            });
+            _storeLimitOrder(
+                _newOrder,
+                _positionManager,
+                _trader,
+                _quantity,
+                openLimitResp.sizeOut
+            );
+        }
+        (, uint256 marginToVault, uint256 fee) = _positionManager
+            .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
+        deposit(_positionManager, _trader, marginToVault, fee);
+        ClaimableAmountManager._increase(
+            address(_positionManager),
+            _trader,
+            marginToVault
+        );
+        emit OpenLimit(
+            openLimitResp.orderId,
+            _trader,
+            _quantity,
+            _leverage,
+            _pip,
+            _positionManager
+        );
+    }
 
     // check the new limit order is fully reduce, increase or both reduce and increase
     function _storeLimitOrder(
@@ -24,10 +92,7 @@ abstract contract LimitOrderManager {
         uint256 _sizeOut
     ) internal {
         address _pmAddress = address(_positionManager);
-        Position.Data memory oldPosition = getPosition(
-            _pmAddress,
-            _trader
-        );
+        Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
         if (
             oldPosition.quantity == 0 ||
             _quantity.isSameSide(oldPosition.quantity)
@@ -44,8 +109,8 @@ abstract contract LimitOrderManager {
             else {
                 _newOrder.reduceQuantity = oldPosition.quantity.abs();
                 _newOrder.reduceLimitOrderId =
-                _getReduceLimitOrders(_pmAddress, _trader).length +
-                1;
+                    _getReduceLimitOrders(_pmAddress, _trader).length +
+                    1;
                 _pushLimit(_pmAddress, _trader, _newOrder);
             }
             _newOrder.entryPrice = PositionHouseMath.entryPriceFromNotional(
@@ -57,20 +122,20 @@ abstract contract LimitOrderManager {
         }
     }
 
-    function _internalOpenLimitOrder(
+    function _openLimitOrder(
         IPositionManager _positionManager,
         address _trader,
         uint128 _pip,
         int256 _rawQuantity,
         uint256 _leverage
-    ) internal returns (uint64 orderId, uint256 sizeOut) {
+    ) private returns (uint64 orderId, uint256 sizeOut) {
         {
             address _pmAddress = address(_positionManager);
             Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
             require(
                 _leverage >= oldPosition.leverage &&
-                _leverage <= 125 &&
-                _leverage > 0,
+                    _leverage <= 125 &&
+                    _leverage > 0,
                 Errors.VL_INVALID_LEVERAGE
             );
             uint256 openNotional;
@@ -86,13 +151,14 @@ abstract contract LimitOrderManager {
                     oldPosition.quantity.abs()
                 )
             ) {
-                PositionHouseStorage.PositionResp memory closePositionResp = _internalClosePosition(
-                    _positionManager,
-                    _trader,
-                    PositionHouseStorage.PnlCalcOption.SPOT_PRICE,
-                    true,
-                    oldPosition
-                );
+                PositionHouseStorage.PositionResp
+                    memory closePositionResp = _internalClosePosition(
+                        _positionManager,
+                        _trader,
+                        PositionHouseStorage.PnlCalcOption.SPOT_PRICE,
+                        true,
+                        oldPosition
+                    );
                 if (
                     _rawQuantity - closePositionResp.exchangedPositionSize == 0
                 ) {
@@ -101,11 +167,11 @@ abstract contract LimitOrderManager {
                     //                            deposit(_positionManager, _trader, positionResp.marginToVault.abs(), 0);
                 } else {
                     _quantity -= (closePositionResp.exchangedPositionSize)
-                    .abs128();
+                        .abs128();
                 }
             }
             (orderId, sizeOut, openNotional) = _positionManager
-            .openLimitPosition(_pip, _quantity, _rawQuantity > 0);
+                .openLimitPosition(_pip, _quantity, _rawQuantity > 0);
             if (sizeOut != 0) {
                 // case: open a limit order at the last price
                 // the order must be partially executed
@@ -115,7 +181,7 @@ abstract contract LimitOrderManager {
                     oldPosition,
                     _getPositionMap(_pmAddress, _trader),
                     openNotional,
-                    _rawQuantity > 0 ? int256(sizeOut) : - int256(sizeOut),
+                    _rawQuantity > 0 ? int256(sizeOut) : -int256(sizeOut),
                     _leverage,
                     getCumulativePremiumFractions(_pmAddress)
                 );
@@ -124,25 +190,46 @@ abstract contract LimitOrderManager {
         }
     }
 
-    function _getLimitOrderPointer(address _pmAddress, address _trader, uint8 _isReduce) internal view returns (PositionLimitOrder.Data[] storage) {
-        return _isReduce == 1
-        ? reduceLimitOrders[_pmAddress][_trader]
-        : limitOrders[_pmAddress][_trader];
+    function _getLimitOrderPointer(
+        address _pmAddress,
+        address _trader,
+        uint8 _isReduce
+    ) internal view returns (PositionLimitOrder.Data[] storage) {
+        return
+            _isReduce == 1
+                ? reduceLimitOrders[_pmAddress][_trader]
+                : limitOrders[_pmAddress][_trader];
     }
 
-    function _getLimitOrders(address _pmAddress, address _trader) internal view returns (PositionLimitOrder.Data[] memory){
+    function _getLimitOrders(address _pmAddress, address _trader)
+        internal
+        view
+        returns (PositionLimitOrder.Data[] memory)
+    {
         return limitOrders[_pmAddress][_trader];
     }
 
-    function _getReduceLimitOrders(address _pmAddress, address _trader) internal view returns (PositionLimitOrder.Data[] memory){
+    function _getReduceLimitOrders(address _pmAddress, address _trader)
+        internal
+        view
+        returns (PositionLimitOrder.Data[] memory)
+    {
         return reduceLimitOrders[_pmAddress][_trader];
     }
 
-    function _pushLimit(address _pmAddress, address _trader, PositionLimitOrder.Data memory order) internal {
+    function _pushLimit(
+        address _pmAddress,
+        address _trader,
+        PositionLimitOrder.Data memory order
+    ) internal {
         limitOrders[_pmAddress][_trader].push(order);
     }
 
-    function _pushReduceLimit(address _pmAddress, address _trader, PositionLimitOrder.Data memory order) internal {
+    function _pushReduceLimit(
+        address _pmAddress,
+        address _trader,
+        PositionLimitOrder.Data memory order
+    ) internal {
         reduceLimitOrders[_pmAddress][_trader].push(order);
     }
 
@@ -152,13 +239,19 @@ abstract contract LimitOrderManager {
         }
     }
 
-    function _emptyReduceLimitOrders(address _pmAddress, address _trader) internal {
+    function _emptyReduceLimitOrders(address _pmAddress, address _trader)
+        internal
+    {
         if (_getReduceLimitOrders(_pmAddress, _trader).length > 0) {
             delete reduceLimitOrders[_pmAddress][_trader];
         }
     }
 
-    function _blankReduceLimitOrder(address _pmAddress, address _trader, uint256 index) internal {
+    function _blankReduceLimitOrder(
+        address _pmAddress,
+        address _trader,
+        uint256 index
+    ) internal {
         // blank limit order data
         // we set the deleted order to a blank data
         // because we don't want to mess with order index (orderIdx)
@@ -166,7 +259,11 @@ abstract contract LimitOrderManager {
         reduceLimitOrders[_pmAddress][_trader][index] = blankLimitOrderData;
     }
 
-    function getPosition(address _pmAddress, address _trader) public view virtual returns (Position.Data memory);
+    function getPosition(address _pmAddress, address _trader)
+        public
+        view
+        virtual
+        returns (Position.Data memory);
 
     function _internalClosePosition(
         IPositionManager _positionManager,
@@ -174,11 +271,33 @@ abstract contract LimitOrderManager {
         PositionHouseStorage.PnlCalcOption _pnlCalcOption,
         bool _isInOpenLimit,
         Position.Data memory _oldPosition
-    ) internal virtual returns (PositionHouseStorage.PositionResp memory positionResp);
+    )
+        internal
+        virtual
+        returns (PositionHouseStorage.PositionResp memory positionResp);
 
-    function _updatePositionMap(address _pmAddress, address _trader, Position.Data memory newData) internal virtual;
+    function _updatePositionMap(
+        address _pmAddress,
+        address _trader,
+        Position.Data memory newData
+    ) internal virtual;
 
-    function getCumulativePremiumFractions(address _pmAddress) public view virtual returns (int256[] memory);
+    function getCumulativePremiumFractions(address _pmAddress)
+        public
+        view
+        virtual
+        returns (int256[] memory);
 
-    function _getPositionMap(address _pmAddress, address _trader) internal view virtual returns(Position.Data memory);
+    function _getPositionMap(address _pmAddress, address _trader)
+        internal
+        view
+        virtual
+        returns (Position.Data memory);
+
+    function deposit(
+        IPositionManager _positionManager,
+        address _trader,
+        uint256 _amount,
+        uint256 _fee
+    ) internal virtual;
 }

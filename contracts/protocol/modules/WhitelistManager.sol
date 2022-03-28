@@ -10,8 +10,11 @@ abstract contract WhitelistManager {
     event WhitelistPositionManagerAdded(address pmAddress);
     event WhitelistPositionManagerRemoved(address pmAddress);
 
-
-    function isWhitelistManager(address _positionManager) public view returns (bool) {
+    function isWhitelistManager(address _positionManager)
+        public
+        view
+        returns (bool)
+    {
         return whitelistManager[_positionManager];
     }
 
@@ -26,8 +29,10 @@ abstract contract WhitelistManager {
     }
 
     modifier onlyWhitelistManager(address _positionManager) {
-        require(isWhitelistManager(_positionManager), Errors.VL_NOT_WHITELIST_MANAGER);
+        require(
+            isWhitelistManager(_positionManager),
+            Errors.VL_NOT_WHITELIST_MANAGER
+        );
         _;
     }
-
 }

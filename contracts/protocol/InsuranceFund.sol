@@ -48,7 +48,7 @@ contract InsuranceFund is
         address _token,
         address _trader,
         uint256 _amount
-    ) public onlyCounterParty{
+    ) public onlyCounterParty {
         IERC20(_token).transferFrom(_trader, address(this), _amount);
     }
 

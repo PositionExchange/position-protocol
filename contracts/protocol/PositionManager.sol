@@ -38,7 +38,11 @@ contract PositionManager is
         uint128 size,
         bool isBuy
     );
-    event LimitOrderCancelled(uint64 orderId, uint128 pip, uint256 remainingSize);
+    event LimitOrderCancelled(
+        uint64 orderId,
+        uint128 pip,
+        uint256 remainingSize
+    );
 
     event UpdateMaxFindingWordsIndex(uint128 newMaxFindingWordsIndex);
     event UpdateBasisPoint(uint256 newBasicPoint);
@@ -234,8 +238,13 @@ contract PositionManager is
         onlyCounterParty
         returns (uint256 remainingSize, uint256 partialFilled)
     {
-        require(hasLiquidity(_pip) && _orderId >= tickPosition[_pip].filledIndex, Errors.VL_ONLY_PENDING_ORDER);
-        (remainingSize, partialFilled) = tickPosition[_pip].cancelLimitOrder(_orderId);
+        require(
+            hasLiquidity(_pip) && _orderId >= tickPosition[_pip].filledIndex,
+            Errors.VL_ONLY_PENDING_ORDER
+        );
+        (remainingSize, partialFilled) = tickPosition[_pip].cancelLimitOrder(
+            _orderId
+        );
         if (tickPosition[_pip].liquidity == 0) {
             liquidityBitmap.toggleSingleBit(_pip, false);
             singleSlot.isFullBuy = 0;
@@ -467,7 +476,9 @@ contract PositionManager is
         uint256 _dataLength,
         bool _toHigher
     ) public view returns (LiquidityOfEachPip[] memory, uint128) {
-        uint128[] memory allInitializedPips = new uint128[](uint128(_dataLength));
+        uint128[] memory allInitializedPips = new uint128[](
+            uint128(_dataLength)
+        );
         allInitializedPips = liquidityBitmap.findAllLiquidityInMultipleWords(
             _fromPip,
             _dataLength,

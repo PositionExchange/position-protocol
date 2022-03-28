@@ -35,9 +35,10 @@ library LimitOrder {
         _self.size = uint120(_size);
     }
 
-    function updatePartialFill(LimitOrder.Data storage _self, uint120 _remainSize)
-        internal
-    {
+    function updatePartialFill(
+        LimitOrder.Data storage _self,
+        uint120 _remainSize
+    ) internal {
         // remainingSize should be negative
         _self.partialFilled += _self.size - _remainSize;
     }
