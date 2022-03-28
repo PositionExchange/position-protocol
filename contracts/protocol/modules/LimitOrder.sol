@@ -86,7 +86,7 @@ abstract contract LimitOrderManager {
                     oldPosition.quantity.abs()
                 )
             ) {
-                PositionHouseStorage.PositionResp memory closePositionResp = internalClosePosition(
+                PositionHouseStorage.PositionResp memory closePositionResp = _internalClosePosition(
                     _positionManager,
                     _trader,
                     PositionHouseStorage.PnlCalcOption.SPOT_PRICE,
@@ -168,7 +168,7 @@ abstract contract LimitOrderManager {
 
     function getPosition(address _pmAddress, address _trader) public view virtual returns (Position.Data memory);
 
-    function internalClosePosition(
+    function _internalClosePosition(
         IPositionManager _positionManager,
         address _trader,
         PositionHouseStorage.PnlCalcOption _pnlCalcOption,

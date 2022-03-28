@@ -588,7 +588,7 @@ contract PositionHouse is
     ) internal returns (PositionResp memory positionResp) {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
-        PositionResp memory closePositionResp = internalClosePosition(
+        PositionResp memory closePositionResp = _internalClosePosition(
             _positionManager,
             _trader,
             PnlCalcOption.SPOT_PRICE,
@@ -628,7 +628,7 @@ contract PositionHouse is
         return positionResp;
     }
 
-    function internalClosePosition(
+    function _internalClosePosition(
         IPositionManager _positionManager,
         address _trader,
         PnlCalcOption _pnlCalcOption,
