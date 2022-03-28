@@ -14,46 +14,19 @@ import "./libraries/types/PositionManagerStorage.sol";
 import {IChainLinkPriceFeed} from "../interfaces/IChainLinkPriceFeed.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
-
+import {IPositionManager} from "../interfaces/IPositionManager.sol";
 import "hardhat/console.sol";
 
 contract PositionManager is
     ReentrancyGuardUpgradeable,
     PausableUpgradeable,
     OwnableUpgradeable,
-    PositionManagerStorage
+    PositionManagerStorage,
+    IPositionManager
 {
     using TickPosition for TickPosition.Data;
     using LiquidityBitmap for mapping(uint128 => uint256);
 
-    // Events that supports building order book
-    event MarketFilled(
-        bool isBuy,
-        uint256 indexed amount,
-        uint128 toPip,
-        uint256 passedPipCount,
-        uint128 remainingLiquidity
-    );
-    event LimitOrderCreated(
-        uint64 orderId,
-        uint128 pip,
-        uint128 size,
-        bool isBuy
-    );
-    event LimitOrderCancelled(
-        uint64 orderId,
-        uint128 pip,
-        uint256 remainingSize
-    );
-
-    event UpdateMaxFindingWordsIndex(uint128 newMaxFindingWordsIndex);
-    event UpdateBasisPoint(uint256 newBasicPoint);
-    event UpdateBaseBasicPoint(uint256 newBaseBasisPoint);
-    event UpdateTollRatio(uint256 newTollRatio);
-    event UpdateSpotPriceTwapInterval(uint256 newSpotPriceTwapInterval);
-    event ReserveSnapshotted(uint128 pip, uint256 timestamp);
-    event FundingRateUpdated(int256 fundingRate, uint256 underlyingPrice);
-    event LimitOrderUpdated(uint64 orderId, uint128 pip, uint256 size);
 
     modifier onlyCounterParty() {
         require(counterParty == _msgSender(), Errors.VL_NOT_COUNTERPARTY);
@@ -139,6 +112,7 @@ contract PositionManager is
         external
         whenNotPaused
         onlyCounterParty
+        override
         returns (
             uint64 orderId,
             uint256 sizeOut,
@@ -206,6 +180,7 @@ contract PositionManager is
         public
         whenNotPaused
         onlyCounterParty
+        override
         returns (uint256 sizeOut, uint256 openNotional)
     {
         return _internalOpenMarketOrder(_size, _isBuy, _maxPip);
@@ -266,31 +241,31 @@ contract PositionManager is
     // VIEW FUNCTIONS
     //******************************************************************************************************************
 
-    function getBaseBasisPoint() public view returns (uint256) {
+    function getBaseBasisPoint() public view override returns (uint256) {
         return BASE_BASIC_POINT;
     }
 
-    function getBasisPoint() public view returns (uint256) {
+    function getBasisPoint() public view override returns (uint256) {
         return basisPoint;
     }
 
-    function getCurrentPip() public view returns (uint128) {
+    function getCurrentPip() public view override returns (uint128) {
         return singleSlot.pip;
     }
 
-    function getCurrentSingleSlot() public view returns (uint128, uint8) {
+    function getCurrentSingleSlot() public view override returns (uint128, uint8) {
         return (singleSlot.pip, singleSlot.isFullBuy);
     }
 
-    function getPrice() public view returns (uint256) {
+    function getPrice() public view override returns (uint256) {
         return (uint256(singleSlot.pip) * BASE_BASIC_POINT) / basisPoint;
     }
 
-    function pipToPrice(uint128 _pip) public view returns (uint256) {
+    function pipToPrice(uint128 _pip) public view override returns (uint256) {
         return (uint256(_pip) * BASE_BASIC_POINT) / basisPoint;
     }
 
-    function getLiquidityInCurrentPip() public view returns (uint128) {
+    function getLiquidityInCurrentPip() public view override returns (uint128) {
         return
             liquidityBitmap.hasLiquidity(singleSlot.pip)
                 ? tickPosition[singleSlot.pip].liquidity
@@ -300,6 +275,7 @@ contract PositionManager is
     function calcAdjustMargin(uint256 _adjustMargin)
         public
         view
+        override
         returns (uint256)
     {
         return _adjustMargin;
@@ -369,7 +345,7 @@ contract PositionManager is
      * @param _positionNotional quote asset amount
      * @return total tx fee
      */
-    function calcFee(uint256 _positionNotional) public view returns (uint256) {
+    function calcFee(uint256 _positionNotional) public view override returns (uint256) {
         if (tollRatio != 0) {
             return _positionNotional / tollRatio;
         }
