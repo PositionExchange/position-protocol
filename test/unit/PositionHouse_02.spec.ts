@@ -80,7 +80,7 @@ describe("PositionHouse_02", () => {
         await positionManager.initialize(BigNumber.from(500000), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
         await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), insuranceFund.address)
 
-        await positionHouse.setWhitelistManager(positionManager.address);
+        await positionHouse.updateWhitelistManager(positionManager.address, true);
     })
 
     const openMarketPosition = async ({

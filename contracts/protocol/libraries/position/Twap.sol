@@ -80,7 +80,8 @@ library Twap {
         Observation memory last = _self[_index];
 
         // early return if we've already written an observation this block
-        if (last.blockTimestamp == _blockTimestamp) return (_index, _cardinality);
+        if (last.blockTimestamp == _blockTimestamp)
+            return (_index, _cardinality);
 
         // if the conditions are right, we can bump the cardinality
         if (_cardinalityNext > _cardinality && _index == (_cardinality - 1)) {
@@ -172,11 +173,16 @@ library Twap {
 
             atOrAfter = _self[(i + 1) % _cardinality];
 
-            bool targetAtOrAfter = lte(_time, beforeOrAt.blockTimestamp, _target);
+            bool targetAtOrAfter = lte(
+                _time,
+                beforeOrAt.blockTimestamp,
+                _target
+            );
 
             // check if we've found the answer!
-            if (targetAtOrAfter && lte(_time, _target, atOrAfter.blockTimestamp))
-                break;
+            if (
+                targetAtOrAfter && lte(_time, _target, atOrAfter.blockTimestamp)
+            ) break;
 
             if (!targetAtOrAfter) r = i - 1;
             else l = i + 1;
@@ -252,7 +258,8 @@ library Twap {
     ) internal view returns (uint128 pipCumulative) {
         if (_secondsAgo == 0) {
             Observation memory last = _self[_index];
-            if (last.blockTimestamp != _time) last = transform(last, _time, _pip);
+            if (last.blockTimestamp != _time)
+                last = transform(last, _time, _pip);
             return (last.pipCumulative);
         }
 

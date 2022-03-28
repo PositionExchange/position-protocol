@@ -16,7 +16,8 @@ contract InsuranceFund is
     ReentrancyGuardUpgradeable,
     OwnableUpgradeable
 {
-    address constant public BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+    address public constant BURN_ADDRESS =
+        0x000000000000000000000000000000000000dEaD;
 
     uint256 public totalFee;
     uint256 public totalBurned;
@@ -28,18 +29,29 @@ contract InsuranceFund is
     IUniswapV2Router02 public router;
     IUniswapV2Factory public factory;
 
-    event BuyBackAndBurned(address _token, uint256 _tokenAmount, uint256 _posiAmount);
+    event BuyBackAndBurned(
+        address _token,
+        uint256 _tokenAmount,
+        uint256 _posiAmount
+    );
     event SoldPosiForFund(uint256 _posiAmount, uint256 _tokenAmount);
 
-    event Deposit(address indexed _token, address indexed _trader, uint256 _amount);
-    event Withdraw(address indexed _token, address indexed _trader, uint256 _amount);
+    event Deposit(
+        address indexed _token,
+        address indexed _trader,
+        uint256 _amount
+    );
+    event Withdraw(
+        address indexed _token,
+        address indexed _trader,
+        uint256 _amount
+    );
     event CounterPartyTransferred(address _old, address _new);
 
     modifier onlyCounterParty() {
         require(counterParty == _msgSender(), Errors.VL_NOT_COUNTERPARTY);
         _;
     }
-
 
     function initialize() public initializer {
         __ReentrancyGuard_init();
@@ -75,10 +87,19 @@ contract InsuranceFund is
     ) public onlyCounterParty {
         // if insurance fund not enough amount for trader, should sell posi and pay for trader
         uint256 _tokenBalance = IERC20(_token).balanceOf(address(this));
-        if(_tokenBalance < _amount){
+        if (_tokenBalance < _amount) {
             uint256 _gap = _amount - _tokenBalance;
-            uint256[] memory _amountIns = router.getAmountsIn(_gap, getPosiToTokenRoute(_token));
-            router.swapExactTokensForTokensSupportingFeeOnTransferTokens(_amountIns[0], 0, getPosiToTokenRoute(_token), address(this), block.timestamp);
+            uint256[] memory _amountIns = router.getAmountsIn(
+                _gap,
+                getPosiToTokenRoute(_token)
+            );
+            router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                _amountIns[0],
+                0,
+                getPosiToTokenRoute(_token),
+                address(this),
+                block.timestamp
+            );
             emit SoldPosiForFund(_amountIns[0], _gap);
         }
         IERC20(_token).transfer(_trader, _amount);
@@ -90,13 +111,16 @@ contract InsuranceFund is
     }
 
     // Buy POSI on market and burn it
-    function buyBackAndBurn(address _token, uint256 _amount)
-        public
-        onlyOwner
-    {
+    function buyBackAndBurn(address _token, uint256 _amount) public onlyOwner {
         // buy back
         uint256 _posiBalanceBefore = posi.balanceOf(address(this));
-        router.swapExactTokensForTokensSupportingFeeOnTransferTokens(_amount, 0, getTokenToPosiRoute(_token), address(this), block.timestamp);
+        router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+            _amount,
+            0,
+            getTokenToPosiRoute(_token),
+            address(this),
+            block.timestamp
+        );
         uint256 _posiBalanceAfter = posi.balanceOf(address(this));
         uint256 _posiAmount = _posiBalanceAfter - _posiBalanceBefore;
 
@@ -115,20 +139,29 @@ contract InsuranceFund is
 
     // approve token for router in order to swap tokens
     function approveTokenForRouter(address _token) public onlyOwner {
-        IERC20(_token).approve(address(router), 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff);
+        IERC20(_token).approve(
+            address(router),
+            0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+        );
     }
 
-
-    function getTokenToPosiRoute(address token) private view returns(address[] memory paths){
+    function getTokenToPosiRoute(address token)
+        private
+        view
+        returns (address[] memory paths)
+    {
         paths = new address[](2);
         paths[0] = token;
         paths[1] = address(posi);
     }
 
-    function getPosiToTokenRoute(address token) private view returns(address[] memory paths){
+    function getPosiToTokenRoute(address token)
+        private
+        view
+        returns (address[] memory paths)
+    {
         paths = new address[](2);
         paths[0] = address(posi);
         paths[1] = token;
     }
-
 }
