@@ -68,21 +68,12 @@ contract PositionHouseStorage {
 
     mapping(address => mapping(address => Position.LiquidatedData))
         public debtPosition;
-    mapping(address => mapping(address => uint256)) public canClaimAmountMap;
+
 
     // update added margin type from int256 to uint256
     mapping(address => mapping(address => int256)) public manualMargin;
     //can update with index => no need delete array when close all
-    mapping(address => mapping(address => PositionLimitOrder.Data[]))
-        public limitOrders;
-    mapping(address => mapping(address => PositionLimitOrder.Data[]))
-        public reduceLimitOrders;
 
-    // Cumulative premium fraction
-    mapping(address => int256[]) public cumulativePremiumFractions;
-
-    // Whitelist for position manager address
-    mapping(address => bool) internal whitelistManager;
 
     uint256 maintenanceMarginRatio;
     uint256 partialLiquidationRatio;

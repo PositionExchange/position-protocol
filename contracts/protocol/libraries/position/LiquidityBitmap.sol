@@ -97,11 +97,7 @@ library LiquidityBitmap {
                 }
             } else {
                 if (_self[startWord] != 0) {
-                    next = findHasLiquidityInOneWords(
-                        _self,
-                        _pip,
-                        true
-                    );
+                    next = findHasLiquidityInOneWords(_self, _pip, true);
                     if (next != 0) {
                         return next;
                     }
@@ -147,7 +143,11 @@ library LiquidityBitmap {
                         index++;
                     }
                     while (true) {
-                        next = findHasLiquidityInOneWords(_self, next - 1, true);
+                        next = findHasLiquidityInOneWords(
+                            _self,
+                            next - 1,
+                            true
+                        );
                         if (next != 0 && index <= _dataLength) {
                             allPip[index] = next;
                             index++;
@@ -192,11 +192,10 @@ library LiquidityBitmap {
         return allPip;
     }
 
-    function hasLiquidity(mapping(uint128 => uint256) storage _self, uint128 _pip)
-        internal
-        view
-        returns (bool)
-    {
+    function hasLiquidity(
+        mapping(uint128 => uint256) storage _self,
+        uint128 _pip
+    ) internal view returns (bool) {
         (uint128 mapIndex, uint8 bitPos) = position(_pip);
         return (_self[mapIndex] & (1 << bitPos)) != 0;
     }
