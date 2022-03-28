@@ -840,7 +840,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         address _trader,
         uint256 _amount
-    ) internal onlyWhitelistManager(address(_positionManager)) {
+    ) internal override onlyWhitelistManager(address(_positionManager)) {
         insuranceFund.withdraw(
             address(_positionManager.getQuoteAsset()),
             _trader,
