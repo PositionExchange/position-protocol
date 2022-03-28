@@ -8,10 +8,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {IChainLinkPriceFeed} from "../interfaces/IChainLinkPriceFeed.sol";
 
-contract ChainLinkPriceFeed is
-    OwnableUpgradeable,
-    IChainLinkPriceFeed
-{
+contract ChainLinkPriceFeed is OwnableUpgradeable, IChainLinkPriceFeed {
     uint256 private constant TOKEN_DIGIT = 10**18;
 
     // key by currency symbol, eg ETH
@@ -36,10 +33,7 @@ contract ChainLinkPriceFeed is
             .decimals();
     }
 
-    function removeAggregator(bytes32 _priceFeedKey)
-        external
-        onlyOwner
-    {
+    function removeAggregator(bytes32 _priceFeedKey) external onlyOwner {
         requireNonEmptyAddress(address(getAggregator(_priceFeedKey)));
         delete priceFeedMap[_priceFeedKey];
         delete priceFeedDecimalMap[_priceFeedKey];
@@ -100,7 +94,6 @@ contract ChainLinkPriceFeed is
             answeredInRound
         ) = _aggregator.getRoundData(_round);
     }
-
 
     //------------------------------------------------------------------------------------------------------------------
     // INTERFACE IMPLEMENTATION

@@ -233,7 +233,9 @@ contract PositionHouse is
      * @param _quantity want to close
      */
     function closePosition(IPositionManager _positionManager, uint256 _quantity)
-        public
+        external
+        whenNotPaused
+        nonReentrant
     {
         address _trader = _msgSender();
         Position.Data memory positionData = getPosition(
@@ -264,7 +266,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         uint128 _pip,
         uint256 _quantity
-    ) public {
+    ) external whenNotPaused nonReentrant {
         address _trader = _msgSender();
         Position.Data memory positionData = getPosition(
             address(_positionManager),
@@ -867,35 +869,34 @@ contract PositionHouse is
     // UPDATE VARIABLE STORAGE
 
     function updatePartialLiquidationRatio(uint256 _partialLiquidationRatio)
-        public
+        external
         onlyOwner
     {
         partialLiquidationRatio = _partialLiquidationRatio;
     }
 
     function updateLiquidationPenaltyRatio(uint256 _liquidationPenaltyRatio)
-        public
+        external
         onlyOwner
     {
         liquidationPenaltyRatio = _liquidationPenaltyRatio;
     }
 
     function updateWhitelistManager(address _positionManager, bool _isWhitelist)
-        public
+        external
         onlyOwner
     {
         if (_isWhitelist) {
             _setWhitelistManager(_positionManager);
-        }else{
+        } else {
             _removeWhitelistManager(_positionManager);
         }
     }
 
-
-    function setPauseStatus(bool _isPause) public onlyOwner {
-        if(_isPause) {
+    function setPauseStatus(bool _isPause) external onlyOwner {
+        if (_isPause) {
             _pause();
-        }else{
+        } else {
             _unpause();
         }
     }
