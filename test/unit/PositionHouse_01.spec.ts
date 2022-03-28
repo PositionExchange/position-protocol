@@ -156,7 +156,7 @@ describe("PositionHouse_01", () => {
 
     async function getOrderIdByTx(tx: any) {
         const receipt = await tx.wait();
-        const orderId = ((receipt?.events || [])[1]?.args || [])['orderId'] || ((receipt?.events || [])[2]?.args || [])['orderId'] ||  ((receipt?.events || [])[3]?.args || [])['orderId']
+        const orderId = ((receipt?.events || [])[1]?.args || [])['orderId'] || ((receipt?.events || [])[2]?.args || [])['orderId'] ||  ((receipt?.events || [])[3]?.args || [])['orderId'] ||  ((receipt?.events || [])[4]?.args || [])['orderId'] ||  ((receipt?.events || [])[5]?.args || [])['orderId']
         return orderId
     }
 
