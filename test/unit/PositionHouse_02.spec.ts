@@ -5109,5 +5109,68 @@ describe("PositionHouse_02", () => {
             await expect(positionHouse.cancelLimitOrder(positionManager.address, 1, 0)).to.be.revertedWith("21")
             expect(position.quantity.toString()).eq("-7")
         })
+
+        it("should repay correct quote amount", async () => {
+            await changePrice({limitPrice: 6500, toHigherPrice: true})
+
+            await openLimitPositionAndExpect({
+                limitPrice: 6600,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('15'),
+                _trader: trader1
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('15'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader0.address,
+                    instanceTrader: trader0,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 6600,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader1
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 6600,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader2
+            })
+
+            await changePrice({limitPrice: 6500, toHigherPrice: false})
+
+            await openLimitPositionAndExpect({
+                limitPrice: 6700,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader0
+            })
+
+            const trader1BalanceBefore = await bep20Mintable.balanceOf(trader1.address)
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            const trader1BalanceAfter = await bep20Mintable.balanceOf(trader1.address)
+            await expect((BigNumber.from(trader1BalanceAfter).sub(BigNumber.from(trader1BalanceBefore))).toString()).eq("5600")
+        })
     })
 })

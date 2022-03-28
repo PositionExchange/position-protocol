@@ -5,6 +5,7 @@ import "./Position.sol";
 import "../../../interfaces/IPositionManager.sol";
 import "./PositionLimitOrder.sol";
 import "../../libraries/helpers/Quantity.sol";
+import "../../libraries/helpers/Int256Math.sol";
 import "../../PositionHouse.sol";
 import "../types/PositionHouseStorage.sol";
 import {Errors} from "../helpers/Errors.sol";
@@ -15,6 +16,7 @@ library PositionHouseFunction {
     using Position for Position.LiquidatedData;
     using Quantity for int256;
     using Quantity for int128;
+    using Int256Math for int256;
 
     function handleMarketPart(
         Position.Data memory _positionData,
@@ -786,7 +788,7 @@ library PositionHouseFunction {
         );
         positionResp.realizedPnl =
             (unrealizedPnl * int256(positionResp.exchangedPositionSize)) /
-            _positionData.quantity;
+            _positionData.quantity.absInt();
         positionResp.exchangedQuoteAssetAmount =
             (_quantity.abs() * _positionData.getEntryPrice(_pmAddress)) /
             _positionManager.getBaseBasisPoint();
