@@ -651,7 +651,6 @@ contract PositionManager is
                         state.remainingSize = 0;
                         state.pip = step.pipNext;
                         isFullBuy = 0;
-                        passedPipCount++;
                     }
                 } else {
                     isSkipFirstPip = false;
@@ -672,6 +671,7 @@ contract PositionManager is
             // TODO write a checkpoint that we shift a range of ticks
         }
         singleSlot.pip = _maxPip != 0 ? _maxPip : state.pip;
+        passedPipCount = _maxPip != 0 ? 0 : passedPipCount;
         singleSlot.isFullBuy = isFullBuy;
         sizeOut = _size - state.remainingSize;
         _addReserveSnapshot();

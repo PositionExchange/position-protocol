@@ -70,8 +70,6 @@ export class ContractWrapperFactory {
             await instance.deployed();
             const address = instance.address.toString().toLowerCase();
             console.log(`${symbol} positionManager address : ${address}`)
-            // console.log(`Starting verify Position Manager ${symbol}`);
-            // await this.verifyImplContract(instance.deployTransaction);
             await this.db.saveAddressByKey(saveKey, address);
         }
     }
@@ -80,9 +78,14 @@ export class ContractWrapperFactory {
         console.log(`into create PositionHouse`);
         const positionHouseFunctionContractAddress = await this.db.findAddressByKey(`PositionHouseFunction`);
         console.log(`positionHouseFunctionContractAddress ${positionHouseFunctionContractAddress}`);
+
+        const positionHouseMathContractAddress = await this.db.findAddressByKey(`PositionHouseMath`);
+        console.log(`positionHouseMathContractAddress ${positionHouseMathContractAddress}`);
+
         const PositionHouse = await this.hre.ethers.getContractFactory("PositionHouse", {
             libraries: {
-                PositionHouseFunction: positionHouseFunctionContractAddress
+                PositionHouseFunction: positionHouseFunctionContractAddress,
+                PositionHouseMath: positionHouseMathContractAddress
             }
         })
         const positionHouseContractAddress = await this.db.findAddressByKey(`PositionHouse`);
@@ -110,8 +113,6 @@ export class ContractWrapperFactory {
 
             const address = instance.address.toString().toLowerCase();
             console.log(`PositionHouse address : ${address}`)
-            // console.log('Starting verify PositionHouse');
-            // await this.verifyImplContract(instance.deployTransaction);
             await this.db.saveAddressByKey('PositionHouse', address);
         }
     }
@@ -127,11 +128,8 @@ export class ContractWrapperFactory {
             const instance = await this.hre.upgrades.deployProxy(InsuranceFund, contractArgs);
             console.log("wait for deploy insurance fund");
             await instance.deployed();
-            // console.log(instance.deployTransaction)
             const address = instance.address.toString().toLowerCase();
             console.log(`InsuranceFund address : ${address}`)
-            // console.log('Starting verify Insurance Fund');
-            // await this.verifyImplContract(instance.deployTransaction);
             await this.db.saveAddressByKey('InsuranceFund', address);
 
         }
@@ -140,28 +138,23 @@ export class ContractWrapperFactory {
 
     async createPositionHouseFunctionLibrary(args: CreatePositionHouseFunction) {
         const PositionHouseFunction = await this.hre.ethers.getContractFactory("PositionHouseFunction");
-        const positionHouseFunctionContractAddress = await this.db.findAddressByKey(`PositionHouseFunction`);
 
-
-        // if (!positionHouseFunctionContractAddress) {
-        const contractArgs = [];
         const deployTx = await PositionHouseFunction.deploy();
         await deployTx.deployTransaction.wait(3)
         console.log("wait for deploy position house function fund");
-        // await instance.deployed();
-        // // console.log(instance.deployTransaction)
-        // const address = instance.address.toString().toLowerCase();
-        // console.log(`InsuranceFund address : ${address}`)
-        // // console.log('Starting verify Insurance Fund');
-        // // await this.verifyImplContract(instance.deployTransaction);
         await this.db.saveAddressByKey('PositionHouseFunction', deployTx.address.toLowerCase());
+    }
 
-        // }
+    async createPositionHouseMathLibrary(args: CreatePositionHouseFunction) {
+        const PositionHouseMath = await this.hre.ethers.getContractFactory("PositionHouseMath");
 
+        const deployTx = await PositionHouseMath.deploy();
+        await deployTx.deployTransaction.wait(3)
+        console.log("wait for deploy position house math fund");
+        await this.db.saveAddressByKey('PositionHouseMath', deployTx.address.toLowerCase());
     }
 
     async createChainlinkPriceFeed( args: CreateChainLinkPriceFeed){
-
         const ChainLinkPriceFeed = await this.hre.ethers.getContractFactory("ChainLinkPriceFeed");
         const chainlinkContractAddress = await this.db.findAddressByKey(`ChainLinkPriceFeed`);
         if (chainlinkContractAddress) {
