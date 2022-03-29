@@ -5,7 +5,7 @@ on:
     branches: [ feature/add-vul-check ]
 
 jobs:
-  build:
+  lint-check:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -20,5 +20,5 @@ jobs:
         run: npm install -g ethlint
       - name: Install dependencies
         run: npm ci
-      - name: Check lint
+      - name: Check
         run: solium -d contracts/
