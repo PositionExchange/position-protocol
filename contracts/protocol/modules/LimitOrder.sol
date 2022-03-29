@@ -19,6 +19,13 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         IPositionManager positionManager
     );
 
+    event CancelLimitOrder(
+        address trader,
+        address _positionManager,
+        uint128 pip,
+        uint64 orderId
+    );
+
     using Quantity for int256;
     // increase orders
     mapping(address => mapping(address => PositionLimitOrder.Data[]))
@@ -26,6 +33,47 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
     // reduce orders
     mapping(address => mapping(address => PositionLimitOrder.Data[]))
         private reduceLimitOrders;
+
+    function _internalCancelLimitOrder(
+        IPositionManager _positionManager,
+        uint64 _orderIdx,
+        uint8 _isReduce
+    ) internal {
+        address _trader = msg.sender;
+        address _pmAddress = address(_positionManager);
+        // declare a pointer to reduceLimitOrders or limitOrders
+        PositionLimitOrder.Data[] storage _orders = _getLimitOrderPointer(
+            _pmAddress,
+            _trader,
+            _isReduce
+        );
+        require(_orderIdx < _orders.length, Errors.VL_INVALID_ORDER);
+        // save gas
+        PositionLimitOrder.Data memory _order = _orders[_orderIdx];
+        PositionLimitOrder.Data memory blankLimitOrderData;
+
+        (uint256 refundQuantity, uint256 partialFilled) = _positionManager
+        .cancelLimitOrder(_order.pip, _order.orderId);
+        if (partialFilled == 0) {
+            _orders[_orderIdx] = blankLimitOrderData;
+            if (_order.reduceLimitOrderId != 0) {
+                _blankReduceLimitOrder(
+                    _pmAddress,
+                    _trader,
+                    _order.reduceLimitOrderId - 1
+                );
+            }
+        }
+
+        (, uint256 _refundMargin, ) = _positionManager.getNotionalMarginAndFee(
+            refundQuantity,
+            _order.pip,
+            _order.leverage
+        );
+        withdraw(_positionManager, _trader, _refundMargin);
+        ClaimableAmountManager._decrease(_pmAddress, _trader, _refundMargin);
+        emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
+    }
 
     function _internalOpenLimitOrder(
         IPositionManager _positionManager,
@@ -299,5 +347,11 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         address _trader,
         uint256 _amount,
         uint256 _fee
+    ) internal virtual;
+
+    function withdraw(
+        IPositionManager _positionManager,
+        address _trader,
+        uint256 _amount
     ) internal virtual;
 }
