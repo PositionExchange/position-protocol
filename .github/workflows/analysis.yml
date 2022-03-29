@@ -5,25 +5,49 @@ on:
     branches: [ feature/add-vul-check ]
 
 jobs:
-  lint-check:
+  install:
+    name: Install dependencies
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
           node-version: 12.x
-      - name: Install
-        run: npm ci
+      - run: npm ci
+      - uses: actions/cache@v2
+        id: restore-build
+        with:
+          path: ./*
+          key: ${{ github.sha }}
+
+  lint-check:
+    runs-on: ubuntu-latest
+    needs: [install]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 12.x
+      - uses: actions/cache@v2
+        id: restore-build
+        with:
+          path: ./*
+          key: ${{ github.sha }}
       - name: Check lint
         run: ./node_modules/.bin/solhint contracts/**/*.sol
+
   vulnerabilities-scan:
     runs-on: ubuntu-latest
+    needs: [install]
     steps:
       - uses: actions/checkout@v2
       - uses: docker://trailofbits/eth-security-toolbox
         with:
           entrypoint: bash
-      - name: Install
-        run: npm ci
+      - uses: actions/cache@v2
+        id: restore-build
+        with:
+          path: ./*
+          key: ${{ github.sha }}
       - name: Scan vulnerabilities
-        run: /home/ethsec/.local/bin/slither .
+        run: ls -lah /home/ethsec
