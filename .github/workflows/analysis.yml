@@ -26,7 +26,4 @@ jobs:
       - name: Install
         run: npm ci
       - name: Scan vulnerabilities
-        uses: docker://trailofbits/eth-security-toolbox
-        with:
-          entrypoint: bash
-        run: slither .
+        run: pwd && ls -lah && slither .
