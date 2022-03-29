@@ -5172,5 +5172,55 @@ describe("PositionHouse_02", () => {
             const trader1BalanceAfter = await bep20Mintable.balanceOf(trader1.address)
             await expect((BigNumber.from(trader1BalanceAfter).sub(BigNumber.from(trader1BalanceBefore))).toString()).eq("5600")
         })
+
+        it("should not got execution revert when create position by openLimitOrder at the same pip then place close order", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('20'),
+                _trader: trader2
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4800,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader3
+            })
+
+            console.log("liquidity in pip 5000", (await positionManager.getLiquidityInPipRange(500000, 1, false)).toString())
+
+            console.log("liquidity in pip 4800", (await positionManager.getLiquidityInPipRange(480000, 1, false)).toString())
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('15'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader0.address,
+                    instanceTrader: trader0,
+                    _positionManager: positionManager,
+                }
+            );
+
+            console.log("liquidity in pip 4800", (await positionManager.getLiquidityInPipRange(480000, 1, false)).toString())
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4800,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('20'),
+                _trader: trader2
+            })
+        })
     })
 })

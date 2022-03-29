@@ -604,27 +604,35 @@ contract PositionManager is
         uint8 isFullBuy = 0;
         bool isSkipFirstPip;
         uint256 passedPipCount = 0;
-        CurrentLiquiditySide currentLiquiditySide = CurrentLiquiditySide(
-            _initialSingleSlot.isFullBuy
-        );
-        if (currentLiquiditySide != CurrentLiquiditySide.NotSet) {
-            if (_isBuy)
+        {
+            CurrentLiquiditySide currentLiquiditySide = CurrentLiquiditySide(
+                _initialSingleSlot.isFullBuy
+            );
+            if (currentLiquiditySide != CurrentLiquiditySide.NotSet) {
+                if (_isBuy)
                 // if buy and latest liquidity is buy. skip current pip
-                isSkipFirstPip =
+                    isSkipFirstPip =
                     currentLiquiditySide == CurrentLiquiditySide.Buy;
                 // if sell and latest liquidity is sell. skip current pip
-            else
-                isSkipFirstPip =
+                else
+                    isSkipFirstPip =
                     currentLiquiditySide == CurrentLiquiditySide.Sell;
+            }
         }
-        while (state.remainingSize != 0) {
+        bool onlyLoopOnce;
+        while (!onlyLoopOnce && state.remainingSize != 0) {
             StepComputations memory step;
             // updated findHasLiquidityInMultipleWords, save more gas
-            (step.pipNext) = liquidityBitmap.findHasLiquidityInMultipleWords(
-                state.pip,
-                maxFindingWordsIndex,
-                !_isBuy
-            );
+            if (_maxPip != 0) {
+                step.pipNext = _maxPip;
+                onlyLoopOnce = true;
+            } else {
+                (step.pipNext) = liquidityBitmap.findHasLiquidityInMultipleWords(
+                    state.pip,
+                    maxFindingWordsIndex,
+                    !_isBuy
+                );
+            }
             if (_maxPip != 0 && step.pipNext != _maxPip) break;
             if (step.pipNext == 0) {
                 // no more next pip
@@ -687,6 +695,9 @@ contract PositionManager is
         if (_initialSingleSlot.pip != state.pip) {
             // all ticks in shifted range must be marked as filled
             if (!(remainingLiquidity > 0 && startPip == state.pip)) {
+                if (_maxPip != 0) {
+                    state.pip = _maxPip;
+                }
                 liquidityBitmap.unsetBitsRange(
                     startPip,
                     remainingLiquidity > 0
