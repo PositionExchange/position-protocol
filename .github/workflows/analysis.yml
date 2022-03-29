@@ -19,6 +19,7 @@ jobs:
   vulnerabilities-scan:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - uses: docker://trailofbits/eth-security-toolbox
         with:
           entrypoint: bash
