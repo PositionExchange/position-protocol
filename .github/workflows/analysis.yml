@@ -26,4 +26,4 @@ jobs:
       - name: Install
         run: npm ci
       - name: Scan vulnerabilities
-        run: pwd && ls -lah && slither .
+        run: /home/ethsec/.local/bin/slither .
