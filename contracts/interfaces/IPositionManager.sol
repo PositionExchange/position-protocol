@@ -24,6 +24,7 @@ interface IPositionManager {
         bool isBuy
     );
     event LimitOrderCancelled(
+        bool isBuy,
         uint64 orderId,
         uint128 pip,
         uint256 remainingSize
@@ -146,7 +147,7 @@ interface IPositionManager {
         uint128 _fromPip,
         uint256 _dataLength,
         bool _toHigher
-    ) external view returns (PositionManagerStorage.LiquidityOfEachPip[] memory, uint128);
+    ) external view returns (PositionManagerStorage.PipLiquidity[] memory, uint128);
 
     function openMarketPosition(uint256 size, bool isBuy)
         external

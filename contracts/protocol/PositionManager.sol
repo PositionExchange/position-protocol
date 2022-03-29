@@ -349,7 +349,7 @@ contract PositionManager is
         uint128 _fromPip,
         uint256 _dataLength,
         bool _toHigher
-    ) public override view returns (LiquidityOfEachPip[] memory, uint128) {
+    ) public override view returns (PipLiquidity[] memory, uint128) {
         uint128[] memory allInitializedPips = new uint128[](
             uint128(_dataLength)
         );
@@ -358,12 +358,12 @@ contract PositionManager is
             _dataLength,
             _toHigher
         );
-        LiquidityOfEachPip[] memory allLiquidity = new LiquidityOfEachPip[](
+        PipLiquidity[] memory allLiquidity = new PipLiquidity[](
             _dataLength
         );
 
         for (uint256 i = 0; i < _dataLength; i++) {
-            allLiquidity[i] = LiquidityOfEachPip({
+            allLiquidity[i] = PipLiquidity({
                 pip: allInitializedPips[i],
                 liquidity: tickPosition[allInitializedPips[i]].liquidity
             });

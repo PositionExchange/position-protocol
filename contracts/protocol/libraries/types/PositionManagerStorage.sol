@@ -39,7 +39,7 @@ contract PositionManagerStorage {
         uint8 isFullBuy;
     }
 
-    struct LiquidityOfEachPip {
+    struct PipLiquidity {
         uint128 pip;
         uint256 liquidity;
     }
