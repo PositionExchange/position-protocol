@@ -22,6 +22,7 @@ import {WhitelistManager} from "./modules/WhitelistManager.sol";
 import {CumulativePremiumFractions} from "./modules/CumulativePremiumFractions.sol";
 import {LimitOrderManager} from "./modules/LimitOrder.sol";
 import {ClaimableAmountManager} from "./modules/ClaimableAmountManager.sol";
+import {MarketMaker} from "./modules/MarketMaker.sol";
 
 // TODO remove on production
 import "hardhat/console.sol";
@@ -34,7 +35,8 @@ contract PositionHouse is
     CumulativePremiumFractions,
     ClaimableAmountManager,
     LimitOrderManager,
-    PausableUpgradeable
+    PausableUpgradeable,
+    MarketMaker
 {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
     using Quantity for int256;
@@ -63,13 +65,6 @@ contract PositionHouse is
         address trader,
         uint256 marginRemoved,
         IPositionManager positionManager
-    );
-
-    event CancelLimitOrder(
-        address trader,
-        address _positionManager,
-        uint128 pip,
-        uint64 orderId
     );
 
     event Liquidated(address pmAddress, address trader);
@@ -139,40 +134,7 @@ contract PositionHouse is
         uint64 _orderIdx,
         uint8 _isReduce
     ) external whenNotPaused nonReentrant {
-        address _trader = _msgSender();
-        address _pmAddress = address(_positionManager);
-        // declare a pointer to reduceLimitOrders or limitOrders
-        PositionLimitOrder.Data[] storage _orders = _getLimitOrderPointer(
-            _pmAddress,
-            _trader,
-            _isReduce
-        );
-        require(_orderIdx < _orders.length, Errors.VL_INVALID_ORDER);
-        // save gas
-        PositionLimitOrder.Data memory _order = _orders[_orderIdx];
-        PositionLimitOrder.Data memory blankLimitOrderData;
-
-        (uint256 refundQuantity, uint256 partialFilled) = _positionManager
-            .cancelLimitOrder(_order.pip, _order.orderId);
-        if (partialFilled == 0) {
-            _orders[_orderIdx] = blankLimitOrderData;
-            if (_order.reduceLimitOrderId != 0) {
-                _blankReduceLimitOrder(
-                    _pmAddress,
-                    _trader,
-                    _order.reduceLimitOrderId - 1
-                );
-            }
-        }
-
-        (, uint256 _refundMargin, ) = _positionManager.getNotionalMarginAndFee(
-            refundQuantity,
-            _order.pip,
-            _order.leverage
-        );
-        withdraw(_positionManager, _trader, _refundMargin);
-        ClaimableAmountManager._decrease(_pmAddress, _trader, _refundMargin);
-        emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
+        _internalCancelLimitOrder(_positionManager, _orderIdx, _isReduce);
     }
 
     /**
@@ -460,7 +422,7 @@ contract PositionHouse is
     function getListOrderPending(
         IPositionManager _positionManager,
         address _trader
-    ) public view returns (LimitOrderPending[] memory) {
+    ) public view override returns (LimitOrderPending[] memory) {
         address _pmAddress = address(_positionManager);
         return
             PositionHouseFunction.getListOrderPending(
@@ -834,7 +796,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         address _trader,
         uint256 _amount
-    ) internal onlyWhitelistManager(address(_positionManager)) {
+    ) internal override onlyWhitelistManager(address(_positionManager)) {
         insuranceFund.withdraw(
             address(_positionManager.getQuoteAsset()),
             _trader,
