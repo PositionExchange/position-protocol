@@ -310,12 +310,6 @@ contract PositionHouse is
                 liquidationPenalty =
                     positionData.margin +
                     uint256(manualMargin[_pmAddress][_trader]);
-                withdraw(
-                    _positionManager,
-                    _trader,
-                    (uint256(getClaimAmount(_pmAddress, _trader)) +
-                        positionData.margin)
-                );
                 clearPosition(_pmAddress, _trader);
                 feeToLiquidator =
                     (liquidationPenalty * liquidationFeeRatio) /
