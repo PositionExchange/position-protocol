@@ -1,4 +1,4 @@
-name: Lint check
+name: Contract analysis
 
 on:
   push:
@@ -18,5 +18,15 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Install
         run: npm ci
-      - name: Check
+      - name: Check lint
         run: ./node_modules/.bin/solhint contracts/**/*.sol
+  vulnerabilities-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: trailofbits/eth-security-toolbox
+        with:
+          entrypoint: bash -c
+      - name: Install
+        run: npm ci
+      - name: Scan vulnerabilities
+        run: slither .
