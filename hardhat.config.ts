@@ -1,12 +1,18 @@
 import "@nomiclabs/hardhat-waffle";
 import '@nomiclabs/hardhat-ethers';
-import '@nomiclabs/hardhat-etherscan';
+import '@positionlab/hardhat-etherscan';
 import "@typechain/hardhat";
 import "@openzeppelin/hardhat-upgrades"
 import "hardhat-contract-sizer"
 import {task} from "hardhat/config";
-import "@nomiclabs/hardhat-etherscan";
-import {BSC_MAINNET_URL, BSC_TESTNET_URL, GAS_PRICE, PRIV_TESTNET_ACCOUNT, PRIV_MAINNET_ACCOUNT} from "./constants";
+import {
+    BSC_MAINNET_URL,
+    BSC_TESTNET_URL,
+    GAS_PRICE,
+    PRIV_TESTNET_ACCOUNT,
+    PRIV_MAINNET_ACCOUNT,
+    GANACHE_QC_URL, PRIV_GANACHE_ACCOUNT
+} from "./constants";
 import "./scripts/deploy";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
@@ -48,7 +54,11 @@ module.exports = {
             chainId: 56,
             accounts: PRIV_MAINNET_ACCOUNT ? [PRIV_MAINNET_ACCOUNT] : [],
         },
-
+        qc: {
+            url: GANACHE_QC_URL,
+            chainId: 1337,
+            accounts: PRIV_GANACHE_ACCOUNT ? [PRIV_GANACHE_ACCOUNT] : [],
+        },
     },
 
     solidity: {
@@ -79,12 +89,21 @@ module.exports = {
                         runs: 200,
                     },
                 },
+            },
+            {
+                version: "0.8.2",
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 200,
+                    },
+                },
             }
 
         ]
     },
     etherscan: {
-        apiKey: 'TEMK85WIQR8NGI74AZBCJ3J88FI49XRHJN',
+        apiKey: 'UXFZRYWHB141CX97CPECWH9V7E9QSPHUF6',
     },
     typechain: {
         outDir: "typeChain",

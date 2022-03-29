@@ -98,7 +98,7 @@ library TickPosition {
 
     function cancelLimitOrder(TickPosition.Data storage _self, uint64 _orderId)
         internal
-        returns (uint256, uint256)
+        returns (uint256, uint256, bool)
     {
         (bool isBuy, uint256 size, uint256 partialFilled) = _self
             .orderQueue[_orderId]
@@ -107,7 +107,7 @@ library TickPosition {
             _self.liquidity = _self.liquidity - uint128(size - partialFilled);
         }
         _self.orderQueue[_orderId].update(isBuy, partialFilled);
-        return (size - partialFilled, partialFilled);
+        return (size - partialFilled, partialFilled, isBuy);
     }
 
     function closeLimitOrder(

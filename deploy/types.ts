@@ -1,6 +1,7 @@
 import {ContractWrapperFactory} from './ContractWrapperFactory'
 import {DeployDataStore} from "./DataStore";
 import {HardhatRuntimeEnvironment} from "hardhat/types";
+import {ContractWrapperFactoryQC} from "./ContractWrapperFactoryQC";
 
 export type MigrationTask = () => Promise<void>
 
@@ -23,6 +24,7 @@ export interface MigrationContext {
     // externalContract: ExternalContracts
     // deployConfig: DeployConfig
     factory: ContractWrapperFactory
+    factory_qc: ContractWrapperFactoryQC
     db: DeployDataStore
     hre: HardhatRuntimeEnvironment
 }

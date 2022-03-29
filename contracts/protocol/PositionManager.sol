@@ -15,6 +15,7 @@ import {IChainLinkPriceFeed} from "../interfaces/IChainLinkPriceFeed.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
 import {IPositionManager} from "../interfaces/IPositionManager.sol";
+
 import "hardhat/console.sol";
 
 contract PositionManager is
@@ -94,14 +95,15 @@ contract PositionManager is
             hasLiquidity(_pip) && _orderId >= tickPosition[_pip].filledIndex,
             Errors.VL_ONLY_PENDING_ORDER
         );
-        (remainingSize, partialFilled) = tickPosition[_pip].cancelLimitOrder(
+        bool isBuy;
+        (remainingSize, partialFilled, isBuy) = tickPosition[_pip].cancelLimitOrder(
             _orderId
         );
         if (tickPosition[_pip].liquidity == 0) {
             liquidityBitmap.toggleSingleBit(_pip, false);
             singleSlot.isFullBuy = 0;
         }
-        emit LimitOrderCancelled(_orderId, _pip, remainingSize);
+        emit LimitOrderCancelled(isBuy, _orderId, _pip, remainingSize);
     }
 
     function openLimitPosition(
