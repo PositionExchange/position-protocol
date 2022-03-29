@@ -19,4 +19,4 @@ jobs:
       - name: Install
         run: npm ci
       - name: Check
-        run: solhint 'contracts/**/*.sol'
+        run: ./node_modules/.bin/solhint contracts/**/*.sol
