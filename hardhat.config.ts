@@ -1,6 +1,5 @@
 import "@nomiclabs/hardhat-waffle";
 import '@nomiclabs/hardhat-ethers';
-import "@nomiclabs/hardhat-solhint";
 import '@positionlab/hardhat-etherscan';
 import "@typechain/hardhat";
 import "@openzeppelin/hardhat-upgrades"

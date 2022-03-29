@@ -2,7 +2,16 @@
   "extends": "solhint:recommended",
   "plugins": [],
   "rules": {
-    "avoid-suicide": "error",
-    "avoid-sha3": "warn"
+    "compiler-version": ["error", "^0.8.0"],
+    "reentrancy": "error",
+    "avoid-throw": "error",
+    "check-send-result": "error",
+    "ordering": "warn",
+    "imports-on-top": "error",
+    "mark-callable-contracts": "on",
+    "multiple-sends": "warn",
+    "state-visibility": "error",
+    "use-forbidden-name": "error",
+    "func-visibility": ["warn",{"ignoreConstructors":true}]
   }
 }

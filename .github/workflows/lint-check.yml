@@ -16,9 +16,7 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
-      - name: Install ethlint
-        run: npm install -g ethlint
-      - name: Install dependencies
+      - name: Install
         run: npm ci
       - name: Check
-        run: solium -d contracts/
+        run: solhint 'contracts/**/*.sol'
