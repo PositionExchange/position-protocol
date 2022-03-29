@@ -67,11 +67,11 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             (, uint256 marginToVault, uint256 fee) = _positionManager
                 .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
             deposit(_positionManager, _trader, marginToVault, fee);
-            uint256 marginOfLimitOrder = marginToVault * (_uQuantity - openLimitResp.sizeOut) / _uQuantity;
+            uint256 limitOrderMargin = marginToVault * (_uQuantity - openLimitResp.sizeOut) / _uQuantity;
             ClaimableAmountManager._increase(
                 address(_positionManager),
                 _trader,
-                marginOfLimitOrder
+                limitOrderMargin
             );
         }
         emit OpenLimit(
