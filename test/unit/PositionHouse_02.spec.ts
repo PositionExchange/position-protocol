@@ -5376,8 +5376,7 @@ describe("PositionHouse_02", () => {
 
         })
 
-        it("test case UNIT-12", async () => {
-            console.log("step 1")
+        it("should partially fill limit order correctly", async () => {
             await openLimitPositionAndExpect({
                 limitPrice: 4900,
                 side: SIDE.LONG,
@@ -5394,7 +5393,6 @@ describe("PositionHouse_02", () => {
                 _trader: trader1
             })
 
-            console.log("step 2")
             await openMarketPosition({
                     quantity: BigNumber.from('5'),
                     leverage: 10,
@@ -5405,10 +5403,8 @@ describe("PositionHouse_02", () => {
                 }
             );
 
-            console.log("step 3")
             await positionHouse.connect(trader1).cancelLimitOrder(positionManager.address, 0, 0)
 
-            console.log("step 4")
             await openMarketPosition({
                     quantity: BigNumber.from('1'),
                     leverage: 10,
@@ -5419,7 +5415,6 @@ describe("PositionHouse_02", () => {
                 }
             );
 
-            console.log("step 5")
             await openLimitPositionAndExpect({
                 limitPrice: 4800,
                 side: SIDE.SHORT,
@@ -5428,10 +5423,8 @@ describe("PositionHouse_02", () => {
                 _trader: trader3
             })
 
-            console.log("step 6")
             await positionHouse.connect(trader1).cancelLimitOrder(positionManager.address, 1, 0)
 
-            console.log("step 7")
             await openLimitPositionAndExpect({
                 limitPrice: 4900,
                 side: SIDE.SHORT,
@@ -5440,7 +5433,6 @@ describe("PositionHouse_02", () => {
                 _trader: trader4
             })
 
-            console.log("step 8")
             await openMarketPosition({
                     quantity: BigNumber.from('5'),
                     leverage: 10,
@@ -5451,16 +5443,6 @@ describe("PositionHouse_02", () => {
                 }
             );
 
-            // console.log("step 9")
-            // await openLimitPositionAndExpect({
-            //     limitPrice: 4800,
-            //     side: SIDE.LONG,
-            //     leverage: 10,
-            //     quantity: BigNumber.from('1'),
-            //     _trader: tradercp
-            // })
-
-            console.log("step 10")
             await openLimitPositionAndExpect({
                 limitPrice: 4900,
                 side: SIDE.SHORT,
@@ -5469,7 +5451,6 @@ describe("PositionHouse_02", () => {
                 _trader: trader1
             })
 
-            console.log("step 11")
             await openMarketPosition({
                     quantity: BigNumber.from('1'),
                     leverage: 10,
@@ -5480,7 +5461,6 @@ describe("PositionHouse_02", () => {
                 }
             );
 
-            console.log("step 12")
             await openLimitPositionAndExpect({
                 limitPrice: 4900,
                 side: SIDE.LONG,
@@ -5490,7 +5470,8 @@ describe("PositionHouse_02", () => {
             })
 
             const trader1PendingOrder = await positionHouse.getListOrderPending(positionManager.address, trader1.address)
-            console.log(trader1PendingOrder)
+            await expect(trader1PendingOrder[0].partialFilled.toString()).eq("4")
+            await expect(trader1PendingOrder[0].quantity.toString()).eq("5")
         })
     })
 })
