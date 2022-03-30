@@ -47,6 +47,9 @@ contract InsuranceFund is
         uint256 _amount
     );
     event CounterPartyTransferred(address _old, address _new);
+    event PosiChanged(address _new);
+    event RouterChanged(address _new);
+    event FactoryChanged(address _new);
 
     modifier onlyCounterParty() {
         require(counterParty == _msgSender(), Errors.VL_NOT_COUNTERPARTY);
@@ -71,14 +74,6 @@ contract InsuranceFund is
         IERC20(_token).transferFrom(_trader, address(this), _amount);
         emit Deposit(_token, _trader, _amount);
     }
-
-    //    function transferFeeFromTrader(address token, address trader, uint256 amountFee) public {
-    //
-    //        IERC20(token).transferFrom(trader, address(this), amountFee);
-    //
-    //        totalFee += amountFee;
-    //
-    //    }
 
     function withdraw(
         address _token,
@@ -108,6 +103,31 @@ contract InsuranceFund is
 
     function updateTotalFee(uint256 _fee) public onlyCounterParty {
         totalFee += _fee;
+    }
+
+    //******************************************************************************************************************
+    // ONLY OWNER FUNCTIONS
+    //******************************************************************************************************************
+
+    function updatePosiAddress(IERC20 _newPosiAddress) public onlyOwner {
+        posi = _newPosiAddress;
+        emit PosiChanged(_newPosiAddress);
+    }
+
+    function updateRouterAddress(IUniswapV2Router02 _newRouterAddress)
+        public
+        onlyOwner
+    {
+        router = _newRouterAddress;
+        emit RouterChanged(_newRouterAddress);
+    }
+
+    function updateFactoryAddress(IUniswapV2Factory _newFactory)
+        public
+        onlyOwner
+    {
+        factory = _newFactory;
+        emit FactoryChanged(_newFactory);
     }
 
     // Buy POSI on market and burn it
@@ -144,6 +164,10 @@ contract InsuranceFund is
             0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
         );
     }
+
+    //******************************************************************************************************************
+    // VIEW FUNCTIONS
+    //******************************************************************************************************************
 
     function getTokenToPosiRoute(address token)
         private
