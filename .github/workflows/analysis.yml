@@ -50,5 +50,5 @@ jobs:
       - name: Scan vulnerabilities
         uses: docker://trailofbits/eth-security-toolbox
         with:
-          entrypoint: bash
-          args: ls -lah
+          entrypoint: ls
+          args: -lah
