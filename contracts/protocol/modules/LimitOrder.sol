@@ -112,15 +112,16 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
                 _quantity,
                 openLimitResp.sizeOut
             );
+            (, uint256 marginToVault, uint256 fee) = _positionManager
+                .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
+            deposit(_positionManager, _trader, marginToVault, fee);
+            uint256 limitOrderMargin = marginToVault * (_uQuantity - openLimitResp.sizeOut) / _uQuantity;
+            ClaimableAmountManager._increase(
+                address(_positionManager),
+                _trader,
+                limitOrderMargin
+            );
         }
-        (, uint256 marginToVault, uint256 fee) = _positionManager
-            .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
-        deposit(_positionManager, _trader, marginToVault, fee);
-        ClaimableAmountManager._increase(
-            address(_positionManager),
-            _trader,
-            marginToVault
-        );
         emit OpenLimit(
             openLimitResp.orderId,
             _trader,
@@ -191,11 +192,10 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             if (
                 oldPosition.quantity != 0 &&
                 !oldPosition.quantity.isSameSide(_rawQuantity) &&
+                oldPosition.quantity.abs() <= _quantity &&
                 _positionManager.needClosePositionBeforeOpeningLimitOrder(
                     _rawQuantity.u8Side(),
                     _pip,
-                    _quantity,
-                    oldPosition.quantity.u8Side(),
                     oldPosition.quantity.abs()
                 )
             ) {
@@ -210,30 +210,32 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
                 if (
                     _rawQuantity - closePositionResp.exchangedPositionSize == 0
                 ) {
-                    // TODO deposit margin to vault of position resp
-                    //                            positionResp = closePositionResp;
-                    //                            deposit(_positionManager, _trader, positionResp.marginToVault.abs(), 0);
+                    sizeOut = _rawQuantity.abs();
+                    if (closePositionResp.marginToVault < 0) {
+                        withdraw(_positionManager, _trader, closePositionResp.marginToVault.abs());
+                    }
                 } else {
                     _quantity -= (closePositionResp.exchangedPositionSize)
                         .abs128();
                 }
-            }
-            (orderId, sizeOut, openNotional) = _positionManager
-                .openLimitPosition(_pip, _quantity, _rawQuantity > 0);
-            if (sizeOut != 0) {
-                // case: open a limit order at the last price
-                // the order must be partially executed
-                // then update the current position
-                Position.Data memory newData;
-                newData = PositionHouseFunction.handleMarketPart(
-                    oldPosition,
-                    _getPositionMap(_pmAddress, _trader),
-                    openNotional,
-                    _rawQuantity > 0 ? int256(sizeOut) : -int256(sizeOut),
-                    _leverage,
-                    getCumulativePremiumFractions(_pmAddress)
-                );
-                _updatePositionMap(_pmAddress, _trader, newData);
+            } else {
+                (orderId, sizeOut, openNotional) = _positionManager
+                    .openLimitPosition(_pip, _quantity, _rawQuantity > 0);
+                if (sizeOut != 0) {
+                    // case: open a limit order at the last price
+                    // the order must be partially executed
+                    // then update the current position
+                    Position.Data memory newData;
+                    newData = PositionHouseFunction.handleMarketPart(
+                        oldPosition,
+                        _getPositionMap(_pmAddress, _trader),
+                        openNotional,
+                        _rawQuantity > 0 ? int256(sizeOut) : -int256(sizeOut),
+                        _leverage,
+                        getCumulativePremiumFractions(_pmAddress)
+                    );
+                    _updatePositionMap(_pmAddress, _trader, newData);
+                }
             }
         }
     }

@@ -5110,6 +5110,57 @@ describe("PositionHouse_02", () => {
             expect(position.quantity.toString()).eq("-7")
         })
 
+        it("should not open new limit order when internal close in openLimitOrder at the same pip", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 4500,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('1'),
+                _trader: trader0
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('1'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await changePrice({
+                limitPrice: 5000,
+                toHigherPrice: true
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('1'),
+                _trader: trader1
+            })
+
+            const balanceOfTrader0BeforeClose = (await bep20Mintable.balanceOf(trader0.address)).toString()
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('1'),
+                _trader: trader0
+            })
+
+            const balanceOfTrader0AfterClose = (await bep20Mintable.balanceOf(trader0.address)).toString()
+            const positionDataOfTrader0 = await positionHouse.getPosition(positionManager.address, trader0.address)
+            const pendingOrdersOfTrader0 = await positionHouse.getPosition(positionManager.address, trader0.address)
+
+            expect(BigNumber.from(balanceOfTrader0AfterClose).sub(BigNumber.from(balanceOfTrader0BeforeClose))).eq(950)
+            expect(positionDataOfTrader0.quantity.toString()).eq("0")
+            expect(pendingOrdersOfTrader0[0].toString()).eq("0")
+
+        })
+
         it("should repay correct quote amount", async () => {
             await changePrice({limitPrice: 6500, toHigherPrice: true})
 

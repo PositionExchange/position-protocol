@@ -2535,6 +2535,7 @@ describe("PositionHouse_01", () => {
                 let response1: any;
                 let response2: any;
                 let response3: any;
+                let response4: any;
 
                 // trader open limit SHORT at price 5010 quantity 100
                 response1 = (await openLimitPositionAndExpect({
@@ -2569,13 +2570,19 @@ describe("PositionHouse_01", () => {
                     expectedSize: BigNumber.from('0')
                 });
                 console.log(2569)
-                // ERROR because this limit order separated into 2 order: market short 100 and limit short 100
-                // so the expect in functions openLimitPositionAndExpect is error because it only get quantity from limit order
                 response3 = (await openLimitPositionAndExpect({
                     limitPrice: 5000,
                     side: SIDE.SHORT,
                     leverage: 10,
-                    quantity: 200,
+                    quantity: 100,
+                    _trader: trader2
+                })) as unknown as PositionLimitOrderID
+
+                response4 = (await openLimitPositionAndExpect({
+                    limitPrice: 5000,
+                    side: SIDE.SHORT,
+                    leverage: 10,
+                    quantity: 100,
                     _trader: trader2
                 })) as unknown as PositionLimitOrderID
                 console.log(2579)
