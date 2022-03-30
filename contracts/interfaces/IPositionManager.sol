@@ -39,6 +39,7 @@ interface IPositionManager {
     event ReserveSnapshotted(uint128 pip, uint256 timestamp);
     event FundingRateUpdated(int256 fundingRate, uint256 underlyingPrice);
     event LimitOrderUpdated(uint64 orderId, uint128 pip, uint256 size);
+    event LeverageUpdated(uint128 oldLeverage, uint128 newLeverage);
 
 
     // FUNCTIONS
@@ -58,8 +59,9 @@ interface IPositionManager {
 
     function updateSpotPriceTwapInterval(uint256 _spotPriceTwapInterval) external;
 
-
     function hasLiquidity(uint128 _pip) external returns (bool);
+
+    function getLeverage() external view returns (uint128);
 
     function getCurrentPip() external view returns (uint128);
 
@@ -167,4 +169,6 @@ interface IPositionManager {
         returns (uint256 refundSize, uint256 partialFilled);
 
     function settleFunding() external returns (int256 premiumFraction);
+
+    function updateLeverage(uint128 _newLeverage) external;
 }

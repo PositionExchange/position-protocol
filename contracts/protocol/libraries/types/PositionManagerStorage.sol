@@ -29,6 +29,10 @@ contract PositionManagerStorage {
 
     bool public isOpen;
 
+    uint128 leverage = 125;
+
+    //    bool public paused;
+
     IChainLinkPriceFeed public priceFeed;
 
     struct SingleSlot {
