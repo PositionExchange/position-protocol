@@ -50,5 +50,5 @@ jobs:
       - name: Scan vulnerabilities
         uses: docker://trailofbits/eth-security-toolbox
         with:
-          entrypoint: ls
-          args: -lah
+          entrypoint: which
+          args: slither
