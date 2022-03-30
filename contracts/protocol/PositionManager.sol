@@ -176,22 +176,22 @@ contract PositionManager is
             uint256 openNotional
         )
     {
-        if (_isBuy && singleSlot.pip != 0) {
+        SingleSlot memory _singleSlot = singleSlot;
+        if (_isBuy && _singleSlot.pip != 0) {
             require(
-                _pip <= singleSlot.pip &&
+                _pip <= _singleSlot.pip &&
                     int128(_pip) >=
-                    (int128(singleSlot.pip) -
+                    (int128(_singleSlot.pip) -
                         int128(maxFindingWordsIndex * 250)),
                 Errors.VL_LONG_PRICE_THAN_CURRENT_PRICE
             );
         } else {
             require(
-                _pip >= singleSlot.pip &&
-                    _pip <= (singleSlot.pip + maxFindingWordsIndex * 250),
+                _pip >= _singleSlot.pip &&
+                    _pip <= (_singleSlot.pip + maxFindingWordsIndex * 250),
                 Errors.VL_SHORT_PRICE_LESS_CURRENT_PRICE
             );
         }
-        SingleSlot memory _singleSlot = singleSlot;
         bool hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
         //save gas
         if (
