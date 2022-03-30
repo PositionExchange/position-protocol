@@ -19,9 +19,9 @@ jobs:
         id: cache-node-modules
         with:
           path: node_modules
-          key: node_modules-${{ hashFiles('package-lock.json') }}
+          key: node-modules-${{ hashFiles('package-lock.json') }}
           restore-keys: |
-            node_modules-
+            node-modules-
       - run: yarn install
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
 
@@ -37,5 +37,5 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: node_modules
-          key: node_modules-${{ hashFiles('package-lock.json') }}
+          key: node-modules-${{ hashFiles('package-lock.json') }}
       - run: yarn test
