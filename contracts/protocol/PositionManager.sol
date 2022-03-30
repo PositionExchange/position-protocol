@@ -11,6 +11,8 @@ import "./libraries/position/TickPosition.sol";
 import "./libraries/position/LimitOrder.sol";
 import "./libraries/position/LiquidityBitmap.sol";
 import "./libraries/types/PositionManagerStorage.sol";
+import "./libraries/helpers/Quantity.sol";
+import "./libraries/types/MarketMaker.sol";
 import {IChainLinkPriceFeed} from "../interfaces/IChainLinkPriceFeed.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
@@ -131,6 +133,33 @@ contract PositionManager is
             singleSlot.isFullBuy = 0;
         }
         emit LimitOrderCancelled(isBuy, _orderId, _pip, remainingSize);
+    }
+
+    function marketMakerSupply(MarketMaker.MMOrder[] memory _orders, uint256 leverage) external whenNotPaused onlyCounterParty {
+        SingleSlot memory _singleSlot = singleSlot;
+        for(uint256 i = 0; i < _orders.length; i++){
+            MarketMaker.MMOrder memory _order = _orders[i];
+            // BUY, price should always less than market price
+            if(_order.quantity > 0 && _order.pip >= _singleSlot.pip){
+                revert("!B");
+            }
+            // SELL, price should always greater than market price
+            if(_order.quantity < 0 && _order.pip <= _singleSlot.pip){
+                revert("!S");
+            }
+            uint128 _quantity = uint128(Quantity.abs(_order.quantity));
+            bool _hasLiquidity = liquidityBitmap.hasLiquidity(_order.pip);
+            uint64 _orderId = tickPosition[_order.pip].insertLimitOrder(
+                _quantity,
+                _hasLiquidity,
+                    _order.quantity > 0
+            );
+            if (!_hasLiquidity) {
+                // TODO using toggle in multiple pips
+                liquidityBitmap.toggleSingleBit(_order.pip, true);
+            }
+            emit LimitOrderCreated(_orderId, _order.pip, _quantity, _order.quantity > 0);
+        }
     }
 
     function openLimitPosition(

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../protocol/libraries/types/MarketMaker.sol";
 
 interface IPositionManager {
     function getCurrentPip() external view returns (uint128);
@@ -44,6 +45,8 @@ interface IPositionManager {
             uint256 margin,
             uint256 fee
         );
+
+    function marketMakerSupply(MarketMaker.MMOrder[] memory _orders, uint256 leverage) external;
 
     function openLimitPosition(
         uint128 pip,
