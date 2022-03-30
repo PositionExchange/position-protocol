@@ -46,7 +46,15 @@ describe("PositionHouse_01", () => {
 
     beforeEach(async () => {
         [trader, trader1, trader2, trader3, trader4, trader5] = await ethers.getSigners();
-        [positionHouse, positionManager, positionManagerFactory, positionManagerTestingTool, bep20Mintable, insuranceFund] = await deployPositionHouse() as any
+        [
+            positionHouse,
+            positionManager,
+            positionManagerFactory,
+            positionManagerTestingTool,
+            positionHouseTestingTool,
+            bep20Mintable,
+            insuranceFund
+        ] = await deployPositionHouse() as any
 
     })
 
