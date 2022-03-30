@@ -52,6 +52,7 @@ jobs:
           python-version: 3.x
       - uses: actions/setup-node@v2
         with:
-          node-version: 12.x
+          node-version: 16.x
       - run: pip3 install slither-analyzer
       - run: slither .
+
