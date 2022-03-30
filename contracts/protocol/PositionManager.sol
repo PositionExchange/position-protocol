@@ -98,7 +98,7 @@ contract PositionManager is
             hasLiquidity(_pip) && _orderId >= _tickPosition.filledIndex,
             Errors.VL_ONLY_PENDING_ORDER
         );
-        _internalCancelLimitOrder(_tickPosition, _pip, _orderId);
+        return _internalCancelLimitOrder(_tickPosition, _pip, _orderId);
     }
 
     function marketMakerRemove(MarketMaker.MMCancelOrder[] memory _orders) external whenNotPaused onlyCounterParty {
