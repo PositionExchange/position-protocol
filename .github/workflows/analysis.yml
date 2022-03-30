@@ -38,9 +38,6 @@ jobs:
 
   vulnerabilities-scan:
     runs-on: ubuntu-latest
-    container:
-      image: trailofbits/eth-security-toolbox
-      options: "--entrypoint=bash --user=root"
     needs: [install]
     steps:
       - uses: actions/checkout@v2
@@ -49,4 +46,6 @@ jobs:
           path: node_modules
           key: node_modules-${{ hashFiles('package-lock.json') }}
       - name: Scan vulnerabilities
-        run: slither .
+        uses: docker://trailofbits/eth-security-toolbox
+        with:
+          entrypoint: slither .
