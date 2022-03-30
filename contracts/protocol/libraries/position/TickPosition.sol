@@ -84,6 +84,10 @@ library TickPosition {
             ) {
                 index++;
             }
+            if (_self.orderQueue[index].partialFilled != 0) {
+                totalSize += (_self.orderQueue[index].size - _self.orderQueue[index].partialFilled);
+                index++;
+            }
             while (totalSize < _amount) {
                 totalSize += _self.orderQueue[index].size;
                 index++;

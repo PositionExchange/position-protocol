@@ -5375,5 +5375,122 @@ describe("PositionHouse_02", () => {
             await expect(BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel))).eq(3150)
 
         })
+
+        it("test case UNIT-12", async () => {
+            console.log("step 1")
+            await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4800,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1
+            })
+
+            console.log("step 2")
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                }
+            );
+
+            console.log("step 3")
+            await positionHouse.connect(trader1).cancelLimitOrder(positionManager.address, 0, 0)
+
+            console.log("step 4")
+            await openMarketPosition({
+                    quantity: BigNumber.from('1'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: tradercp.address,
+                    instanceTrader: tradercp,
+                    _positionManager: positionManager,
+                }
+            );
+
+            console.log("step 5")
+            await openLimitPositionAndExpect({
+                limitPrice: 4800,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('5'),
+                _trader: trader3
+            })
+
+            console.log("step 6")
+            await positionHouse.connect(trader1).cancelLimitOrder(positionManager.address, 1, 0)
+
+            console.log("step 7")
+            await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader4
+            })
+
+            console.log("step 8")
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader3.address,
+                    instanceTrader: trader3,
+                    _positionManager: positionManager,
+                }
+            );
+
+            // console.log("step 9")
+            // await openLimitPositionAndExpect({
+            //     limitPrice: 4800,
+            //     side: SIDE.LONG,
+            //     leverage: 10,
+            //     quantity: BigNumber.from('1'),
+            //     _trader: tradercp
+            // })
+
+            console.log("step 10")
+            await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('5'),
+                _trader: trader1
+            })
+
+            console.log("step 11")
+            await openMarketPosition({
+                    quantity: BigNumber.from('1'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader5.address,
+                    instanceTrader: trader5,
+                    _positionManager: positionManager,
+                }
+            );
+
+            console.log("step 12")
+            await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('8'),
+                _trader: trader3
+            })
+
+            const trader1PendingOrder = await positionHouse.getListOrderPending(positionManager.address, trader1.address)
+            console.log(trader1PendingOrder)
+        })
     })
 })
