@@ -2,7 +2,9 @@ name: Contract analysis
 
 on:
   push:
-    branches: [ feature/add-vul-check ]
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
 
 jobs:
   install:
@@ -17,7 +19,7 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
+          key: cache-node-modules-${{ hashFiles('package-lock.json') }}
       - id: slither
         uses: crytic/slither-action@v0.1.1
         continue-on-error: true
