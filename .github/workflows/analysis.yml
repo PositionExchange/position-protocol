@@ -38,12 +38,12 @@ jobs:
 
   vulnerabilities-scan:
     runs-on: ubuntu-latest
+    container:
+      image: trailofbits/eth-security-toolbox
+      options: "--entrypoint=bash"
     needs: [install]
     steps:
       - uses: actions/checkout@v2
-      - uses: docker://trailofbits/eth-security-toolbox
-        with:
-          entrypoint: bash
       - uses: actions/cache@v2
         id: restore-build
         with:
