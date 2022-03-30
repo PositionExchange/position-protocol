@@ -111,7 +111,7 @@ contract InsuranceFund is
 
     function updatePosiAddress(IERC20 _newPosiAddress) public onlyOwner {
         posi = _newPosiAddress;
-        emit PosiChanged(_newPosiAddress);
+        emit PosiChanged(address(_newPosiAddress));
     }
 
     function updateRouterAddress(IUniswapV2Router02 _newRouterAddress)
@@ -119,7 +119,7 @@ contract InsuranceFund is
         onlyOwner
     {
         router = _newRouterAddress;
-        emit RouterChanged(_newRouterAddress);
+        emit RouterChanged(address(_newRouterAddress));
     }
 
     function updateFactoryAddress(IUniswapV2Factory _newFactory)
@@ -127,7 +127,7 @@ contract InsuranceFund is
         onlyOwner
     {
         factory = _newFactory;
-        emit FactoryChanged(_newFactory);
+        emit FactoryChanged(address(_newFactory));
     }
 
     // Buy POSI on market and burn it
