@@ -48,4 +48,5 @@ jobs:
       - name: Scan vulnerabilities
         uses: docker://trailofbits/eth-security-toolbox
         with:
-          entrypoint: slither .
+          entrypoint: slither
+          args: .
