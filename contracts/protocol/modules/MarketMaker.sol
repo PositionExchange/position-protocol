@@ -25,9 +25,9 @@ abstract contract MarketMakerLogic is ReentrancyGuardUpgradeable, OwnableUpgrade
         emit MMWhitelistChanged(addr, status);
     }
 
-    function supplyFresh(IPositionManager _positionManager, MarketMaker.MMCancelOrder[] memory _orders, MarketMaker.MMOrder[] memory _orders, uint256 _leverage) external onlyMMWhitelist nonReentrant {
-        _positionManager.marketMakerRemove(_orders);
-        _positionManager.marketMakerSupply(_orders, _leverage);
+    function supplyFresh(IPositionManager _positionManager, MarketMaker.MMCancelOrder[] memory _cOrders, MarketMaker.MMOrder[] memory _oOrders, uint256 _leverage) external onlyMMWhitelist nonReentrant {
+        _positionManager.marketMakerRemove(_cOrders);
+        _positionManager.marketMakerSupply(_oOrders, _leverage);
     }
 
     function remove(IPositionManager _positionManager, MarketMaker.MMCancelOrder[] memory _orders) external onlyMMWhitelist nonReentrant {
