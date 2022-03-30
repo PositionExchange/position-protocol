@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: trailofbits/eth-security-toolbox
-      options: "--entrypoint=bash"
+      options: "--entrypoint=bash --user=root"
     needs: [install]
     steps:
       - uses: actions/checkout@v2
