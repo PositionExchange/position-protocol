@@ -63,7 +63,7 @@ contract PositionManager is
         priceFeedKey = _priceFeedKey;
         singleSlot.pip = _initialPip;
         reserveSnapshots.push(
-            ReserveSnapshot(_initialPip, block.timestamp, block.number)
+            ReserveSnapshot(_initialPip, uint64(block.timestamp), uint64(block.number))
         );
         quoteAsset = IERC20(_quoteAsset);
         basisPoint = _basisPoint;
@@ -771,15 +771,15 @@ contract PositionManager is
     }
 
     function _addReserveSnapshot() internal {
-        uint256 currentBlock = block.number;
+        uint256 _currentBlock = uint64(block.number);
         ReserveSnapshot memory latestSnapshot = reserveSnapshots[
             reserveSnapshots.length - 1
         ];
-        if (currentBlock == latestSnapshot.blockNumber) {
+        if (_currentBlock == latestSnapshot.blockNumber) {
             reserveSnapshots[reserveSnapshots.length - 1].pip = singleSlot.pip;
         } else {
             reserveSnapshots.push(
-                ReserveSnapshot(singleSlot.pip, block.timestamp, currentBlock)
+                ReserveSnapshot(singleSlot.pip, uint64(block.timestamp), uint64(_currentBlock))
             );
         }
         emit ReserveSnapshotted(singleSlot.pip, block.timestamp);

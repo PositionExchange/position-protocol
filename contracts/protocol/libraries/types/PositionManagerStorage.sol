@@ -52,8 +52,8 @@ contract PositionManagerStorage {
 
     struct ReserveSnapshot {
         uint128 pip;
-        uint256 timestamp;
-        uint256 blockNumber;
+        uint64 timestamp;
+        uint64 blockNumber;
     }
 
     enum TwapCalcOption {
