@@ -35,7 +35,7 @@ interface IPositionManager {
     function getNotionalMarginAndFee(
         uint256 _pQuantity,
         uint128 _pip,
-        uint256 _leverage
+        uint16 _leverage
     )
         external
         view

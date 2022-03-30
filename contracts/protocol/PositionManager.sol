@@ -65,8 +65,8 @@ contract PositionManager is
         uint128 _initialPip,
         address _quoteAsset,
         bytes32 _priceFeedKey,
-        uint256 _basisPoint,
-        uint256 _BASE_BASIC_POINT,
+        uint64 _basisPoint,
+        uint64 _BASE_BASIC_POINT,
         uint256 _tollRatio,
         uint128 _maxFindingWordsIndex,
         uint256 _fundingPeriod,
@@ -88,7 +88,7 @@ contract PositionManager is
         priceFeedKey = _priceFeedKey;
         singleSlot.pip = _initialPip;
         reserveSnapshots.push(
-            ReserveSnapshot(_initialPip, block.timestamp, block.number)
+            ReserveSnapshot(_initialPip, uint64(block.timestamp), uint64(block.number))
         );
         quoteAsset = IERC20(_quoteAsset);
         basisPoint = _basisPoint;
@@ -348,7 +348,7 @@ contract PositionManager is
     function getNotionalMarginAndFee(
         uint256 _pQuantity,
         uint128 _pip,
-        uint256 _leverage
+        uint16 _leverage
     )
         public
         view
@@ -532,12 +532,12 @@ contract PositionManager is
         emit UpdateMaxFindingWordsIndex(_newMaxFindingWordsIndex);
     }
 
-    function updateBasisPoint(uint256 _newBasisPoint) public onlyOwner {
+    function updateBasisPoint(uint64 _newBasisPoint) public onlyOwner {
         basisPoint = _newBasisPoint;
         emit UpdateBasisPoint(_newBasisPoint);
     }
 
-    function updateBaseBasicPoint(uint256 _newBaseBasisPoint) public onlyOwner {
+    function updateBaseBasicPoint(uint64 _newBaseBasisPoint) public onlyOwner {
         BASE_BASIC_POINT = _newBaseBasisPoint;
         emit UpdateBaseBasicPoint(_newBaseBasisPoint);
     }
@@ -737,7 +737,7 @@ contract PositionManager is
     }
 
     function _addReserveSnapshot() internal {
-        uint256 currentBlock = block.number;
+        uint64 currentBlock = uint64(block.number);
         ReserveSnapshot memory latestSnapshot = reserveSnapshots[
             reserveSnapshots.length - 1
         ];
@@ -745,7 +745,7 @@ contract PositionManager is
             reserveSnapshots[reserveSnapshots.length - 1].pip = singleSlot.pip;
         } else {
             reserveSnapshots.push(
-                ReserveSnapshot(singleSlot.pip, block.timestamp, currentBlock)
+                ReserveSnapshot(singleSlot.pip,uint64( block.timestamp), currentBlock)
             );
         }
         emit ReserveSnapshotted(singleSlot.pip, block.timestamp);

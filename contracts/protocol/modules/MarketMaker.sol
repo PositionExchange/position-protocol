@@ -36,7 +36,7 @@ abstract contract MarketMaker is ReentrancyGuardUpgradeable, OwnableUpgradeable,
         }
     }
 
-    function supply(IPositionManager _positionManager, MMOrder[] memory _orders, uint256 _leverage) external onlyMMWhitelist nonReentrant {
+    function supply(IPositionManager _positionManager, MMOrder[] memory _orders, uint16 _leverage) external onlyMMWhitelist nonReentrant {
         for(uint256 i =0;i<_orders.length;i++){
             Position.Side _side = _orders[i].quantity > 0 ? Position.Side.LONG : Position.Side.SHORT;
             _internalOpenLimitOrder(_positionManager, _side, _orders[i].quantity.abs(), _orders[i].pip, _leverage);
