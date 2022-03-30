@@ -690,8 +690,7 @@ library PositionHouseFunction {
     function openMarketOrder(
         address _pmAddress,
         uint256 _quantity,
-        Position.Side _side,
-        address _trader
+        Position.Side _side
     ) internal returns (int256 exchangedQuantity, uint256 openNotional) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
 
@@ -719,7 +718,7 @@ library PositionHouseFunction {
         (
             positionResp.exchangedPositionSize,
             positionResp.exchangedQuoteAssetAmount
-        ) = openMarketOrder(_pmAddress, _quantity.abs(), _side, _trader);
+        ) = openMarketOrder(_pmAddress, _quantity.abs(), _side);
         if (positionResp.exchangedPositionSize != 0) {
             int256 _newSize = _positionDataWithoutLimit.quantity +
                 positionResp.exchangedPositionSize;
@@ -776,8 +775,7 @@ library PositionHouseFunction {
         (positionResp.exchangedPositionSize, ) = openMarketOrder(
             _pmAddress,
             _quantity.abs(),
-            _side,
-            _trader
+            _side
         );
 
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(

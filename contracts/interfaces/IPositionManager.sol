@@ -113,8 +113,6 @@ interface IPositionManager {
     function needClosePositionBeforeOpeningLimitOrder(
         uint8 _side,
         uint256 _pip,
-        uint128 _quantity,
-        uint8 _pSide,
         uint256 _pQuantity
     ) external view returns (bool);
 
