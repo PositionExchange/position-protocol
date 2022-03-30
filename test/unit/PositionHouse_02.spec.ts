@@ -34,13 +34,15 @@ describe("PositionHouse_02", () => {
     let trader4: any;
     let trader5: any;
     let tradercp: any;
+    let tradercp2: any;
+
     let positionManager: PositionManager;
     let positionManagerFactory: ContractFactory;
     let bep20Mintable: BEP20Mintable
     let insuranceFund: InsuranceFund
 
     beforeEach(async () => {
-        [trader0, trader1, trader2, trader3, trader4, trader5, tradercp] = await ethers.getSigners()
+        [trader0, trader1, trader2, trader3, trader4, trader5, tradercp, tradercp2] = await ethers.getSigners()
         const positionHouseFunction = await ethers.getContractFactory('PositionHouseFunction')
         const libraryIns = (await positionHouseFunction.deploy())
         const PositionHouseMath = await ethers.getContractFactory('PositionHouseMath')
@@ -72,7 +74,7 @@ describe("PositionHouse_02", () => {
         await insuranceFund.connect(trader0).setCounterParty(positionHouse.address);
         await bep20Mintable.mint(insuranceFund.address, BigNumber.from('10000000000000000000000000000000'));
 
-        [trader0, trader1, trader2, trader3, trader4, trader5, tradercp].forEach(element => {
+        [trader0, trader1, trader2, trader3, trader4, trader5, tradercp, tradercp2].forEach(element => {
             bep20Mintable.mint(element.address, BigNumber.from('10000000000000000000000000000000'))
             bep20Mintable.connect(element).approve(insuranceFund.address, BigNumber.from('1000000000000000000000000000000000000'))
         })
@@ -190,8 +192,8 @@ describe("PositionHouse_02", () => {
                     quantity: BigNumber.from('3'),
                     leverage: 10,
                     side: SIDE.LONG,
-                    trader: tradercp.address,
-                    instanceTrader: tradercp,
+                    trader: tradercp2.address,
+                    instanceTrader: tradercp2,
                     _positionManager: positionManager,
                     expectedSize: BigNumber.from(0)
                 }
@@ -209,8 +211,8 @@ describe("PositionHouse_02", () => {
                     quantity: BigNumber.from('3'),
                     leverage: 10,
                     side: SIDE.SHORT,
-                    trader: tradercp.address,
-                    instanceTrader: tradercp,
+                    trader: tradercp2.address,
+                    instanceTrader: tradercp2,
                     _positionManager: positionManager,
                     expectedSize: BigNumber.from(0)
                 }
@@ -302,7 +304,7 @@ describe("PositionHouse_02", () => {
                     quantity: BigNumber.from('800'),
                     leverage: 10,
                     side: SIDE.SHORT,
-                    trader: trader0.address,
+                    trader: trader1.address,
                     instanceTrader: trader1,
                     _positionManager: positionManager,
 
@@ -441,12 +443,12 @@ describe("PositionHouse_02", () => {
          PS_FUTU_22
          -S1: Trade0 open Limit Long(4980,15)
          -S2: Trade1 open Market SHORT(11)
-         -S3: Trade0 open Limit Short(5000,3)
+         -S3: Trade4 open Limit Short(5000,3)
          -S4: Trade2 open MARKET LONG(3)
 
          -S5: Trade3 open Limit SHORT(5010,5)
          -S6: Trade1 open MARKET LONG(4)
-         -S7: Trade0 open Limit Short(5020,2)=> have 1
+         -S7: Trade4 open Limit Short(5020,2)=> have 1
          -S8: Trade1 open MARKET LONG(2)
 
          -S9: Trade2 open MARKET SHORT(1)
@@ -490,7 +492,7 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: 300,
-                _trader: trader0
+                _trader: trader4
             })) as unknown as PositionLimitOrderID
 
             await openMarketPosition({
@@ -536,7 +538,7 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: 200,
-                _trader: trader0
+                _trader: trader4
             })) as unknown as PositionLimitOrderID
 
             await openMarketPosition({
@@ -592,10 +594,10 @@ describe("PositionHouse_02", () => {
             const expectTrader0 = await expectMarginPnlAndOP({
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader0.address,
-                expectedOpenNotional: 5478000,
-                expectedMargin: 547800,
-                expectedPnl: -33000,
-                expectedQuantity: 1100
+                expectedOpenNotional: 7470000,
+                expectedMargin: 747000,
+                expectedPnl: -45000,
+                expectedQuantity: 1500
             });
 
             const expectTrader1 = await expectMarginPnlAndOP({
@@ -1872,7 +1874,7 @@ describe("PositionHouse_02", () => {
          - S2: Trader0 open MARKET SHORT (5)
          - S3: Trader2 open limit SHORT  (5010, 1)
          - S4: Trader3 open market LONG (1)
-         - S5: Trader0 open limit LONG (5005,2)
+         - S5: Trader4 open limit LONG (5005,2)
          - S6: Trader1 open reverse MARKET position SHORT( 2)
 
          - S5: Tradercp open Limit LONG(5000,2)
@@ -1932,7 +1934,7 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: 200,
-                _trader: trader0
+                _trader: trader4
             })) as unknown as PositionLimitOrderID
 
             await openMarketPosition({
@@ -1950,10 +1952,10 @@ describe("PositionHouse_02", () => {
             const expectTrader0End = await expectMarginPnlAndOP({
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader0.address,
-                expectedOpenNotional: 1497000,
-                expectedMargin: 149700,
-                expectedPnl: -3000,
-                expectedQuantity: -300
+                expectedOpenNotional: 2495000,
+                expectedMargin: 249500,
+                expectedPnl: -5000,
+                expectedQuantity: -500
             });
 
             const expectTrader1End = await expectMarginPnlAndOP({
@@ -1975,7 +1977,7 @@ describe("PositionHouse_02", () => {
          -S2: Trader1 open Limit Long(4950,5)
          -S3: Trader2 open Market Short(12)
          -S4: Trader0 open Limit LONG(4900,5)
-         -S5: Trader1 open Market Short(8)
+         -S5: Trader3 open Market Short(8)
          -S6: Price change to 4900
          */
         it('PS_FUTU_102: increase limit position quantity', async function () {
@@ -2018,8 +2020,8 @@ describe("PositionHouse_02", () => {
                     quantity: BigNumber.from('800'),
                     leverage: 10,
                     side: SIDE.SHORT,
-                    trader: trader1.address,
-                    instanceTrader: trader1,
+                    trader: trader3.address,
+                    instanceTrader: trader3,
                     _positionManager: positionManager,
 
                 }
@@ -2166,7 +2168,7 @@ describe("PositionHouse_02", () => {
          S2: Trader1 open market order Short (5)
          S3: Trader2 open limit order Long (4900,10)
          S4: Trader1 open 2 limit order Long (4940,3), (4890,5)
-         S5: Trader2 open market order Short (8)
+         S5: Trader3 open market order Short (8)
          S6: Trader1 open market order Short (10)
          S7: Current price 4890
          */
@@ -2225,8 +2227,8 @@ describe("PositionHouse_02", () => {
                     quantity: BigNumber.from('800'),
                     leverage: 10,
                     side: SIDE.SHORT,
-                    trader: trader2.address,
-                    instanceTrader: trader2,
+                    trader: trader3.address,
+                    instanceTrader: trader3,
                     _positionManager: positionManager,
 
                 }
@@ -2236,8 +2238,8 @@ describe("PositionHouse_02", () => {
                     quantity: BigNumber.from('1000'),
                     leverage: 10,
                     side: SIDE.SHORT,
-                    trader: trader1.address,
-                    instanceTrader: trader1,
+                    trader: trader3.address,
+                    instanceTrader: trader3,
                     _positionManager: positionManager,
 
                 }
@@ -3952,7 +3954,7 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: 10000,
-                _trader: trader1
+                _trader: trader3
             })
 
             await openMarketPosition({
@@ -4193,7 +4195,7 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: 10000,
-                _trader: trader0
+                _trader: trader2
             })
             console.log(4227)
 
@@ -4336,7 +4338,7 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: 5000,
-                _trader: trader0
+                _trader: trader2
             })
 
             await openMarketPosition({
@@ -4566,7 +4568,7 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: 18,
-                _trader: trader1
+                _trader: trader2
             })
 
             await positionHouse.connect(trader0).closePosition(positionManager.address, 18)
@@ -4934,7 +4936,7 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: BigNumber.from('2'),
-                _trader: trader0
+                _trader: trader1
             })
 
             await openLimitPositionAndExpect({
@@ -4942,7 +4944,7 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: BigNumber.from('3'),
-                _trader: trader0
+                _trader: trader1
             })
 
             const listOrderPending1 = await positionHouse.getListOrderPending(positionManager.address, trader0.address)
@@ -4964,7 +4966,7 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: BigNumber.from('2'),
-                _trader: trader0
+                _trader: trader1
             })
 
             await openLimitPositionAndExpect({
@@ -4972,7 +4974,7 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: BigNumber.from('3'),
-                _trader: trader0
+                _trader: trader1
             })
 
             const listOrderPending2 = await positionHouse.getListOrderPending(positionManager.address, trader0.address)
@@ -5139,7 +5141,7 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: BigNumber.from('1'),
-                _trader: trader1
+                _trader: trader2
             })
 
             const balanceOfTrader0BeforeClose = (await bep20Mintable.balanceOf(trader0.address)).toString()
@@ -5148,7 +5150,7 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: BigNumber.from('1'),
-                _trader: trader0
+                _trader: trader3
             })
 
             const balanceOfTrader0AfterClose = (await bep20Mintable.balanceOf(trader0.address)).toString()
@@ -5205,7 +5207,7 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: BigNumber.from('10'),
-                _trader: trader0
+                _trader: trader3
             })
 
             const trader1BalanceBefore = await bep20Mintable.balanceOf(trader1.address)

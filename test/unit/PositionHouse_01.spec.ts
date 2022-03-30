@@ -36,6 +36,8 @@ describe("PositionHouse_01", () => {
     let trader3: any;
     let trader4: any;
     let trader5: any
+    let trader6: any
+
     let positionManager: PositionManager;
     let positionManagerFactory: ContractFactory;
     let positionManagerTestingTool: PositionManagerTestingTool
@@ -44,7 +46,7 @@ describe("PositionHouse_01", () => {
     let insuranceFund: InsuranceFund
 
     beforeEach(async () => {
-        [trader, trader1, trader2, trader3, trader4, trader5] = await ethers.getSigners();
+        [trader, trader1, trader2, trader3, trader4, trader5, trader6] = await ethers.getSigners();
 
         // Deploy position house function contract
         const positionHouseFunction = await ethers.getContractFactory('PositionHouseFunction')
@@ -75,7 +77,7 @@ describe("PositionHouse_01", () => {
         await insuranceFund.connect(trader).initialize()
         await insuranceFund.connect(trader).setCounterParty(positionHouse.address);
 
-        [trader, trader1, trader2, trader3, trader4, trader5].forEach(element => {
+        [trader, trader1, trader2, trader3, trader4, trader5, trader6].forEach(element => {
             bep20Mintable.mint(element.address, BigNumber.from('10000000000000000000000000000000'))
             bep20Mintable.connect(element).approve(insuranceFund.address, BigNumber.from('1000000000000000000000000000000000000'))
         })
@@ -934,7 +936,7 @@ describe("PositionHouse_01", () => {
             console.log('id: ', orderId);
             // B open market to 4990
             await openMarketPosition({
-                instanceTrader: trader,
+                instanceTrader: trader1,
                 leverage: 10,
                 quantity: BigNumber.from('100'),
                 side: SIDE.SHORT,
@@ -2210,8 +2212,8 @@ describe("PositionHouse_01", () => {
                     //     expectedSize: BigNumber.from('150')
                     // })
                     await openMarketPosition({
-                        instanceTrader: trader1,
-                        trader: trader1.address,
+                        instanceTrader: trader3,
+                        trader: trader3.address,
                         leverage: 10,
                         quantity: BigNumber.from('150'),
                         side: SIDE.SHORT,
@@ -2269,8 +2271,8 @@ describe("PositionHouse_01", () => {
 
                     console.log('***************line 2025************')
                     await openMarketPosition({
-                        instanceTrader: trader1,
-                        trader: trader1.address,
+                        instanceTrader: trader3,
+                        trader: trader3.address,
                         leverage: 10,
                         quantity: BigNumber.from('130'),
                         side: SIDE.SHORT,
@@ -2278,8 +2280,8 @@ describe("PositionHouse_01", () => {
                         expectedSize: BigNumber.from('70')
                     })
 
-                    const positionDataTrader1 = (await positionHouse.getPosition(positionManager.address, trader1.address)) as unknown as PositionData;
-                    console.log("position data trader 1", positionDataTrader1.quantity.toString());
+                    const positionDataTrader1 = (await positionHouse.getPosition(positionManager.address, trader3.address)) as unknown as PositionData;
+                    console.log("position data trader 3", positionDataTrader1.quantity.toString());
 
 
                 })
@@ -2450,7 +2452,7 @@ describe("PositionHouse_01", () => {
                 })
 
                 await openMarketPosition({
-                    instanceTrader: trader,
+                    instanceTrader: trader3,
                     leverage: 10,
                     quantity: BigNumber.from('40'),
                     side: SIDE.LONG,
@@ -2513,7 +2515,7 @@ describe("PositionHouse_01", () => {
                         side: SIDE.SHORT,
                         leverage: 10,
                         quantity: 50,
-                        _trader: trader2
+                        _trader: trader3
                     })) as unknown as PositionLimitOrderID
 
                     await openMarketPosition({
@@ -2562,7 +2564,7 @@ describe("PositionHouse_01", () => {
                 })) as unknown as PositionLimitOrderID
                 console.log("line 2736")
                 await openMarketPosition({
-                    instanceTrader: trader1,
+                    instanceTrader: trader3,
                     leverage: 10,
                     quantity: BigNumber.from('100'),
                     side: SIDE.SHORT,
@@ -2575,7 +2577,7 @@ describe("PositionHouse_01", () => {
                     side: SIDE.SHORT,
                     leverage: 10,
                     quantity: 100,
-                    _trader: trader2
+                    _trader: trader3
                 })) as unknown as PositionLimitOrderID
 
                 response4 = (await openLimitPositionAndExpect({
@@ -2583,7 +2585,7 @@ describe("PositionHouse_01", () => {
                     side: SIDE.SHORT,
                     leverage: 10,
                     quantity: 100,
-                    _trader: trader2
+                    _trader: trader3
                 })) as unknown as PositionLimitOrderID
                 console.log(2579)
                 await openMarketPosition({
@@ -3129,8 +3131,8 @@ describe("PositionHouse_01", () => {
                     quantity: BigNumber.from('1'),
                     leverage: 10,
                     side: SIDE.SHORT,
-                    trader: trader4.address,
-                    instanceTrader: trader4,
+                    trader: trader3.address,
+                    instanceTrader: trader3,
                     _positionManager: positionManager,
                     expectedSize: BigNumber.from(0),
                     price: 4900
@@ -3153,8 +3155,8 @@ describe("PositionHouse_01", () => {
                     quantity: BigNumber.from('75'),
                     leverage: 10,
                     side: SIDE.SHORT,
-                    trader: trader4.address,
-                    instanceTrader: trader4,
+                    trader: trader3.address,
+                    instanceTrader: trader3,
                     _positionManager: positionManager,
                     expectedSize: BigNumber.from(-75),
                     price: 4850
@@ -3165,11 +3167,16 @@ describe("PositionHouse_01", () => {
                 quantity: -25
             })
 
+            console.log('abc1')
+
+
             // now price pump to 5015 and trader got liquidation
             await positionHouseTestingTool.pumpPrice({
                 toPrice: 5015,
-                pumper: trader5
+                pumper: trader5,
+                pumper2 : trader6
             })
+            console.log('abc2')
 
             await positionHouseTestingTool.debugPosition(trader)
 
