@@ -25,7 +25,7 @@ abstract contract MarketMaker is ReentrancyGuardUpgradeable, OwnableUpgradeable,
     }
 
     function setMMWhitelist(address addr, bool status) external onlyOwner {
-        _whitelist[msg.sender] = status;
+        _whitelist[addr] = status;
         emit MMWhitelistChanged(addr, status);
     }
 
