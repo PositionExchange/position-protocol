@@ -47,8 +47,11 @@ jobs:
         with:
           path: node_modules
           key: node_modules-${{ hashFiles('package-lock.json') }}
-      - name: Scan vulnerabilities
-        uses: docker://trailofbits/eth-security-toolbox
+      - uses: actions/setup-python@v3
         with:
-          entrypoint: ls
-          args: -lah node_modules
+          python-version: 3.x
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 12.x
+      - run: pip3 install slither-analyzer
+      - run: slither .
