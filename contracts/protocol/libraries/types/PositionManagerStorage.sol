@@ -43,6 +43,11 @@ contract PositionManagerStorage {
         uint8 isFullBuy;
     }
 
+    struct PipLiquidity {
+        uint128 pip;
+        uint256 liquidity;
+    }
+
     IERC20 quoteAsset;
 
     struct ReserveSnapshot {
