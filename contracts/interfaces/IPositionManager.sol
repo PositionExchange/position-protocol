@@ -37,7 +37,8 @@ interface IPositionManager {
     event UpdateSpotPriceTwapInterval(uint256 newSpotPriceTwapInterval);
     event ReserveSnapshotted(uint128 pip, uint256 timestamp);
     event FundingRateUpdated(int256 fundingRate, uint256 underlyingPrice);
-    event LimitOrderUpdated(uint64 orderId, uint128 pip, uint256 size);
+    event LimitOrderUpdated(uint64 orwLderId, uint128 pip, uint256 size);
+    event LeverageUpdated(uint128 _oldLverage, uint128 _newLeverage);
 
 
     // FUNCTIONS
