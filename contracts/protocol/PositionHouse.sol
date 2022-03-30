@@ -98,6 +98,7 @@ contract PositionHouse is
         uint256 _quantity,
         uint256 _leverage
     ) external whenNotPaused nonReentrant {
+        require(_requireSideOrder(_positionManager, _msgSender(), _side),Errors.VL_MUST_SAME_SIDE);
         _internalOpenMarketPosition(
             _positionManager,
             _side,
@@ -113,6 +114,7 @@ contract PositionHouse is
         uint128 _pip,
         uint256 _leverage
     ) external whenNotPaused nonReentrant {
+        require(_requireSideOrder(_positionManager, _msgSender(), _side),Errors.VL_MUST_SAME_SIDE);
         _internalOpenLimitOrder(
             _positionManager,
             _side,
@@ -870,6 +872,30 @@ contract PositionHouse is
         returns (Position.Data memory)
     {
         return positionMap[_pmAddress][_trader];
+    }
+
+    function _requireSideOrder(
+        IPositionManager positionManager,
+        address _trader,
+        Position.Side _side
+    ) internal view returns (bool) {
+        address _pmAddress = address(positionManager);
+        LimitOrderPending[] memory listOrdersPending = PositionHouseFunction
+            .getListOrderPending(
+                _pmAddress,
+                _trader,
+                _getLimitOrders(_pmAddress, _trader),
+                _getReduceLimitOrders(_pmAddress, _trader)
+            );
+        if (listOrdersPending.length == 0) {
+            return true;
+        }
+
+        Position.Side _currentSide = listOrdersPending[0].isBuy == true
+            ? Position.Side.LONG
+            : Position.Side.SHORT;
+
+        return _side != _currentSide ? false : true;
     }
 
     // NEW REQUIRE: restriction mode
