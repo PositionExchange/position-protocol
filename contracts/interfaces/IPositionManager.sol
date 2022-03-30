@@ -5,8 +5,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../protocol/libraries/types/PositionManagerStorage.sol";
 
 interface IPositionManager {
-
-
     // EVENT
 
     // Events that supports building order book
@@ -47,9 +45,9 @@ interface IPositionManager {
 
     function updateMaxFindingWordsIndex(uint128 _newMaxFindingWordsIndex) external;
 
-    function updateBasisPoint(uint256 _newBasisPoint) external;
+    function updateBasisPoint(uint64 _newBasisPoint) external;
 
-    function updateBaseBasicPoint(uint256 _newBaseBasisPoint) external;
+    function updateBaseBasicPoint(uint64 _newBaseBasisPoint) external;
 
     function updateTollRatio(uint256 _newTollRatio) external;
 
