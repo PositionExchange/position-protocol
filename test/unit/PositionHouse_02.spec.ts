@@ -5223,5 +5223,107 @@ describe("PositionHouse_02", () => {
             const trader1BalanceAfter = await bep20Mintable.balanceOf(trader1.address)
             await expect((BigNumber.from(trader1BalanceAfter).sub(BigNumber.from(trader1BalanceBefore))).toString()).eq("5600")
         })
+
+        it("should stay remain quantity when cancel a reverse limit order", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader0.address,
+                    instanceTrader: trader0,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4500,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('5'),
+                _trader: trader1
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('2'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader0.address,
+                    instanceTrader: trader0,
+                    _positionManager: positionManager,
+                }
+            );
+            const positionDataBeforeCancel = (await positionHouse.getPosition(positionManager.address, trader1.address)).toString()
+            const traderBalanceBeforeCancel = (await bep20Mintable.balanceOf(trader1.address)).toString()
+            console.log(positionDataBeforeCancel)
+            await positionHouse.connect(trader1).cancelLimitOrder(positionManager.address, 0, 1)
+
+            const positionDataAfterCancel = (await positionHouse.getPosition(positionManager.address, trader1.address)).toString()
+            const traderBalanceAfterCancel = (await bep20Mintable.balanceOf(trader1.address)).toString()
+            console.log(positionDataAfterCancel)
+            await expect(positionDataBeforeCancel).eq(positionDataAfterCancel)
+            console.log(BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel)).toString())
+            await expect(BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel))).eq(1350)
+        })
+
+        it("should stay remain quantity when cancel a close position limit order", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader0.address,
+                    instanceTrader: trader0,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4500,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader0.address,
+                    instanceTrader: trader0,
+                    _positionManager: positionManager,
+                }
+            );
+
+            const positionDataBeforeCancel = (await positionHouse.getPosition(positionManager.address, trader1.address)).toString()
+            const traderBalanceBeforeCancel = (await bep20Mintable.balanceOf(trader1.address)).toString()
+            console.log(positionDataBeforeCancel)
+
+            await positionHouse.connect(trader1).cancelLimitOrder(positionManager.address, 1, 0)
+
+            const positionDataAfterCancel = (await positionHouse.getPosition(positionManager.address, trader1.address)).toString()
+            const traderBalanceAfterCancel = (await bep20Mintable.balanceOf(trader1.address)).toString()
+
+            console.log(positionDataAfterCancel)
+
+            console.log((BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel))).toString())
+            await expect(BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel))).eq(3150)
+
+        })
     })
 })
