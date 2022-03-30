@@ -55,6 +55,7 @@ contract PositionManager is
     event ReserveSnapshotted(uint128 pip, uint256 timestamp);
     event FundingRateUpdated(int256 fundingRate, uint256 underlyingPrice);
     event LimitOrderUpdated(uint64 orderId, uint128 pip, uint256 size);
+    event  LeverageUpdated(uint128 oldLeverage, uint128 newLeverage);
 
     modifier onlyCounterParty() {
         require(counterParty == _msgSender(), Errors.VL_NOT_COUNTERPARTY);
@@ -267,6 +268,10 @@ contract PositionManager is
     //******************************************************************************************************************
     // VIEW FUNCTIONS
     //******************************************************************************************************************
+
+    function getLeverage() public view returns (uint128) {
+        return leverage;
+    }
 
     function getBaseBasisPoint() public view returns (uint256) {
         return BASE_BASIC_POINT;
@@ -515,6 +520,13 @@ contract PositionManager is
     //******************************************************************************************************************
     // ONLY OWNER FUNCTIONS
     //******************************************************************************************************************
+
+    function updateLeverage(uint128 _newLeverage) public onlyOwner {
+        require ( 0 < _newLeverage, Errors.VL_INVALID_LEVERAGE);
+
+        emit LeverageUpdated(leverage, _newLeverage);
+        leverage = _newLeverage;
+    }
 
     function pause() public onlyOwner {
         _pause();

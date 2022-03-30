@@ -195,7 +195,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
             require(
                 _leverage >= oldPosition.leverage &&
-                    _leverage <= 125 &&
+                    _leverage <= _positionManager.getLeverage() &&
                     _leverage > 0,
                 Errors.VL_INVALID_LEVERAGE
             );

@@ -569,7 +569,7 @@ contract PositionHouse is
         //leverage must be greater than old position and in range of allowed leverage
         require(
             _leverage >= oldPosition.leverage &&
-                _leverage <= 125 &&
+                _leverage <= _positionManager.getLeverage() &&
                 _leverage > 0,
             Errors.VL_INVALID_LEVERAGE
         );

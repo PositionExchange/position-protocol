@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IPositionManager {
+
+
     function getCurrentPip() external view returns (uint128);
 
     function getBaseBasisPoint() external view returns (uint256);
@@ -15,6 +17,8 @@ interface IPositionManager {
     function getLiquidityInCurrentPip() external view returns (uint128);
 
     function updatePartialFilledOrder(uint128 pip, uint64 orderId) external;
+
+    function getLeverage() external view returns (uint128);
 
     function getPendingOrderDetail(uint128 pip, uint64 orderId)
         external
@@ -79,4 +83,6 @@ interface IPositionManager {
         returns (uint256 refundSize, uint256 partialFilled);
 
     function settleFunding() external returns (int256 premiumFraction);
+
+    function updateLeverage(uint128 _newLeverage) external;
 }
