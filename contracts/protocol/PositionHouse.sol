@@ -625,12 +625,6 @@ contract PositionHouse is
         Position.Data memory _oldPosition
     ) internal override returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
-        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
-            _positionManager,
-            _trader,
-            _pnlCalcOption,
-            _oldPosition
-        );
         uint256 openMarketQuantity = _oldPosition.quantity.abs();
         require(
             openMarketQuantity != 0,
@@ -654,8 +648,14 @@ contract PositionHouse is
             openMarketQuantity,
             _oldPosition.quantity > 0
                 ? Position.Side.SHORT
-                : Position.Side.LONG,
-            _trader
+                : Position.Side.LONG
+        );
+
+        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
+            _positionManager,
+            _trader,
+            _pnlCalcOption,
+            _oldPosition
         );
 
         (
@@ -827,7 +827,7 @@ contract PositionHouse is
     ) internal returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
         (positionResp.exchangedPositionSize, ) = PositionHouseFunction
-            .openMarketOrder(_pmAddress, _quantity.abs(), _side, _trader);
+            .openMarketOrder(_pmAddress, _quantity.abs(), _side);
         positionResp.exchangedQuoteAssetAmount = _quantity
             .getExchangedQuoteAssetAmount(
                 _oldPosition.openNotional,

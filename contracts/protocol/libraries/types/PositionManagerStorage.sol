@@ -29,8 +29,6 @@ contract PositionManagerStorage {
 
     bool public isOpen;
 
-    //    bool public paused;
-
     IChainLinkPriceFeed public priceFeed;
 
     struct SingleSlot {
@@ -39,6 +37,11 @@ contract PositionManagerStorage {
         //1: buy
         //2: sell
         uint8 isFullBuy;
+    }
+
+    struct PipLiquidity {
+        uint128 pip;
+        uint256 liquidity;
     }
 
     IERC20 quoteAsset;

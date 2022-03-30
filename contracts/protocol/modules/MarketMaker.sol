@@ -25,7 +25,7 @@ abstract contract MarketMaker is ReentrancyGuardUpgradeable, OwnableUpgradeable,
     }
 
     function setMMWhitelist(address addr, bool status) external onlyOwner {
-        _whitelist[msg.sender] = status;
+        _whitelist[addr] = status;
         emit MMWhitelistChanged(addr, status);
     }
 
@@ -58,5 +58,12 @@ abstract contract MarketMaker is ReentrancyGuardUpgradeable, OwnableUpgradeable,
         if(b == 0) return a;
         return a > b ? b : a;
     }
+
+    /**
+     * @dev This empty reserved space is put in place to allow future versions to add new
+     * variables without shifting down storage in the inheritance chain.
+     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[49] private __gap;
 
 }
