@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../protocol/libraries/types/PositionManagerStorage.sol";
+import "../protocol/libraries/types/MarketMaker.sol";
 
 interface IPositionManager {
 
@@ -128,6 +129,8 @@ interface IPositionManager {
             uint256 margin,
             uint256 fee
         );
+    function marketMakerRemove(MarketMaker.MMCancelOrder[] memory _orders) external;
+    function marketMakerSupply(MarketMaker.MMOrder[] memory _orders, uint256 leverage) external;
 
     function openLimitPosition(
         uint128 pip,

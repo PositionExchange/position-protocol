@@ -236,5 +236,10 @@ export enum OrderSide {
     Close = 'close'
 }
 
+export enum POSITION_SIDE {
+    LONG,
+    SHORT
+}
+
 
 

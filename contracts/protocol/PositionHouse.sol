@@ -22,7 +22,7 @@ import {WhitelistManager} from "./modules/WhitelistManager.sol";
 import {CumulativePremiumFractions} from "./modules/CumulativePremiumFractions.sol";
 import {LimitOrderManager} from "./modules/LimitOrder.sol";
 import {ClaimableAmountManager} from "./modules/ClaimableAmountManager.sol";
-import {MarketMaker} from "./modules/MarketMaker.sol";
+import {MarketMakerLogic} from "./modules/MarketMaker.sol";
 
 // TODO remove on production
 import "hardhat/console.sol";
@@ -36,7 +36,7 @@ contract PositionHouse is
     ClaimableAmountManager,
     LimitOrderManager,
     PausableUpgradeable,
-    MarketMaker
+    MarketMakerLogic
 {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
     using Quantity for int256;
