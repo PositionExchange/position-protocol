@@ -527,6 +527,10 @@ contract PositionHouse is
             : (maintenanceMargin * 100) / uint256(marginBalance);
     }
 
+    function getNextFundingTime(IPositionManager _positionManager) public view returns (uint256) {
+        return _positionManager.getNextFundingTime();
+    }
+
     function getCumulativePremiumFractions(address _pmAddress)
         public
         view
@@ -537,6 +541,18 @@ contract PositionHouse is
             CumulativePremiumFractions.getCumulativePremiumFractions(
                 _pmAddress
             );
+    }
+
+    function getLatestCumulativePremiumFraction(address _pmAddress)
+        public
+        view
+        override(CumulativePremiumFractions, LimitOrderManager)
+        returns (int256)
+    {
+        return
+        CumulativePremiumFractions.getLatestCumulativePremiumFraction(
+            _pmAddress
+        );
     }
 
     //
@@ -576,7 +592,7 @@ contract PositionHouse is
                 _trader,
                 oldPosition,
                 positionMap[_pmAddress][_trader],
-                getCumulativePremiumFractions(_pmAddress)
+                getLatestCumulativePremiumFraction(_pmAddress)
             );
         } else {
             pResp = openReversePosition(
@@ -719,7 +735,7 @@ contract PositionHouse is
                     _trader,
                     _oldPosition,
                     positionMap[_pmAddress][_trader],
-                    getCumulativePremiumFractions(_pmAddress)
+                    getLatestCumulativePremiumFraction(_pmAddress)
                 );
                 return positionResp;
             }
@@ -764,7 +780,7 @@ contract PositionHouse is
                     _trader,
                     _oldPosition,
                     positionMap[_pmAddress][_trader],
-                    getCumulativePremiumFractions(_pmAddress)
+                    getLatestCumulativePremiumFraction(_pmAddress)
                 );
             positionResp = PositionResp({
                 position: increasePositionResp.position,

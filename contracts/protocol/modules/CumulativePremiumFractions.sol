@@ -21,6 +21,7 @@ abstract contract CumulativePremiumFractions {
     function getLatestCumulativePremiumFraction(address _positionManager)
         public
         view
+        virtual
         returns (int256)
     {
         // save gas

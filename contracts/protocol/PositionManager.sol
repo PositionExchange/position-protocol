@@ -286,6 +286,10 @@ contract PositionManager is
         return (uint256(singleSlot.pip) * BASE_BASIC_POINT) / basisPoint;
     }
 
+    function getNextFundingTime() public view override returns (uint256) {
+        return nextFundingTime;
+    }
+
     function pipToPrice(uint128 _pip) public view override returns (uint256) {
         return (uint256(_pip) * BASE_BASIC_POINT) / basisPoint;
     }

@@ -24,7 +24,7 @@ library PositionHouseFunction {
         uint256 _newNotional,
         int256 _newQuantity,
         uint256 _leverage,
-        int256[] memory _cumulativePremiumFractions
+        int256 _latestCumulativePremiumFraction
     ) public view returns (Position.Data memory newData) {
         if (_newQuantity * _positionData.quantity >= 0) {
             newData = Position.Data(
@@ -33,14 +33,14 @@ library PositionHouseFunction {
                     _newNotional / _leverage,
                     _positionData,
                     _positionDataWithoutLimit,
-                    _cumulativePremiumFractions
+                    _latestCumulativePremiumFraction
                 ),
                 handleNotionalInIncrease(
                     _newNotional,
                     _positionData,
                     _positionDataWithoutLimit
                 ),
-                getLatestCumulativePremiumFraction(_cumulativePremiumFractions),
+                _latestCumulativePremiumFraction,
                 block.number,
                 _leverage
             );
@@ -52,14 +52,14 @@ library PositionHouseFunction {
                         _positionData.quantity.abs(),
                     _positionData,
                     _positionDataWithoutLimit,
-                    _cumulativePremiumFractions
+                    _latestCumulativePremiumFraction
                 ),
                 handleNotionalInOpenReverse(
                     _newNotional,
                     _positionData,
                     _positionDataWithoutLimit
                 ),
-                getLatestCumulativePremiumFraction(_cumulativePremiumFractions),
+                _latestCumulativePremiumFraction,
                 block.number,
                 _leverage
             );
@@ -105,7 +105,7 @@ library PositionHouseFunction {
         uint256 _reduceMarginRequirement,
         Position.Data memory _positionData,
         Position.Data memory _positionDataWithoutLimit,
-        int256[] memory _cumulativePremiumFractions
+        int256 _latestCumulativePremiumFraction
     ) public view returns (uint256 margin) {
         int256 newPositionSide = _positionData.quantity < 0
             ? int256(1)
@@ -125,10 +125,10 @@ library PositionHouseFunction {
                     _positionDataWithoutLimit.margin;
             }
         }
-        (margin, , ,) = calcRemainMarginWithFundingPayment(
+        (margin, ,) = calcRemainMarginWithFundingPayment(
             _positionData,
             margin,
-            _cumulativePremiumFractions
+            _latestCumulativePremiumFraction
         );
     }
 
@@ -173,7 +173,7 @@ library PositionHouseFunction {
         uint256 _increaseMarginRequirement,
         Position.Data memory _positionData,
         Position.Data memory _positionDataWithoutLimit,
-        int256[] memory _cumulativePremiumFractions
+        int256  _latestCumulativePremiumFraction
     ) public view returns (uint256 margin) {
         if (_positionDataWithoutLimit.quantity * _positionData.quantity < 0) {
             if (_positionDataWithoutLimit.margin > _increaseMarginRequirement) {
@@ -190,10 +190,10 @@ library PositionHouseFunction {
                 _positionDataWithoutLimit.margin +
                 _increaseMarginRequirement;
         }
-        (margin, , ,) = calcRemainMarginWithFundingPayment(
+        (margin, ,) = calcRemainMarginWithFundingPayment(
             _positionData,
             margin,
-            _cumulativePremiumFractions
+            _latestCumulativePremiumFraction
         );
     }
 
@@ -711,7 +711,7 @@ library PositionHouseFunction {
         address _trader,
         Position.Data memory _positionData,
         Position.Data memory _positionDataWithoutLimit,
-        int256[] memory _cumulativePremiumFractions
+        int256 _latestCumulativePremiumFraction
     ) public returns (PositionHouseStorage.PositionResp memory positionResp) {
         (
             positionResp.exchangedPositionSize,
@@ -741,14 +741,14 @@ library PositionHouseFunction {
                     increaseMarginRequirement,
                     _positionData,
                     _positionDataWithoutLimit,
-                    _cumulativePremiumFractions
+                    _latestCumulativePremiumFraction
                 ),
                 handleNotionalInIncrease(
                     positionResp.exchangedQuoteAssetAmount,
                     _positionData,
                     _positionDataWithoutLimit
                 ),
-                getLatestCumulativePremiumFraction(_cumulativePremiumFractions),
+                _latestCumulativePremiumFraction,
                 block.number,
                 _leverage
             );
@@ -763,7 +763,7 @@ library PositionHouseFunction {
         address _trader,
         Position.Data memory _positionData,
         Position.Data memory _positionDataWithoutLimit,
-        int256[] memory _cumulativePremiumFractions
+        int256 _latestCumulativePremiumFraction
     ) public returns (PositionHouseStorage.PositionResp memory positionResp) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         uint256 reduceMarginRequirement = (_positionData.margin *
@@ -799,14 +799,14 @@ library PositionHouseFunction {
                     reduceMarginRequirement,
                     _positionData,
                     _positionDataWithoutLimit,
-                    _cumulativePremiumFractions
+                    _latestCumulativePremiumFraction
                 ),
                 handleNotionalInOpenReverse(
                     positionResp.exchangedQuoteAssetAmount,
                     _positionData,
                     _positionDataWithoutLimit
                 ),
-                getLatestCumulativePremiumFraction(_cumulativePremiumFractions),
+                _latestCumulativePremiumFraction,
                 block.number,
                 _leverage
             );
@@ -817,24 +817,20 @@ library PositionHouseFunction {
     function calcRemainMarginWithFundingPayment(
         Position.Data memory _oldPosition,
         uint256 _pMargin,
-        int256[] memory _cumulativePremiumFractions
+        int256 _latestCumulativePremiumFraction
     )
         internal
         view
         returns (
             uint256 remainMargin,
             uint256 badDebt,
-            int256 fundingPayment,
-            int256 latestCumulativePremiumFraction
+            int256 fundingPayment
         )
     {
         // calculate fundingPayment
-        latestCumulativePremiumFraction = getLatestCumulativePremiumFraction(
-                _cumulativePremiumFractions
-            );
         if (_oldPosition.quantity != 0) {
             fundingPayment =
-                (latestCumulativePremiumFraction -
+                (_latestCumulativePremiumFraction -
                     _oldPosition.lastUpdatedCumulativePremiumFraction) *
                 _oldPosition.quantity / (10**18);
         }
@@ -844,15 +840,6 @@ library PositionHouseFunction {
             remainMargin = uint256(int256(_pMargin) + fundingPayment);
         } else {
             badDebt = uint256(-fundingPayment - int256(_pMargin));
-        }
-    }
-
-    function getLatestCumulativePremiumFraction(
-        int256[] memory _cumulativePremiumFractions
-    ) public view returns (int256) {
-        uint256 len = _cumulativePremiumFractions.length;
-        if (len > 0) {
-            return _cumulativePremiumFractions[len - 1];
         }
     }
 }
