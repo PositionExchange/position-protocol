@@ -19,6 +19,13 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         IPositionManager positionManager
     );
 
+    event CancelLimitOrder(
+        address trader,
+        address _positionManager,
+        uint128 pip,
+        uint64 orderId
+    );
+
     using Quantity for int256;
     // increase orders
     mapping(address => mapping(address => PositionLimitOrder.Data[]))
@@ -26,6 +33,59 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
     // reduce orders
     mapping(address => mapping(address => PositionLimitOrder.Data[]))
         private reduceLimitOrders;
+
+    function _internalCancelLimitOrder(
+        IPositionManager _positionManager,
+        uint64 _orderIdx,
+        uint8 _isReduce
+    ) internal {
+        address _trader = msg.sender;
+        address _pmAddress = address(_positionManager);
+        // declare a pointer to reduceLimitOrders or limitOrders
+        PositionLimitOrder.Data[] storage _orders = _getLimitOrderPointer(
+            _pmAddress,
+            _trader,
+            _isReduce
+        );
+        require(_orderIdx < _orders.length, Errors.VL_INVALID_ORDER);
+        // save gas
+        PositionLimitOrder.Data memory _order = _orders[_orderIdx];
+        PositionLimitOrder.Data memory blankLimitOrderData;
+
+        (uint256 refundQuantity, uint256 partialFilled) = _positionManager
+        .cancelLimitOrder(_order.pip, _order.orderId);
+        if (partialFilled == 0) {
+            _orders[_orderIdx] = blankLimitOrderData;
+            if (_order.reduceLimitOrderId != 0) {
+                _blankReduceLimitOrder(
+                    _pmAddress,
+                    _trader,
+                    _order.reduceLimitOrderId - 1
+                );
+            }
+        } else if (_order.reduceQuantity != 0) {
+            if (_isReduce == 1) {
+                _orders[_orderIdx].reduceQuantity = partialFilled;
+            } else if (_order.reduceLimitOrderId != 0) {
+                PositionLimitOrder.Data[] storage _reduceOrders = _getLimitOrderPointer(
+                    _pmAddress,
+                    _trader,
+                    1
+                );
+                _reduceOrders[_order.reduceLimitOrderId - 1].reduceQuantity = partialFilled;
+                _orders[_orderIdx] = blankLimitOrderData;
+            }
+        }
+
+        (, uint256 _refundMargin, ) = _positionManager.getNotionalMarginAndFee(
+            refundQuantity,
+            _order.pip,
+            _order.leverage
+        );
+        withdraw(_positionManager, _trader, _refundMargin);
+        ClaimableAmountManager._decrease(_pmAddress, _trader, _refundMargin);
+        emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
+    }
 
     function _internalOpenLimitOrder(
         IPositionManager _positionManager,
@@ -64,15 +124,16 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
                 _quantity,
                 openLimitResp.sizeOut
             );
+            (, uint256 marginToVault, uint256 fee) = _positionManager
+                .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
+            deposit(_positionManager, _trader, marginToVault, fee);
+            uint256 limitOrderMargin = marginToVault * (_uQuantity - openLimitResp.sizeOut) / _uQuantity;
+            ClaimableAmountManager._increase(
+                address(_positionManager),
+                _trader,
+                limitOrderMargin
+            );
         }
-        (, uint256 marginToVault, uint256 fee) = _positionManager
-            .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
-        deposit(_positionManager, _trader, marginToVault, fee);
-        ClaimableAmountManager._increase(
-            address(_positionManager),
-            _trader,
-            marginToVault
-        );
         emit OpenLimit(
             openLimitResp.orderId,
             _trader,
@@ -107,7 +168,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             }
             // else new limit order is larger than old position then close old position and open new opposite position
             else {
-                _newOrder.reduceQuantity = oldPosition.quantity.abs();
+                _newOrder.reduceQuantity = oldPosition.quantity.abs() - _sizeOut;
                 _newOrder.reduceLimitOrderId =
                     _getReduceLimitOrders(_pmAddress, _trader).length +
                     1;
@@ -143,11 +204,10 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             if (
                 oldPosition.quantity != 0 &&
                 !oldPosition.quantity.isSameSide(_rawQuantity) &&
+                oldPosition.quantity.abs() <= _quantity &&
                 _positionManager.needClosePositionBeforeOpeningLimitOrder(
                     _rawQuantity.u8Side(),
                     _pip,
-                    _quantity,
-                    oldPosition.quantity.u8Side(),
                     oldPosition.quantity.abs()
                 )
             ) {
@@ -162,30 +222,32 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
                 if (
                     _rawQuantity - closePositionResp.exchangedPositionSize == 0
                 ) {
-                    // TODO deposit margin to vault of position resp
-                    //                            positionResp = closePositionResp;
-                    //                            deposit(_positionManager, _trader, positionResp.marginToVault.abs(), 0);
+                    sizeOut = _rawQuantity.abs();
+                    if (closePositionResp.marginToVault < 0) {
+                        withdraw(_positionManager, _trader, closePositionResp.marginToVault.abs());
+                    }
                 } else {
                     _quantity -= (closePositionResp.exchangedPositionSize)
                         .abs128();
                 }
-            }
-            (orderId, sizeOut, openNotional) = _positionManager
-                .openLimitPosition(_pip, _quantity, _rawQuantity > 0);
-            if (sizeOut != 0) {
-                // case: open a limit order at the last price
-                // the order must be partially executed
-                // then update the current position
-                Position.Data memory newData;
-                newData = PositionHouseFunction.handleMarketPart(
-                    oldPosition,
-                    _getPositionMap(_pmAddress, _trader),
-                    openNotional,
-                    _rawQuantity > 0 ? int256(sizeOut) : -int256(sizeOut),
-                    _leverage,
-                    getCumulativePremiumFractions(_pmAddress)
-                );
-                _updatePositionMap(_pmAddress, _trader, newData);
+            } else {
+                (orderId, sizeOut, openNotional) = _positionManager
+                    .openLimitPosition(_pip, _quantity, _rawQuantity > 0);
+                if (sizeOut != 0) {
+                    // case: open a limit order at the last price
+                    // the order must be partially executed
+                    // then update the current position
+                    Position.Data memory newData;
+                    newData = PositionHouseFunction.handleMarketPart(
+                        oldPosition,
+                        _getPositionMap(_pmAddress, _trader),
+                        openNotional,
+                        _rawQuantity > 0 ? int256(sizeOut) : -int256(sizeOut),
+                        _leverage,
+                        getCumulativePremiumFractions(_pmAddress)
+                    );
+                    _updatePositionMap(_pmAddress, _trader, newData);
+                }
             }
         }
     }
@@ -299,5 +361,11 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         address _trader,
         uint256 _amount,
         uint256 _fee
+    ) internal virtual;
+
+    function withdraw(
+        IPositionManager _positionManager,
+        address _trader,
+        uint256 _amount
     ) internal virtual;
 }
