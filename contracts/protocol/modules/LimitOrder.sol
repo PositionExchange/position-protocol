@@ -63,6 +63,18 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
                     _order.reduceLimitOrderId - 1
                 );
             }
+        } else if (_order.reduceQuantity != 0) {
+            if (_isReduce == 1) {
+                _orders[_orderIdx].reduceQuantity = partialFilled;
+            } else if (_order.reduceLimitOrderId != 0) {
+                PositionLimitOrder.Data[] storage _reduceOrders = _getLimitOrderPointer(
+                    _pmAddress,
+                    _trader,
+                    1
+                );
+                _reduceOrders[_order.reduceLimitOrderId - 1].reduceQuantity = partialFilled;
+                _orders[_orderIdx] = blankLimitOrderData;
+            }
         }
 
         (, uint256 _refundMargin, ) = _positionManager.getNotionalMarginAndFee(
@@ -156,7 +168,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             }
             // else new limit order is larger than old position then close old position and open new opposite position
             else {
-                _newOrder.reduceQuantity = oldPosition.quantity.abs();
+                _newOrder.reduceQuantity = oldPosition.quantity.abs() - _sizeOut;
                 _newOrder.reduceLimitOrderId =
                     _getReduceLimitOrders(_pmAddress, _trader).length +
                     1;
