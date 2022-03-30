@@ -28,7 +28,7 @@
     "@types/chai": "^4.2.19",
     "@types/mocha": "^8.2.2",
     "@types/nedb": "^1.8.12",
-    "@types/node": "^15.12.4",
+    "@types/node": "^15.14.9",
     "@types/shelljs": "^0.8.9",
     "chai": "^4.3.4",
     "decimal.js": "^10.3.1",
