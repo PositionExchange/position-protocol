@@ -40,8 +40,7 @@ library PositionHouseFunction {
                     _positionData,
                     _positionDataWithoutLimit
                 ),
-                // TODO update latest cumulative premium fraction
-                0,
+                getLatestCumulativePremiumFraction(_cumulativePremiumFractions),
                 block.number,
                 _leverage
             );
@@ -60,8 +59,7 @@ library PositionHouseFunction {
                     _positionData,
                     _positionDataWithoutLimit
                 ),
-                // TODO update latest cumulative premium fraction
-                0,
+                getLatestCumulativePremiumFraction(_cumulativePremiumFractions),
                 block.number,
                 _leverage
             );
@@ -127,7 +125,7 @@ library PositionHouseFunction {
                     _positionDataWithoutLimit.margin;
             }
         }
-        margin = calcRemainMarginWithFundingPayment(
+        (margin, , ,) = calcRemainMarginWithFundingPayment(
             _positionData,
             margin,
             _cumulativePremiumFractions
@@ -192,7 +190,7 @@ library PositionHouseFunction {
                 _positionDataWithoutLimit.margin +
                 _increaseMarginRequirement;
         }
-        margin = calcRemainMarginWithFundingPayment(
+        (margin, , ,) = calcRemainMarginWithFundingPayment(
             _positionData,
             margin,
             _cumulativePremiumFractions
@@ -750,8 +748,7 @@ library PositionHouseFunction {
                     _positionData,
                     _positionDataWithoutLimit
                 ),
-                // TODO update cumulative fraction
-                0,
+                getLatestCumulativePremiumFraction(_cumulativePremiumFractions),
                 block.number,
                 _leverage
             );
@@ -786,7 +783,7 @@ library PositionHouseFunction {
         );
         positionResp.realizedPnl =
             (unrealizedPnl * int256(positionResp.exchangedPositionSize)) /
-            _positionData.quantity.absInt();
+            _positionData.quantity;
         positionResp.exchangedQuoteAssetAmount =
             (_quantity.abs() * _positionData.getEntryPrice(_pmAddress)) /
             _positionManager.getBaseBasisPoint();
@@ -809,8 +806,7 @@ library PositionHouseFunction {
                     _positionData,
                     _positionDataWithoutLimit
                 ),
-                // TODO update cumulative fraction
-                0,
+                getLatestCumulativePremiumFraction(_cumulativePremiumFractions),
                 block.number,
                 _leverage
             );
@@ -822,21 +818,32 @@ library PositionHouseFunction {
         Position.Data memory _oldPosition,
         uint256 _pMargin,
         int256[] memory _cumulativePremiumFractions
-    ) internal view returns (uint256 remainMargin) {
-        int256 fundingPayment;
-        int256 latestCumulativePremiumFraction = getLatestCumulativePremiumFraction(
+    )
+        internal
+        view
+        returns (
+            uint256 remainMargin,
+            uint256 badDebt,
+            int256 fundingPayment,
+            int256 latestCumulativePremiumFraction
+        )
+    {
+        // calculate fundingPayment
+        latestCumulativePremiumFraction = getLatestCumulativePremiumFraction(
                 _cumulativePremiumFractions
             );
         if (_oldPosition.quantity != 0) {
             fundingPayment =
                 (latestCumulativePremiumFraction -
                     _oldPosition.lastUpdatedCumulativePremiumFraction) *
-                _oldPosition.quantity;
+                _oldPosition.quantity / (10**18);
         }
 
         // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt
         if (int256(_pMargin) + fundingPayment >= 0) {
             remainMargin = uint256(int256(_pMargin) + fundingPayment);
+        } else {
+            badDebt = uint256(-fundingPayment - int256(_pMargin));
         }
     }
 

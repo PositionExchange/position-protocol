@@ -338,14 +338,6 @@ contract PositionHouse is
     }
 
     // OWNER UPDATE VARIABLE STORAGE
-    function payFunding(IPositionManager _positionManager) external onlyOwner {
-        int256 premiumFraction = _positionManager.settleFunding();
-        CumulativePremiumFractions._add(
-            address(_positionManager),
-            premiumFraction
-        );
-    }
-
     function updatePartialLiquidationRatio(uint256 _partialLiquidationRatio)
         external
         onlyOwner
@@ -779,7 +771,7 @@ contract PositionHouse is
                 exchangedQuoteAssetAmount: closePositionResp
                     .exchangedQuoteAssetAmount +
                     increasePositionResp.exchangedQuoteAssetAmount,
-                fundingPayment: 0,
+                fundingPayment: increasePositionResp.fundingPayment,
                 exchangedPositionSize: closePositionResp.exchangedPositionSize +
                     increasePositionResp.exchangedPositionSize,
                 realizedPnl: closePositionResp.realizedPnl +
