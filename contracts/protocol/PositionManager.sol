@@ -262,6 +262,10 @@ contract PositionManager is
     // VIEW FUNCTIONS
     //******************************************************************************************************************
 
+    function getLeverage() public view returns (uint128) {
+        return leverage;
+    }
+
     function getBaseBasisPoint() public view override returns (uint256) {
         return BASE_BASIC_POINT;
     }
@@ -511,6 +515,13 @@ contract PositionManager is
     //******************************************************************************************************************
     // ONLY OWNER FUNCTIONS
     //******************************************************************************************************************
+
+    function updateLeverage(uint128 _newLeverage) public onlyOwner {
+        require ( 0 < _newLeverage, Errors.VL_INVALID_LEVERAGE);
+
+        emit LeverageUpdated(leverage, _newLeverage);
+        leverage = _newLeverage;
+    }
 
     function pause() public override onlyOwner {
         _pause();
