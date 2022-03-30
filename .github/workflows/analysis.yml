@@ -50,4 +50,4 @@ jobs:
           path: ./*
           key: ${{ github.sha }}
       - name: Scan vulnerabilities
-        run: ls -lah /home/ethsec
+        run: slither .
