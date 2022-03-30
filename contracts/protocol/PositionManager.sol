@@ -120,19 +120,22 @@ contract PositionManager is
         onlyCounterParty
         returns (uint256 remainingSize, uint256 partialFilled)
     {
+        TickPosition.Data storage _tickPosition = tickPosition[_pip];
         require(
-            hasLiquidity(_pip) && _orderId >= tickPosition[_pip].filledIndex,
+            hasLiquidity(_pip) && _orderId >= _tickPosition.filledIndex,
             Errors.VL_ONLY_PENDING_ORDER
         );
-        bool isBuy;
-        (remainingSize, partialFilled, isBuy) = tickPosition[_pip].cancelLimitOrder(
-            _orderId
-        );
-        if (tickPosition[_pip].liquidity == 0) {
-            liquidityBitmap.toggleSingleBit(_pip, false);
-            singleSlot.isFullBuy = 0;
+        _internalCancelLimitOrder(_tickPosition, _pip, _orderId);
+    }
+
+    function marketMakerRemove(MarketMaker.MMCancelOrder[] memory _orders) external whenNotPaused onlyCounterParty {
+        for (uint256 i = 0; i < _orders.length; i++){
+            MarketMaker.MMCancelOrder memory _order = _orders[i];
+            TickPosition.Data storage _tickPosition = tickPosition[_order.pip];
+            if(_order.orderId >= _tickPosition.filledIndex){
+                _internalCancelLimitOrder(_tickPosition, _order.pip, _order.orderId);
+            }
         }
-        emit LimitOrderCancelled(isBuy, _orderId, _pip, remainingSize);
     }
 
     function marketMakerSupply(MarketMaker.MMOrder[] memory _orders, uint256 leverage) external whenNotPaused onlyCounterParty {
@@ -592,6 +595,19 @@ contract PositionManager is
     //******************************************************************************************************************
     // INTERNAL FUNCTIONS
     //******************************************************************************************************************
+
+
+    function _internalCancelLimitOrder(TickPosition.Data storage _tickPosition, uint128 _pip, uint64 _orderId) internal returns (uint256 remainingSize, uint256 partialFilled) {
+        bool isBuy;
+        (remainingSize, partialFilled, isBuy) = _tickPosition.cancelLimitOrder(
+            _orderId
+        );
+        if (_tickPosition.liquidity == 0) {
+            liquidityBitmap.toggleSingleBit(_pip, false);
+            singleSlot.isFullBuy = 0;
+        }
+        emit LimitOrderCancelled(isBuy, _orderId, _pip, remainingSize);
+    }
 
     function _msgSender()
         internal

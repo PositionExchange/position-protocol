@@ -45,7 +45,7 @@ interface IPositionManager {
             uint256 margin,
             uint256 fee
         );
-
+    function marketMakerRemove(MarketMaker.MMCancelOrder[] memory _orders) external;
     function marketMakerSupply(MarketMaker.MMOrder[] memory _orders, uint256 leverage) external;
 
     function openLimitPosition(
