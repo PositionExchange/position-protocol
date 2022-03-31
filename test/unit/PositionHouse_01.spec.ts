@@ -6,7 +6,14 @@ const {solidity} = waffle
 
 import {expect, use} from 'chai'
 import InsuranceFundArtifact from '../../artifacts/contracts/protocol/InsuranceFund.sol/InsuranceFund.json'
-import {PositionManager, PositionHouse, ChainLinkPriceFeed, BEP20Mintable, InsuranceFund} from "../../typeChain";
+import {
+    PositionManager,
+    PositionHouse,
+    ChainLinkPriceFeed,
+    BEP20Mintable,
+    InsuranceFund,
+    PositionHouseViewer
+} from "../../typeChain";
 import {
     ClaimFund, LimitOrderReturns,
     MaintenanceDetail, NotionalAndUnrealizedPnlReturns, OpenLimitPositionAndExpectParams,
@@ -45,6 +52,7 @@ describe("PositionHouse_01", () => {
     let positionHouseTestingTool: PositionHouseTestingTool
     let bep20Mintable: BEP20Mintable
     let insuranceFund: InsuranceFund
+    let positionHouseViewer: PositionHouseViewer;
 
     beforeEach(async () => {
         [trader, trader1, trader2, trader3, trader4, trader5, trader6] = await ethers.getSigners();
@@ -55,7 +63,8 @@ describe("PositionHouse_01", () => {
             positionManagerTestingTool,
             positionHouseTestingTool,
             bep20Mintable,
-            insuranceFund
+            insuranceFund,
+            positionHouseViewer
         ] = await deployPositionHouse() as any
 
     })
@@ -166,7 +175,7 @@ describe("PositionHouse_01", () => {
     }
 
     async function cancelLimitOrder(positionManagerAddress: string, trader: SignerWithAddress, orderId: string, pip: string) {
-        const listPendingOrder = await positionHouse.connect(trader).getListOrderPending(positionManagerAddress, trader.address)
+        const listPendingOrder = await positionHouseViewer.connect(trader).getListOrderPending(positionManagerAddress, trader.address)
         const obj = listPendingOrder.find(x => () => {
             (x.orderId.toString() == orderId && x.pip.toString() == pip)
         });

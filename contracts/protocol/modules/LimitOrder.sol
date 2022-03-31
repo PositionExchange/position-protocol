@@ -270,7 +270,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
     }
 
     function _getLimitOrders(address _pmAddress, address _trader)
-        internal
+        public
         view
         returns (PositionLimitOrder.Data[] memory)
     {
@@ -278,7 +278,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
     }
 
     function _getReduceLimitOrders(address _pmAddress, address _trader)
-        internal
+        public
         view
         returns (PositionLimitOrder.Data[] memory)
     {
@@ -410,7 +410,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         returns (Position.Data memory);
 
     function _getManualMargin(address _pmAddress, address _trader)
-        internal
+        public
         view
         virtual
         returns (int256);

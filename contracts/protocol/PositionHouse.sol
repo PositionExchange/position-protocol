@@ -438,11 +438,11 @@ contract PositionHouse is
 //                _getManualMargin(_pmAddress, _trader)
 //            );
 //    }
-
+//
 //    function getListOrderPending(
 //        IPositionManager _positionManager,
 //        address _trader
-//    ) public view override returns (LimitOrderPending[] memory) {
+//    ) public view returns (LimitOrderPending[] memory) {
 //        address _pmAddress = address(_positionManager);
 //        return
 //            PositionHouseFunction.getListOrderPending(
@@ -892,7 +892,7 @@ contract PositionHouse is
     }
 
     function _getManualMargin(address _pmAddress, address _trader)
-        internal
+        public
         view
         override
         returns (int256)
