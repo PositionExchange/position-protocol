@@ -165,6 +165,7 @@ interface IPositionManager {
         returns (uint256);
 
     function calcFee(uint256 _positionNotional) external view returns (uint256);
+    function getCurrentFundingRate() external view returns (int256 fundingRate);
 
     function cancelLimitOrder(uint128 pip, uint64 orderId)
         external

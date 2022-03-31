@@ -6,6 +6,8 @@ import "../protocol/PositionManager.sol";
 contract FundingRateTest is PositionManager {
     uint64 mockTime;
     uint64 blocknumber;
+    uint256 mockUnderlyingPrice;
+    uint256 mockTwapPrice;
 
     function _now() internal view override returns (uint64) {
         return mockTime;
@@ -23,12 +25,32 @@ contract FundingRateTest is PositionManager {
         blocknumber = _blocknumber;
     }
 
+    function setMockPrice(uint256 underlyingPrice, uint256 twapPrice) public {
+        mockUnderlyingPrice = underlyingPrice;
+        mockTwapPrice = twapPrice;
+    }
+
     function getUnderlyingTwapPrice(uint256 _intervalInSeconds)
     public
     view
     override
     returns (uint256)
     {
-        return priceToWei(5000 * BASE_BASIC_POINT);
+        return mockUnderlyingPrice;
+    }
+
+    function getTwapPrice(uint256 _intervalInSeconds)
+        public
+        override
+        view
+        returns (uint256)
+    {
+        return mockTwapPrice;
+    }
+
+    function getFundingRate() public view returns (int256 premiumFraction,int256 fr) {
+        uint256 underlyingAsset;
+        (premiumFraction, underlyingAsset) = super.getPremiumFraction();
+        fr = premiumFraction / int256(underlyingAsset);
     }
 }
