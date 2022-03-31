@@ -32,7 +32,7 @@ contract PositionManager is
 
     // IMPORTANT this digit must be the same to TOKEN_DIGIT in ChainLinkPriceFeed
     uint256 private constant PRICE_FEED_TOKEN_DIGIT = 10**18;
-    uint256 private constant PREMIUM_FRACTION_DENOMINATOR = 10 ** 10;
+    int256 private constant PREMIUM_FRACTION_DENOMINATOR = 10 ** 10;
 
 
     modifier onlyCounterParty() {
@@ -264,7 +264,7 @@ contract PositionManager is
 
     function getCurrentFundingRate() external view returns (int256 fundingRate) {
         (int256 premiumFraction, uint256 underlyingPrice) = getPremiumFraction();
-        return premiumFraction / underlyingPrice;
+        return premiumFraction / int256(underlyingPrice);
     }
 
     function getPremiumFraction() public view returns (int256 premiumFraction, uint256 underlyingPrice) {

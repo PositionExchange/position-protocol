@@ -5,7 +5,7 @@ import "../libraries/position/Position.sol";
 
 abstract contract CumulativePremiumFractions {
     // avoid calling to position manager
-    uint256 private constant PREMIUM_FRACTION_DENOMINATOR = 10 ** 10;
+    int256 private constant PREMIUM_FRACTION_DENOMINATOR = 10 ** 10;
     // Cumulative premium fraction
     mapping(address => int256[]) private cumulativePremiumFractions;
 
