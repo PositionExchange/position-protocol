@@ -231,8 +231,8 @@ contract PositionManager is
             _now() >= nextFundingTime,
             Errors.VL_SETTLE_FUNDING_TOO_EARLY
         );
-
-        premiumFraction = getPremiumFraction();
+        uint256 underlyingPrice;
+        (premiumFraction, underlyingPrice) = getPremiumFraction();
 
         // update funding rate = premiumFraction / twapIndexPrice
         _updateFundingRate(premiumFraction, underlyingPrice);
@@ -256,11 +256,11 @@ contract PositionManager is
     // VIEW FUNCTIONS
     //******************************************************************************************************************
 
-    function getPremiumFraction() public view returns (int256 premiumFraction) {
+    function getPremiumFraction() public view returns (int256 premiumFraction, uint256 underlyingPrice) {
         // premium = twapMarketPrice - twapIndexPrice
         // timeFraction = fundingPeriod(1 hour) / 1 day
         // premiumFraction = premium * timeFraction
-        uint256 underlyingPrice = getUnderlyingTwapPrice(spotPriceTwapInterval);
+        underlyingPrice = getUnderlyingTwapPrice(spotPriceTwapInterval);
         int256 premium = int256(getTwapPrice(spotPriceTwapInterval)) -
         int256(underlyingPrice);
         premiumFraction = (premium * int256(fundingPeriod)) / int256(1 days);
