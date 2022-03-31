@@ -171,7 +171,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             }
             // else new limit order is larger than old position then close old position and open new opposite position
             else {
-                _newOrder.reduceQuantity = oldPosition.quantity.abs() - _sizeOut;
+                _newOrder.reduceQuantity = oldPosition.quantity.abs();
                 _newOrder.reduceLimitOrderId =
                     _getReduceLimitOrders(_pmAddress, _trader).length +
                     1;
@@ -402,13 +402,13 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         public
         view
         virtual
-        returns (int256[] memory);
+        returns (int128[] memory);
 
     function getLatestCumulativePremiumFraction(address _pmAddress)
         public
         view
         virtual
-        returns (int256);
+        returns (int128);
 
     function _getPositionMap(address _pmAddress, address _trader)
         internal

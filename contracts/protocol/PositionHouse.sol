@@ -507,6 +507,28 @@ contract PositionHouse is
     //        }
     //    }
 
+    function getFundingPaymentAmount(IPositionManager _positionManager, address _trader) external view returns (int256 fundingPayment) {
+        address _pmAddress = address(_positionManager);
+        Position.Data memory positionData = getPosition(_pmAddress, _trader);
+        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
+            _positionManager,
+            _trader,
+            PnlCalcOption.SPOT_PRICE,
+            positionData
+        );
+        (
+        ,
+        ,
+         fundingPayment
+        ,
+
+        ) = calcRemainMarginWithFundingPayment(
+            _pmAddress,
+            positionData,
+            positionData.margin
+        );
+    }
+
     function getMaintenanceDetail(
         IPositionManager _positionManager,
         address _trader
@@ -530,6 +552,7 @@ contract PositionHouse is
         (
             uint256 remainMarginWithFundingPayment,
             ,
+            int256 fundingPayment
             ,
 
         ) = calcRemainMarginWithFundingPayment(
@@ -548,20 +571,19 @@ contract PositionHouse is
             : (maintenanceMargin * 100) / uint256(marginBalance);
     }
 
-    function getNextFundingTime(IPositionManager _positionManager) public view returns (uint256) {
+    function getNextFundingTime(IPositionManager _positionManager) external view returns (uint256) {
         return _positionManager.getNextFundingTime();
     }
 
-    function getPremiumFraction(IPositionManager _positionManager) public view returns (int256) {
-        (int256 premiumFraction,) = _positionManager.getPremiumFraction();
-        return premiumFraction;
+    function getCurrentFundingRate(IPositionManager _positionManager) external view returns (int256) {
+        return _positionManager.getCurrentFundingRate();
     }
 
     function getCumulativePremiumFractions(address _pmAddress)
         public
         view
         override(CumulativePremiumFractions, LimitOrderManager)
-        returns (int256[] memory)
+        returns (int128[] memory)
     {
         return
             CumulativePremiumFractions.getCumulativePremiumFractions(
@@ -573,7 +595,7 @@ contract PositionHouse is
         public
         view
         override(CumulativePremiumFractions, LimitOrderManager)
-        returns (int256)
+        returns (int128)
     {
         return
         CumulativePremiumFractions.getLatestCumulativePremiumFraction(

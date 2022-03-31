@@ -4,8 +4,10 @@ pragma solidity ^0.8.0;
 import "../libraries/position/Position.sol";
 
 abstract contract CumulativePremiumFractions {
+    // avoid calling to position manager
+    int256 private constant PREMIUM_FRACTION_DENOMINATOR = 10 ** 10;
     // Cumulative premium fraction
-    mapping(address => int256[]) private cumulativePremiumFractions;
+    mapping(address => int128[]) private cumulativePremiumFractions;
 
     event FundingPaid(int256 premiumFraction, int256 newestCumulativePremiumFraction,address positionManager, address caller ,uint256 blockTimestamp);
 
@@ -33,10 +35,10 @@ abstract contract CumulativePremiumFractions {
         public
         view
         virtual
-        returns (int256)
+        returns (int128)
     {
         // save gas
-        int256[] memory _fractions = cumulativePremiumFractions[
+        int128[] memory _fractions = cumulativePremiumFractions[
             _positionManager
         ];
         uint256 len = _fractions.length;
@@ -50,7 +52,7 @@ abstract contract CumulativePremiumFractions {
         public
         view
         virtual
-        returns (int256[] memory)
+        returns (int128[] memory)
     {
         return cumulativePremiumFractions[_pmAddress];
     }
@@ -75,9 +77,9 @@ abstract contract CumulativePremiumFractions {
         );
         if (_oldPosition.quantity != 0) {
             fundingPayment =
-                (latestCumulativePremiumFraction -
+            ((latestCumulativePremiumFraction -
                     _oldPosition.lastUpdatedCumulativePremiumFraction) *
-                _oldPosition.quantity;
+                _oldPosition.quantity) / PREMIUM_FRACTION_DENOMINATOR;
         }
 
         // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt
@@ -86,12 +88,6 @@ abstract contract CumulativePremiumFractions {
         } else {
             badDebt = uint256(-fundingPayment - int256(_pMargin));
         }
-    }
-
-    function _add(address _pmAddress, int256 _premiumFraction) internal {
-        cumulativePremiumFractions[_pmAddress].push(
-            _premiumFraction + getLatestCumulativePremiumFraction(_pmAddress)
-        );
     }
 
     /**

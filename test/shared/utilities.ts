@@ -3,6 +3,7 @@ import {BigNumber, BigNumberish, constants, Contract, ContractTransaction, utils
 import web3Utils from "web3-utils";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import {PositionManager} from "../../typeChain";
+import Decimal from 'decimal.js'
 
 const {web3, ethers} = require("hardhat");
 
@@ -254,5 +255,9 @@ export interface OpenMarketInHouseParams {
     leverage: number,
     side: number,
     instanceTrader: any
+}
+
+export const subDecimal = (a: number, b: number): number => {
+    return new Decimal(a).minus(new Decimal(b)).toNumber()
 }
 

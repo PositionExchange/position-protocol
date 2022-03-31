@@ -12,13 +12,20 @@ library Position {
         SHORT
     }
     struct Data {
-        // TODO restruct data
         int256 quantity;
         uint256 margin;
         uint256 openNotional;
-        int256 lastUpdatedCumulativePremiumFraction;
+        // Packed slot
+        int128 lastUpdatedCumulativePremiumFraction;
         uint64 blockNumber;
         uint16 leverage;
+        // this slot leaves 48 bit
+        // use 8 bit for this dummy
+        // set __dummy to 1 when clear position
+        // to avoid reinitializing a new slot
+        // when open a new position
+        // saved ~20,000 gas
+        uint8 __dummy;
     }
 
     struct LiquidatedData {
@@ -83,6 +90,7 @@ library Position {
         _self.lastUpdatedCumulativePremiumFraction = 0;
         _self.blockNumber = uint64(block.number);
         _self.leverage = 0;
+        _self.__dummy = 1;
     }
 
     function side(Position.Data memory _self)
