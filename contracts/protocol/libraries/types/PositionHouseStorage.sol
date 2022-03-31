@@ -70,7 +70,7 @@ contract PositionHouseStorage {
 
 
     // update added margin type from int256 to uint256
-    mapping(address => mapping(address => int256)) public manualMargin;
+    mapping(address => mapping(address => int256)) internal manualMargin;
     //can update with index => no need delete array when close all
 
 
