@@ -74,19 +74,21 @@ contract PositionHouse is
     modifier whenNotPaused {_;}
 
     function initialize(
-        uint256 _maintenanceMarginRatio,
+//        uint256 _maintenanceMarginRatio,
         uint256 _partialLiquidationRatio,
         uint256 _liquidationFeeRatio,
         uint256 _liquidationPenaltyRatio,
-        address _insuranceFund
+        address _insuranceFund,
+        IPositionHouseViewer _positionHouseViewer
     ) public initializer {
         __ReentrancyGuard_init();
         __Ownable_init();
-        maintenanceMarginRatio = _maintenanceMarginRatio;
+//        maintenanceMarginRatio = _maintenanceMarginRatio;
         partialLiquidationRatio = _partialLiquidationRatio;
         liquidationFeeRatio = _liquidationFeeRatio;
         liquidationPenaltyRatio = _liquidationPenaltyRatio;
         insuranceFund = IInsuranceFund(_insuranceFund);
+        positionHouseViewer = _positionHouseViewer;
     }
 
     /**
@@ -266,7 +268,7 @@ contract PositionHouse is
         nonReentrant
     {
         address _caller = _msgSender();
-        (, , uint256 marginRatio) = getMaintenanceDetail(
+        (, , uint256 marginRatio) = positionHouseViewer.getMaintenanceDetail(
             _positionManager,
             _trader,
             PnlCalcOption.ORACLE
@@ -366,7 +368,7 @@ contract PositionHouse is
     {
         address _trader = _msgSender();
 
-        uint256 removableMargin = getRemovableMargin(_positionManager, _trader);
+        uint256 removableMargin = positionHouseViewer.getRemovableMargin(_positionManager, _trader);
         require(_amount <= removableMargin, Errors.VL_INVALID_REMOVE_MARGIN);
 
         manualMargin[address(_positionManager)][_trader] -= int256(_amount);
@@ -404,58 +406,6 @@ contract PositionHouse is
 
     // PUBLIC VIEW QUERY
 
-    function getRemovableMargin(
-        IPositionManager _positionManager,
-        address _trader
-    ) public view returns (uint256) {
-        int256 _marginAdded = manualMargin[address(_positionManager)][_trader];
-        (
-            uint256 maintenanceMargin,
-            int256 marginBalance,
-
-        ) = getMaintenanceDetail(_positionManager, _trader, PnlCalcOption.ORACLE);
-        int256 _remainingMargin = marginBalance - int256(maintenanceMargin);
-        return
-            uint256(
-                _marginAdded <= _remainingMargin
-                    ? _marginAdded
-                    : _remainingMargin.kPositive()
-            );
-    }
-
-//    function getClaimAmount(address _pmAddress, address _trader)
-//        public
-//        view
-//        returns (int256 totalClaimableAmount)
-//    {
-//        Position.Data memory positionData = getPosition(_pmAddress, _trader);
-//        return
-//            PositionHouseFunction.getClaimAmount(
-//                _pmAddress,
-//                _trader,
-//                positionData,
-//                _getPositionMap(_pmAddress, _trader),
-//                _getLimitOrders(_pmAddress, _trader),
-//                _getReduceLimitOrders(_pmAddress, _trader),
-//                getClaimableAmount(_pmAddress, _trader),
-//                _getManualMargin(_pmAddress, _trader)
-//            );
-//    }
-//
-//    function getListOrderPending(
-//        IPositionManager _positionManager,
-//        address _trader
-//    ) public view returns (LimitOrderPending[] memory) {
-//        address _pmAddress = address(_positionManager);
-//        return
-//            PositionHouseFunction.getListOrderPending(
-//                _pmAddress,
-//                _trader,
-//                _getLimitOrders(_pmAddress, _trader),
-//                _getReduceLimitOrders(_pmAddress, _trader)
-//            );
-//    }
-
     function getPosition(address _pmAddress, address _trader)
         public
         view
@@ -488,20 +438,6 @@ contract PositionHouse is
         }
     }
 
-    function getPositionNotionalAndUnrealizedPnl(
-        IPositionManager _positionManager,
-        address _trader,
-        PnlCalcOption _pnlCalcOption,
-        Position.Data memory _oldPosition
-    ) internal view returns (uint256 positionNotional, int256 unrealizedPnl) {
-        (positionNotional, unrealizedPnl) = PositionHouseFunction
-            .getPositionNotionalAndUnrealizedPnl(
-                address(_positionManager),
-                _trader,
-                _pnlCalcOption,
-                _oldPosition
-            );
-    }
 
     //    function getLiquidationPrice(
     //        IPositionManager positionManager,
@@ -516,71 +452,6 @@ contract PositionHouse is
     //            liquidationPrice = (positionData.openNotional - maintenanceMargin + positionData.margin) / positionData.quantity.abs();
     //        }
     //    }
-
-//    function getFundingPaymentAmount(IPositionManager _positionManager, address _trader) external view returns (int256 fundingPayment) {
-//        address _pmAddress = address(_positionManager);
-//        Position.Data memory positionData = getPosition(_pmAddress, _trader);
-//        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
-//            _positionManager,
-//            _trader,
-//            PnlCalcOption.SPOT_PRICE,
-//            positionData
-//        );
-//        (
-//        ,
-//        ,
-//         fundingPayment
-//        ,
-//
-//        ) = calcRemainMarginWithFundingPayment(
-//            _pmAddress,
-//            positionData,
-//            positionData.margin
-//        );
-//    }
-
-    function getMaintenanceDetail(
-        IPositionManager _positionManager,
-        address _trader,
-        PnlCalcOption _calcOption
-    )
-        internal
-        view
-        returns (
-            uint256 maintenanceMargin,
-            int256 marginBalance,
-            uint256 marginRatio
-        )
-    {
-        address _pmAddress = address(_positionManager);
-        Position.Data memory positionData = getPosition(_pmAddress, _trader);
-        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
-            _positionManager,
-            _trader,
-            _calcOption,
-            positionData
-        );
-        (
-            uint256 remainMarginWithFundingPayment,
-            ,
-            ,
-
-        ) = calcRemainMarginWithFundingPayment(
-                _pmAddress,
-                positionData,
-                positionData.margin
-            );
-        maintenanceMargin =
-            ((remainMarginWithFundingPayment -
-                uint256(manualMargin[_pmAddress][_trader])) *
-                maintenanceMarginRatio) /
-            100;
-        marginBalance = int256(remainMarginWithFundingPayment) + unrealizedPnl;
-        marginRatio = marginBalance <= 0
-            ? 100
-            : (maintenanceMargin * 100) / uint256(marginBalance);
-    }
-
 
 
     function getLatestCumulativePremiumFraction(address _pmAddress)
@@ -701,7 +572,7 @@ contract PositionHouse is
                 : Position.Side.LONG
         );
 
-        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
+        (, int256 unrealizedPnl) = positionHouseViewer.getPositionNotionalAndUnrealizedPnl(
             _positionManager,
             _trader,
             _pnlCalcOption,
@@ -859,7 +730,7 @@ contract PositionHouse is
                 _oldPosition.openNotional,
                 _oldPosition.quantity.abs()
             );
-        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
+        (, int256 unrealizedPnl) = positionHouseViewer.getPositionNotionalAndUnrealizedPnl(
             _positionManager,
             _trader,
             PnlCalcOption.SPOT_PRICE,

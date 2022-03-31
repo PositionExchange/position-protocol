@@ -3,6 +3,7 @@ pragma solidity ^0.8.8;
 
 import "../position/PositionLimitOrder.sol";
 import "../../../interfaces/IInsuranceFund.sol";
+import "../../../interfaces/IPositionHouseViewer.sol";
 
 abstract contract PositionHouseStorage {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
@@ -88,5 +89,7 @@ abstract contract PositionHouseStorage {
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
     uint256[49] private __gap;
+
+    IPositionHouseViewer public positionHouseViewer;
 
 }

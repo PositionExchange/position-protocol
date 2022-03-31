@@ -24,4 +24,10 @@ interface IPositionHouseViewer {
         PositionHouseStorage.PnlCalcOption _pnlCalcOption,
         Position.Data memory _oldPosition
     ) external view returns (uint256 positionNotional, int256 unrealizedPnl);
+
+
+    function getRemovableMargin(
+        IPositionManager _positionManager,
+        address _trader
+    ) external view returns (uint256);
 }
