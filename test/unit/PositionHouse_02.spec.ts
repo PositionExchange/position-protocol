@@ -139,7 +139,8 @@ describe("PositionHouse_02", () => {
                                                      expectedMaintenanceMargin,
                                                      expectedMarginBalance
                                                  }: ExpectMaintenanceDetail) {
-        const maintenanceData = await positionHouse.getMaintenanceDetail(positionManagerAddress, traderAddress);
+        const calcOptionSpot = 1;
+        const maintenanceData = await positionHouse.getMaintenanceDetail(positionManagerAddress, traderAddress, calcOptionSpot);
         expect(maintenanceData.marginRatio).eq(expectedMarginRatio);
         expect(maintenanceData.maintenanceMargin).eq(expectedMaintenanceMargin);
         expect(maintenanceData.marginBalance).eq(expectedMarginBalance);

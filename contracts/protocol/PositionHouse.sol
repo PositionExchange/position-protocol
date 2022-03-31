@@ -268,7 +268,8 @@ contract PositionHouse is
         address _caller = _msgSender();
         (, , uint256 marginRatio) = getMaintenanceDetail(
             _positionManager,
-            _trader
+            _trader,
+            PnlCalcOption.ORACLE
         );
 
         require(
@@ -425,7 +426,7 @@ contract PositionHouse is
             uint256 maintenanceMargin,
             int256 marginBalance,
 
-        ) = getMaintenanceDetail(_positionManager, _trader);
+        ) = getMaintenanceDetail(_positionManager, _trader, PnlCalcOption.ORACLE);
         int256 _remainingMargin = marginBalance - int256(maintenanceMargin);
         return
             uint256(
@@ -553,7 +554,8 @@ contract PositionHouse is
 
     function getMaintenanceDetail(
         IPositionManager _positionManager,
-        address _trader
+        address _trader,
+        PnlCalcOption _calcOption
     )
         public
         view
@@ -568,7 +570,7 @@ contract PositionHouse is
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
             _positionManager,
             _trader,
-            PnlCalcOption.ORACLE,
+            _calcOption,
             positionData
         );
         (
