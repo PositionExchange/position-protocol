@@ -220,7 +220,7 @@ contract PositionManager is
     {
         (sizeOut, openNotional) = _internalOpenMarketOrder(_size, _isBuy, 0);
         fee = calcFee(openNotional);
-        entryPrice = sizeOut * getBaseBasisPoint() / _size;
+        entryPrice = openNotional * getBasisPoint() / _size;
     }
 
     /**

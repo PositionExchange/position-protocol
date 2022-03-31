@@ -777,7 +777,9 @@ library PositionHouseFunction {
         uint256 reduceMarginRequirement = (_positionData.margin *
             _quantity.abs()) / _positionData.quantity.abs();
         int256 totalQuantity = _positionDataWithoutLimit.quantity + _quantity;
-        (positionResp.exchangedPositionSize,_,positionResp.entryPrice,positionResp.fee ) = openMarketOrder(
+        (
+            positionResp.exchangedPositionSize,,,
+        ) = openMarketOrder(
             _pmAddress,
             _quantity.abs(),
             _side

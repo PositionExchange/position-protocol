@@ -618,15 +618,12 @@ contract PositionHouse is
                 oldPosition
             );
         }
-        console.log("pResp entryPrice", pResp.entryPrice);
-        console.log("pResp fee", pResp.fee);
         // update position state
         positionMap[_pmAddress][_trader].update(pResp.position);
 
         if (pResp.marginToVault > 0) {
             //transfer from trader to vault
-            uint256 fee = _positionManager.calcFee(pResp.position.openNotional);
-            insuranceFund.deposit(_pmAddress, _trader, pResp.marginToVault.abs(), fee);
+            insuranceFund.deposit(_pmAddress, _trader, pResp.marginToVault.abs(), pResp.fee);
         } else if (pResp.marginToVault < 0) {
             // withdraw from vault to user
             insuranceFund.withdraw(_pmAddress, _trader, pResp.marginToVault.abs());
@@ -635,8 +632,7 @@ contract PositionHouse is
             _trader,
             pQuantity,
             _leverage,
-            (pResp.exchangedQuoteAssetAmount *
-                _positionManager.getBasisPoint()) / _quantity,
+            pResp.entryPrice,
             _positionManager
         );
     }
@@ -812,7 +808,9 @@ contract PositionHouse is
                     increasePositionResp.realizedPnl,
                 unrealizedPnl: 0,
                 marginToVault: closePositionResp.marginToVault +
-                    increasePositionResp.marginToVault
+                    increasePositionResp.marginToVault,
+                fee: closePositionResp.fee,
+                entryPrice: closePositionResp.entryPrice
             });
         }
         return positionResp;
@@ -826,7 +824,7 @@ contract PositionHouse is
         address _trader
     ) internal returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
-        (positionResp.exchangedPositionSize, _, positionResp.entryPrice,positionResp.fee ) = PositionHouseFunction
+        (positionResp.exchangedPositionSize, ,, ) = PositionHouseFunction
             .openMarketOrder(_pmAddress, _quantity.abs(), _quantity > 0
                         ? Position.Side.SHORT
                         : Position.Side.LONG);
