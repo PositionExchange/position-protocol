@@ -20,6 +20,7 @@ import {
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import PositionManagerTestingTool from "../shared/positionManagerTestingTool";
 import PositionHouseTestingTool from "../shared/positionHouseTestingTool";
+import {deployPositionHouse} from "../shared/deploy";
 
 use(solidity)
 
@@ -46,48 +47,17 @@ describe("PositionHouse_01", () => {
     let insuranceFund: InsuranceFund
 
     beforeEach(async () => {
-        [trader, trader1, trader2, trader3, trader4, trader5, trader6] = await ethers.getSigners();
+        [trader, trader1, trader2, trader3, trader4, trader5] = await ethers.getSigners();
+        [
+            positionHouse,
+            positionManager,
+            positionManagerFactory,
+            positionManagerTestingTool,
+            positionHouseTestingTool,
+            bep20Mintable,
+            insuranceFund
+        ] = await deployPositionHouse() as any
 
-        // Deploy position house function contract
-        const positionHouseFunction = await ethers.getContractFactory('PositionHouseFunction')
-        const libraryIns = (await positionHouseFunction.deploy())
-        const PositionHouseMath = await ethers.getContractFactory('PositionHouseMath')
-        const positionHouseMath = await PositionHouseMath.deploy()
-
-        // Deploy mock busd contract
-        const bep20MintableFactory = await ethers.getContractFactory('BEP20Mintable')
-        bep20Mintable = (await bep20MintableFactory.deploy('BUSD Mock', 'BUSD')) as unknown as BEP20Mintable
-
-        // Deploy insurance fund contract
-        const insuranceFundFactory = await ethers.getContractFactory('InsuranceFund')
-        insuranceFund = (await insuranceFundFactory.deploy()) as unknown as InsuranceFund
-
-        // Deploy position manager contract
-        positionManagerFactory = await ethers.getContractFactory("PositionManager")
-        positionManager = (await positionManagerFactory.deploy()) as unknown as PositionManager;
-
-        // Deploy position house contract
-        const factory = await ethers.getContractFactory("PositionHouse", {
-            libraries: {
-                PositionHouseFunction: libraryIns.address,
-                PositionHouseMath: positionHouseMath.address
-            }
-        })
-        positionHouse = (await factory.deploy()) as unknown as PositionHouse;
-        await insuranceFund.connect(trader).initialize()
-        await insuranceFund.connect(trader).setCounterParty(positionHouse.address);
-
-        [trader, trader1, trader2, trader3, trader4, trader5, trader6].forEach(element => {
-            bep20Mintable.mint(element.address, BigNumber.from('10000000000000000000000000000000'))
-            bep20Mintable.connect(element).approve(insuranceFund.address, BigNumber.from('1000000000000000000000000000000000000'))
-        })
-        positionManagerTestingTool = new PositionManagerTestingTool(positionManager)
-        positionHouseTestingTool = new PositionHouseTestingTool(positionHouse, positionManager)
-
-        await positionManager.initialize(BigNumber.from(500000), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
-        await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), insuranceFund.address)
-
-        await positionHouse.updateWhitelistManager(positionManager.address, true);
     })
 
     const openMarketPosition = async ({
@@ -158,7 +128,7 @@ describe("PositionHouse_01", () => {
 
     async function getOrderIdByTx(tx: any) {
         const receipt = await tx.wait();
-        const orderId = ((receipt?.events || [])[1]?.args || [])['orderId'] || ((receipt?.events || [])[2]?.args || [])['orderId'] ||  ((receipt?.events || [])[3]?.args || [])['orderId'] ||  ((receipt?.events || [])[4]?.args || [])['orderId'] ||  ((receipt?.events || [])[5]?.args || [])['orderId']
+        const orderId = ((receipt?.events || [])[1]?.args || [])['orderId'] || ((receipt?.events || [])[2]?.args || [])['orderId'] || ((receipt?.events || [])[3]?.args || [])['orderId'] || ((receipt?.events || [])[4]?.args || [])['orderId'] || ((receipt?.events || [])[5]?.args || [])['orderId']
         return orderId
     }
 
@@ -190,12 +160,12 @@ describe("PositionHouse_01", () => {
         // })
         return {
             orderId: (orderId),
-            pip : pip.toString(),
+            pip: pip.toString(),
         } as LimitOrderReturns
         // expect(positionLimitInOrder.).eq(limitPrice);
     }
 
-    async function cancelLimitOrder(positionManagerAddress: string, trader: SignerWithAddress, orderId : string, pip : string) {
+    async function cancelLimitOrder(positionManagerAddress: string, trader: SignerWithAddress, orderId: string, pip: string) {
         const listPendingOrder = await positionHouse.connect(trader).getListOrderPending(positionManagerAddress, trader.address)
         const obj = listPendingOrder.find(x => () => {
             (x.orderId.toString() == orderId && x.pip.toString() == pip)
@@ -203,7 +173,7 @@ describe("PositionHouse_01", () => {
         await positionHouse.connect(trader).cancelLimitOrder(positionManagerAddress, obj.orderIdx, obj.isReduce);
     }
 
-    async function getPositionNotionalAndUnrealizedPnl(positionManagerAddress: string, traderAddress: string) : Promise<NotionalAndUnrealizedPnlReturns> {
+    async function getPositionNotionalAndUnrealizedPnl(positionManagerAddress: string, traderAddress: string): Promise<NotionalAndUnrealizedPnlReturns> {
         const oldPosition = await positionHouse.getPosition(positionManagerAddress, traderAddress)
         return positionHouse.getPositionNotionalAndUnrealizedPnl(positionManagerAddress, traderAddress, BigNumber.from(1), oldPosition)
 
@@ -330,7 +300,7 @@ describe("PositionHouse_01", () => {
                 quantity: 3,
                 _trader: trader
             })
-            
+
             await openMarketPosition({
                     quantity: BigNumber.from('4'),
                     leverage: leverage,
@@ -3131,8 +3101,8 @@ describe("PositionHouse_01", () => {
                     quantity: BigNumber.from('1'),
                     leverage: 10,
                     side: SIDE.SHORT,
-                    trader: trader3.address,
-                    instanceTrader: trader3,
+                    trader: trader4.address,
+                    instanceTrader: trader4,
                     _positionManager: positionManager,
                     expectedSize: BigNumber.from(0),
                     price: 4900

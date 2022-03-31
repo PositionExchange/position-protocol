@@ -10,8 +10,8 @@ contract PositionManagerStorage {
     using TickPosition for TickPosition.Data;
     using LiquidityBitmap for mapping(uint128 => uint256);
 
-    uint256 public basisPoint; //0.01
-    uint256 public BASE_BASIC_POINT;
+    uint64 public basisPoint; //0.01
+    uint64 public BASE_BASIC_POINT;
     // fee = quoteAssetAmount / tollRatio (means if fee = 0.001% then tollRatio = 100000)
     uint256 tollRatio;
 
@@ -29,6 +29,8 @@ contract PositionManagerStorage {
 
     bool public isOpen;
 
+    uint128 leverage = 125;
+
     //    bool public paused;
 
     IChainLinkPriceFeed public priceFeed;
@@ -41,12 +43,17 @@ contract PositionManagerStorage {
         uint8 isFullBuy;
     }
 
+    struct PipLiquidity {
+        uint128 pip;
+        uint256 liquidity;
+    }
+
     IERC20 quoteAsset;
 
     struct ReserveSnapshot {
         uint128 pip;
-        uint256 timestamp;
-        uint256 blockNumber;
+        uint64 timestamp;
+        uint64 blockNumber;
     }
 
     enum TwapCalcOption {

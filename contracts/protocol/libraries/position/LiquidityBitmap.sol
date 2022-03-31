@@ -79,8 +79,9 @@ library LiquidityBitmap {
         uint128 startWord = _pip >> 8;
         if (_lte) {
             if (startWord != 0) {
+                uint128 i = startWord;
                 for (
-                    uint128 i = startWord;
+                    i;
                     i > (startWord < _maxWords ? 0 : startWord - _maxWords);
                     i--
                 ) {
@@ -93,6 +94,16 @@ library LiquidityBitmap {
                         if (next != 0) {
                             return next;
                         }
+                    }
+                }
+                if (i == 0 && _self[0] != 0) {
+                    next = findHasLiquidityInOneWords(
+                        _self,
+                        255,
+                        true
+                    );
+                    if (next != 0) {
+                        return next;
                     }
                 }
             } else {

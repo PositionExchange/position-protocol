@@ -22,7 +22,7 @@ import {WhitelistManager} from "./modules/WhitelistManager.sol";
 import {CumulativePremiumFractions} from "./modules/CumulativePremiumFractions.sol";
 import {LimitOrderManager} from "./modules/LimitOrder.sol";
 import {ClaimableAmountManager} from "./modules/ClaimableAmountManager.sol";
-import {MarketMaker} from "./modules/MarketMaker.sol";
+import {MarketMakerLogic} from "./modules/MarketMaker.sol";
 
 // TODO remove on production
 import "hardhat/console.sol";
@@ -36,7 +36,7 @@ contract PositionHouse is
     ClaimableAmountManager,
     LimitOrderManager,
     PausableUpgradeable,
-    MarketMaker
+    MarketMakerLogic
 {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
     using Quantity for int256;
@@ -50,7 +50,7 @@ contract PositionHouse is
     event OpenMarket(
         address trader,
         int256 quantity,
-        uint256 leverage,
+        uint16 leverage,
         uint256 entryPrice,
         IPositionManager positionManager
     );
@@ -96,7 +96,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         Position.Side _side,
         uint256 _quantity,
-        uint256 _leverage
+        uint16 _leverage
     ) external whenNotPaused nonReentrant {
         require(_requireSideOrder(_positionManager, _msgSender(), _side),Errors.VL_MUST_SAME_SIDE);
         _internalOpenMarketPosition(
@@ -112,7 +112,7 @@ contract PositionHouse is
         Position.Side _side,
         uint256 _uQuantity,
         uint128 _pip,
-        uint256 _leverage
+        uint16 _leverage
     ) external whenNotPaused nonReentrant {
         require(_requireSideOrder(_positionManager, _msgSender(), _side),Errors.VL_MUST_SAME_SIDE);
         _internalOpenLimitOrder(
@@ -557,7 +557,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         Position.Side _side,
         uint256 _quantity,
-        uint256 _leverage
+        uint16 _leverage
     ) internal {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
@@ -571,7 +571,7 @@ contract PositionHouse is
         //leverage must be greater than old position and in range of allowed leverage
         require(
             _leverage >= oldPosition.leverage &&
-                _leverage <= 125 &&
+                _leverage <= _positionManager.getLeverage() &&
                 _leverage > 0,
             Errors.VL_INVALID_LEVERAGE
         );
@@ -627,12 +627,6 @@ contract PositionHouse is
         Position.Data memory _oldPosition
     ) internal override returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
-        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
-            _positionManager,
-            _trader,
-            _pnlCalcOption,
-            _oldPosition
-        );
         uint256 openMarketQuantity = _oldPosition.quantity.abs();
         require(
             openMarketQuantity != 0,
@@ -656,8 +650,14 @@ contract PositionHouse is
             openMarketQuantity,
             _oldPosition.quantity > 0
                 ? Position.Side.SHORT
-                : Position.Side.LONG,
-            _trader
+                : Position.Side.LONG
+        );
+
+        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
+            _positionManager,
+            _trader,
+            _pnlCalcOption,
+            _oldPosition
         );
 
         (
@@ -714,7 +714,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         Position.Side _side,
         int256 _quantity,
-        uint256 _leverage,
+        uint16 _leverage,
         address _trader,
         Position.Data memory _oldPosition
     ) internal returns (PositionResp memory positionResp) {
@@ -749,7 +749,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         Position.Side _side,
         int256 _quantity,
-        uint256 _leverage,
+        uint16 _leverage,
         Position.Data memory _oldPosition
     ) internal returns (PositionResp memory positionResp) {
         address _trader = _msgSender();
@@ -829,7 +829,7 @@ contract PositionHouse is
     ) internal returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
         (positionResp.exchangedPositionSize, ) = PositionHouseFunction
-            .openMarketOrder(_pmAddress, _quantity.abs(), _side, _trader);
+            .openMarketOrder(_pmAddress, _quantity.abs(), _side);
         positionResp.exchangedQuoteAssetAmount = _quantity
             .getExchangedQuoteAssetAmount(
                 _oldPosition.openNotional,
@@ -899,7 +899,7 @@ contract PositionHouse is
     }
 
     // NEW REQUIRE: restriction mode
-    // In restriction mode, no one can do multi open/close/liquidate position in the same block.
+    // In restriction mode, no one can do multi open/close/liquidate position in the same block
     // If any underwater position being closed (having a bad debt and make insuranceFund loss),
     // or any liquidation happened,
     // restriction mode is ON in that block and OFF(default) in the next block.

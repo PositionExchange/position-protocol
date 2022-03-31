@@ -63,6 +63,18 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
                     _order.reduceLimitOrderId - 1
                 );
             }
+        } else if (_order.reduceQuantity != 0) {
+            if (_isReduce == 1) {
+                _orders[_orderIdx].reduceQuantity = partialFilled;
+            } else if (_order.reduceLimitOrderId != 0) {
+                PositionLimitOrder.Data[] storage _reduceOrders = _getLimitOrderPointer(
+                    _pmAddress,
+                    _trader,
+                    1
+                );
+                _reduceOrders[_order.reduceLimitOrderId - 1].reduceQuantity = partialFilled;
+                _orders[_orderIdx] = blankLimitOrderData;
+            }
         }
 
         (, uint256 _refundMargin, ) = _positionManager.getNotionalMarginAndFee(
@@ -80,7 +92,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         Position.Side _side,
         uint256 _uQuantity,
         uint128 _pip,
-        uint256 _leverage
+        uint16 _leverage
     ) internal {
         address _trader = msg.sender;
         PositionHouseStorage.OpenLimitResp memory openLimitResp;
@@ -103,7 +115,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
                 entryPrice: 0,
                 reduceLimitOrderId: 0,
                 reduceQuantity: 0,
-                blockNumber: block.number
+                blockNumber: uint64(block.number)
             });
             _storeLimitOrder(
                 _newOrder,
@@ -156,7 +168,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             }
             // else new limit order is larger than old position then close old position and open new opposite position
             else {
-                _newOrder.reduceQuantity = oldPosition.quantity.abs();
+                _newOrder.reduceQuantity = oldPosition.quantity.abs() - _sizeOut;
                 _newOrder.reduceLimitOrderId =
                     _getReduceLimitOrders(_pmAddress, _trader).length +
                     1;
@@ -179,14 +191,14 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         address _trader,
         uint128 _pip,
         int256 _rawQuantity,
-        uint256 _leverage
+        uint16 _leverage
     ) private returns (uint64 orderId, uint256 sizeOut) {
         {
             address _pmAddress = address(_positionManager);
             Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
             require(
                 _leverage >= oldPosition.leverage &&
-                    _leverage <= 125 &&
+                    _leverage <= _positionManager.getLeverage() &&
                     _leverage > 0,
                 Errors.VL_INVALID_LEVERAGE
             );
@@ -359,4 +371,12 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         address _trader,
         uint256 _amount
     ) internal virtual;
+
+
+    /**
+     * @dev This empty reserved space is put in place to allow future versions to add new
+     * variables without shifting down storage in the inheritance chain.
+     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[49] private __gap;
 }
