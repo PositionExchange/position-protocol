@@ -16,7 +16,7 @@ library Position {
         int256 quantity;
         uint256 margin;
         uint256 openNotional;
-        int256 lastUpdatedCumulativePremiumFraction;
+        int128 lastUpdatedCumulativePremiumFraction;
         uint64 blockNumber;
         uint16 leverage;
     }

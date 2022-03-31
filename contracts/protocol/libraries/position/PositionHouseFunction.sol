@@ -24,7 +24,7 @@ library PositionHouseFunction {
         uint256 _newNotional,
         int256 _newQuantity,
         uint16 _leverage,
-        int256 _latestCumulativePremiumFraction
+        int128 _latestCumulativePremiumFraction
     ) public view returns (Position.Data memory newData) {
         if (_newQuantity * _positionData.quantity >= 0) {
             newData = Position.Data(
@@ -711,7 +711,7 @@ library PositionHouseFunction {
         address _trader,
         Position.Data memory _positionData,
         Position.Data memory _positionDataWithoutLimit,
-        int256 _latestCumulativePremiumFraction
+        int128 _latestCumulativePremiumFraction
     ) public returns (PositionHouseStorage.PositionResp memory positionResp) {
         (
             positionResp.exchangedPositionSize,
@@ -763,7 +763,7 @@ library PositionHouseFunction {
         address _trader,
         Position.Data memory _positionData,
         Position.Data memory _positionDataWithoutLimit,
-        int256 _latestCumulativePremiumFraction
+        int128 _latestCumulativePremiumFraction
     ) public returns (PositionHouseStorage.PositionResp memory positionResp) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         uint256 reduceMarginRequirement = (_positionData.margin *

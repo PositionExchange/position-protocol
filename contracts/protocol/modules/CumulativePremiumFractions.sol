@@ -5,13 +5,13 @@ import "../libraries/position/Position.sol";
 
 abstract contract CumulativePremiumFractions {
     // Cumulative premium fraction
-    mapping(address => int256[]) private cumulativePremiumFractions;
+    mapping(address => int128[]) private cumulativePremiumFractions;
 
     function payFunding(IPositionManager _positionManager) public {
         address _pmAddress = address(_positionManager);
         int256 premiumFraction = _positionManager.settleFunding();
         cumulativePremiumFractions[_pmAddress].push(
-            premiumFraction +
+            int128(premiumFraction) +
             getLatestCumulativePremiumFraction(
                 _pmAddress
             )
@@ -22,10 +22,10 @@ abstract contract CumulativePremiumFractions {
         public
         view
         virtual
-        returns (int256)
+        returns (int128)
     {
         // save gas
-        int256[] memory _fractions = cumulativePremiumFractions[
+        int128[] memory _fractions = cumulativePremiumFractions[
             _positionManager
         ];
         uint256 len = _fractions.length;
@@ -39,7 +39,7 @@ abstract contract CumulativePremiumFractions {
         public
         view
         virtual
-        returns (int256[] memory)
+        returns (int128[] memory)
     {
         return cumulativePremiumFractions[_pmAddress];
     }
@@ -75,12 +75,6 @@ abstract contract CumulativePremiumFractions {
         } else {
             badDebt = uint256(-fundingPayment - int256(_pMargin));
         }
-    }
-
-    function _add(address _pmAddress, int256 _premiumFraction) internal {
-        cumulativePremiumFractions[_pmAddress].push(
-            _premiumFraction + getLatestCumulativePremiumFraction(_pmAddress)
-        );
     }
 
     /**
