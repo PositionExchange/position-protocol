@@ -396,11 +396,6 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         Position.Data memory newData
     ) internal virtual;
 
-    function getCumulativePremiumFractions(address _pmAddress)
-        public
-        view
-        virtual
-        returns (int128[] memory);
 
     function getLatestCumulativePremiumFraction(address _pmAddress)
         public

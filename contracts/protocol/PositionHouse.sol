@@ -597,18 +597,6 @@ contract PositionHouse is
 //        return _positionManager.getCurrentFundingRate();
 //    }
 
-    function getCumulativePremiumFractions(address _pmAddress)
-        public
-        view
-        override(CumulativePremiumFractions, LimitOrderManager)
-        returns (int128[] memory)
-    {
-        return
-            CumulativePremiumFractions.getCumulativePremiumFractions(
-                _pmAddress
-            );
-    }
-
     function getLatestCumulativePremiumFraction(address _pmAddress)
         public
         view
