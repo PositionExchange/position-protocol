@@ -28,7 +28,7 @@ const sideObj = {
     1: 'SHORT'
 }
 
-describe("FundingRate", () => {
+describe.skip("FundingRate", () => {
     let trader0: any;
     let trader1: any;
     let trader2: any;
@@ -144,7 +144,7 @@ describe("FundingRate", () => {
     }
 
 
-    describe('should calculate premium fraction correctly', function () {
+    describe.skip('should calculate premium fraction correctly', function () {
         async function getMaintenanceDetail(traderAddress, expectFundingPayment = undefined) {
             const result = await positionHouse.getMaintenanceDetail(fundingRateTest.address, traderAddress)
             const fundingPayment = await positionHouse.getFundingPaymentAmount(fundingRateTest.address, traderAddress)
