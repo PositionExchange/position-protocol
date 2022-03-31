@@ -96,9 +96,12 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
     ) internal {
         address _trader = msg.sender;
         PositionHouseStorage.OpenLimitResp memory openLimitResp;
+        address _pmAddress = address(_positionManager);
         int256 _quantity = _side == Position.Side.LONG
             ? int256(_uQuantity)
             : -int256(_uQuantity);
+        require(_requireSideOrder(_pmAddress, _trader, _side),Errors.VL_MUST_SAME_SIDE);
+
         (openLimitResp.orderId, openLimitResp.sizeOut) = _openLimitOrder(
             _positionManager,
             _trader,
@@ -129,7 +132,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             deposit(_positionManager, _trader, marginToVault, fee);
             uint256 limitOrderMargin = marginToVault * (_uQuantity - openLimitResp.sizeOut) / _uQuantity;
             ClaimableAmountManager._increase(
-                address(_positionManager),
+                _pmAddress,
                 _trader,
                 limitOrderMargin
             );
@@ -196,6 +199,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         {
             address _pmAddress = address(_positionManager);
             Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
+            require(_requireQuantityOrder(_rawQuantity, oldPosition.quantity), Errors.VL_MUST_SMALLER_REVERSE_QUANTITY);
             require(
                 _leverage >= oldPosition.leverage &&
                     _leverage <= _positionManager.getLeverage() &&
@@ -322,6 +326,38 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         // because we don't want to mess with order index (orderIdx)
         PositionLimitOrder.Data memory blankLimitOrderData;
         reduceLimitOrders[_pmAddress][_trader][index] = blankLimitOrderData;
+    }
+
+    function _requireSideOrder(
+        address _pmAddress,
+        address _trader,
+        Position.Side _side
+    ) internal view returns (bool) {
+        PositionHouseStorage.LimitOrderPending[] memory listOrdersPending = PositionHouseFunction
+        .getListOrderPending(
+            _pmAddress,
+            _trader,
+            _getLimitOrders(_pmAddress, _trader),
+            _getReduceLimitOrders(_pmAddress, _trader)
+        );
+        if (listOrdersPending.length == 0) {
+            return true;
+        }
+
+        Position.Side _currentOrderSide = listOrdersPending[0].isBuy == true
+        ? Position.Side.LONG
+        : Position.Side.SHORT;
+
+        return _side == _currentOrderSide ? true : false;
+    }
+
+    function _requireQuantityOrder(
+        int256 _newOrderQuantity,
+        int256 _oldPositionQuantity
+    ) internal view returns (bool) {
+        bool noPosition = _oldPositionQuantity == 0;
+        bool smallerReverseQuantity =  _newOrderQuantity.abs() <= _oldPositionQuantity.abs() || _newOrderQuantity.isSameSide(_oldPositionQuantity);
+        return noPosition || smallerReverseQuantity;
     }
 
     function getPosition(address _pmAddress, address _trader)

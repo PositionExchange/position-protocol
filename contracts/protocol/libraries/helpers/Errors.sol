@@ -38,6 +38,7 @@ library Errors {
     string public constant VL_INVALID_ORDER = "20"; // ''
     string public constant VL_ONLY_PENDING_ORDER = "21"; // ''
     string public constant VL_MUST_SAME_SIDE = "22";
+    string public constant VL_MUST_SMALLER_REVERSE_QUANTITY = "23";
 
     enum CollateralManagerErrors {
         NO_ERROR

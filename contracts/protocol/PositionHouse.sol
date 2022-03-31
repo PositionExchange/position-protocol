@@ -98,7 +98,6 @@ contract PositionHouse is
         uint256 _quantity,
         uint16 _leverage
     ) external whenNotPaused nonReentrant {
-        require(_requireSideOrder(_positionManager, _msgSender(), _side),Errors.VL_MUST_SAME_SIDE);
         _internalOpenMarketPosition(
             _positionManager,
             _side,
@@ -114,7 +113,7 @@ contract PositionHouse is
         uint128 _pip,
         uint16 _leverage
     ) external whenNotPaused nonReentrant {
-        require(_requireSideOrder(_positionManager, _msgSender(), _side),Errors.VL_MUST_SAME_SIDE);
+        require(_requireSideOrder(address(_positionManager), _msgSender(), _side),Errors.VL_MUST_SAME_SIDE);
         _internalOpenLimitOrder(
             _positionManager,
             _side,
@@ -561,10 +560,12 @@ contract PositionHouse is
     ) internal {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
+        require(_requireSideOrder(_pmAddress, _trader, _side),Errors.VL_MUST_SAME_SIDE);
         int256 pQuantity = _side == Position.Side.LONG
             ? int256(_quantity)
             : -int256(_quantity);
         Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
+        require(_requireQuantityOrder(pQuantity, oldPosition.quantity), Errors.VL_MUST_SMALLER_REVERSE_QUANTITY);
         if (oldPosition.quantity == 0) {
             oldPosition.leverage = 1;
         }
@@ -873,42 +874,4 @@ contract PositionHouse is
     {
         return positionMap[_pmAddress][_trader];
     }
-
-    function _requireSideOrder(
-        IPositionManager positionManager,
-        address _trader,
-        Position.Side _side
-    ) internal view returns (bool) {
-        address _pmAddress = address(positionManager);
-        LimitOrderPending[] memory listOrdersPending = PositionHouseFunction
-            .getListOrderPending(
-                _pmAddress,
-                _trader,
-                _getLimitOrders(_pmAddress, _trader),
-                _getReduceLimitOrders(_pmAddress, _trader)
-            );
-        if (listOrdersPending.length == 0) {
-            return true;
-        }
-
-        Position.Side _currentSide = listOrdersPending[0].isBuy == true
-            ? Position.Side.LONG
-            : Position.Side.SHORT;
-
-        return _side != _currentSide ? false : true;
-    }
-
-    // NEW REQUIRE: restriction mode
-    // In restriction mode, no one can do multi open/close/liquidate position in the same block
-    // If any underwater position being closed (having a bad debt and make insuranceFund loss),
-    // or any liquidation happened,
-    // restriction mode is ON in that block and OFF(default) in the next block.
-    // This design is to prevent the attacker being benefited from the multiple action in one block
-    //    function requireNotRestrictionMode(IAmm _amm) private view {
-    //        uint256 currentBlock = _blockNumber();
-    //        if (currentBlock == positionManagerMap[address].lastRestrictionBlock) {
-    //            // only one action allowed
-    //
-    //        }
-    //    }
 }
