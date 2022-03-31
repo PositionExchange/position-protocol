@@ -33,7 +33,7 @@ contract PositionHouse is
     ClaimableAmountManager,
     PositionHouseStorage,
     LimitOrderManager,
-//    PausableUpgradeable,
+    PausableUpgradeable,
     MarketMakerLogic
 {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
@@ -69,7 +69,10 @@ contract PositionHouse is
     event PartiallyLiquidated(address pmAddress, address trader);
 //    event WhitelistManagerUpdated(address positionManager, bool isWhitelite);
 
-    modifier whenNotPaused {_;}
+//    modifier whenNotPaused {
+//        require(!positionHouseConfigurationProxy.paused(), "P");
+//        _;
+//    }
 
     function initialize(
         address _insuranceFund,
@@ -361,14 +364,13 @@ contract PositionHouse is
 
     // OWNER UPDATE VARIABLE STORAGE
 
-//
-//    function setPauseStatus(bool _isPause) external onlyOwner {
-//        if (_isPause) {
-//            _pause();
-//        } else {
-//            _unpause();
-//        }
-//    }
+    function setPauseStatus(bool _isPause) external onlyOwner {
+        if (_isPause) {
+            _pause();
+        } else {
+            _unpause();
+        }
+    }
 
     // PUBLIC VIEW QUERY
 
