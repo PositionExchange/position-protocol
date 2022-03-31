@@ -556,13 +556,12 @@ contract PositionHouse is
             : (maintenanceMargin * 100) / uint256(marginBalance);
     }
 
-    function getNextFundingTime(IPositionManager _positionManager) public view returns (uint256) {
+    function getNextFundingTime(IPositionManager _positionManager) external view returns (uint256) {
         return _positionManager.getNextFundingTime();
     }
 
-    function getPremiumFraction(IPositionManager _positionManager) public view returns (int256) {
-        (int256 premiumFraction,) = _positionManager.getPremiumFraction();
-        return premiumFraction;
+    function getCurrentFundingRate(IPositionManager _positionManager) external view returns (int256) {
+        return _positionManager.getCurrentFundingRate();
     }
 
     function getCumulativePremiumFractions(address _pmAddress)
