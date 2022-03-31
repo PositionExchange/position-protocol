@@ -101,6 +101,11 @@ contract PositionHouse is
         uint256 _quantity,
         uint16 _leverage
     ) external whenNotPaused nonReentrant {
+        address _pmAddress = address (_positionManager);
+        address _trader = _msgSender();
+        if (_needToClaimFund(_pmAddress, _trader, getPosition(_pmAddress, _trader))) {
+            _internalClaimFund(_positionManager);
+        }
         _internalOpenMarketPosition(
             _positionManager,
             _side,
@@ -116,7 +121,12 @@ contract PositionHouse is
         uint128 _pip,
         uint16 _leverage
     ) external whenNotPaused nonReentrant {
-        require(_requireSideOrder(address(_positionManager), _msgSender(), _side),Errors.VL_MUST_SAME_SIDE);
+        address _pmAddress = address (_positionManager);
+        address _trader = _msgSender();
+        require(_requireSideOrder(_pmAddress, _trader, _side),Errors.VL_MUST_SAME_SIDE);
+        if (_needToClaimFund(_pmAddress, _trader, getPosition(_pmAddress, _trader))) {
+            _internalClaimFund(_positionManager);
+        }
         _internalOpenLimitOrder(
             _positionManager,
             _side,
@@ -206,6 +216,10 @@ contract PositionHouse is
         whenNotPaused
         nonReentrant
     {
+        _internalClaimFund(_positionManager);
+    }
+
+    function _internalClaimFund(IPositionManager _positionManager) internal {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
         int256 totalRealizedPnl = getClaimAmount(_pmAddress, _trader);
@@ -410,11 +424,11 @@ contract PositionHouse is
                 _pmAddress,
                 _trader,
                 positionData,
-                positionMap[_pmAddress][_trader],
+                _getPositionMap(_pmAddress, _trader),
                 _getLimitOrders(_pmAddress, _trader),
                 _getReduceLimitOrders(_pmAddress, _trader),
                 getClaimableAmount(_pmAddress, _trader),
-                manualMargin[_pmAddress][_trader]
+                _getManualMargin(_pmAddress, _trader)
             );
     }
 
@@ -892,5 +906,14 @@ contract PositionHouse is
         returns (Position.Data memory)
     {
         return positionMap[_pmAddress][_trader];
+    }
+
+    function _getManualMargin(address _pmAddress, address _trader)
+        internal
+        view
+        override
+        returns (int256)
+    {
+        return manualMargin[_pmAddress][_trader];
     }
 }

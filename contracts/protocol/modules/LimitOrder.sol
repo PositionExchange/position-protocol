@@ -186,9 +186,6 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         }
     }
 
-
-
-
     function _openLimitOrder(
         IPositionManager _positionManager,
         address _trader,
@@ -360,6 +357,24 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         return noPosition || smallerReverseQuantity;
     }
 
+    function _needToClaimFund(
+        address _pmAddress,
+        address _trader,
+        Position.Data memory _positionData
+    ) internal view returns (bool) {
+        int256 claimableAmount = PositionHouseFunction.getClaimAmount(
+            _pmAddress,
+            _trader,
+            _positionData,
+            _getPositionMap(_pmAddress, _trader),
+            _getLimitOrders(_pmAddress, _trader),
+            _getReduceLimitOrders(_pmAddress, _trader),
+            getClaimableAmount(_pmAddress, _trader),
+            _getManualMargin(_pmAddress, _trader)
+        );
+        return claimableAmount != 0 && _positionData.quantity == 0;
+    }
+
     function getPosition(address _pmAddress, address _trader)
         public
         view
@@ -400,6 +415,12 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         view
         virtual
         returns (Position.Data memory);
+
+    function _getManualMargin(address _pmAddress, address _trader)
+        internal
+        view
+        virtual
+        returns (int256);
 
     function deposit(
         IPositionManager _positionManager,
