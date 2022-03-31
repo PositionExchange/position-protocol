@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.8;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IUniswapV2Pair.sol";
 import "../interfaces/IUniswapV2Factory.sol";
 import "../interfaces/IUniswapV2Router.sol";
@@ -20,7 +19,7 @@ contract InsuranceFund is
     OwnableUpgradeable,
     WhitelistManager
 {
-    using SafeERC20 for IERC20;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
     address public constant BURN_ADDRESS =
         0x000000000000000000000000000000000000dEaD;
 
@@ -29,8 +28,8 @@ contract InsuranceFund is
 
     address private counterParty;
 
-    IERC20 public posi;
-    IERC20 public busd;
+    IERC20Upgradeable public posi;
+    IERC20Upgradeable public busd;
     IUniswapV2Router02 public router;
     IUniswapV2Factory public factory;
 
@@ -66,8 +65,8 @@ contract InsuranceFund is
         __ReentrancyGuard_init();
         __Ownable_init();
 
-        posi = IERC20(0x5CA42204cDaa70d5c773946e69dE942b85CA6706);
-        busd = IERC20(0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56);
+        posi = IERC20Upgradeable(0x5CA42204cDaa70d5c773946e69dE942b85CA6706);
+        busd = IERC20Upgradeable(0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56);
         router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
         factory = IUniswapV2Factory(0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73);
     }
@@ -91,7 +90,7 @@ contract InsuranceFund is
     ) public onlyCounterParty onlyWhitelistManager(_positionManager) {
         address _token = address(IPositionManager(_positionManager).getQuoteAsset());
         // if insurance fund not enough amount for trader, should sell posi and pay for trader
-        uint256 _tokenBalance = IERC20(_token).balanceOf(address(this));
+        uint256 _tokenBalance = IERC20Upgradeable(_token).balanceOf(address(this));
         if (_tokenBalance < _amount) {
             uint256 _gap = _amount - _tokenBalance;
             uint256[] memory _amountIns = router.getAmountsIn(
@@ -107,7 +106,7 @@ contract InsuranceFund is
             );
             emit SoldPosiForFund(_amountIns[0], _gap);
         }
-        IERC20(_token).safeTransfer(_trader, _amount);
+        IERC20Upgradeable(_token).safeTransfer(_trader, _amount);
         emit Withdraw(_token, _trader, _amount);
     }
 
@@ -128,7 +127,7 @@ contract InsuranceFund is
         emit WhitelistManagerUpdated(_positionManager, _isWhitelist);
     }
 
-    function updatePosiAddress(IERC20 _newPosiAddress) public onlyOwner {
+    function updatePosiAddress(IERC20Upgradeable _newPosiAddress) public onlyOwner {
         posi = _newPosiAddress;
         emit PosiChanged(address(_newPosiAddress));
     }
@@ -178,7 +177,7 @@ contract InsuranceFund is
 
     // approve token for router in order to swap tokens
     function approveTokenForRouter(address _token) public onlyOwner {
-        IERC20(_token).safeApprove(
+        IERC20Upgradeable(_token).safeApprove(
             address(router),
             0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
         );

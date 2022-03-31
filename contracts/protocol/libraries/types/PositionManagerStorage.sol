@@ -29,7 +29,7 @@ contract PositionManagerStorage {
 
     bool public isOpen;
 
-    uint128 leverage = 125;
+    uint128 leverage;
 
     //    bool public paused;
 
