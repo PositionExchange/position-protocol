@@ -477,9 +477,12 @@ library PositionHouseFunction {
                 (positionManager.getPrice() * _position.quantity.abs()) /
                 positionManager.getBaseBasisPoint();
         } else if (_pnlCalcOption == PositionHouseStorage.PnlCalcOption.TWAP) {
-            // TODO get twap price
+            // TODO recheck this interval time
+            uint256 _intervalTime = 90;
+            positionNotional = (positionManager.getTwapPrice(_intervalTime) * _position.quantity.abs()) / positionManager.getBaseBasisPoint();
         } else {
-            // TODO get oracle price
+            uint256 _intervalTime = 90;
+            positionNotional = (positionManager.getUnderlyingTwapPrice(_intervalTime) * _position.quantity.abs()) / positionManager.getBaseBasisPoint();
         }
 
         if (_position.side() == Position.Side.LONG) {

@@ -67,7 +67,8 @@ contract PositionHouse is
         IPositionManager positionManager
     );
 
-    event Liquidated(address pmAddress, address trader);
+    event FullyLiquidated(address pmAddress, address trader);
+    event PartiallyLiquidated(address pmAddress, address trader);
     event LiquidationPenaltyRatioUpdated(uint256 oldLiquidationPenaltyRatio, uint256 newLiquidationPenaltyRatio);
     event PartialLiquidationRatioUpdated(uint256 oldPartialLiquidationLiquid,uint256 newPartialLiquidationLiquid);
     event WhitelistManagerUpdated(address positionManager, bool isWhitelite);
@@ -267,7 +268,8 @@ contract PositionHouse is
         address _caller = _msgSender();
         (, , uint256 marginRatio) = getMaintenanceDetail(
             _positionManager,
-            _trader
+            _trader,
+            PnlCalcOption.ORACLE
         );
 
         require(
@@ -305,6 +307,7 @@ contract PositionHouse is
                 liquidationPenalty = uint256(positionResp.marginToVault);
                 feeToLiquidator = liquidationPenalty / 2;
                 feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
+                emit PartiallyLiquidated(_pmAddress, _trader);
             } else {
                 // fully liquidate trader's position
                 liquidationPenalty =
@@ -315,11 +318,11 @@ contract PositionHouse is
                     (liquidationPenalty * liquidationFeeRatio) /
                     2 /
                     100;
+                emit FullyLiquidated(_pmAddress, _trader);
             }
             withdraw(_positionManager, _caller, feeToLiquidator);
             // count as bad debt, transfer money to insurance fund and liquidator
         }
-        emit Liquidated(_pmAddress, _trader);
     }
 
     /**
@@ -423,7 +426,7 @@ contract PositionHouse is
             uint256 maintenanceMargin,
             int256 marginBalance,
 
-        ) = getMaintenanceDetail(_positionManager, _trader);
+        ) = getMaintenanceDetail(_positionManager, _trader, PnlCalcOption.ORACLE);
         int256 _remainingMargin = marginBalance - int256(maintenanceMargin);
         return
             uint256(
@@ -551,7 +554,8 @@ contract PositionHouse is
 
     function getMaintenanceDetail(
         IPositionManager _positionManager,
-        address _trader
+        address _trader,
+        PnlCalcOption _calcOption
     )
         public
         view
@@ -566,7 +570,7 @@ contract PositionHouse is
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
             _positionManager,
             _trader,
-            PnlCalcOption.SPOT_PRICE,
+            _calcOption,
             positionData
         );
         (

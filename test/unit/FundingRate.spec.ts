@@ -146,7 +146,8 @@ describe("FundingRate", () => {
 
     describe('should calculate premium fraction correctly', function () {
         async function getMaintenanceDetail(traderAddress, expectFundingPayment = undefined) {
-            const result = await positionHouse.getMaintenanceDetail(fundingRateTest.address, traderAddress)
+            const calcOptionSpot = 1
+            const result = await positionHouse.getMaintenanceDetail(fundingRateTest.address, traderAddress, calcOptionSpot)
             const fundingPayment = await positionHouse.getFundingPaymentAmount(fundingRateTest.address, traderAddress)
             const parsedData = {
                 maintenanceMargin: result.maintenanceMargin.toNumber() / 10**6,
