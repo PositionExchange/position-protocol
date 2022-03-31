@@ -25,7 +25,7 @@ import {ClaimableAmountManager} from "./modules/ClaimableAmountManager.sol";
 import {MarketMakerLogic} from "./modules/MarketMaker.sol";
 
 // TODO remove on production
-import "hardhat/console.sol";
+//import "hardhat/console.sol";
 
 contract PositionHouse is
     ReentrancyGuardUpgradeable,
