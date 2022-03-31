@@ -67,7 +67,8 @@ contract PositionHouse is
         IPositionManager positionManager
     );
 
-    event Liquidated(address pmAddress, address trader);
+    event FullyLiquidated(address pmAddress, address trader);
+    event PartiallyLiquidated(address pmAddress, address trader);
     event LiquidationPenaltyRatioUpdated(uint256 oldLiquidationPenaltyRatio, uint256 newLiquidationPenaltyRatio);
     event PartialLiquidationRatioUpdated(uint256 oldPartialLiquidationLiquid,uint256 newPartialLiquidationLiquid);
     event WhitelistManagerUpdated(address positionManager, bool isWhitelite);
@@ -270,6 +271,7 @@ contract PositionHouse is
                 liquidationPenalty = uint256(positionResp.marginToVault);
                 feeToLiquidator = liquidationPenalty / 2;
                 feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
+                emit PartiallyLiquidated(_pmAddress, _trader);
             } else {
                 // fully liquidate trader's position
                 liquidationPenalty =
@@ -280,11 +282,11 @@ contract PositionHouse is
                     (liquidationPenalty * liquidationFeeRatio) /
                     2 /
                     100;
+                emit FullyLiquidated(_pmAddress, _trader);
             }
             withdraw(_positionManager, _caller, feeToLiquidator);
             // count as bad debt, transfer money to insurance fund and liquidator
         }
-        emit Liquidated(_pmAddress, _trader);
     }
 
     /**
@@ -509,7 +511,7 @@ contract PositionHouse is
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
             _positionManager,
             _trader,
-            PnlCalcOption.SPOT_PRICE,
+            PnlCalcOption.ORACLE,
             positionData
         );
         (
