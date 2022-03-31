@@ -11,6 +11,9 @@ import "../types/PositionHouseStorage.sol";
 import {Errors} from "../helpers/Errors.sol";
 
 library PositionHouseFunction {
+    // avoid calling to position manager
+    int256 private constant PREMIUM_FRACTION_DENOMINATOR = 10 ** 10;
+
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
     using Position for Position.Data;
     using Position for Position.LiquidatedData;
@@ -127,7 +130,7 @@ library PositionHouseFunction {
                     _positionDataWithoutLimit.margin;
             }
         }
-        (margin, ,) = calcRemainMarginWithFundingPayment(
+        (margin, ,) = _calcRemainMarginWithFundingPayment(
             _positionData,
             margin,
             _latestCumulativePremiumFraction
@@ -192,7 +195,7 @@ library PositionHouseFunction {
                 _positionDataWithoutLimit.margin +
                 _increaseMarginRequirement;
         }
-        (margin, ,) = calcRemainMarginWithFundingPayment(
+        (margin, ,) = _calcRemainMarginWithFundingPayment(
             _positionData,
             margin,
             _latestCumulativePremiumFraction
@@ -818,7 +821,7 @@ library PositionHouseFunction {
         return positionResp;
     }
 
-    function calcRemainMarginWithFundingPayment(
+    function _calcRemainMarginWithFundingPayment(
         Position.Data memory _oldPosition,
         uint256 _pMargin,
         int256 _latestCumulativePremiumFraction
@@ -831,12 +834,49 @@ library PositionHouseFunction {
             int256 fundingPayment
         )
     {
+        return calcRemainMarginWithFundingPayment(_latestCumulativePremiumFraction, _oldPosition.quantity, _oldPosition.lastUpdatedCumulativePremiumFraction, _pMargin);
+    }
+
+    function blockNumber() internal view returns (uint64) {
+        return uint64(block.number);
+    }
+
+
+    function calculateMaintenanceMarginDetail(
+        uint256 remainMarginWithFundingPayment,
+        uint256 manualMargin,
+        uint256 maintenanceMarginRatio,
+        int256 marginBalance
+    ) public pure returns (uint256 maintenanceMargin, uint256 marginRatio) {
+        maintenanceMargin = (remainMarginWithFundingPayment -
+        manualMargin *
+        maintenanceMarginRatio) /
+        100;
+        marginRatio = marginBalance <= 0
+        ? 100
+        : (maintenanceMargin * 100) / uint256(marginBalance);
+    }
+
+    function calcRemainMarginWithFundingPayment(
+        int256 latestCumulativePremiumFraction,
+        int256 _oldPQuantity,
+        int256 _oldPLastUpdatedCumulativePremiumFraction,
+        uint256 _pMargin
+    )
+    public
+    pure
+    returns (
+        uint256 remainMargin,
+        uint256 badDebt,
+        int256 fundingPayment
+    )
+    {
         // calculate fundingPayment
-        if (_oldPosition.quantity != 0) {
+        if (_oldPQuantity != 0) {
             fundingPayment =
-                (_latestCumulativePremiumFraction -
-                    _oldPosition.lastUpdatedCumulativePremiumFraction) *
-                _oldPosition.quantity / (10**18);
+            ((latestCumulativePremiumFraction -
+            _oldPLastUpdatedCumulativePremiumFraction) *
+            _oldPQuantity) / PREMIUM_FRACTION_DENOMINATOR;
         }
 
         // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt
@@ -847,7 +887,6 @@ library PositionHouseFunction {
         }
     }
 
-    function blockNumber() internal view returns (uint64) {
-        return uint64(block.number);
-    }
+
+
 }

@@ -4,8 +4,7 @@ pragma solidity ^0.8.0;
 import "../libraries/position/Position.sol";
 
 abstract contract CumulativePremiumFractions {
-    // avoid calling to position manager
-    int256 private constant PREMIUM_FRACTION_DENOMINATOR = 10 ** 10;
+
     // Cumulative premium fraction
     mapping(address => int128[]) private cumulativePremiumFractions;
 
@@ -57,38 +56,6 @@ abstract contract CumulativePremiumFractions {
         return cumulativePremiumFractions[_pmAddress];
     }
 
-    function calcRemainMarginWithFundingPayment(
-        address _positionManager,
-        Position.Data memory _oldPosition,
-        uint256 _pMargin
-    )
-        internal
-        view
-        returns (
-            uint256 remainMargin,
-            uint256 badDebt,
-            int256 fundingPayment,
-            int256 latestCumulativePremiumFraction
-        )
-    {
-        // calculate fundingPayment
-        latestCumulativePremiumFraction = getLatestCumulativePremiumFraction(
-            _positionManager
-        );
-        if (_oldPosition.quantity != 0) {
-            fundingPayment =
-            ((latestCumulativePremiumFraction -
-                    _oldPosition.lastUpdatedCumulativePremiumFraction) *
-                _oldPosition.quantity) / PREMIUM_FRACTION_DENOMINATOR;
-        }
-
-        // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt
-        if (int256(_pMargin) + fundingPayment >= 0) {
-            remainMargin = uint256(int256(_pMargin) + fundingPayment);
-        } else {
-            badDebt = uint256(-fundingPayment - int256(_pMargin));
-        }
-    }
 
     /**
      * @dev This empty reserved space is put in place to allow future versions to add new

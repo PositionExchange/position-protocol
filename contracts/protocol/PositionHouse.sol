@@ -45,7 +45,6 @@ contract PositionHouse is
 
     using Position for Position.Data;
     using Position for Position.LiquidatedData;
-    using PositionHouseFunction for PositionHouse;
 
     event OpenMarket(
         address trader,
@@ -571,22 +570,19 @@ contract PositionHouse is
             uint256 remainMarginWithFundingPayment,
             ,
             int256 fundingPayment
-            ,
-
-        ) = calcRemainMarginWithFundingPayment(
-                _pmAddress,
-                positionData,
+        ) = PositionHouseFunction.calcRemainMarginWithFundingPayment(
+                getLatestCumulativePremiumFraction(_pmAddress),
+                positionData.quantity,
+                positionData.lastUpdatedCumulativePremiumFraction,
                 positionData.margin
             );
-        maintenanceMargin =
-            ((remainMarginWithFundingPayment -
-                uint256(manualMargin[_pmAddress][_trader])) *
-                maintenanceMarginRatio) /
-            100;
         marginBalance = int256(remainMarginWithFundingPayment) + unrealizedPnl;
-        marginRatio = marginBalance <= 0
-            ? 100
-            : (maintenanceMargin * 100) / uint256(marginBalance);
+        (maintenanceMargin, marginRatio) = PositionHouseFunction.calculateMaintenanceMarginDetail(
+            remainMarginWithFundingPayment,
+            uint256(manualMargin[_pmAddress][_trader]),
+            maintenanceMarginRatio,
+            marginBalance
+        );
     }
 
 //    function getNextFundingTime(IPositionManager _positionManager) external view returns (uint256) {
@@ -737,11 +733,11 @@ contract PositionHouse is
         (
             uint256 remainMargin,
             uint256 badDebt,
-            int256 fundingPayment,
-
-        ) = calcRemainMarginWithFundingPayment(
-                _pmAddress,
-                _oldPosition,
+            int256 fundingPayment
+        ) = PositionHouseFunction.calcRemainMarginWithFundingPayment(
+                getLatestCumulativePremiumFraction(_pmAddress),
+                _oldPosition.quantity,
+                _oldPosition.lastUpdatedCumulativePremiumFraction,
                 _oldPosition.margin
             );
 
