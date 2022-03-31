@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../../interfaces/IPositionManager.sol";
 import "../libraries/helpers/Quantity.sol";
@@ -9,7 +8,7 @@ import "./LimitOrder.sol";
 import "../libraries/types/PositionHouseStorage.sol";
 import "../libraries/types/MarketMaker.sol";
 
-abstract contract MarketMakerLogic is ReentrancyGuardUpgradeable, OwnableUpgradeable, LimitOrderManager {
+abstract contract MarketMakerLogic is OwnableUpgradeable {
     using Quantity for int256;
     mapping(address => bool) private _whitelist;
 
@@ -25,16 +24,16 @@ abstract contract MarketMakerLogic is ReentrancyGuardUpgradeable, OwnableUpgrade
         emit MMWhitelistChanged(addr, status);
     }
 
-    function supplyFresh(IPositionManager _positionManager, MarketMaker.MMCancelOrder[] memory _cOrders, MarketMaker.MMOrder[] memory _oOrders, uint256 _leverage) external onlyMMWhitelist nonReentrant {
+    function supplyFresh(IPositionManager _positionManager, MarketMaker.MMCancelOrder[] memory _cOrders, MarketMaker.MMOrder[] memory _oOrders, uint256 _leverage) external onlyMMWhitelist  {
         _positionManager.marketMakerRemove(_cOrders);
         _positionManager.marketMakerSupply(_oOrders, _leverage);
     }
 
-    function remove(IPositionManager _positionManager, MarketMaker.MMCancelOrder[] memory _orders) external onlyMMWhitelist nonReentrant {
+    function remove(IPositionManager _positionManager, MarketMaker.MMCancelOrder[] memory _orders) external onlyMMWhitelist {
         _positionManager.marketMakerRemove(_orders);
     }
 
-    function supply(IPositionManager _positionManager, MarketMaker.MMOrder[] memory _orders, uint16 _leverage) external onlyMMWhitelist nonReentrant {
+    function supply(IPositionManager _positionManager, MarketMaker.MMOrder[] memory _orders, uint16 _leverage) external onlyMMWhitelist  {
         _positionManager.marketMakerSupply(_orders, _leverage);
     }
 
