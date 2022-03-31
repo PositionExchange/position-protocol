@@ -3,13 +3,14 @@ pragma solidity ^0.8.0;
 
 interface IInsuranceFund {
     function deposit(
-        address token,
+        address positionManager,
         address trader,
-        uint256 amount
+        uint256 amount,
+        uint256 fee
     ) external;
 
     function withdraw(
-        address token,
+        address positionManager,
         address trader,
         uint256 amount
     ) external;

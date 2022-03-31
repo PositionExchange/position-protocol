@@ -18,7 +18,6 @@ import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.
 import {PositionHouseMath} from "./libraries/position/PositionHouseMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
 import {Int256Math} from "./libraries/helpers/Int256Math.sol";
-import {WhitelistManager} from "./modules/WhitelistManager.sol";
 import {CumulativePremiumFractions} from "./modules/CumulativePremiumFractions.sol";
 import {LimitOrderManager} from "./modules/LimitOrder.sol";
 import {ClaimableAmountManager} from "./modules/ClaimableAmountManager.sol";
@@ -30,10 +29,9 @@ import {MarketMakerLogic} from "./modules/MarketMaker.sol";
 contract PositionHouse is
     ReentrancyGuardUpgradeable,
     OwnableUpgradeable,
-    PositionHouseStorage,
-    WhitelistManager,
     CumulativePremiumFractions,
     ClaimableAmountManager,
+    PositionHouseStorage,
     LimitOrderManager,
     PausableUpgradeable,
     MarketMakerLogic
@@ -249,7 +247,7 @@ contract PositionHouse is
         }
         clearPosition(_pmAddress, _trader);
         if (totalRealizedPnl > 0) {
-            withdraw(_positionManager, _trader, totalRealizedPnl.abs());
+            insuranceFund.withdraw(_pmAddress, _trader, totalRealizedPnl.abs());
         }
     }
 
@@ -314,7 +312,7 @@ contract PositionHouse is
                     2 /
                     100;
             }
-            withdraw(_positionManager, _caller, feeToLiquidator);
+            insuranceFund.withdraw(_pmAddress, _caller, feeToLiquidator);
             // count as bad debt, transfer money to insurance fund and liquidator
         }
         emit Liquidated(_pmAddress, _trader);
@@ -338,7 +336,7 @@ contract PositionHouse is
         );
         manualMargin[_pmAddress][_trader] += int256(_amount);
 
-        deposit(_positionManager, _trader, _amount, 0);
+        insuranceFund.deposit(_pmAddress, _trader, _amount, 0);
 
         emit MarginAdded(_trader, _amount, _positionManager);
     }
@@ -368,7 +366,7 @@ contract PositionHouse is
 
         manualMargin[address(_positionManager)][_trader] -= int256(_amount);
 
-        withdraw(_positionManager, _trader, _amount);
+        insuranceFund.withdraw(address(_positionManager), _trader, _amount);
 
         emit MarginRemoved(_trader, _amount, _positionManager);
     }
@@ -390,17 +388,6 @@ contract PositionHouse is
         liquidationPenaltyRatio = _liquidationPenaltyRatio;
     }
 
-    function updateWhitelistManager(address _positionManager, bool _isWhitelist)
-        external
-        onlyOwner
-    {
-        if (_isWhitelist) {
-            _setWhitelistManager(_positionManager);
-        } else {
-            _removeWhitelistManager(_positionManager);
-        }
-//        emit WhitelistManagerUpdated(_positionManager, _isWhitelist);
-    }
 
     function setPauseStatus(bool _isPause) external onlyOwner {
         if (_isPause) {
@@ -570,7 +557,6 @@ contract PositionHouse is
         (
             uint256 remainMarginWithFundingPayment,
             ,
-            int256 fundingPayment
             ,
 
         ) = calcRemainMarginWithFundingPayment(
@@ -665,10 +651,10 @@ contract PositionHouse is
         if (pResp.marginToVault > 0) {
             //transfer from trader to vault
             uint256 fee = _positionManager.calcFee(pResp.position.openNotional);
-            deposit(_positionManager, _trader, pResp.marginToVault.abs(), fee);
+            insuranceFund.deposit(_pmAddress, _trader, pResp.marginToVault.abs(), fee);
         } else if (pResp.marginToVault < 0) {
             // withdraw from vault to user
-            withdraw(_positionManager, _trader, pResp.marginToVault.abs());
+            insuranceFund.withdraw(_pmAddress, _trader, pResp.marginToVault.abs());
         }
         emit OpenMarket(
             _trader,
@@ -849,31 +835,6 @@ contract PositionHouse is
         return positionResp;
     }
 
-    function withdraw(
-        IPositionManager _positionManager,
-        address _trader,
-        uint256 _amount
-    ) internal override onlyWhitelistManager(address(_positionManager)) {
-        insuranceFund.withdraw(
-            address(_positionManager.getQuoteAsset()),
-            _trader,
-            _amount
-        );
-    }
-
-    function deposit(
-        IPositionManager _positionManager,
-        address _trader,
-        uint256 _amount,
-        uint256 _fee
-    ) internal override onlyWhitelistManager(address(_positionManager)) {
-        insuranceFund.deposit(
-            address(_positionManager.getQuoteAsset()),
-            _trader,
-            _amount + _fee
-        );
-        insuranceFund.updateTotalFee(_fee);
-    }
 
     function partialLiquidate(
         IPositionManager _positionManager,

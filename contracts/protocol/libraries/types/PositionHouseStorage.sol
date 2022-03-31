@@ -4,7 +4,7 @@ pragma solidity ^0.8.8;
 import "../position/PositionLimitOrder.sol";
 import "../../../interfaces/IInsuranceFund.sol";
 
-contract PositionHouseStorage {
+abstract contract PositionHouseStorage {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
     using Quantity for int256;
     using Quantity for int128;

@@ -9,7 +9,7 @@ import "../libraries/types/PositionHouseStorage.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
 import "./ClaimableAmountManager.sol";
 
-abstract contract LimitOrderManager is ClaimableAmountManager {
+abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStorage {
     event OpenLimit(
         uint64 orderId,
         address trader,
@@ -82,7 +82,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             _order.pip,
             _order.leverage
         );
-        withdraw(_positionManager, _trader, _refundMargin);
+        insuranceFund.withdraw(_pmAddress, _trader, _refundMargin);
         ClaimableAmountManager._decrease(_pmAddress, _trader, _refundMargin);
         emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
     }
@@ -131,7 +131,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             );
             (, uint256 marginToVault, uint256 fee) = _positionManager
                 .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
-            deposit(_positionManager, _trader, marginToVault, fee);
+            insuranceFund.deposit(_pmAddress, _trader, marginToVault, fee);
             uint256 limitOrderMargin = marginToVault * (_uQuantity - openLimitResp.sizeOut) / _uQuantity;
             ClaimableAmountManager._increase(
                 _pmAddress,
@@ -230,7 +230,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
                 ) {
                     sizeOut = _rawQuantity.abs();
                     if (closePositionResp.marginToVault < 0) {
-                        withdraw(_positionManager, _trader, closePositionResp.marginToVault.abs());
+                        insuranceFund.withdraw(_pmAddress, _trader, closePositionResp.marginToVault.abs());
                     }
                 } else {
                     _quantity -= (closePositionResp.exchangedPositionSize)
@@ -414,19 +414,6 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         view
         virtual
         returns (int256);
-
-    function deposit(
-        IPositionManager _positionManager,
-        address _trader,
-        uint256 _amount,
-        uint256 _fee
-    ) internal virtual;
-
-    function withdraw(
-        IPositionManager _positionManager,
-        address _trader,
-        uint256 _amount
-    ) internal virtual;
 
 
     /**

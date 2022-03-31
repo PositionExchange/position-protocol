@@ -10,12 +10,15 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IUniswapV2Pair.sol";
 import "../interfaces/IUniswapV2Factory.sol";
 import "../interfaces/IUniswapV2Router.sol";
+import "../interfaces/IPositionManager.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
+import {WhitelistManager} from "./modules/WhitelistManager.sol";
 
 contract InsuranceFund is
     Initializable,
     ReentrancyGuardUpgradeable,
-    OwnableUpgradeable
+    OwnableUpgradeable,
+    WhitelistManager
 {
     using SafeERC20 for IERC20;
     address public constant BURN_ADDRESS =
@@ -52,6 +55,7 @@ contract InsuranceFund is
     event PosiChanged(address _new);
     event RouterChanged(address _new);
     event FactoryChanged(address _new);
+    event WhitelistManagerUpdated(address positionManager, bool isWhitelist);
 
     modifier onlyCounterParty() {
         require(counterParty == _msgSender(), Errors.VL_NOT_COUNTERPARTY);
@@ -69,19 +73,23 @@ contract InsuranceFund is
     }
 
     function deposit(
-        address _token,
+        address _positionManager,
         address _trader,
-        uint256 _amount
-    ) public onlyCounterParty {
-        IERC20(_token).safeTransferFrom(_trader, address(this), _amount);
-        emit Deposit(_token, _trader, _amount);
+        uint256 _amount,
+        uint256 _fee
+    ) public onlyCounterParty onlyWhitelistManager(_positionManager) {
+        IERC20 _token = IPositionManager(_positionManager).getQuoteAsset();
+        totalFee += _fee;
+        _token.safeTransferFrom(_trader, address(this), _amount + _fee);
+        emit Deposit(address(_token), _trader, _amount + _fee);
     }
 
     function withdraw(
-        address _token,
+        address _positionManager,
         address _trader,
         uint256 _amount
-    ) public onlyCounterParty {
+    ) public onlyCounterParty onlyWhitelistManager(_positionManager) {
+        address _token = address(IPositionManager(_positionManager).getQuoteAsset());
         // if insurance fund not enough amount for trader, should sell posi and pay for trader
         uint256 _tokenBalance = IERC20(_token).balanceOf(address(this));
         if (_tokenBalance < _amount) {
@@ -110,6 +118,19 @@ contract InsuranceFund is
     //******************************************************************************************************************
     // ONLY OWNER FUNCTIONS
     //******************************************************************************************************************
+
+
+    function updateWhitelistManager(address _positionManager, bool _isWhitelist)
+    external
+    onlyOwner
+    {
+        if (_isWhitelist) {
+            _setWhitelistManager(_positionManager);
+        } else {
+            _removeWhitelistManager(_positionManager);
+        }
+        emit WhitelistManagerUpdated(_positionManager, _isWhitelist);
+    }
 
     function updatePosiAddress(IERC20 _newPosiAddress) public onlyOwner {
         posi = _newPosiAddress;
