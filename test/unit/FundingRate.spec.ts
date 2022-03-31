@@ -34,7 +34,8 @@ describe("FundingRate", () => {
     let trader2: any;
     let trader3: any;
     let trader4: any;
-    let trader5: any;
+    let tradercp1: any;
+    let tradercp2: any;
     let fundingRateTest: FundingRateTest;
     let insuranceFund: InsuranceFund
     let bep20Mintable: BEP20Mintable
@@ -43,7 +44,7 @@ describe("FundingRate", () => {
     const BASE_BASIC_POINT = 10000;
 
     beforeEach(async () => {
-        [trader0, trader1, trader2, trader3, trader4, trader5] = await ethers.getSigners();
+        [trader0, trader1, trader2, trader3, trader4, tradercp1, tradercp2] = await ethers.getSigners();
         const positionHouseFunction = await ethers.getContractFactory('PositionHouseFunction')
         const libraryIns = (await positionHouseFunction.deploy())
         const PositionHouseMath = await ethers.getContractFactory('PositionHouseMath')
@@ -74,7 +75,7 @@ describe("FundingRate", () => {
         await insuranceFund.connect(trader0).setCounterParty(positionHouse.address);
         await bep20Mintable.mint(insuranceFund.address, BigNumber.from('10000000000000000000000000000000'));
 
-        [trader0, trader1, trader2, trader3, trader4, trader5].forEach(element => {
+        [trader0, trader1, trader2, trader3, trader4, tradercp1, tradercp2].forEach(element => {
             bep20Mintable.mint(element.address, BigNumber.from('10000000000000000000000000000000'))
             bep20Mintable.connect(element).approve(insuranceFund.address, BigNumber.from('1000000000000000000000000000000000000'))
         })
@@ -126,14 +127,14 @@ describe("FundingRate", () => {
             quantity: BigNumber.from("1"),
             leverage: 10,
             side: toHigherPrice ? 1 : 0,
-            instanceTrader: trader5
+            instanceTrader: tradercp1
         })
 
         await openMarketPosition({
             quantity: BigNumber.from("1"),
             leverage: 10,
             side: toHigherPrice ? 0 : 1,
-            instanceTrader: trader5
+            instanceTrader: tradercp2
         })
     }
 
@@ -246,9 +247,9 @@ describe("FundingRate", () => {
                 quantity: BigNumber.from(37*10**6),
                 leverage: 10,
                 side: 0,
-                instanceTrader: trader5
+                instanceTrader: tradercp1
             })
-            const traders = [trader0, trader1, trader2, trader3, trader4, trader5]
+            const traders = [trader0, trader1, trader2, trader3, trader4, tradercp1]
             const maintenanceMargins = [], maintenanceMarginsAfter = []
             for(const _trader of traders ) {
                 maintenanceMargins.push(await getMaintenanceDetail(_trader.address))
