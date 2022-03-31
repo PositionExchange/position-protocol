@@ -7,9 +7,21 @@ abstract contract CumulativePremiumFractions {
     // Cumulative premium fraction
     mapping(address => int256[]) private cumulativePremiumFractions;
 
+    function payFunding(IPositionManager _positionManager) public {
+        address _pmAddress = address(_positionManager);
+        int256 premiumFraction = _positionManager.settleFunding();
+        cumulativePremiumFractions[_pmAddress].push(
+            premiumFraction +
+            getLatestCumulativePremiumFraction(
+                _pmAddress
+            )
+        );
+    }
+
     function getLatestCumulativePremiumFraction(address _positionManager)
         public
         view
+        virtual
         returns (int256)
     {
         // save gas

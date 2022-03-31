@@ -244,7 +244,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
                         openNotional,
                         _rawQuantity > 0 ? int256(sizeOut) : -int256(sizeOut),
                         _leverage,
-                        getCumulativePremiumFractions(_pmAddress)
+                        getLatestCumulativePremiumFraction(_pmAddress)
                     );
                     _updatePositionMap(_pmAddress, _trader, newData);
                 }
@@ -349,6 +349,12 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         view
         virtual
         returns (int256[] memory);
+
+    function getLatestCumulativePremiumFraction(address _pmAddress)
+        public
+        view
+        virtual
+        returns (int256);
 
     function _getPositionMap(address _pmAddress, address _trader)
         internal

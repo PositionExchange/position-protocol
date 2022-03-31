@@ -241,5 +241,18 @@ export enum POSITION_SIDE {
     SHORT
 }
 
+export interface OpenLimitInHouseParams {
+    pip: BigNumber,
+    quantity: BigNumber,
+    leverage: number,
+    side: number,
+    instanceTrader: any
+}
 
+export interface OpenMarketInHouseParams {
+    quantity: BigNumber,
+    leverage: number,
+    side: number,
+    instanceTrader: any
+}
 
