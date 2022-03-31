@@ -4,22 +4,22 @@ pragma solidity ^0.8.0;
 import "../protocol/PositionManager.sol";
 
 contract FundingRateTest is PositionManager {
-    uint256 mockTime;
-    uint256 blocknumber;
+    uint64 mockTime;
+    uint64 blocknumber;
 
-    function _now() internal view override returns (uint256) {
+    function _now() internal view override returns (uint64) {
         return mockTime;
     }
 
-    function setMockTime(uint256 _mockTime) public {
+    function setMockTime(uint64 _mockTime) public {
         mockTime = _mockTime;
     }
 
-    function _blocknumber() internal view override returns (uint256) {
+    function _blocknumber() internal view override returns (uint64) {
         return blocknumber;
     }
 
-    function setBlockNumber(uint256 _blocknumber) public {
+    function setBlockNumber(uint64 _blocknumber) public {
         blocknumber = _blocknumber;
     }
 
