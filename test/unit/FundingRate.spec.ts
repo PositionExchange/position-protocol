@@ -240,9 +240,9 @@ describe("FundingRate", () => {
                 quantity: BigNumber.from(37*10**6),
                 leverage: 10,
                 side: 0,
-                instanceTrader: trader5
+                instanceTrader: tradercp1
             })
-            const traders = [trader0, trader1, trader2, trader3, trader4, trader5]
+            const traders = [trader0, trader1, trader2, trader3, trader4, tradercp1]
             const maintenanceMargins = [], maintenanceMarginsAfter = []
             for(const _trader of traders ) {
                 maintenanceMargins.push(await getMaintenanceDetail(_trader.address))
