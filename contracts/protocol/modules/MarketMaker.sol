@@ -12,7 +12,7 @@ abstract contract MarketMakerLogic is OwnableUpgradeable {
     using Quantity for int256;
     mapping(address => bool) private _whitelist;
 
-    event MMWhitelistChanged(address addr, bool value);
+//    event MMWhitelistChanged(address addr, bool value);
 
     modifier onlyMMWhitelist(){
         require(isMarketMaker(msg.sender), "!MMW");
@@ -21,7 +21,7 @@ abstract contract MarketMakerLogic is OwnableUpgradeable {
 
     function setMMWhitelist(address addr, bool status) external onlyOwner {
         _whitelist[addr] = status;
-        emit MMWhitelistChanged(addr, status);
+//        emit MMWhitelistChanged(addr, status);
     }
 
     function supplyFresh(IPositionManager _positionManager, MarketMaker.MMCancelOrder[] memory _cOrders, MarketMaker.MMOrder[] memory _oOrders, uint256 _leverage) external onlyMMWhitelist  {
