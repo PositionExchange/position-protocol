@@ -63,7 +63,7 @@ contract PositionManager is
         priceFeedKey = _priceFeedKey;
         singleSlot.pip = _initialPip;
         reserveSnapshots.push(
-            ReserveSnapshot(_initialPip, uint64(block.timestamp), uint64(block.number))
+            ReserveSnapshot(_initialPip, _now(), _blocknumber())
         );
         quoteAsset = IERC20(_quoteAsset);
         basisPoint = _basisPoint;
@@ -75,7 +75,7 @@ contract PositionManager is
         maxFindingWordsIndex = _maxFindingWordsIndex;
         priceFeed = IChainLinkPriceFeed(_priceFeed);
         counterParty = _counterParty;
-        emit ReserveSnapshotted(_initialPip, block.timestamp);
+        emit ReserveSnapshotted(_initialPip, _now());
     }
 
     function updatePartialFilledOrder(uint128 _pip, uint64 _orderId)
@@ -228,7 +228,7 @@ contract PositionManager is
         returns (int256 premiumFraction)
     {
         require(
-            block.timestamp >= nextFundingTime,
+            _now() >= nextFundingTime,
             Errors.VL_SETTLE_FUNDING_TOO_EARLY
         );
 
@@ -244,7 +244,7 @@ contract PositionManager is
         _updateFundingRate(premiumFraction, underlyingPrice);
 
         // in order to prevent multiple funding settlement during very short time after network congestion
-        uint256 minNextValidFundingTime = block.timestamp + fundingBufferPeriod;
+        uint256 minNextValidFundingTime = _now() + fundingBufferPeriod;
 
         // floor((nextFundingTime + fundingPeriod) / 3600) * 3600
         uint256 nextFundingTimeOnHourStart = ((nextFundingTime +
@@ -286,8 +286,16 @@ contract PositionManager is
         return (uint256(singleSlot.pip) * BASE_BASIC_POINT) / basisPoint;
     }
 
+    function getNextFundingTime() public view override returns (uint256) {
+        return nextFundingTime;
+    }
+
     function pipToPrice(uint128 _pip) public view override returns (uint256) {
         return (uint256(_pip) * BASE_BASIC_POINT) / basisPoint;
+    }
+
+    function priceToWei(uint256 _price) public view returns (uint256) {
+        return (_price * 10**18) / BASE_BASIC_POINT;
     }
 
     function getLiquidityInCurrentPip() public view override returns (uint128) {
@@ -423,6 +431,7 @@ contract PositionManager is
     function getUnderlyingTwapPrice(uint256 _intervalInSeconds)
         public
         view
+        virtual
         returns (uint256)
     {
         return
@@ -464,7 +473,7 @@ contract PositionManager is
             return currentPrice;
         }
 
-        uint256 baseTimestamp = block.timestamp - _intervalInSeconds;
+        uint256 baseTimestamp = _now() - _intervalInSeconds;
         ReserveSnapshot memory currentSnapshot = reserveSnapshots[
             _params.snapshotIndex
         ];
@@ -479,7 +488,7 @@ contract PositionManager is
 
         uint256 previousTimestamp = currentSnapshot.timestamp;
         // period same as cumulativeTime
-        uint256 period = block.timestamp - previousTimestamp;
+        uint256 period = _now() - previousTimestamp;
         uint256 weightedPrice = currentPrice * period;
         while (true) {
             // if snapshot history is too short
@@ -761,6 +770,14 @@ contract PositionManager is
         return pipToPrice(reserveSnapshots[_params.snapshotIndex].pip);
     }
 
+    function _now() internal view virtual returns (uint64) {
+        return uint64(block.timestamp);
+    }
+
+    function _blocknumber() internal view virtual returns (uint64) {
+        return uint64(block.number);
+    }
+
     // update funding rate = premiumFraction / twapIndexPrice
     function _updateFundingRate(
         int256 _premiumFraction,
@@ -771,7 +788,7 @@ contract PositionManager is
     }
 
     function _addReserveSnapshot() internal {
-        uint64 currentBlock = uint64(block.number);
+        uint64 currentBlock = _blocknumber();
         ReserveSnapshot memory latestSnapshot = reserveSnapshots[
             reserveSnapshots.length - 1
         ];
@@ -779,9 +796,9 @@ contract PositionManager is
             reserveSnapshots[reserveSnapshots.length - 1].pip = singleSlot.pip;
         } else {
             reserveSnapshots.push(
-                ReserveSnapshot(singleSlot.pip,uint64( block.timestamp), currentBlock)
+                ReserveSnapshot(singleSlot.pip, _now(), currentBlock)
             );
         }
-        emit ReserveSnapshotted(singleSlot.pip, block.timestamp);
+        emit ReserveSnapshotted(singleSlot.pip, _now());
     }
 }
