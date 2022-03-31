@@ -16,7 +16,6 @@ library PositionHouseFunction {
     using Position for Position.LiquidatedData;
     using Quantity for int256;
     using Quantity for int128;
-    using Quantity for int72;
     using Int256Math for int256;
 
     function handleMarketPart(
@@ -29,9 +28,9 @@ library PositionHouseFunction {
     ) public view returns (Position.Data memory newData) {
         if (_newQuantity * _positionData.quantity >= 0) {
             newData = Position.Data(
-                _positionDataWithoutLimit.quantity.add256(_newQuantity),
+                _positionDataWithoutLimit.quantity + _newQuantity,
                 handleMarginInIncrease(
-                    uint112(_newNotional / _leverage),
+                    _newNotional / _leverage,
                     _positionData,
                     _positionDataWithoutLimit,
                     _latestCumulativePremiumFraction
@@ -43,8 +42,7 @@ library PositionHouseFunction {
                 ),
                 _latestCumulativePremiumFraction,
                 blockNumber(),
-                _leverage,
-                1
+                _leverage
             );
         } else {
             newData = Position.Data(
@@ -172,7 +170,7 @@ library PositionHouseFunction {
     //      5. Old position created by short limit and long market, increase position is long market => margin = oldMarketMargin + increaseMarginRequirement
     //      6. Old position created by no limit and long market, increase position is long market => margin = oldMarketMargin + increaseMarginRequirement
     function handleMarginInIncrease(
-        uint112 _increaseMarginRequirement,
+        uint256 _increaseMarginRequirement,
         Position.Data memory _positionData,
         Position.Data memory _positionDataWithoutLimit,
         int256  _latestCumulativePremiumFraction
@@ -740,7 +738,7 @@ library PositionHouseFunction {
             positionResp.position = Position.Data(
                 _newSize,
                 handleMarginInIncrease(
-                    uint112(increaseMarginRequirement),
+                    increaseMarginRequirement,
                     _positionData,
                     _positionDataWithoutLimit,
                     _latestCumulativePremiumFraction
