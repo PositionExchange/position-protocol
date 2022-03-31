@@ -569,7 +569,7 @@ contract PositionHouse is
         public
         view
         override(CumulativePremiumFractions, LimitOrderManager)
-        returns (int256[] memory)
+        returns (int128[] memory)
     {
         return
             CumulativePremiumFractions.getCumulativePremiumFractions(
@@ -581,7 +581,7 @@ contract PositionHouse is
         public
         view
         override(CumulativePremiumFractions, LimitOrderManager)
-        returns (int256)
+        returns (int128)
     {
         return
         CumulativePremiumFractions.getLatestCumulativePremiumFraction(
