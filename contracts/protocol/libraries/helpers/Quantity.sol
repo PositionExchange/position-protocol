@@ -29,6 +29,10 @@ library Quantity {
         return uint256(_quantity >= 0 ? _quantity : -_quantity);
     }
 
+    function abs72(int72 _quantity) internal pure returns (uint256) {
+        return uint256(int256(_quantity >= 0 ? _quantity : -_quantity));
+    }
+
     function abs128(int256 _quantity) internal pure returns (uint128) {
         return uint128(abs(_quantity));
     }
@@ -47,5 +51,9 @@ library Quantity {
         returns (int256)
     {
         return a >= 0 ? a - int256(b) : a + int256(b);
+    }
+
+    function add256(int72 _quantity, int256 _newNum) internal pure returns (int72){
+        return _quantity + int72(_newNum);
     }
 }
