@@ -7,8 +7,10 @@ import "./libraries/position/Position.sol";
 import "./libraries/types/PositionHouseStorage.sol";
 import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.sol";
 import "../interfaces/IPositionHouseConfigurationProxy.sol";
+import {Int256Math} from "./libraries/helpers/Int256Math.sol";
 
 contract PositionHouseViewer is Initializable, OwnableUpgradeable {
+    using Int256Math for int256;
     IPositionHouse public positionHouse;
     IPositionHouseConfigurationProxy public positionHouseConfigurationProxy;
     function initialize(IPositionHouse _positionHouse, IPositionHouseConfigurationProxy _positionHouseConfigurationProxy) public initializer {
@@ -58,6 +60,24 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         return _positionManager.getCurrentFundingRate();
     }
 
+    function getRemovableMargin(
+        IPositionManager _positionManager,
+        address _trader
+    ) public view returns (uint256) {
+        int256 _marginAdded = positionHouse._getManualMargin(address(_positionManager), _trader);
+        (
+        uint256 maintenanceMargin,
+        int256 marginBalance,
+
+        ) = getMaintenanceDetail(_positionManager, _trader, PositionHouseStorage.PnlCalcOption.ORACLE);
+        int256 _remainingMargin = marginBalance - int256(maintenanceMargin);
+        return
+        uint256(
+            _marginAdded <= _remainingMargin
+            ? _marginAdded
+            : _remainingMargin.kPositive()
+        );
+    }
 
     function getMaintenanceDetail(
         IPositionManager _positionManager,

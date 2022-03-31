@@ -493,7 +493,7 @@ contract PositionHouse is
         address _trader,
         PnlCalcOption _pnlCalcOption,
         Position.Data memory _oldPosition
-    ) public view returns (uint256 positionNotional, int256 unrealizedPnl) {
+    ) internal view returns (uint256 positionNotional, int256 unrealizedPnl) {
         (positionNotional, unrealizedPnl) = PositionHouseFunction
             .getPositionNotionalAndUnrealizedPnl(
                 address(_positionManager),
@@ -544,7 +544,7 @@ contract PositionHouse is
         address _trader,
         PnlCalcOption _calcOption
     )
-        public
+        internal
         view
         returns (
             uint256 maintenanceMargin,
