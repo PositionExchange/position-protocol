@@ -634,7 +634,8 @@ contract PositionHouse is
         if (oldPosition.quantity == 0 || oldPosition.side() == _side) {
             pResp = PositionHouseFunction.increasePosition(
                 _pmAddress,
-                pQuantity,
+                _side,
+                int256(_quantity),
                 _leverage,
                 _trader,
                 oldPosition,
@@ -702,6 +703,8 @@ contract PositionHouse is
             _pmAddress,
             openMarketQuantity,
             _oldPosition.quantity > 0
+                ? Position.Side.SHORT
+                : Position.Side.LONG
         );
 
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
@@ -774,6 +777,7 @@ contract PositionHouse is
             {
                 positionResp = PositionHouseFunction.openReversePosition(
                     _pmAddress,
+                    _side,
                     _quantity,
                     _leverage,
                     _trader,
@@ -788,6 +792,7 @@ contract PositionHouse is
         return
             closeAndOpenReversePosition(
                 _positionManager,
+                _side,
                 _quantity,
                 _leverage,
                 _oldPosition
@@ -796,6 +801,7 @@ contract PositionHouse is
 
     function closeAndOpenReversePosition(
         IPositionManager _positionManager,
+        Position.Side _side,
         int256 _quantity,
         uint16 _leverage,
         Position.Data memory _oldPosition
@@ -816,6 +822,7 @@ contract PositionHouse is
             PositionResp memory increasePositionResp = PositionHouseFunction
                 .increasePosition(
                     address(_positionManager),
+                    _side,
                     _quantity - closePositionResp.exchangedPositionSize,
                     _leverage,
                     _trader,
@@ -850,7 +857,9 @@ contract PositionHouse is
     ) internal returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
         (positionResp.exchangedPositionSize, ) = PositionHouseFunction
-            .openMarketOrder(_pmAddress, _quantity.abs(), _quantity > 0);
+            .openMarketOrder(_pmAddress, _quantity.abs(), _quantity > 0
+                        ? Position.Side.SHORT
+                        : Position.Side.LONG);
         positionResp.exchangedQuoteAssetAmount = _quantity
             .getExchangedQuoteAssetAmount(
                 _oldPosition.openNotional,

@@ -693,23 +693,24 @@ library PositionHouseFunction {
     function openMarketOrder(
         address _pmAddress,
         uint256 _quantity,
-        bool _isLong
+        Position.Side _side
     ) internal returns (int256 exchangedQuantity, uint256 openNotional) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
 
         uint256 exchangedSize;
         (exchangedSize, openNotional) = _positionManager.openMarketPosition(
             _quantity,
-                _isLong
+            _side == Position.Side.LONG
         );
         require(exchangedSize == _quantity, Errors.VL_NOT_ENOUGH_LIQUIDITY);
-        exchangedQuantity = _isLong
+        exchangedQuantity = _side == Position.Side.LONG
             ? int256(exchangedSize)
             : -int256(exchangedSize);
     }
 
     function increasePosition(
         address _pmAddress,
+        Position.Side _side,
         int256 _quantity,
         uint16 _leverage,
         address _trader,
@@ -720,7 +721,7 @@ library PositionHouseFunction {
         (
             positionResp.exchangedPositionSize,
             positionResp.exchangedQuoteAssetAmount
-        ) = openMarketOrder(_pmAddress, _quantity.abs(), _quantity > 0);
+        ) = openMarketOrder(_pmAddress, _quantity.abs(), _side);
         if (positionResp.exchangedPositionSize != 0) {
             int256 _newSize = _positionDataWithoutLimit.quantity +
                 positionResp.exchangedPositionSize;
@@ -762,6 +763,7 @@ library PositionHouseFunction {
 
     function openReversePosition(
         address _pmAddress,
+        Position.Side _side,
         int256 _quantity,
         uint16 _leverage,
         address _trader,
@@ -776,7 +778,7 @@ library PositionHouseFunction {
         (positionResp.exchangedPositionSize, ) = openMarketOrder(
             _pmAddress,
             _quantity.abs(),
-            _quantity > 0
+            _side
         );
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
             _pmAddress,
