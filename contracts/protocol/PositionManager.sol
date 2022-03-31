@@ -116,15 +116,15 @@ contract PositionManager is
     }
 
     function marketMakerSupply(MarketMaker.MMOrder[] memory _orders, uint256 leverage) external whenNotPaused onlyCounterParty {
-        SingleSlot memory _singleSlot = singleSlot;
+        SingleSlot memory _singleSlotMM = singleSlot;
         for(uint256 i = 0; i < _orders.length; i++){
             MarketMaker.MMOrder memory _order = _orders[i];
             // BUY, price should always less than market price
-            if(_order.quantity > 0 && _order.pip >= _singleSlot.pip){
+            if(_order.quantity > 0 && _order.pip >= _singleSlotMM.pip){
                 revert("!B");
             }
             // SELL, price should always greater than market price
-            if(_order.quantity < 0 && _order.pip <= _singleSlot.pip){
+            if(_order.quantity < 0 && _order.pip <= _singleSlotMM.pip){
                 revert("!S");
             }
             uint128 _quantity = uint128(Quantity.abs(_order.quantity));
@@ -235,9 +235,7 @@ contract PositionManager is
             _now() >= nextFundingTime,
             Errors.VL_SETTLE_FUNDING_TOO_EARLY
         );
-
         uint256 underlyingPrice;
-
         (premiumFraction, underlyingPrice) = getPremiumFraction();
 
         // update funding rate = premiumFraction / twapIndexPrice
