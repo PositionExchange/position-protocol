@@ -3,6 +3,7 @@ pragma solidity ^0.8.8;
 
 import "../position/PositionLimitOrder.sol";
 import "../../../interfaces/IInsuranceFund.sol";
+import "../../../interfaces/IPositionHouseConfigurationProxy.sol";
 
 abstract contract PositionHouseStorage {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
@@ -73,12 +74,6 @@ abstract contract PositionHouseStorage {
     mapping(address => mapping(address => int256)) internal manualMargin;
     //can update with index => no need delete array when close all
 
-
-    uint256 maintenanceMarginRatio;
-    uint256 partialLiquidationRatio;
-    uint256 liquidationFeeRatio;
-    uint256 liquidationPenaltyRatio;
-
     IInsuranceFund public insuranceFund;
 
 
@@ -88,5 +83,7 @@ abstract contract PositionHouseStorage {
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
     uint256[49] private __gap;
+
+    IPositionHouseConfigurationProxy public positionHouseConfigurationProxy;
 
 }

@@ -67,26 +67,18 @@ contract PositionHouse is
 
     event FullyLiquidated(address pmAddress, address trader);
     event PartiallyLiquidated(address pmAddress, address trader);
-//    event LiquidationPenaltyRatioUpdated(uint256 oldLiquidationPenaltyRatio, uint256 newLiquidationPenaltyRatio);
-//    event PartialLiquidationRatioUpdated(uint256 oldPartialLiquidationLiquid,uint256 newPartialLiquidationLiquid);
 //    event WhitelistManagerUpdated(address positionManager, bool isWhitelite);
 
     modifier whenNotPaused {_;}
 
     function initialize(
-        uint256 _maintenanceMarginRatio,
-        uint256 _partialLiquidationRatio,
-        uint256 _liquidationFeeRatio,
-        uint256 _liquidationPenaltyRatio,
-        address _insuranceFund
+        address _insuranceFund,
+        IPositionHouseConfigurationProxy _positionHouseConfigurationProxy
     ) public initializer {
         __ReentrancyGuard_init();
         __Ownable_init();
-        maintenanceMarginRatio = _maintenanceMarginRatio;
-        partialLiquidationRatio = _partialLiquidationRatio;
-        liquidationFeeRatio = _liquidationFeeRatio;
-        liquidationPenaltyRatio = _liquidationPenaltyRatio;
         insuranceFund = IInsuranceFund(_insuranceFund);
+        positionHouseConfigurationProxy = _positionHouseConfigurationProxy;
     }
 
     /**
@@ -271,9 +263,9 @@ contract PositionHouse is
             _trader,
             PnlCalcOption.ORACLE
         );
-
+        uint256 _partialLiquidationRatio = positionHouseConfigurationProxy.partialLiquidationRatio();
         require(
-            marginRatio >= partialLiquidationRatio,
+            marginRatio >= _partialLiquidationRatio,
             Errors.VL_NOT_ENOUGH_MARGIN_RATIO
         );
         address _pmAddress = address(_positionManager);
@@ -281,21 +273,20 @@ contract PositionHouse is
         uint256 liquidationPenalty;
         {
             uint256 feeToLiquidator;
-            uint256 feeToInsuranceFund;
             Position.Data memory positionData = getPosition(
                 _pmAddress,
                 _trader
             );
+            (uint256 _liquidationFeeRatio, uint256 _liquidationPenaltyRatio) = positionHouseConfigurationProxy.getLiquidationRatio();
             // partially liquidate position
-            if (marginRatio >= partialLiquidationRatio && marginRatio < 100) {
+            if (marginRatio >= _partialLiquidationRatio && marginRatio < 100) {
                 // calculate amount quantity of position to reduce
                 int256 partiallyLiquidateQuantity = positionData
                     .quantity
-                    .getPartiallyLiquidate(liquidationPenaltyRatio);
+                    .getPartiallyLiquidate(_liquidationPenaltyRatio);
                 // partially liquidate position by reduce position's quantity
                 positionResp = partialLiquidate(
                     _positionManager,
-
                     -partiallyLiquidateQuantity,
                     positionData,
                     _trader
@@ -304,7 +295,7 @@ contract PositionHouse is
                 // half of the liquidationFee goes to liquidator & another half goes to insurance fund
                 liquidationPenalty = uint256(positionResp.marginToVault);
                 feeToLiquidator = liquidationPenalty / 2;
-                feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
+                uint256 feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
                 emit PartiallyLiquidated(_pmAddress, _trader);
             } else {
                 // fully liquidate trader's position
@@ -313,7 +304,7 @@ contract PositionHouse is
                     uint256(manualMargin[_pmAddress][_trader]);
                 clearPosition(_pmAddress, _trader);
                 feeToLiquidator =
-                    (liquidationPenalty * liquidationFeeRatio) /
+                    (liquidationPenalty * _liquidationFeeRatio) /
                     2 /
                     100;
                 emit FullyLiquidated(_pmAddress, _trader);
@@ -369,21 +360,6 @@ contract PositionHouse is
     }
 
     // OWNER UPDATE VARIABLE STORAGE
-//    function updatePartialLiquidationRatio(uint256 _partialLiquidationRatio)
-//        external
-//        onlyOwner
-//    {
-////        emit PartialLiquidationRatioUpdated(partialLiquidationRatio, _partialLiquidationRatio);
-//        partialLiquidationRatio = _partialLiquidationRatio;
-//    }
-//
-//    function updateLiquidationPenaltyRatio(uint256 _liquidationPenaltyRatio)
-//        external
-//        onlyOwner
-//    {
-////        emit LiquidationPenaltyRatioUpdated(liquidationPenaltyRatio, _liquidationPenaltyRatio);
-//        liquidationPenaltyRatio = _liquidationPenaltyRatio;
-//    }
 
 //
 //    function setPauseStatus(bool _isPause) external onlyOwner {
@@ -573,7 +549,7 @@ contract PositionHouse is
         maintenanceMargin =
             ((remainMarginWithFundingPayment -
                 uint256(manualMargin[_pmAddress][_trader])) *
-                maintenanceMarginRatio) /
+                positionHouseConfigurationProxy.maintenanceMarginRatio()) /
             100;
         marginBalance = int256(remainMarginWithFundingPayment) + unrealizedPnl;
         marginRatio = marginBalance <= 0
@@ -868,7 +844,7 @@ contract PositionHouse is
         // TODO need to calculate remain margin with funding payment
         uint256 _newMargin = PositionHouseMath.calculatePartialLiquidateMargin(
             _oldPosition.margin,
-            liquidationFeeRatio
+            positionHouseConfigurationProxy.liquidationFeeRatio()
         );
         // unchecked
         positionResp.marginToVault = int256(_newMargin);
