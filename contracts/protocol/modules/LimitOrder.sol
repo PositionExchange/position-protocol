@@ -243,8 +243,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                     // case: open a limit order at the last price
                     // the order must be partially executed
                     // then update the current position
-                    Position.Data memory newData;
-                    newData = PositionHouseFunction.handleMarketPart(
+                    Position.Data memory newData = PositionHouseFunction.handleMarketPart(
                         oldPosition,
                         _getPositionMap(_pmAddress, _trader),
                         openNotional,
