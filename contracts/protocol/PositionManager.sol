@@ -79,6 +79,7 @@ contract PositionManager is
         maxFindingWordsIndex = _maxFindingWordsIndex;
         priceFeed = IChainLinkPriceFeed(_priceFeed);
         counterParty = _counterParty;
+        leverage = 125;
         emit ReserveSnapshotted(_initialPip, _now());
     }
 
