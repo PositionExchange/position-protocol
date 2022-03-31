@@ -17,8 +17,8 @@ library Position {
         uint256 margin;
         uint256 openNotional;
         int256 lastUpdatedCumulativePremiumFraction;
-        uint256 blockNumber;
-        uint256 leverage;
+        uint64 blockNumber;
+        uint16 leverage;
     }
 
     struct LiquidatedData {
@@ -81,7 +81,7 @@ library Position {
         _self.margin = 0;
         _self.openNotional = 0;
         _self.lastUpdatedCumulativePremiumFraction = 0;
-        _self.blockNumber = block.number;
+        _self.blockNumber = uint64(block.number);
         _self.leverage = 0;
     }
 

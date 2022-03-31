@@ -6,8 +6,6 @@ import "../protocol/libraries/types/PositionManagerStorage.sol";
 import "../protocol/libraries/types/MarketMaker.sol";
 
 interface IPositionManager {
-
-
     // EVENT
 
     // Events that supports building order book
@@ -49,9 +47,9 @@ interface IPositionManager {
 
     function updateMaxFindingWordsIndex(uint128 _newMaxFindingWordsIndex) external;
 
-    function updateBasisPoint(uint256 _newBasisPoint) external;
+    function updateBasisPoint(uint64 _newBasisPoint) external;
 
-    function updateBaseBasicPoint(uint256 _newBaseBasisPoint) external;
+    function updateBaseBasicPoint(uint64 _newBaseBasisPoint) external;
 
     function updateTollRatio(uint256 _newTollRatio) external;
 
@@ -122,7 +120,7 @@ interface IPositionManager {
     function getNotionalMarginAndFee(
         uint256 _pQuantity,
         uint128 _pip,
-        uint256 _leverage
+        uint16 _leverage
     )
         external
         view
