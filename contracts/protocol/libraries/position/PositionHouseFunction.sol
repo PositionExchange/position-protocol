@@ -117,7 +117,7 @@ library PositionHouseFunction {
             margin =
                 _positionDataWithoutLimit.margin +
                 _reduceMarginRequirement;
-        } else {
+        } else if (_positionDataWithoutLimit.quantity * _positionData.quantity > 0){
             if (_positionDataWithoutLimit.margin > _reduceMarginRequirement) {
                 margin =
                     _positionDataWithoutLimit.margin -
@@ -770,7 +770,7 @@ library PositionHouseFunction {
         Position.Data memory _positionData,
         Position.Data memory _positionDataWithoutLimit,
         int128 _latestCumulativePremiumFraction
-    ) public returns (PositionHouseStorage.PositionResp memory positionResp) {
+    ) internal returns (PositionHouseStorage.PositionResp memory positionResp, uint256 debtMargin) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         uint256 reduceMarginRequirement = (_positionData.margin *
             _quantity.abs()) / _positionData.quantity.abs();
@@ -799,6 +799,9 @@ library PositionHouseFunction {
         // NOTICE calc unrealizedPnl after open reverse
         positionResp.unrealizedPnl = unrealizedPnl - positionResp.realizedPnl;
         {
+            if (reduceMarginRequirement > _positionDataWithoutLimit.margin) {
+                debtMargin = reduceMarginRequirement - _positionDataWithoutLimit.margin;
+            }
             positionResp.position = Position.Data(
                 totalQuantity,
                 handleMarginInOpenReverse(
@@ -818,7 +821,7 @@ library PositionHouseFunction {
                 1
             );
         }
-        return positionResp;
+        return (positionResp, debtMargin);
     }
 
     function calcRemainMarginWithFundingPayment(

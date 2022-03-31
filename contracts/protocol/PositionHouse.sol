@@ -747,7 +747,8 @@ contract PositionHouse is
         address _pmAddress = address(_positionManager);
         if (_quantity.abs() < _oldPosition.quantity.abs()) {
             {
-                positionResp = PositionHouseFunction.openReversePosition(
+                uint256 debtMargin;
+                (positionResp, debtMargin) = PositionHouseFunction.openReversePosition(
                     _pmAddress,
                     _side,
                     _quantity,
@@ -756,6 +757,11 @@ contract PositionHouse is
                     _oldPosition,
                     positionMap[_pmAddress][_trader],
                     getLatestCumulativePremiumFraction(_pmAddress)
+                );
+                debtPosition[_pmAddress][_trader].updateDebt(
+                    0,
+                    debtMargin,
+                    0
                 );
                 return positionResp;
             }

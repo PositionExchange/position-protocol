@@ -23,7 +23,7 @@ import {
     ChangePriceParams,
     priceToPip, SIDE,
     toWeiBN,
-    toWeiWithString, ExpectTestCaseParams, ExpectMaintenanceDetail
+    toWeiWithString, ExpectTestCaseParams, ExpectMaintenanceDetail, toWei
 } from "../shared/utilities";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import {CHAINLINK_ABI_TESTNET} from "../../constants";
@@ -5468,5 +5468,95 @@ describe("PositionHouse_02", () => {
             await expect(trader1PendingOrderAfterClose[0].quantity.toString()).eq("2")
         })
 
+        it("should claim fund success after close by limit order", async () => {
+            await changePrice({
+                limitPrice: 3300,
+                toHigherPrice: false
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 3300,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 3400,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('15'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 3400,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader3
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 3450,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader2
+            })
+            const balanceBeforeCloseMarket = await bep20Mintable.balanceOf(trader1.address)
+            await positionHouse.connect(trader1).closePosition(positionManager.address, BigNumber.from("10"))
+            const balanceAfterCloseMarket = await bep20Mintable.balanceOf(trader1.address)
+            console.log((BigNumber.from(balanceAfterCloseMarket).sub(BigNumber.from(balanceBeforeCloseMarket))).toString())
+            console.log((await positionHouse.getPosition(positionManager.address, trader1.address)).margin.toString())
+            await openLimitPositionAndExpect({
+                limitPrice: 3300,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader4.address,
+                    instanceTrader: trader4,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 3300,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('5'),
+                _trader: trader4
+            })
+            console.log((await positionHouse.getPosition(positionManager.address, trader1.address)))
+            console.log((await positionHouse.getClaimAmount(positionManager.address, trader1.address)).toString())
+        })
     })
 })
