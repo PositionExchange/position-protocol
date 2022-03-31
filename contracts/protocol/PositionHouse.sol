@@ -33,7 +33,7 @@ contract PositionHouse is
     ClaimableAmountManager,
     PositionHouseStorage,
     LimitOrderManager,
-    PausableUpgradeable,
+//    PausableUpgradeable,
     MarketMakerLogic
 {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
@@ -69,6 +69,8 @@ contract PositionHouse is
 //    event LiquidationPenaltyRatioUpdated(uint256 oldLiquidationPenaltyRatio, uint256 newLiquidationPenaltyRatio);
 //    event PartialLiquidationRatioUpdated(uint256 oldPartialLiquidationLiquid,uint256 newPartialLiquidationLiquid);
 //    event WhitelistManagerUpdated(address positionManager, bool isWhitelite);
+
+    modifier whenNotPaused {_;}
 
     function initialize(
         uint256 _maintenanceMarginRatio,
@@ -372,30 +374,30 @@ contract PositionHouse is
     }
 
     // OWNER UPDATE VARIABLE STORAGE
-    function updatePartialLiquidationRatio(uint256 _partialLiquidationRatio)
-        external
-        onlyOwner
-    {
-//        emit PartialLiquidationRatioUpdated(partialLiquidationRatio, _partialLiquidationRatio);
-        partialLiquidationRatio = _partialLiquidationRatio;
-    }
+//    function updatePartialLiquidationRatio(uint256 _partialLiquidationRatio)
+//        external
+//        onlyOwner
+//    {
+////        emit PartialLiquidationRatioUpdated(partialLiquidationRatio, _partialLiquidationRatio);
+//        partialLiquidationRatio = _partialLiquidationRatio;
+//    }
+//
+//    function updateLiquidationPenaltyRatio(uint256 _liquidationPenaltyRatio)
+//        external
+//        onlyOwner
+//    {
+////        emit LiquidationPenaltyRatioUpdated(liquidationPenaltyRatio, _liquidationPenaltyRatio);
+//        liquidationPenaltyRatio = _liquidationPenaltyRatio;
+//    }
 
-    function updateLiquidationPenaltyRatio(uint256 _liquidationPenaltyRatio)
-        external
-        onlyOwner
-    {
-//        emit LiquidationPenaltyRatioUpdated(liquidationPenaltyRatio, _liquidationPenaltyRatio);
-        liquidationPenaltyRatio = _liquidationPenaltyRatio;
-    }
-
-
-    function setPauseStatus(bool _isPause) external onlyOwner {
-        if (_isPause) {
-            _pause();
-        } else {
-            _unpause();
-        }
-    }
+//
+//    function setPauseStatus(bool _isPause) external onlyOwner {
+//        if (_isPause) {
+//            _pause();
+//        } else {
+//            _unpause();
+//        }
+//    }
 
     // PUBLIC VIEW QUERY
 
