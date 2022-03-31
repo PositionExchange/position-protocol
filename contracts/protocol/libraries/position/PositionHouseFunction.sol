@@ -42,7 +42,8 @@ library PositionHouseFunction {
                 ),
                 _latestCumulativePremiumFraction,
                 blockNumber(),
-                _leverage
+                _leverage,
+                1
             );
         } else {
             newData = Position.Data(
@@ -61,7 +62,8 @@ library PositionHouseFunction {
                 ),
                 _latestCumulativePremiumFraction,
                 blockNumber(),
-                _leverage
+                _leverage,
+                1
             );
         }
     }
@@ -750,7 +752,8 @@ library PositionHouseFunction {
                 ),
                 _latestCumulativePremiumFraction,
                 blockNumber(),
-                _leverage
+                _leverage,
+                1
             );
         }
     }
@@ -808,7 +811,8 @@ library PositionHouseFunction {
                 ),
                 _latestCumulativePremiumFraction,
                 blockNumber(),
-                _leverage
+                _leverage,
+                1
             );
         }
         return positionResp;
