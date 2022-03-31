@@ -343,11 +343,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             return true;
         }
 
-        Position.Side _currentOrderSide = listOrdersPending[0].isBuy == true
-        ? Position.Side.LONG
-        : Position.Side.SHORT;
-
-        return _side == _currentOrderSide ? true : false;
+        return _side == (listOrdersPending[0].isBuy == true ? Position.Side.LONG : Position.Side.SHORT);
     }
 
     function _requireQuantityOrder(
