@@ -141,7 +141,7 @@ contract InsuranceFund is
 
     // approve token for router in order to swap tokens
     function approveTokenForRouter(address _token) public onlyOwner {
-        IERC20(_token).approve(
+        IERC20(_token).safeApprove(
             address(router),
             0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
         );
