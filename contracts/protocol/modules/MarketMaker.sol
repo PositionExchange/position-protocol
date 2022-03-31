@@ -43,11 +43,6 @@ abstract contract MarketMakerLogic is ReentrancyGuardUpgradeable, OwnableUpgrade
     }
 
 
-    function getListOrderPending(
-        IPositionManager _positionManager,
-        address _trader
-    ) public view virtual returns (PositionHouseStorage.LimitOrderPending[] memory);
-
     function min(uint256 a, uint256 b) private pure returns(uint256) {
         if(a == 0) return b;
         if(b == 0) return a;

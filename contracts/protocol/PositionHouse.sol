@@ -430,38 +430,38 @@ contract PositionHouse is
             );
     }
 
-    function getClaimAmount(address _pmAddress, address _trader)
-        public
-        view
-        returns (int256 totalClaimableAmount)
-    {
-        Position.Data memory positionData = getPosition(_pmAddress, _trader);
-        return
-            PositionHouseFunction.getClaimAmount(
-                _pmAddress,
-                _trader,
-                positionData,
-                _getPositionMap(_pmAddress, _trader),
-                _getLimitOrders(_pmAddress, _trader),
-                _getReduceLimitOrders(_pmAddress, _trader),
-                getClaimableAmount(_pmAddress, _trader),
-                _getManualMargin(_pmAddress, _trader)
-            );
-    }
+//    function getClaimAmount(address _pmAddress, address _trader)
+//        public
+//        view
+//        returns (int256 totalClaimableAmount)
+//    {
+//        Position.Data memory positionData = getPosition(_pmAddress, _trader);
+//        return
+//            PositionHouseFunction.getClaimAmount(
+//                _pmAddress,
+//                _trader,
+//                positionData,
+//                _getPositionMap(_pmAddress, _trader),
+//                _getLimitOrders(_pmAddress, _trader),
+//                _getReduceLimitOrders(_pmAddress, _trader),
+//                getClaimableAmount(_pmAddress, _trader),
+//                _getManualMargin(_pmAddress, _trader)
+//            );
+//    }
 
-    function getListOrderPending(
-        IPositionManager _positionManager,
-        address _trader
-    ) public view override returns (LimitOrderPending[] memory) {
-        address _pmAddress = address(_positionManager);
-        return
-            PositionHouseFunction.getListOrderPending(
-                _pmAddress,
-                _trader,
-                _getLimitOrders(_pmAddress, _trader),
-                _getReduceLimitOrders(_pmAddress, _trader)
-            );
-    }
+//    function getListOrderPending(
+//        IPositionManager _positionManager,
+//        address _trader
+//    ) public view override returns (LimitOrderPending[] memory) {
+//        address _pmAddress = address(_positionManager);
+//        return
+//            PositionHouseFunction.getListOrderPending(
+//                _pmAddress,
+//                _trader,
+//                _getLimitOrders(_pmAddress, _trader),
+//                _getReduceLimitOrders(_pmAddress, _trader)
+//            );
+//    }
 
     function getPosition(address _pmAddress, address _trader)
         public
