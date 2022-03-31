@@ -103,14 +103,16 @@ contract PositionHouse is
     ) external whenNotPaused nonReentrant {
         address _pmAddress = address (_positionManager);
         address _trader = _msgSender();
+        Position.Data memory _positionData = getPosition(address(_positionManager), _msgSender());
         if (_needToClaimFund(_pmAddress, _trader, getPosition(_pmAddress, _trader))) {
-            _internalClaimFund(_positionManager);
+            _internalClaimFund(_positionManager, _positionData);
         }
         _internalOpenMarketPosition(
             _positionManager,
             _side,
             _quantity,
-            _leverage
+            _leverage,
+            _positionData
         );
     }
 
@@ -123,16 +125,18 @@ contract PositionHouse is
     ) external whenNotPaused nonReentrant {
         address _pmAddress = address (_positionManager);
         address _trader = _msgSender();
+        Position.Data memory _positionData = getPosition(address(_positionManager), _msgSender());
         require(_requireSideOrder(_pmAddress, _trader, _side),Errors.VL_MUST_SAME_SIDE);
-        if (_needToClaimFund(_pmAddress, _trader, getPosition(_pmAddress, _trader))) {
-            _internalClaimFund(_positionManager);
+        if (_needToClaimFund(_pmAddress, _trader, _positionData)) {
+            _internalClaimFund(_positionManager, _positionData);
         }
         _internalOpenLimitOrder(
             _positionManager,
             _side,
             _uQuantity,
             _pip,
-            _leverage
+            _leverage,
+            _positionData
         );
     }
 
@@ -176,7 +180,8 @@ contract PositionHouse is
                 ? Position.Side.SHORT
                 : Position.Side.LONG,
             _quantity,
-            positionData.leverage
+            positionData.leverage,
+            positionData
         );
     }
 
@@ -207,7 +212,8 @@ contract PositionHouse is
                 : Position.Side.LONG,
             _quantity,
             _pip,
-            positionData.leverage
+            positionData.leverage,
+            positionData
         );
     }
 
@@ -216,17 +222,18 @@ contract PositionHouse is
         whenNotPaused
         nonReentrant
     {
-        _internalClaimFund(_positionManager);
+        Position.Data memory _positionData = getPosition(address(_positionManager), _msgSender());
+        require(
+            _positionData.quantity == 0,
+            Errors.VL_INVALID_CLAIM_FUND
+        );
+        _internalClaimFund(_positionManager, _positionData);
     }
 
-    function _internalClaimFund(IPositionManager _positionManager) internal {
+    function _internalClaimFund(IPositionManager _positionManager, Position.Data memory _positionData) internal {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
         int256 totalRealizedPnl = getClaimAmount(_pmAddress, _trader);
-        require(
-            getPosition(_pmAddress, _trader).quantity == 0,
-            Errors.VL_INVALID_CLAIM_FUND
-        );
         clearPosition(_pmAddress, _trader);
         if (totalRealizedPnl > 0) {
             withdraw(_positionManager, _trader, totalRealizedPnl.abs());
@@ -611,7 +618,8 @@ contract PositionHouse is
         IPositionManager _positionManager,
         Position.Side _side,
         uint256 _quantity,
-        uint16 _leverage
+        uint16 _leverage,
+        Position.Data memory oldPosition
     ) internal {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
@@ -619,7 +627,6 @@ contract PositionHouse is
         int256 pQuantity = _side == Position.Side.LONG
             ? int256(_quantity)
             : -int256(_quantity);
-        Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
         require(_requireQuantityOrder(pQuantity, oldPosition.quantity), Errors.VL_MUST_SMALLER_REVERSE_QUANTITY);
         if (oldPosition.quantity == 0) {
             oldPosition.leverage = 1;

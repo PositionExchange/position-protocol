@@ -92,7 +92,8 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         Position.Side _side,
         uint256 _uQuantity,
         uint128 _pip,
-        uint16 _leverage
+        uint16 _leverage,
+        Position.Data memory _oldPosition
     ) internal {
         address _trader = msg.sender;
         PositionHouseStorage.OpenLimitResp memory openLimitResp;
@@ -107,7 +108,8 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             _trader,
             _pip,
             _quantity,
-            _leverage
+            _leverage,
+            _oldPosition
         );
         if (openLimitResp.sizeOut < _uQuantity) {
             PositionLimitOrder.Data memory _newOrder = PositionLimitOrder.Data({
@@ -191,11 +193,11 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         address _trader,
         uint128 _pip,
         int256 _rawQuantity,
-        uint16 _leverage
+        uint16 _leverage,
+        Position.Data memory oldPosition
     ) private returns (uint64 orderId, uint256 sizeOut) {
         {
             address _pmAddress = address(_positionManager);
-            Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
             require(_requireQuantityOrder(_rawQuantity, oldPosition.quantity), Errors.VL_MUST_SMALLER_REVERSE_QUANTITY);
             require(
                 _leverage >= oldPosition.leverage &&

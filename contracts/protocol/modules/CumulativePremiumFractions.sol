@@ -15,7 +15,7 @@ abstract contract CumulativePremiumFractions {
     function payFunding(IPositionManager _positionManager) public {
         address _pmAddress = address(_positionManager);
         int256 premiumFraction = _positionManager.settleFunding();
-        int256 newestCumulativePremiumFraction = premiumFraction + getLatestCumulativePremiumFraction(
+        int128 newestCumulativePremiumFraction = int128(premiumFraction) + getLatestCumulativePremiumFraction(
             _pmAddress
         );
         cumulativePremiumFractions[_pmAddress].push(
