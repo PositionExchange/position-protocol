@@ -11,6 +11,8 @@ import "./libraries/position/TickPosition.sol";
 import "./libraries/position/LimitOrder.sol";
 import "./libraries/position/LiquidityBitmap.sol";
 import "./libraries/types/PositionManagerStorage.sol";
+import "./libraries/helpers/Quantity.sol";
+import "./libraries/types/MarketMaker.sol";
 import {IChainLinkPriceFeed} from "../interfaces/IChainLinkPriceFeed.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
@@ -91,19 +93,49 @@ contract PositionManager is
         onlyCounterParty
         returns (uint256 remainingSize, uint256 partialFilled)
     {
+        TickPosition.Data storage _tickPosition = tickPosition[_pip];
         require(
-            hasLiquidity(_pip) && _orderId >= tickPosition[_pip].filledIndex,
+            hasLiquidity(_pip) && _orderId >= _tickPosition.filledIndex,
             Errors.VL_ONLY_PENDING_ORDER
         );
-        bool isBuy;
-        (remainingSize, partialFilled, isBuy) = tickPosition[_pip].cancelLimitOrder(
-            _orderId
-        );
-        if (tickPosition[_pip].liquidity == 0) {
-            liquidityBitmap.toggleSingleBit(_pip, false);
-            singleSlot.isFullBuy = 0;
+        return _internalCancelLimitOrder(_tickPosition, _pip, _orderId);
+    }
+
+    function marketMakerRemove(MarketMaker.MMCancelOrder[] memory _orders) external whenNotPaused onlyCounterParty {
+        for (uint256 i = 0; i < _orders.length; i++){
+            MarketMaker.MMCancelOrder memory _order = _orders[i];
+            TickPosition.Data storage _tickPosition = tickPosition[_order.pip];
+            if(_order.orderId >= _tickPosition.filledIndex){
+                _internalCancelLimitOrder(_tickPosition, _order.pip, _order.orderId);
+            }
         }
-        emit LimitOrderCancelled(isBuy, _orderId, _pip, remainingSize);
+    }
+
+    function marketMakerSupply(MarketMaker.MMOrder[] memory _orders, uint256 leverage) external whenNotPaused onlyCounterParty {
+        SingleSlot memory _singleSlot = singleSlot;
+        for(uint256 i = 0; i < _orders.length; i++){
+            MarketMaker.MMOrder memory _order = _orders[i];
+            // BUY, price should always less than market price
+            if(_order.quantity > 0 && _order.pip >= _singleSlot.pip){
+                revert("!B");
+            }
+            // SELL, price should always greater than market price
+            if(_order.quantity < 0 && _order.pip <= _singleSlot.pip){
+                revert("!S");
+            }
+            uint128 _quantity = uint128(Quantity.abs(_order.quantity));
+            bool _hasLiquidity = liquidityBitmap.hasLiquidity(_order.pip);
+            uint64 _orderId = tickPosition[_order.pip].insertLimitOrder(
+                _quantity,
+                _hasLiquidity,
+                    _order.quantity > 0
+            );
+            if (!_hasLiquidity) {
+                // TODO using toggle in multiple pips
+                liquidityBitmap.toggleSingleBit(_order.pip, true);
+            }
+            emit LimitOrderCreated(_orderId, _order.pip, _quantity, _order.quantity > 0);
+        }
     }
 
     function openLimitPosition(
@@ -121,22 +153,22 @@ contract PositionManager is
             uint256 openNotional
         )
     {
-        if (_isBuy && singleSlot.pip != 0) {
+        SingleSlot memory _singleSlot = singleSlot;
+        if (_isBuy && _singleSlot.pip != 0) {
             require(
-                _pip <= singleSlot.pip &&
+                _pip <= _singleSlot.pip &&
                     int128(_pip) >=
-                    (int128(singleSlot.pip) -
+                    (int128(_singleSlot.pip) -
                         int128(maxFindingWordsIndex * 250)),
                 Errors.VL_LONG_PRICE_THAN_CURRENT_PRICE
             );
         } else {
             require(
-                _pip >= singleSlot.pip &&
-                    _pip <= (singleSlot.pip + maxFindingWordsIndex * 250),
+                _pip >= _singleSlot.pip &&
+                    _pip <= (_singleSlot.pip + maxFindingWordsIndex * 250),
                 Errors.VL_SHORT_PRICE_LESS_CURRENT_PRICE
             );
         }
-        SingleSlot memory _singleSlot = singleSlot;
         bool hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
         //save gas
         if (
@@ -229,6 +261,10 @@ contract PositionManager is
     //******************************************************************************************************************
     // VIEW FUNCTIONS
     //******************************************************************************************************************
+
+    function getLeverage() public view returns (uint128) {
+        return leverage;
+    }
 
     function getBaseBasisPoint() public view override returns (uint256) {
         return BASE_BASIC_POINT;
@@ -480,6 +516,13 @@ contract PositionManager is
     // ONLY OWNER FUNCTIONS
     //******************************************************************************************************************
 
+    function updateLeverage(uint128 _newLeverage) public onlyOwner {
+        require ( 0 < _newLeverage, Errors.VL_INVALID_LEVERAGE);
+
+        emit LeverageUpdated(leverage, _newLeverage);
+        leverage = _newLeverage;
+    }
+
     function pause() public override onlyOwner {
         _pause();
     }
@@ -540,6 +583,19 @@ contract PositionManager is
         returns (uint256 sizeOut, uint256 openNotional)
     {
         return _internalOpenMarketOrder(_size, _isBuy, _maxPip);
+    }
+
+
+    function _internalCancelLimitOrder(TickPosition.Data storage _tickPosition, uint128 _pip, uint64 _orderId) internal returns (uint256 remainingSize, uint256 partialFilled) {
+        bool isBuy;
+        (remainingSize, partialFilled, isBuy) = _tickPosition.cancelLimitOrder(
+            _orderId
+        );
+        if (_tickPosition.liquidity == 0) {
+            liquidityBitmap.toggleSingleBit(_pip, false);
+            singleSlot.isFullBuy = 0;
+        }
+        emit LimitOrderCancelled(isBuy, _orderId, _pip, remainingSize);
     }
 
     function _msgSender()

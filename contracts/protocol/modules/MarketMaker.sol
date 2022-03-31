@@ -7,15 +7,11 @@ import "../../interfaces/IPositionManager.sol";
 import "../libraries/helpers/Quantity.sol";
 import "./LimitOrder.sol";
 import "../libraries/types/PositionHouseStorage.sol";
+import "../libraries/types/MarketMaker.sol";
 
-abstract contract MarketMaker is ReentrancyGuardUpgradeable, OwnableUpgradeable, LimitOrderManager {
+abstract contract MarketMakerLogic is ReentrancyGuardUpgradeable, OwnableUpgradeable, LimitOrderManager {
     using Quantity for int256;
     mapping(address => bool) private _whitelist;
-
-    struct MMOrder {
-        uint128 pip;
-        int256 quantity;
-    }
 
     event MMWhitelistChanged(address addr, bool value);
 
@@ -29,18 +25,17 @@ abstract contract MarketMaker is ReentrancyGuardUpgradeable, OwnableUpgradeable,
         emit MMWhitelistChanged(addr, status);
     }
 
-    function remove(IPositionManager _positionManager, uint256 max) external onlyMMWhitelist nonReentrant {
-        PositionHouseStorage.LimitOrderPending[] memory _limitOrders = getListOrderPending(_positionManager, msg.sender);
-        for (uint256 i = 0; i < min(_limitOrders.length, max); i++){
-            _internalCancelLimitOrder(_positionManager, uint64(_limitOrders[i].orderIdx), _limitOrders[i].isReduce);
-        }
+    function supplyFresh(IPositionManager _positionManager, MarketMaker.MMCancelOrder[] memory _cOrders, MarketMaker.MMOrder[] memory _oOrders, uint256 _leverage) external onlyMMWhitelist nonReentrant {
+        _positionManager.marketMakerRemove(_cOrders);
+        _positionManager.marketMakerSupply(_oOrders, _leverage);
     }
 
-    function supply(IPositionManager _positionManager, MMOrder[] memory _orders, uint16 _leverage) external onlyMMWhitelist nonReentrant {
-        for(uint256 i =0;i<_orders.length;i++){
-            Position.Side _side = _orders[i].quantity > 0 ? Position.Side.LONG : Position.Side.SHORT;
-            _internalOpenLimitOrder(_positionManager, _side, _orders[i].quantity.abs(), _orders[i].pip, _leverage);
-        }
+    function remove(IPositionManager _positionManager, MarketMaker.MMCancelOrder[] memory _orders) external onlyMMWhitelist nonReentrant {
+        _positionManager.marketMakerRemove(_orders);
+    }
+
+    function supply(IPositionManager _positionManager, MarketMaker.MMOrder[] memory _orders, uint16 _leverage) external onlyMMWhitelist nonReentrant {
+        _positionManager.marketMakerSupply(_orders, _leverage);
     }
 
     function isMarketMaker(address addr) public view returns (bool) {
