@@ -45,6 +45,7 @@ contract PositionHouse is
 
     using Position for Position.Data;
     using Position for Position.LiquidatedData;
+    using PositionHouseFunction for PositionHouse;
 
     event OpenMarket(
         address trader,
@@ -570,19 +571,22 @@ contract PositionHouse is
             uint256 remainMarginWithFundingPayment,
             ,
             int256 fundingPayment
-        ) = PositionHouseFunction.calcRemainMarginWithFundingPayment(
-                getLatestCumulativePremiumFraction(_pmAddress),
-                positionData.quantity,
-                positionData.lastUpdatedCumulativePremiumFraction,
+            ,
+
+        ) = calcRemainMarginWithFundingPayment(
+                _pmAddress,
+                positionData,
                 positionData.margin
             );
+        maintenanceMargin =
+            ((remainMarginWithFundingPayment -
+                uint256(manualMargin[_pmAddress][_trader])) *
+                maintenanceMarginRatio) /
+            100;
         marginBalance = int256(remainMarginWithFundingPayment) + unrealizedPnl;
-        (maintenanceMargin, marginRatio) = PositionHouseFunction.calculateMaintenanceMarginDetail(
-            remainMarginWithFundingPayment,
-            uint256(manualMargin[_pmAddress][_trader]),
-            maintenanceMarginRatio,
-            marginBalance
-        );
+        marginRatio = marginBalance <= 0
+            ? 100
+            : (maintenanceMargin * 100) / uint256(marginBalance);
     }
 
 //    function getNextFundingTime(IPositionManager _positionManager) external view returns (uint256) {
@@ -730,11 +734,11 @@ contract PositionHouse is
         (
             uint256 remainMargin,
             uint256 badDebt,
-            int256 fundingPayment
-        ) = PositionHouseFunction.calcRemainMarginWithFundingPayment(
-                getLatestCumulativePremiumFraction(_pmAddress),
-                _oldPosition.quantity,
-                _oldPosition.lastUpdatedCumulativePremiumFraction,
+            int256 fundingPayment,
+
+        ) = calcRemainMarginWithFundingPayment(
+                _pmAddress,
+                _oldPosition,
                 _oldPosition.margin
             );
 
