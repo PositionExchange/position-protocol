@@ -111,10 +111,6 @@ contract InsuranceFund is
         emit Withdraw(_token, _trader, _amount);
     }
 
-    function updateTotalFee(uint256 _fee) public onlyCounterParty {
-        totalFee += _fee;
-    }
-
     //******************************************************************************************************************
     // ONLY OWNER FUNCTIONS
     //******************************************************************************************************************

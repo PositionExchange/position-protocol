@@ -23,5 +23,4 @@ interface IInsuranceFund {
         uint256 amountFee
     ) external;
 
-    function updateTotalFee(uint256 fee) external;
 }
