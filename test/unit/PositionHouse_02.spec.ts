@@ -7,7 +7,14 @@ import {loadFixture} from "ethereum-waffle";
 // import {expect} from "../../shared/expect";
 // import {TEST_POOL_START_TIME} from "../../shared/fixtures";
 import {expect} from 'chai'
-import {PositionManager, PositionHouse, InsuranceFund, BEP20Mintable, PositionHouseViewer} from "../../typeChain";
+import {
+    PositionManager,
+    PositionHouse,
+    InsuranceFund,
+    BEP20Mintable,
+    PositionHouseViewer,
+    PositionHouseConfigurationProxy
+} from "../../typeChain";
 import {
     ClaimFund,
     LimitOrderReturns,
@@ -42,6 +49,7 @@ describe("PositionHouse_02", () => {
     let bep20Mintable: BEP20Mintable
     let insuranceFund: InsuranceFund
     let positionHouseViewer: PositionHouseViewer;
+    let positionHouseConfigurationProxy: PositionHouseConfigurationProxy;
     let _;
     beforeEach(async () => {
         [trader0, trader1, trader2, trader3, trader4, trader5, tradercp, tradercp2] = await ethers.getSigners();
@@ -53,7 +61,8 @@ describe("PositionHouse_02", () => {
             _,
             bep20Mintable,
             insuranceFund,
-            positionHouseViewer
+            positionHouseViewer,
+            positionHouseConfigurationProxy
         ] = await deployPositionHouse() as any
 
     })
@@ -142,7 +151,7 @@ describe("PositionHouse_02", () => {
                                                      expectedMarginBalance
                                                  }: ExpectMaintenanceDetail) {
         const calcOptionSpot = 1;
-        const maintenanceData = await positionHouse.getMaintenanceDetail(positionManagerAddress, traderAddress, calcOptionSpot);
+        const maintenanceData = await positionHouseViewer.getMaintenanceDetail(positionManagerAddress, traderAddress, calcOptionSpot);
         expect(maintenanceData.marginRatio).eq(expectedMarginRatio);
         expect(maintenanceData.maintenanceMargin).eq(expectedMaintenanceMargin);
         expect(maintenanceData.marginBalance).eq(expectedMarginBalance);
@@ -203,7 +212,7 @@ describe("PositionHouse_02", () => {
                                             expectedQuantity = 0
                                         }: ExpectTestCaseParams) {
         const oldPosition = await positionHouse.getPosition(positionManagerAddress, traderAddress)
-        const positionNotionalAndPnLTrader = await positionHouse.getPositionNotionalAndUnrealizedPnl(
+        const positionNotionalAndPnLTrader = await positionHouseViewer.getPositionNotionalAndUnrealizedPnl(
             positionManagerAddress,
             traderAddress,
             1,
