@@ -43,7 +43,7 @@ describe("PositionHouse_02", () => {
     let insuranceFund: InsuranceFund
     let _;
     beforeEach(async () => {
-        [trader0, trader1, trader2, trader3, trader4, trader5, tradercp] = await ethers.getSigners();
+        [trader0, trader1, trader2, trader3, trader4, trader5, tradercp, tradercp2] = await ethers.getSigners();
         [
             positionHouse,
             positionManager,

@@ -47,7 +47,7 @@ describe("PositionHouse_01", () => {
     let insuranceFund: InsuranceFund
 
     beforeEach(async () => {
-        [trader, trader1, trader2, trader3, trader4, trader5] = await ethers.getSigners();
+        [trader, trader1, trader2, trader3, trader4, trader5, trader6] = await ethers.getSigners();
         [
             positionHouse,
             positionManager,
@@ -3101,8 +3101,8 @@ describe("PositionHouse_01", () => {
                     quantity: BigNumber.from('1'),
                     leverage: 10,
                     side: SIDE.SHORT,
-                    trader: trader4.address,
-                    instanceTrader: trader4,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
                     _positionManager: positionManager,
                     expectedSize: BigNumber.from(0),
                     price: 4900
@@ -3137,7 +3137,6 @@ describe("PositionHouse_01", () => {
                 quantity: -25
             })
 
-            console.log('abc1')
 
 
             // now price pump to 5015 and trader got liquidation
@@ -3146,7 +3145,6 @@ describe("PositionHouse_01", () => {
                 pumper: trader5,
                 pumper2 : trader6
             })
-            console.log('abc2')
 
             await positionHouseTestingTool.debugPosition(trader)
 
