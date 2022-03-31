@@ -171,7 +171,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             }
             // else new limit order is larger than old position then close old position and open new opposite position
             else {
-                _newOrder.reduceQuantity = oldPosition.quantity.abs() - _sizeOut;
+                _newOrder.reduceQuantity = oldPosition.quantity.abs();
                 _newOrder.reduceLimitOrderId =
                     _getReduceLimitOrders(_pmAddress, _trader).length +
                     1;

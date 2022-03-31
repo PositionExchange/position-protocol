@@ -5448,6 +5448,14 @@ describe("PositionHouse_02", () => {
             const trader1PendingOrder = await positionHouse.getListOrderPending(positionManager.address, trader1.address)
             await expect(trader1PendingOrder[0].partialFilled.toString()).eq("4")
             await expect(trader1PendingOrder[0].quantity.toString()).eq("5")
+
+            console.log("trader2 close full position by limit order")
+            await positionHouse.connect(trader2).closeLimitPosition(positionManager.address, 490000, BigNumber.from('5'))
+
+            await positionHouse.connect(trader1).closeLimitPosition(positionManager.address, 490000, BigNumber.from('6'))
+            const trader1PendingOrderAfterClose = await positionHouse.getListOrderPending(positionManager.address, trader1.address)
+            await expect(trader1PendingOrderAfterClose[0].quantity.toString()).eq("2")
         })
+
     })
 })
