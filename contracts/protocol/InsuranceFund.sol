@@ -77,7 +77,8 @@ contract InsuranceFund is
         uint256 _amount,
         uint256 _fee
     ) public onlyCounterParty onlyWhitelistManager(_positionManager) {
-        IERC20 _token = IPositionManager(_positionManager).getQuoteAsset();
+        address _tokenAddress = address(IPositionManager(_positionManager).getQuoteAsset());
+        IERC20Upgradeable _token = IERC20Upgradeable(_tokenAddress);
         totalFee += _fee;
         _token.safeTransferFrom(_trader, address(this), _amount + _fee);
         emit Deposit(address(_token), _trader, _amount + _fee);
