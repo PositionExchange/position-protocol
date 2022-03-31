@@ -538,6 +538,11 @@ contract PositionHouse is
         return _positionManager.getNextFundingTime();
     }
 
+    function getPremiumFraction(IPositionManager _positionManager) public view returns (int256) {
+        (int256 premiumFraction,) = _positionManager.getPremiumFraction();
+        return premiumFraction;
+    }
+
     function getCumulativePremiumFractions(address _pmAddress)
         public
         view
