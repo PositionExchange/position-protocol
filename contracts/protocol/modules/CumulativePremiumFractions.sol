@@ -7,6 +7,9 @@ abstract contract CumulativePremiumFractions {
     // Cumulative premium fraction
     mapping(address => int256[]) private cumulativePremiumFractions;
 
+    event FundingPaid(int256 premiumFraction, address positionManager, address caller ,uint256 blockTimestamp);
+
+
     function payFunding(IPositionManager _positionManager) public {
         address _pmAddress = address(_positionManager);
         int256 premiumFraction = _positionManager.settleFunding();
@@ -16,6 +19,8 @@ abstract contract CumulativePremiumFractions {
                 _pmAddress
             )
         );
+        emit FundingPaid(premiumFraction, address(_positionManager), msg.sender, block.timestamp);
+
     }
 
     function getLatestCumulativePremiumFraction(address _positionManager)

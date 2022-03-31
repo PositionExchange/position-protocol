@@ -71,7 +71,6 @@ contract PositionHouse is
     event LiquidationPenaltyRatioUpdated(uint256 oldLiquidationPenaltyRatio, uint256 newLiquidationPenaltyRatio);
     event PartialLiquidationRatioUpdated(uint256 oldPartialLiquidationLiquid,uint256 newPartialLiquidationLiquid);
     event WhitelistManagerUpdated(address positionManager, bool isWhitelite);
-    event FundingPaid(int256 premiumFraction, address positionManager, uint256 blockTimestamp);
 
     function initialize(
         uint256 _maintenanceMarginRatio,
