@@ -156,7 +156,7 @@ interface IPositionManager {
 
     function openMarketPosition(uint256 size, bool isBuy)
         external
-        returns (uint256 sizeOut, uint256 openNotional);
+        returns (uint256 sizeOut, uint256 openNotional, uint256 entryPrice, uint256 fee);
 
 
     function calcAdjustMargin(uint256 adjustMargin)

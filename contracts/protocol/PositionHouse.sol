@@ -9,7 +9,6 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "../interfaces/IPositionManager.sol";
 import "./libraries/position/Position.sol";
-import "./PositionManager.sol";
 import "./libraries/helpers/Quantity.sol";
 import "./libraries/position/PositionLimitOrder.sol";
 import "../interfaces/IInsuranceFund.sol";
@@ -24,7 +23,7 @@ import {ClaimableAmountManager} from "./modules/ClaimableAmountManager.sol";
 import {MarketMakerLogic} from "./modules/MarketMaker.sol";
 
 // TODO remove on production
-//import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 contract PositionHouse is
     ReentrancyGuardUpgradeable,
@@ -68,11 +67,6 @@ contract PositionHouse is
     event FullyLiquidated(address pmAddress, address trader);
     event PartiallyLiquidated(address pmAddress, address trader);
 //    event WhitelistManagerUpdated(address positionManager, bool isWhitelite);
-
-//    modifier whenNotPaused {
-//        require(!positionHouseConfigurationProxy.paused(), "P");
-//        _;
-//    }
 
     function initialize(
         address _insuranceFund,
@@ -624,6 +618,8 @@ contract PositionHouse is
                 oldPosition
             );
         }
+        console.log("pResp entryPrice", pResp.entryPrice);
+        console.log("pResp fee", pResp.fee);
         // update position state
         positionMap[_pmAddress][_trader].update(pResp.position);
 
@@ -670,7 +666,9 @@ contract PositionHouse is
 
         (
             positionResp.exchangedPositionSize,
-            positionResp.exchangedQuoteAssetAmount
+            positionResp.exchangedQuoteAssetAmount,
+            positionResp.entryPrice,
+            positionResp.fee
         ) = PositionHouseFunction.openMarketOrder(
             _pmAddress,
             openMarketQuantity,
@@ -828,7 +826,7 @@ contract PositionHouse is
         address _trader
     ) internal returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
-        (positionResp.exchangedPositionSize, ) = PositionHouseFunction
+        (positionResp.exchangedPositionSize, _, positionResp.entryPrice,positionResp.fee ) = PositionHouseFunction
             .openMarketOrder(_pmAddress, _quantity.abs(), _quantity > 0
                         ? Position.Side.SHORT
                         : Position.Side.LONG);

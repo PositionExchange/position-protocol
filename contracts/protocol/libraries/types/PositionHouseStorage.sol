@@ -27,6 +27,8 @@ abstract contract PositionHouseStorage {
         int256 exchangedPositionSize;
         uint256 exchangedQuoteAssetAmount;
         uint256 fundingPayment;
+        uint256 entryPrice;
+        uint256 fee;
     }
 
     struct LimitOrderPending {
