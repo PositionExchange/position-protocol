@@ -186,8 +186,8 @@ export default class PositionHouseTestingTool {
 
     async getMaintenanceDetail({trader}: BasicParam): Promise<MaintenanceDetail> {
 
-
-        return (await this.positionHouse.getMaintenanceDetail(this.positionManager.address, trader.address)) as unknown as MaintenanceDetail;
+        const calcOptionSpot = 1
+        return (await this.positionHouse.getMaintenanceDetail(this.positionManager.address, trader.address, calcOptionSpot)) as unknown as MaintenanceDetail;
 
     }
 
