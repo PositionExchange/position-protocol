@@ -492,6 +492,28 @@ contract PositionHouse is
     //        }
     //    }
 
+    function getFundingPaymentAmount(IPositionManager _positionManager, address _trader) external view returns (int256 fundingPayment) {
+        address _pmAddress = address(_positionManager);
+        Position.Data memory positionData = getPosition(_pmAddress, _trader);
+        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
+            _positionManager,
+            _trader,
+            PnlCalcOption.SPOT_PRICE,
+            positionData
+        );
+        (
+        ,
+        ,
+         fundingPayment
+        ,
+
+        ) = calcRemainMarginWithFundingPayment(
+            _pmAddress,
+            positionData,
+            positionData.margin
+        );
+    }
+
     function getMaintenanceDetail(
         IPositionManager _positionManager,
         address _trader
@@ -515,6 +537,7 @@ contract PositionHouse is
         (
             uint256 remainMarginWithFundingPayment,
             ,
+            int256 fundingPayment
             ,
 
         ) = calcRemainMarginWithFundingPayment(
