@@ -31,4 +31,9 @@ interface IPositionHouse {
     external
     view
     returns (uint256);
+
+    function getLatestCumulativePremiumFraction(address _pmAddress)
+    external
+    view
+    returns (int128);
 }
