@@ -50,7 +50,7 @@ contract PositionHouse is
     event OpenMarket(
         address trader,
         int256 quantity,
-        uint256 leverage,
+        uint16 leverage,
         uint256 entryPrice,
         IPositionManager positionManager
     );
@@ -96,7 +96,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         Position.Side _side,
         uint256 _quantity,
-        uint256 _leverage
+        uint16 _leverage
     ) external whenNotPaused nonReentrant {
         _internalOpenMarketPosition(
             _positionManager,
@@ -111,7 +111,7 @@ contract PositionHouse is
         Position.Side _side,
         uint256 _uQuantity,
         uint128 _pip,
-        uint256 _leverage
+        uint16 _leverage
     ) external whenNotPaused nonReentrant {
         _internalOpenLimitOrder(
             _positionManager,
@@ -563,7 +563,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         Position.Side _side,
         uint256 _quantity,
-        uint256 _leverage
+        uint16 _leverage
     ) internal {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
@@ -720,7 +720,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         Position.Side _side,
         int256 _quantity,
-        uint256 _leverage,
+        uint16 _leverage,
         address _trader,
         Position.Data memory _oldPosition
     ) internal returns (PositionResp memory positionResp) {
@@ -755,7 +755,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         Position.Side _side,
         int256 _quantity,
-        uint256 _leverage,
+        uint16 _leverage,
         Position.Data memory _oldPosition
     ) internal returns (PositionResp memory positionResp) {
         address _trader = _msgSender();
@@ -881,7 +881,7 @@ contract PositionHouse is
     }
 
     // NEW REQUIRE: restriction mode
-    // In restriction mode, no one can do multi open/close/liquidate position in the same block.
+    // In restriction mode, no one can do multi open/close/liquidate position in the same block
     // If any underwater position being closed (having a bad debt and make insuranceFund loss),
     // or any liquidation happened,
     // restriction mode is ON in that block and OFF(default) in the next block.

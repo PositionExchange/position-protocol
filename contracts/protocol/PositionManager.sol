@@ -40,8 +40,8 @@ contract PositionManager is
         uint128 _initialPip,
         address _quoteAsset,
         bytes32 _priceFeedKey,
-        uint256 _basisPoint,
-        uint256 _BASE_BASIC_POINT,
+        uint64 _basisPoint,
+        uint64 _BASE_BASIC_POINT,
         uint256 _tollRatio,
         uint128 _maxFindingWordsIndex,
         uint256 _fundingPeriod,
@@ -356,7 +356,7 @@ contract PositionManager is
     function getNotionalMarginAndFee(
         uint256 _pQuantity,
         uint128 _pip,
-        uint256 _leverage
+        uint16 _leverage
     )
         public
         override
@@ -549,12 +549,12 @@ contract PositionManager is
         emit UpdateMaxFindingWordsIndex(_newMaxFindingWordsIndex);
     }
 
-    function updateBasisPoint(uint256 _newBasisPoint) public override onlyOwner {
+    function updateBasisPoint(uint64 _newBasisPoint) public override onlyOwner {
         basisPoint = _newBasisPoint;
         emit UpdateBasisPoint(_newBasisPoint);
     }
 
-    function updateBaseBasicPoint(uint256 _newBaseBasisPoint) public override onlyOwner {
+    function updateBaseBasicPoint(uint64 _newBaseBasisPoint) public override onlyOwner {
         BASE_BASIC_POINT = _newBaseBasisPoint;
         emit UpdateBaseBasicPoint(_newBaseBasisPoint);
     }
@@ -770,12 +770,12 @@ contract PositionManager is
         return pipToPrice(reserveSnapshots[_params.snapshotIndex].pip);
     }
 
-    function _now() internal view virtual returns (uint256) {
-        return block.timestamp;
+    function _now() internal view virtual returns (uint64) {
+        return uint64(block.timestamp);
     }
 
-    function _blocknumber() internal view virtual returns (uint256) {
-        return block.number;
+    function _blocknumber() internal view virtual returns (uint64) {
+        return uint64(block.number);
     }
 
     // update funding rate = premiumFraction / twapIndexPrice
@@ -788,7 +788,7 @@ contract PositionManager is
     }
 
     function _addReserveSnapshot() internal {
-        uint256 currentBlock = _blocknumber();
+        uint64 currentBlock = _blocknumber();
         ReserveSnapshot memory latestSnapshot = reserveSnapshots[
             reserveSnapshots.length - 1
         ];

@@ -23,7 +23,7 @@ library PositionHouseFunction {
         Position.Data memory _positionDataWithoutLimit,
         uint256 _newNotional,
         int256 _newQuantity,
-        uint256 _leverage,
+        uint16 _leverage,
         int256 _latestCumulativePremiumFraction
     ) public view returns (Position.Data memory newData) {
         if (_newQuantity * _positionData.quantity >= 0) {
@@ -41,7 +41,7 @@ library PositionHouseFunction {
                     _positionDataWithoutLimit
                 ),
                 _latestCumulativePremiumFraction,
-                block.number,
+                blockNumber(),
                 _leverage
             );
         } else {
@@ -60,7 +60,7 @@ library PositionHouseFunction {
                     _positionDataWithoutLimit
                 ),
                 _latestCumulativePremiumFraction,
-                block.number,
+                blockNumber(),
                 _leverage
             );
         }
@@ -415,7 +415,7 @@ library PositionHouseFunction {
                             partialFilled: partialFilled,
                             pip: _limitOrders[i].pip,
                             leverage: _limitOrders[i].leverage,
-                            blockNumber: _limitOrders[i].blockNumber,
+                            blockNumber: uint64(_limitOrders[i].blockNumber),
                             isReduce: 0,
                             orderIdx: i,
                             orderId: _limitOrders[i].orderId
@@ -443,7 +443,7 @@ library PositionHouseFunction {
                             partialFilled: partialFilled,
                             pip: _reduceLimitOrders[i].pip,
                             leverage: _reduceLimitOrders[i].leverage,
-                            blockNumber: _reduceLimitOrders[i].blockNumber,
+                            blockNumber: uint64(_reduceLimitOrders[i].blockNumber),
                             isReduce: 1,
                             orderIdx: i,
                             orderId: _reduceLimitOrders[i].orderId
@@ -707,7 +707,7 @@ library PositionHouseFunction {
         address _pmAddress,
         Position.Side _side,
         int256 _quantity,
-        uint256 _leverage,
+        uint16 _leverage,
         address _trader,
         Position.Data memory _positionData,
         Position.Data memory _positionDataWithoutLimit,
@@ -749,7 +749,7 @@ library PositionHouseFunction {
                     _positionDataWithoutLimit
                 ),
                 _latestCumulativePremiumFraction,
-                block.number,
+                blockNumber(),
                 _leverage
             );
         }
@@ -759,7 +759,7 @@ library PositionHouseFunction {
         address _pmAddress,
         Position.Side _side,
         int256 _quantity,
-        uint256 _leverage,
+        uint16 _leverage,
         address _trader,
         Position.Data memory _positionData,
         Position.Data memory _positionDataWithoutLimit,
@@ -807,7 +807,7 @@ library PositionHouseFunction {
                     _positionDataWithoutLimit
                 ),
                 _latestCumulativePremiumFraction,
-                block.number,
+                blockNumber(),
                 _leverage
             );
         }
@@ -841,5 +841,9 @@ library PositionHouseFunction {
         } else {
             badDebt = uint256(-fundingPayment - int256(_pMargin));
         }
+    }
+
+    function blockNumber() internal view returns (uint64) {
+        return uint64(block.number);
     }
 }
