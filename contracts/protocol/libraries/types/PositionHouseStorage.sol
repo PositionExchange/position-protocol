@@ -11,7 +11,6 @@ contract PositionHouseStorage {
 
     using Position for Position.Data;
     using Position for Position.LiquidatedData;
-    type PositionManager is address;
 
     enum PnlCalcOption {
         TWAP,
