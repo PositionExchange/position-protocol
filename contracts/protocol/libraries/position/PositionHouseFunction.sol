@@ -11,6 +11,7 @@ import "../types/PositionHouseStorage.sol";
 import {Errors} from "../helpers/Errors.sol";
 
 library PositionHouseFunction {
+    int256 private constant PREMIUM_FRACTION_DENOMINATOR = 10 ** 10;
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
     using Position for Position.Data;
     using Position for Position.LiquidatedData;
@@ -839,7 +840,7 @@ library PositionHouseFunction {
             fundingPayment =
                 (_latestCumulativePremiumFraction -
                     _oldPosition.lastUpdatedCumulativePremiumFraction) *
-                _oldPosition.quantity / (10**18);
+                _oldPosition.quantity / (PREMIUM_FRACTION_DENOMINATOR);
         }
 
         // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt
