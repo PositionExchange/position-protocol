@@ -104,8 +104,9 @@ contract PositionHouse is
         address _pmAddress = address (_positionManager);
         address _trader = _msgSender();
         Position.Data memory _positionData = getPosition(address(_positionManager), _msgSender());
-        if (_needToClaimFund(_pmAddress, _trader, getPosition(_pmAddress, _trader))) {
-            _internalClaimFund(_positionManager, _positionData);
+        (bool _needClaim, int256 _claimAbleAmount) = _needToClaimFund(_pmAddress, _trader, getPosition(_pmAddress, _trader));
+        if (_needClaim) {
+            _internalClaimFund(_positionManager, _positionData, _claimAbleAmount);
         }
         _internalOpenMarketPosition(
             _positionManager,
@@ -127,8 +128,9 @@ contract PositionHouse is
         address _trader = _msgSender();
         Position.Data memory _positionData = getPosition(address(_positionManager), _msgSender());
         require(_requireSideOrder(_pmAddress, _trader, _side),Errors.VL_MUST_SAME_SIDE);
-        if (_needToClaimFund(_pmAddress, _trader, _positionData)) {
-            _internalClaimFund(_positionManager, _positionData);
+        (bool _needClaim, int256 _claimAbleAmount) = _needToClaimFund(_pmAddress, _trader, _positionData);
+        if (_needClaim) {
+            _internalClaimFund(_positionManager, _positionData, _claimAbleAmount);
         }
         _internalOpenLimitOrder(
             _positionManager,
@@ -227,13 +229,24 @@ contract PositionHouse is
             _positionData.quantity == 0,
             Errors.VL_INVALID_CLAIM_FUND
         );
-        _internalClaimFund(_positionManager, _positionData);
+        _internalClaimFund(_positionManager, _positionData, 0);
     }
 
-    function _internalClaimFund(IPositionManager _positionManager, Position.Data memory _positionData) internal {
+    function _internalClaimFund(IPositionManager _positionManager, Position.Data memory _positionData, int256 totalRealizedPnl) internal {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
-        int256 totalRealizedPnl = getClaimAmount(_pmAddress, _trader);
+        if(totalRealizedPnl == 0){
+            totalRealizedPnl = PositionHouseFunction.getClaimAmount(
+                _pmAddress,
+                _trader,
+                _positionData,
+                _getPositionMap(_pmAddress, _trader),
+                _getLimitOrders(_pmAddress, _trader),
+                _getReduceLimitOrders(_pmAddress, _trader),
+                getClaimableAmount(_pmAddress, _trader),
+                _getManualMargin(_pmAddress, _trader)
+            );
+        }
         clearPosition(_pmAddress, _trader);
         if (totalRealizedPnl > 0) {
             withdraw(_positionManager, _trader, totalRealizedPnl.abs());

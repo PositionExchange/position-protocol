@@ -363,8 +363,8 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         address _pmAddress,
         address _trader,
         Position.Data memory _positionData
-    ) internal view returns (bool) {
-        int256 claimableAmount = PositionHouseFunction.getClaimAmount(
+    ) internal view returns (bool needClaim, int256 claimableAmount) {
+        claimableAmount = PositionHouseFunction.getClaimAmount(
             _pmAddress,
             _trader,
             _positionData,
@@ -374,7 +374,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             getClaimableAmount(_pmAddress, _trader),
             _getManualMargin(_pmAddress, _trader)
         );
-        return claimableAmount != 0 && _positionData.quantity == 0;
+        needClaim = claimableAmount != 0 && _positionData.quantity == 0;
     }
 
     function getPosition(address _pmAddress, address _trader)
