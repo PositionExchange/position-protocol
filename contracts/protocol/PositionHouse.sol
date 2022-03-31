@@ -293,9 +293,7 @@ contract PositionHouse is
                 // partially liquidate position by reduce position's quantity
                 positionResp = partialLiquidate(
                     _positionManager,
-                    positionData.quantity > 0
-                        ? Position.Side.SHORT
-                        : Position.Side.LONG,
+
                     -partiallyLiquidateQuantity,
                     positionData,
                     _trader
@@ -527,27 +525,27 @@ contract PositionHouse is
     //        }
     //    }
 
-    function getFundingPaymentAmount(IPositionManager _positionManager, address _trader) external view returns (int256 fundingPayment) {
-        address _pmAddress = address(_positionManager);
-        Position.Data memory positionData = getPosition(_pmAddress, _trader);
-        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
-            _positionManager,
-            _trader,
-            PnlCalcOption.SPOT_PRICE,
-            positionData
-        );
-        (
-        ,
-        ,
-         fundingPayment
-        ,
-
-        ) = calcRemainMarginWithFundingPayment(
-            _pmAddress,
-            positionData,
-            positionData.margin
-        );
-    }
+//    function getFundingPaymentAmount(IPositionManager _positionManager, address _trader) external view returns (int256 fundingPayment) {
+//        address _pmAddress = address(_positionManager);
+//        Position.Data memory positionData = getPosition(_pmAddress, _trader);
+//        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
+//            _positionManager,
+//            _trader,
+//            PnlCalcOption.SPOT_PRICE,
+//            positionData
+//        );
+//        (
+//        ,
+//        ,
+//         fundingPayment
+//        ,
+//
+//        ) = calcRemainMarginWithFundingPayment(
+//            _pmAddress,
+//            positionData,
+//            positionData.margin
+//        );
+//    }
 
     function getMaintenanceDetail(
         IPositionManager _positionManager,
@@ -591,13 +589,13 @@ contract PositionHouse is
             : (maintenanceMargin * 100) / uint256(marginBalance);
     }
 
-    function getNextFundingTime(IPositionManager _positionManager) external view returns (uint256) {
-        return _positionManager.getNextFundingTime();
-    }
-
-    function getCurrentFundingRate(IPositionManager _positionManager) external view returns (int256) {
-        return _positionManager.getCurrentFundingRate();
-    }
+//    function getNextFundingTime(IPositionManager _positionManager) external view returns (uint256) {
+//        return _positionManager.getNextFundingTime();
+//    }
+//
+//    function getCurrentFundingRate(IPositionManager _positionManager) external view returns (int256) {
+//        return _positionManager.getCurrentFundingRate();
+//    }
 
     function getCumulativePremiumFractions(address _pmAddress)
         public
@@ -898,14 +896,15 @@ contract PositionHouse is
 
     function partialLiquidate(
         IPositionManager _positionManager,
-        Position.Side _side,
         int256 _quantity,
         Position.Data memory _oldPosition,
         address _trader
     ) internal returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
         (positionResp.exchangedPositionSize, ) = PositionHouseFunction
-            .openMarketOrder(_pmAddress, _quantity.abs(), _side);
+            .openMarketOrder(_pmAddress, _quantity.abs(), _quantity > 0
+                        ? Position.Side.SHORT
+                        : Position.Side.LONG);
         positionResp.exchangedQuoteAssetAmount = _quantity
             .getExchangedQuoteAssetAmount(
                 _oldPosition.openNotional,
