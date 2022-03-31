@@ -774,16 +774,16 @@ library PositionHouseFunction {
             _quantity.abs(),
             _side
         );
-
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
             _pmAddress,
             _trader,
             PositionHouseStorage.PnlCalcOption.SPOT_PRICE,
             _positionData
         );
+
         positionResp.realizedPnl =
             (unrealizedPnl * int256(positionResp.exchangedPositionSize)) /
-            _positionData.quantity;
+            _positionData.quantity.absInt();
         positionResp.exchangedQuoteAssetAmount =
             (_quantity.abs() * _positionData.getEntryPrice(_pmAddress)) /
             _positionManager.getBaseBasisPoint();
