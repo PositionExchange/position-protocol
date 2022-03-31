@@ -47,7 +47,7 @@ describe('Position Manager', async function () {
         const [caller] = await ethers.getSigners()
         const tx = await marketBuy(size, isBuy)
         const receipt = await ethers.provider.getTransactionReceipt(tx.hash)
-        const interfaceEvent = new ethers.utils.Interface(["event MarketFilled(bool isBuy, uint256 indexed amount, uint128 toPip, uint256 passedPipcount, uint128 partialFilledQuantity)"]);
+        const interfaceEvent = new ethers.utils.Interface(["event MarketFilled(bool isBuy, uint256 indexed amount, uint128 toPip, uint256 passedPipCount, uint128 remainingLiquidity)"]);
 
         const data = receipt.logs[1].data
         const topics = receipt.logs[1].topics

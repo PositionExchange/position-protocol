@@ -92,7 +92,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         Position.Side _side,
         uint256 _uQuantity,
         uint128 _pip,
-        uint256 _leverage
+        uint16 _leverage
     ) internal {
         address _trader = msg.sender;
         PositionHouseStorage.OpenLimitResp memory openLimitResp;
@@ -115,7 +115,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
                 entryPrice: 0,
                 reduceLimitOrderId: 0,
                 reduceQuantity: 0,
-                blockNumber: block.number
+                blockNumber: uint64(block.number)
             });
             _storeLimitOrder(
                 _newOrder,
@@ -188,7 +188,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         address _trader,
         uint128 _pip,
         int256 _rawQuantity,
-        uint256 _leverage
+        uint16 _leverage
     ) private returns (uint64 orderId, uint256 sizeOut) {
         {
             address _pmAddress = address(_positionManager);
@@ -244,7 +244,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
                         openNotional,
                         _rawQuantity > 0 ? int256(sizeOut) : -int256(sizeOut),
                         _leverage,
-                        getCumulativePremiumFractions(_pmAddress)
+                        getLatestCumulativePremiumFraction(_pmAddress)
                     );
                     _updatePositionMap(_pmAddress, _trader, newData);
                 }
@@ -349,6 +349,12 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         view
         virtual
         returns (int256[] memory);
+
+    function getLatestCumulativePremiumFraction(address _pmAddress)
+        public
+        view
+        virtual
+        returns (int256);
 
     function _getPositionMap(address _pmAddress, address _trader)
         internal

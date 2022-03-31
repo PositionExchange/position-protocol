@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IUniswapV2Pair.sol";
 import "../interfaces/IUniswapV2Factory.sol";
 import "../interfaces/IUniswapV2Router.sol";
@@ -16,6 +17,7 @@ contract InsuranceFund is
     ReentrancyGuardUpgradeable,
     OwnableUpgradeable
 {
+    using SafeERC20 for IERC20;
     address public constant BURN_ADDRESS =
         0x000000000000000000000000000000000000dEaD;
 
@@ -68,7 +70,7 @@ contract InsuranceFund is
         address _trader,
         uint256 _amount
     ) public onlyCounterParty {
-        IERC20(_token).transferFrom(_trader, address(this), _amount);
+        IERC20(_token).safeTransferFrom(_trader, address(this), _amount);
         emit Deposit(_token, _trader, _amount);
     }
 
@@ -102,7 +104,7 @@ contract InsuranceFund is
             );
             emit SoldPosiForFund(_amountIns[0], _gap);
         }
-        IERC20(_token).transfer(_trader, _amount);
+        IERC20(_token).safeTransfer(_trader, _amount);
         emit Withdraw(_token, _trader, _amount);
     }
 
@@ -125,7 +127,7 @@ contract InsuranceFund is
         uint256 _posiAmount = _posiBalanceAfter - _posiBalanceBefore;
 
         // burn
-        posi.transfer(BURN_ADDRESS, _posiAmount);
+        posi.safeTransfer(BURN_ADDRESS, _posiAmount);
 
         totalBurned += _posiAmount;
         emit BuyBackAndBurned(_token, _amount, _posiAmount);
