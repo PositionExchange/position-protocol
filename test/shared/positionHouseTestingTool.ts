@@ -1,4 +1,4 @@
-import {PositionHouse, PositionManager} from "../../typeChain";
+import {PositionHouse, PositionHouseViewer, PositionManager} from "../../typeChain";
 import {BigNumber} from "ethers";
 import {
     ClaimFund,
@@ -48,10 +48,12 @@ export interface PendingOrderParam {
 export default class PositionHouseTestingTool {
     private positionHouse: PositionHouse;
     private positionManager: PositionManager;
+    private positionHouseViewer: PositionHouseViewer;
 
-    constructor(positionHouse: PositionHouse, positionManager: PositionManager) {
+    constructor(positionHouse: PositionHouse, positionManager: PositionManager, positionHouseViewer: PositionHouseViewer) {
         this.positionHouse = positionHouse;
-        this.positionManager = positionManager
+        this.positionManager = positionManager;
+        this.positionHouseViewer = positionHouseViewer
     }
 
     async openMarketPosition({
@@ -171,7 +173,7 @@ export default class PositionHouseTestingTool {
         // expectedNotional = expectedNotional && expectedNotional.toString() || quantity.mul(price).toString()
         console.log(`debugPosition Position Info of ${trader.address}`)
         const oldPosition = await this.positionHouse.getPosition(this.positionManager.address, trader.address)
-        const pnl = await this.positionHouse.getPositionNotionalAndUnrealizedPnl(this.positionManager.address, trader.address,0, oldPosition)
+        const pnl = await this.positionHouseViewer.getPositionNotionalAndUnrealizedPnl(this.positionManager.address, trader.address,0, oldPosition)
         console.table([
             {
                 openNotional: openNotional,
@@ -187,7 +189,7 @@ export default class PositionHouseTestingTool {
     async getMaintenanceDetail({trader}: BasicParam): Promise<MaintenanceDetail> {
 
         const calcOptionSpot = 1
-        return (await this.positionHouse.getMaintenanceDetail(this.positionManager.address, trader.address, calcOptionSpot)) as unknown as MaintenanceDetail;
+        return (await this.positionHouseViewer.getMaintenanceDetail(this.positionManager.address, trader.address, calcOptionSpot)) as unknown as MaintenanceDetail;
 
     }
 

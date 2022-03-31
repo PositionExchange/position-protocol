@@ -482,8 +482,7 @@ library PositionHouseFunction {
             uint256 _intervalTime = 90;
             positionNotional = (positionManager.getTwapPrice(_intervalTime) * _position.quantity.abs()) / positionManager.getBaseBasisPoint();
         } else {
-            uint256 _intervalTime = 90;
-            positionNotional = (positionManager.getUnderlyingTwapPrice(_intervalTime) * _position.quantity.abs()) / positionManager.getBaseBasisPoint();
+            positionNotional = (positionManager.getUnderlyingPrice() * _position.quantity.abs()) / positionManager.getBaseBasisPoint();
         }
 
         if (_position.side() == Position.Side.LONG) {

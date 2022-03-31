@@ -12,7 +12,7 @@ import {
     ChainLinkPriceFeed,
     BEP20Mintable,
     InsuranceFund,
-    PositionHouseViewer
+    PositionHouseViewer, PositionHouseConfigurationProxy
 } from "../../typeChain";
 import {
     ClaimFund, LimitOrderReturns,
@@ -53,6 +53,7 @@ describe("PositionHouse_01", () => {
     let bep20Mintable: BEP20Mintable
     let insuranceFund: InsuranceFund
     let positionHouseViewer: PositionHouseViewer;
+    let positionHouseConfigurationProxy: PositionHouseConfigurationProxy;
 
     beforeEach(async () => {
         [trader, trader1, trader2, trader3, trader4, trader5, trader6] = await ethers.getSigners();
@@ -64,7 +65,8 @@ describe("PositionHouse_01", () => {
             positionHouseTestingTool,
             bep20Mintable,
             insuranceFund,
-            positionHouseViewer
+            positionHouseViewer,
+            positionHouseConfigurationProxy
         ] = await deployPositionHouse() as any
 
     })
@@ -184,7 +186,7 @@ describe("PositionHouse_01", () => {
 
     async function getPositionNotionalAndUnrealizedPnl(positionManagerAddress: string, traderAddress: string): Promise<NotionalAndUnrealizedPnlReturns> {
         const oldPosition = await positionHouse.getPosition(positionManagerAddress, traderAddress)
-        return positionHouse.getPositionNotionalAndUnrealizedPnl(positionManagerAddress, traderAddress, BigNumber.from(1), oldPosition)
+        return positionHouseViewer.getPositionNotionalAndUnrealizedPnl(positionManagerAddress, traderAddress, BigNumber.from(1), oldPosition)
 
     }
 
