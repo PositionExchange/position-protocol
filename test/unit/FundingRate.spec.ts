@@ -142,44 +142,6 @@ describe("FundingRate", () => {
         await fundingRateTest.setBlockNumber(blocknumber)
     }
 
-    describe("should open limit and market to change price", async () => {
-        it("should open limit and market success", async () => {
-            await setMockTimeAndBlockNumber(1647923687,1)
-
-            await openLimitOrder({
-                pip: BigNumber.from("490000"),
-                quantity: BigNumber.from(1),
-                leverage: 10,
-                side: 0,
-                instanceTrader: trader0
-            })
-
-            await openMarketPosition({
-                quantity: BigNumber.from(1),
-                leverage: 10,
-                side: 1,
-                instanceTrader: trader1
-            })
-
-            await changePrice({
-                limitPrice: 490000,
-                toHigherPrice: false
-            })
-
-            await setMockTimeAndBlockNumber(1647923690,2)
-            await changePrice({
-                limitPrice: 510000,
-                toHigherPrice: true
-            })
-
-            await setMockTimeAndBlockNumber(1647923692,2)
-            console.log((await fundingRateTest.getTwapPrice(3600)).toString())
-            expect((await fundingRateTest.getTwapPrice(3600)).toString()).eq("49999722")
-            await positionHouse.payFunding(fundingRateTest.address)
-            console.log((await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
-
-        })
-    })
 
     describe('should calculate premium fraction correctly', function () {
         async function getMaintenanceDetail(traderAddress) {
@@ -199,13 +161,13 @@ describe("FundingRate", () => {
             await fundingRateTest.setMockPrice(47239 * BASE_BASIC_POINT, BASE_BASIC_POINT*47247);
 
             const [premiuumFraction, fundingRate] = await fundingRateTest.getFundingRate()
-            expect(premiuumFraction.toString()).eq('800000000000000')
-            expect(fundingRate.toString()).eq('1693515')
+            expect(premiuumFraction.toString()).eq('80000000000')
+            expect(fundingRate.toString()).eq('169')
 
         });
         it('trader 1 long should pay funding fee to trader 0 after 1 day', async function () {
             await openLimitOrder({
-                pip: BigNumber.from(25.6*BASE_BASIC_POINT),
+                pip: BigNumber.from(24.6*BASE_BASIC_POINT),
                 quantity: BigNumber.from(37*10**6),
                 leverage: 10,
                 side: 0,
