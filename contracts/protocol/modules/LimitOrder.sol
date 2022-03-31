@@ -410,7 +410,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         returns (Position.Data memory);
 
     function _getManualMargin(address _pmAddress, address _trader)
-        public
+        internal
         view
         virtual
         returns (int256);

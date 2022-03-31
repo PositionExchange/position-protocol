@@ -34,7 +34,7 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
             positionHouse._getLimitOrders(_pmAddress, _trader),
             positionHouse._getReduceLimitOrders(_pmAddress, _trader),
             positionHouse.getClaimableAmount(_pmAddress, _trader),
-            positionHouse._getManualMargin(_pmAddress, _trader)
+            positionHouse.getAddedMargin(_pmAddress, _trader)
         );
     }
 
@@ -64,7 +64,7 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         IPositionManager _positionManager,
         address _trader
     ) public view returns (uint256) {
-        int256 _marginAdded = positionHouse._getManualMargin(address(_positionManager), _trader);
+        int256 _marginAdded = positionHouse.getAddedMargin(address(_positionManager), _trader);
         (
         uint256 maintenanceMargin,
         int256 marginBalance,
@@ -110,7 +110,7 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         );
         maintenanceMargin =
         ((remainMarginWithFundingPayment -
-        uint256(positionHouse._getManualMargin(_pmAddress, _trader)))
+        uint256(positionHouse.getAddedMargin(_pmAddress, _trader)))
         * positionHouseConfigurationProxy.maintenanceMarginRatio()) / 100;
         marginBalance = int256(remainMarginWithFundingPayment) + unrealizedPnl;
         marginRatio = marginBalance <= 0

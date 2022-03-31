@@ -36,4 +36,9 @@ interface IPositionHouse {
     external
     view
     returns (int128);
+
+    function getAddedMargin(address _positionManager, address _trader)
+    external
+    view
+    returns (int256);
 }
