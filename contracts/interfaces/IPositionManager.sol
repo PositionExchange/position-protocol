@@ -81,6 +81,8 @@ interface IPositionManager {
 
     function getNextFundingTime() external view returns (uint256);
 
+    function getPremiumFraction() external view returns (int256, uint256);
+
     function updatePartialFilledOrder(uint128 pip, uint64 orderId) external;
 
     function getUnderlyingTwapPrice(uint256 _intervalInSeconds)
