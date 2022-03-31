@@ -92,7 +92,8 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         Position.Side _side,
         uint256 _uQuantity,
         uint128 _pip,
-        uint16 _leverage
+        uint16 _leverage,
+        Position.Data memory _oldPosition
     ) internal {
         address _trader = msg.sender;
         PositionHouseStorage.OpenLimitResp memory openLimitResp;
@@ -107,7 +108,8 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             _trader,
             _pip,
             _quantity,
-            _leverage
+            _leverage,
+            _oldPosition
         );
         if (openLimitResp.sizeOut < _uQuantity) {
             PositionLimitOrder.Data memory _newOrder = PositionLimitOrder.Data({
@@ -186,19 +188,16 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         }
     }
 
-
-
-
     function _openLimitOrder(
         IPositionManager _positionManager,
         address _trader,
         uint128 _pip,
         int256 _rawQuantity,
-        uint16 _leverage
+        uint16 _leverage,
+        Position.Data memory oldPosition
     ) private returns (uint64 orderId, uint256 sizeOut) {
         {
             address _pmAddress = address(_positionManager);
-            Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
             require(_requireQuantityOrder(_rawQuantity, oldPosition.quantity), Errors.VL_MUST_SMALLER_REVERSE_QUANTITY);
             require(
                 _leverage >= oldPosition.leverage &&
@@ -360,6 +359,24 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         return noPosition || smallerReverseQuantity;
     }
 
+    function _needToClaimFund(
+        address _pmAddress,
+        address _trader,
+        Position.Data memory _positionData
+    ) internal view returns (bool needClaim, int256 claimableAmount) {
+        claimableAmount = PositionHouseFunction.getClaimAmount(
+            _pmAddress,
+            _trader,
+            _positionData,
+            _getPositionMap(_pmAddress, _trader),
+            _getLimitOrders(_pmAddress, _trader),
+            _getReduceLimitOrders(_pmAddress, _trader),
+            getClaimableAmount(_pmAddress, _trader),
+            _getManualMargin(_pmAddress, _trader)
+        );
+        needClaim = claimableAmount != 0 && _positionData.quantity == 0;
+    }
+
     function getPosition(address _pmAddress, address _trader)
         public
         view
@@ -400,6 +417,12 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         view
         virtual
         returns (Position.Data memory);
+
+    function _getManualMargin(address _pmAddress, address _trader)
+        internal
+        view
+        virtual
+        returns (int256);
 
     function deposit(
         IPositionManager _positionManager,
