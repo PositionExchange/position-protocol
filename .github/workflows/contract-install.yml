@@ -16,7 +16,7 @@ jobs:
         id: cache-node-modules
         with:
           path: node_modules
-          key: cache-node-modules-${{ hashFiles('package-lock.json') }}
+          key: cache-node-modules-${{ hashFiles('yarn.lock') }}
           restore-keys: |
             cache-node-modules-
       - run: yarn install

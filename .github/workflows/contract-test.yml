@@ -22,6 +22,6 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: node_modules
-          key: cache-node-modules-${{ hashFiles('package-lock.json') }}
+          key: cache-node-modules-${{ hashFiles('yarn.lock') }}
       - run: npx hardhat typechain
       - run: yarn test
