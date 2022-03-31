@@ -11,6 +11,8 @@ import "./libraries/position/TickPosition.sol";
 import "./libraries/position/LimitOrder.sol";
 import "./libraries/position/LiquidityBitmap.sol";
 import "./libraries/types/PositionManagerStorage.sol";
+import "./libraries/helpers/Quantity.sol";
+import "./libraries/types/MarketMaker.sol";
 import {IChainLinkPriceFeed} from "../interfaces/IChainLinkPriceFeed.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
@@ -38,8 +40,8 @@ contract PositionManager is
         uint128 _initialPip,
         address _quoteAsset,
         bytes32 _priceFeedKey,
-        uint256 _basisPoint,
-        uint256 _BASE_BASIC_POINT,
+        uint64 _basisPoint,
+        uint64 _BASE_BASIC_POINT,
         uint256 _tollRatio,
         uint128 _maxFindingWordsIndex,
         uint256 _fundingPeriod,
@@ -61,7 +63,7 @@ contract PositionManager is
         priceFeedKey = _priceFeedKey;
         singleSlot.pip = _initialPip;
         reserveSnapshots.push(
-            ReserveSnapshot(_initialPip, block.timestamp, block.number)
+            ReserveSnapshot(_initialPip, _now(), _blocknumber())
         );
         quoteAsset = IERC20(_quoteAsset);
         basisPoint = _basisPoint;
@@ -73,7 +75,7 @@ contract PositionManager is
         maxFindingWordsIndex = _maxFindingWordsIndex;
         priceFeed = IChainLinkPriceFeed(_priceFeed);
         counterParty = _counterParty;
-        emit ReserveSnapshotted(_initialPip, block.timestamp);
+        emit ReserveSnapshotted(_initialPip, _now());
     }
 
     function updatePartialFilledOrder(uint128 _pip, uint64 _orderId)
@@ -91,19 +93,49 @@ contract PositionManager is
         onlyCounterParty
         returns (uint256 remainingSize, uint256 partialFilled)
     {
+        TickPosition.Data storage _tickPosition = tickPosition[_pip];
         require(
-            hasLiquidity(_pip) && _orderId >= tickPosition[_pip].filledIndex,
+            hasLiquidity(_pip) && _orderId >= _tickPosition.filledIndex,
             Errors.VL_ONLY_PENDING_ORDER
         );
-        bool isBuy;
-        (remainingSize, partialFilled, isBuy) = tickPosition[_pip].cancelLimitOrder(
-            _orderId
-        );
-        if (tickPosition[_pip].liquidity == 0) {
-            liquidityBitmap.toggleSingleBit(_pip, false);
-            singleSlot.isFullBuy = 0;
+        return _internalCancelLimitOrder(_tickPosition, _pip, _orderId);
+    }
+
+    function marketMakerRemove(MarketMaker.MMCancelOrder[] memory _orders) external whenNotPaused onlyCounterParty {
+        for (uint256 i = 0; i < _orders.length; i++){
+            MarketMaker.MMCancelOrder memory _order = _orders[i];
+            TickPosition.Data storage _tickPosition = tickPosition[_order.pip];
+            if(_order.orderId >= _tickPosition.filledIndex){
+                _internalCancelLimitOrder(_tickPosition, _order.pip, _order.orderId);
+            }
         }
-        emit LimitOrderCancelled(isBuy, _orderId, _pip, remainingSize);
+    }
+
+    function marketMakerSupply(MarketMaker.MMOrder[] memory _orders, uint256 leverage) external whenNotPaused onlyCounterParty {
+        SingleSlot memory _singleSlot = singleSlot;
+        for(uint256 i = 0; i < _orders.length; i++){
+            MarketMaker.MMOrder memory _order = _orders[i];
+            // BUY, price should always less than market price
+            if(_order.quantity > 0 && _order.pip >= _singleSlot.pip){
+                revert("!B");
+            }
+            // SELL, price should always greater than market price
+            if(_order.quantity < 0 && _order.pip <= _singleSlot.pip){
+                revert("!S");
+            }
+            uint128 _quantity = uint128(Quantity.abs(_order.quantity));
+            bool _hasLiquidity = liquidityBitmap.hasLiquidity(_order.pip);
+            uint64 _orderId = tickPosition[_order.pip].insertLimitOrder(
+                _quantity,
+                _hasLiquidity,
+                    _order.quantity > 0
+            );
+            if (!_hasLiquidity) {
+                // TODO using toggle in multiple pips
+                liquidityBitmap.toggleSingleBit(_order.pip, true);
+            }
+            emit LimitOrderCreated(_orderId, _order.pip, _quantity, _order.quantity > 0);
+        }
     }
 
     function openLimitPosition(
@@ -121,22 +153,22 @@ contract PositionManager is
             uint256 openNotional
         )
     {
-        if (_isBuy && singleSlot.pip != 0) {
+        SingleSlot memory _singleSlot = singleSlot;
+        if (_isBuy && _singleSlot.pip != 0) {
             require(
-                _pip <= singleSlot.pip &&
+                _pip <= _singleSlot.pip &&
                     int128(_pip) >=
-                    (int128(singleSlot.pip) -
+                    (int128(_singleSlot.pip) -
                         int128(maxFindingWordsIndex * 250)),
                 Errors.VL_LONG_PRICE_THAN_CURRENT_PRICE
             );
         } else {
             require(
-                _pip >= singleSlot.pip &&
-                    _pip <= (singleSlot.pip + maxFindingWordsIndex * 250),
+                _pip >= _singleSlot.pip &&
+                    _pip <= (_singleSlot.pip + maxFindingWordsIndex * 250),
                 Errors.VL_SHORT_PRICE_LESS_CURRENT_PRICE
             );
         }
-        SingleSlot memory _singleSlot = singleSlot;
         bool hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
         //save gas
         if (
@@ -196,7 +228,7 @@ contract PositionManager is
         returns (int256 premiumFraction)
     {
         require(
-            block.timestamp >= nextFundingTime,
+            _now() >= nextFundingTime,
             Errors.VL_SETTLE_FUNDING_TOO_EARLY
         );
 
@@ -212,7 +244,7 @@ contract PositionManager is
         _updateFundingRate(premiumFraction, underlyingPrice);
 
         // in order to prevent multiple funding settlement during very short time after network congestion
-        uint256 minNextValidFundingTime = block.timestamp + fundingBufferPeriod;
+        uint256 minNextValidFundingTime = _now() + fundingBufferPeriod;
 
         // floor((nextFundingTime + fundingPeriod) / 3600) * 3600
         uint256 nextFundingTimeOnHourStart = ((nextFundingTime +
@@ -229,6 +261,10 @@ contract PositionManager is
     //******************************************************************************************************************
     // VIEW FUNCTIONS
     //******************************************************************************************************************
+
+    function getLeverage() public view returns (uint128) {
+        return leverage;
+    }
 
     function getBaseBasisPoint() public view override returns (uint256) {
         return BASE_BASIC_POINT;
@@ -250,8 +286,16 @@ contract PositionManager is
         return (uint256(singleSlot.pip) * BASE_BASIC_POINT) / basisPoint;
     }
 
+    function getNextFundingTime() public view override returns (uint256) {
+        return nextFundingTime;
+    }
+
     function pipToPrice(uint128 _pip) public view override returns (uint256) {
         return (uint256(_pip) * BASE_BASIC_POINT) / basisPoint;
+    }
+
+    function priceToWei(uint256 _price) public view returns (uint256) {
+        return (_price * 10**18) / BASE_BASIC_POINT;
     }
 
     function getLiquidityInCurrentPip() public view override returns (uint128) {
@@ -312,7 +356,7 @@ contract PositionManager is
     function getNotionalMarginAndFee(
         uint256 _pQuantity,
         uint128 _pip,
-        uint256 _leverage
+        uint16 _leverage
     )
         public
         override
@@ -387,6 +431,7 @@ contract PositionManager is
     function getUnderlyingTwapPrice(uint256 _intervalInSeconds)
         public
         view
+        virtual
         returns (uint256)
     {
         return
@@ -428,7 +473,7 @@ contract PositionManager is
             return currentPrice;
         }
 
-        uint256 baseTimestamp = block.timestamp - _intervalInSeconds;
+        uint256 baseTimestamp = _now() - _intervalInSeconds;
         ReserveSnapshot memory currentSnapshot = reserveSnapshots[
             _params.snapshotIndex
         ];
@@ -443,7 +488,7 @@ contract PositionManager is
 
         uint256 previousTimestamp = currentSnapshot.timestamp;
         // period same as cumulativeTime
-        uint256 period = block.timestamp - previousTimestamp;
+        uint256 period = _now() - previousTimestamp;
         uint256 weightedPrice = currentPrice * period;
         while (true) {
             // if snapshot history is too short
@@ -480,6 +525,13 @@ contract PositionManager is
     // ONLY OWNER FUNCTIONS
     //******************************************************************************************************************
 
+    function updateLeverage(uint128 _newLeverage) public onlyOwner {
+        require ( 0 < _newLeverage, Errors.VL_INVALID_LEVERAGE);
+
+        emit LeverageUpdated(leverage, _newLeverage);
+        leverage = _newLeverage;
+    }
+
     function pause() public override onlyOwner {
         _pause();
     }
@@ -497,12 +549,12 @@ contract PositionManager is
         emit UpdateMaxFindingWordsIndex(_newMaxFindingWordsIndex);
     }
 
-    function updateBasisPoint(uint256 _newBasisPoint) public override onlyOwner {
+    function updateBasisPoint(uint64 _newBasisPoint) public override onlyOwner {
         basisPoint = _newBasisPoint;
         emit UpdateBasisPoint(_newBasisPoint);
     }
 
-    function updateBaseBasicPoint(uint256 _newBaseBasisPoint) public override onlyOwner {
+    function updateBaseBasicPoint(uint64 _newBaseBasisPoint) public override onlyOwner {
         BASE_BASIC_POINT = _newBaseBasisPoint;
         emit UpdateBaseBasicPoint(_newBaseBasisPoint);
     }
@@ -540,6 +592,19 @@ contract PositionManager is
         returns (uint256 sizeOut, uint256 openNotional)
     {
         return _internalOpenMarketOrder(_size, _isBuy, _maxPip);
+    }
+
+
+    function _internalCancelLimitOrder(TickPosition.Data storage _tickPosition, uint128 _pip, uint64 _orderId) internal returns (uint256 remainingSize, uint256 partialFilled) {
+        bool isBuy;
+        (remainingSize, partialFilled, isBuy) = _tickPosition.cancelLimitOrder(
+            _orderId
+        );
+        if (_tickPosition.liquidity == 0) {
+            liquidityBitmap.toggleSingleBit(_pip, false);
+            singleSlot.isFullBuy = 0;
+        }
+        emit LimitOrderCancelled(isBuy, _orderId, _pip, remainingSize);
     }
 
     function _msgSender()
@@ -705,6 +770,14 @@ contract PositionManager is
         return pipToPrice(reserveSnapshots[_params.snapshotIndex].pip);
     }
 
+    function _now() internal view virtual returns (uint64) {
+        return uint64(block.timestamp);
+    }
+
+    function _blocknumber() internal view virtual returns (uint64) {
+        return uint64(block.number);
+    }
+
     // update funding rate = premiumFraction / twapIndexPrice
     function _updateFundingRate(
         int256 _premiumFraction,
@@ -715,7 +788,7 @@ contract PositionManager is
     }
 
     function _addReserveSnapshot() internal {
-        uint256 currentBlock = block.number;
+        uint64 currentBlock = _blocknumber();
         ReserveSnapshot memory latestSnapshot = reserveSnapshots[
             reserveSnapshots.length - 1
         ];
@@ -723,9 +796,9 @@ contract PositionManager is
             reserveSnapshots[reserveSnapshots.length - 1].pip = singleSlot.pip;
         } else {
             reserveSnapshots.push(
-                ReserveSnapshot(singleSlot.pip, block.timestamp, currentBlock)
+                ReserveSnapshot(singleSlot.pip, _now(), currentBlock)
             );
         }
-        emit ReserveSnapshotted(singleSlot.pip, block.timestamp);
+        emit ReserveSnapshotted(singleSlot.pip, _now());
     }
 }

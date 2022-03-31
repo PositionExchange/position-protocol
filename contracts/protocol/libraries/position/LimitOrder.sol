@@ -40,7 +40,7 @@ library LimitOrder {
         uint120 _remainSize
     ) internal {
         // remainingSize should be negative
-        _self.partialFilled += _self.size - _remainSize;
+        _self.partialFilled += (_self.size - _self.partialFilled - _remainSize);
     }
 
     function updateWhenClose(LimitOrder.Data storage _self)

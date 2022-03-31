@@ -22,7 +22,7 @@ import {WhitelistManager} from "./modules/WhitelistManager.sol";
 import {CumulativePremiumFractions} from "./modules/CumulativePremiumFractions.sol";
 import {LimitOrderManager} from "./modules/LimitOrder.sol";
 import {ClaimableAmountManager} from "./modules/ClaimableAmountManager.sol";
-import {MarketMaker} from "./modules/MarketMaker.sol";
+import {MarketMakerLogic} from "./modules/MarketMaker.sol";
 
 // TODO remove on production
 import "hardhat/console.sol";
@@ -36,7 +36,7 @@ contract PositionHouse is
     ClaimableAmountManager,
     LimitOrderManager,
     PausableUpgradeable,
-    MarketMaker
+    MarketMakerLogic
 {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
     using Quantity for int256;
@@ -50,7 +50,7 @@ contract PositionHouse is
     event OpenMarket(
         address trader,
         int256 quantity,
-        uint256 leverage,
+        uint16 leverage,
         uint256 entryPrice,
         IPositionManager positionManager
     );
@@ -68,6 +68,10 @@ contract PositionHouse is
     );
 
     event Liquidated(address pmAddress, address trader);
+    event LiquidationPenaltyRatioUpdated(uint256 oldLiquidationPenaltyRatio, uint256 newLiquidationPenaltyRatio);
+    event PartialLiquidationRatioUpdated(uint256 oldPartialLiquidationLiquid,uint256 newPartialLiquidationLiquid);
+    event WhitelistManagerUpdated(address positionManager, bool isWhitelite);
+    event FundingPaid(int256 premiumFraction, address positionManager, uint256 blockTimestamp);
 
     function initialize(
         uint256 _maintenanceMarginRatio,
@@ -96,7 +100,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         Position.Side _side,
         uint256 _quantity,
-        uint256 _leverage
+        uint16 _leverage
     ) external whenNotPaused nonReentrant {
         _internalOpenMarketPosition(
             _positionManager,
@@ -111,7 +115,7 @@ contract PositionHouse is
         Position.Side _side,
         uint256 _uQuantity,
         uint128 _pip,
-        uint256 _leverage
+        uint16 _leverage
     ) external whenNotPaused nonReentrant {
         _internalOpenLimitOrder(
             _positionManager,
@@ -338,18 +342,11 @@ contract PositionHouse is
     }
 
     // OWNER UPDATE VARIABLE STORAGE
-    function payFunding(IPositionManager _positionManager) external onlyOwner {
-        int256 premiumFraction = _positionManager.settleFunding();
-        CumulativePremiumFractions._add(
-            address(_positionManager),
-            premiumFraction
-        );
-    }
-
     function updatePartialLiquidationRatio(uint256 _partialLiquidationRatio)
         external
         onlyOwner
     {
+        emit PartialLiquidationRatioUpdated(partialLiquidationRatio, _partialLiquidationRatio);
         partialLiquidationRatio = _partialLiquidationRatio;
     }
 
@@ -357,6 +354,7 @@ contract PositionHouse is
         external
         onlyOwner
     {
+        emit LiquidationPenaltyRatioUpdated(liquidationPenaltyRatio, _liquidationPenaltyRatio);
         liquidationPenaltyRatio = _liquidationPenaltyRatio;
     }
 
@@ -369,6 +367,7 @@ contract PositionHouse is
         } else {
             _removeWhitelistManager(_positionManager);
         }
+        emit WhitelistManagerUpdated(_positionManager, _isWhitelist);
     }
 
     function setPauseStatus(bool _isPause) external onlyOwner {
@@ -535,6 +534,10 @@ contract PositionHouse is
             : (maintenanceMargin * 100) / uint256(marginBalance);
     }
 
+    function getNextFundingTime(IPositionManager _positionManager) public view returns (uint256) {
+        return _positionManager.getNextFundingTime();
+    }
+
     function getCumulativePremiumFractions(address _pmAddress)
         public
         view
@@ -547,6 +550,18 @@ contract PositionHouse is
             );
     }
 
+    function getLatestCumulativePremiumFraction(address _pmAddress)
+        public
+        view
+        override(CumulativePremiumFractions, LimitOrderManager)
+        returns (int256)
+    {
+        return
+        CumulativePremiumFractions.getLatestCumulativePremiumFraction(
+            _pmAddress
+        );
+    }
+
     //
     // INTERNAL FUNCTIONS
     //
@@ -555,7 +570,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         Position.Side _side,
         uint256 _quantity,
-        uint256 _leverage
+        uint16 _leverage
     ) internal {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
@@ -569,7 +584,7 @@ contract PositionHouse is
         //leverage must be greater than old position and in range of allowed leverage
         require(
             _leverage >= oldPosition.leverage &&
-                _leverage <= 125 &&
+                _leverage <= _positionManager.getLeverage() &&
                 _leverage > 0,
             Errors.VL_INVALID_LEVERAGE
         );
@@ -584,7 +599,7 @@ contract PositionHouse is
                 _trader,
                 oldPosition,
                 positionMap[_pmAddress][_trader],
-                getCumulativePremiumFractions(_pmAddress)
+                getLatestCumulativePremiumFraction(_pmAddress)
             );
         } else {
             pResp = openReversePosition(
@@ -712,7 +727,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         Position.Side _side,
         int256 _quantity,
-        uint256 _leverage,
+        uint16 _leverage,
         address _trader,
         Position.Data memory _oldPosition
     ) internal returns (PositionResp memory positionResp) {
@@ -727,7 +742,7 @@ contract PositionHouse is
                     _trader,
                     _oldPosition,
                     positionMap[_pmAddress][_trader],
-                    getCumulativePremiumFractions(_pmAddress)
+                    getLatestCumulativePremiumFraction(_pmAddress)
                 );
                 return positionResp;
             }
@@ -747,7 +762,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         Position.Side _side,
         int256 _quantity,
-        uint256 _leverage,
+        uint16 _leverage,
         Position.Data memory _oldPosition
     ) internal returns (PositionResp memory positionResp) {
         address _trader = _msgSender();
@@ -772,14 +787,14 @@ contract PositionHouse is
                     _trader,
                     _oldPosition,
                     positionMap[_pmAddress][_trader],
-                    getCumulativePremiumFractions(_pmAddress)
+                    getLatestCumulativePremiumFraction(_pmAddress)
                 );
             positionResp = PositionResp({
                 position: increasePositionResp.position,
                 exchangedQuoteAssetAmount: closePositionResp
                     .exchangedQuoteAssetAmount +
                     increasePositionResp.exchangedQuoteAssetAmount,
-                fundingPayment: 0,
+                fundingPayment: increasePositionResp.fundingPayment,
                 exchangedPositionSize: closePositionResp.exchangedPositionSize +
                     increasePositionResp.exchangedPositionSize,
                 realizedPnl: closePositionResp.realizedPnl +
@@ -873,7 +888,7 @@ contract PositionHouse is
     }
 
     // NEW REQUIRE: restriction mode
-    // In restriction mode, no one can do multi open/close/liquidate position in the same block.
+    // In restriction mode, no one can do multi open/close/liquidate position in the same block
     // If any underwater position being closed (having a bad debt and make insuranceFund loss),
     // or any liquidation happened,
     // restriction mode is ON in that block and OFF(default) in the next block.

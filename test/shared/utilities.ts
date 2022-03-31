@@ -236,5 +236,23 @@ export enum OrderSide {
     Close = 'close'
 }
 
+export enum POSITION_SIDE {
+    LONG,
+    SHORT
+}
 
+export interface OpenLimitInHouseParams {
+    pip: BigNumber,
+    quantity: BigNumber,
+    leverage: number,
+    side: number,
+    instanceTrader: any
+}
+
+export interface OpenMarketInHouseParams {
+    quantity: BigNumber,
+    leverage: number,
+    side: number,
+    instanceTrader: any
+}
 

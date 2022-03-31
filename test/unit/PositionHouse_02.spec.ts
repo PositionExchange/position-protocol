@@ -23,6 +23,7 @@ import {CHAINLINK_ABI_TESTNET} from "../../constants";
 import PositionManagerTestingTool from "../shared/positionManagerTestingTool";
 
 import PositionHouseTestingTool from "../shared/positionHouseTestingTool";
+import {deployPositionHouse} from "../shared/deploy";
 
 
 describe("PositionHouse_02", () => {
@@ -38,49 +39,19 @@ describe("PositionHouse_02", () => {
     let positionManagerFactory: ContractFactory;
     let bep20Mintable: BEP20Mintable
     let insuranceFund: InsuranceFund
-
+    let _;
     beforeEach(async () => {
-        [trader0, trader1, trader2, trader3, trader4, trader5, tradercp] = await ethers.getSigners()
-        const positionHouseFunction = await ethers.getContractFactory('PositionHouseFunction')
-        const libraryIns = (await positionHouseFunction.deploy())
-        const PositionHouseMath = await ethers.getContractFactory('PositionHouseMath')
-        const positionHouseMath = await PositionHouseMath.deploy()
+        [trader0, trader1, trader2, trader3, trader4, trader5, tradercp] = await ethers.getSigners();
+        [
+            positionHouse,
+            positionManager,
+            positionManagerFactory,
+            _,
+            _,
+            bep20Mintable,
+            insuranceFund
+        ] = await deployPositionHouse() as any
 
-        // Deploy mock busd contract
-        const bep20MintableFactory = await ethers.getContractFactory('BEP20Mintable')
-        bep20Mintable = (await bep20MintableFactory.deploy('BUSD Mock', 'BUSD')) as unknown as BEP20Mintable
-
-        // Deploy insurance fund contract
-        const insuranceFundFactory = await ethers.getContractFactory('InsuranceFund')
-        insuranceFund = (await insuranceFundFactory.deploy()) as unknown as InsuranceFund
-
-        // Deploy position manager contract
-        positionManagerFactory = await ethers.getContractFactory("PositionManager")
-        positionManager = (await positionManagerFactory.deploy()) as unknown as PositionManager;
-
-        // Deploy position house contract
-        const factory = await ethers.getContractFactory("PositionHouse", {
-            libraries: {
-                PositionHouseFunction: libraryIns.address,
-                PositionHouseMath: positionHouseMath.address
-                // unsafeAllowLinkedLibraries : true
-            }
-        })
-        positionHouse = (await factory.deploy()) as unknown as PositionHouse;
-
-        await insuranceFund.connect(trader0).initialize()
-        await insuranceFund.connect(trader0).setCounterParty(positionHouse.address);
-        await bep20Mintable.mint(insuranceFund.address, BigNumber.from('10000000000000000000000000000000'));
-
-        [trader0, trader1, trader2, trader3, trader4, trader5, tradercp].forEach(element => {
-            bep20Mintable.mint(element.address, BigNumber.from('10000000000000000000000000000000'))
-            bep20Mintable.connect(element).approve(insuranceFund.address, BigNumber.from('1000000000000000000000000000000000000'))
-        })
-
-        await positionManager.initialize(BigNumber.from(500000), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
-        await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), insuranceFund.address)
-
-        await positionHouse.updateWhitelistManager(positionManager.address, true);
     })
 
     const openMarketPosition = async ({
@@ -5374,6 +5345,104 @@ describe("PositionHouse_02", () => {
             console.log((BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel))).toString())
             await expect(BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel))).eq(3150)
 
+        })
+
+        it("should partially fill limit order correctly", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4800,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await positionHouse.connect(trader1).cancelLimitOrder(positionManager.address, 0, 0)
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('1'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: tradercp.address,
+                    instanceTrader: tradercp,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4800,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('5'),
+                _trader: trader3
+            })
+
+            await positionHouse.connect(trader1).cancelLimitOrder(positionManager.address, 1, 0)
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader4
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader3.address,
+                    instanceTrader: trader3,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('5'),
+                _trader: trader1
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('1'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader5.address,
+                    instanceTrader: trader5,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('8'),
+                _trader: trader3
+            })
+
+            const trader1PendingOrder = await positionHouse.getListOrderPending(positionManager.address, trader1.address)
+            await expect(trader1PendingOrder[0].partialFilled.toString()).eq("4")
+            await expect(trader1PendingOrder[0].quantity.toString()).eq("5")
         })
     })
 })

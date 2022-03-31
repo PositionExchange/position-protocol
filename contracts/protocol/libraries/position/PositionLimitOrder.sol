@@ -19,7 +19,7 @@ library PositionLimitOrder {
         uint256 entryPrice;
         uint256 reduceLimitOrderId;
         uint256 reduceQuantity;
-        uint256 blockNumber;
+        uint64 blockNumber;
     }
 
     //    struct ReduceData {

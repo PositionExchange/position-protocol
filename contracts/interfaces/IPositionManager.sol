@@ -3,10 +3,9 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../protocol/libraries/types/PositionManagerStorage.sol";
+import "../protocol/libraries/types/MarketMaker.sol";
 
 interface IPositionManager {
-
-
     // EVENT
 
     // Events that supports building order book
@@ -38,6 +37,7 @@ interface IPositionManager {
     event ReserveSnapshotted(uint128 pip, uint256 timestamp);
     event FundingRateUpdated(int256 fundingRate, uint256 underlyingPrice);
     event LimitOrderUpdated(uint64 orderId, uint128 pip, uint256 size);
+    event LeverageUpdated(uint128 oldLeverage, uint128 newLeverage);
 
 
     // FUNCTIONS
@@ -47,9 +47,9 @@ interface IPositionManager {
 
     function updateMaxFindingWordsIndex(uint128 _newMaxFindingWordsIndex) external;
 
-    function updateBasisPoint(uint256 _newBasisPoint) external;
+    function updateBasisPoint(uint64 _newBasisPoint) external;
 
-    function updateBaseBasicPoint(uint256 _newBaseBasisPoint) external;
+    function updateBaseBasicPoint(uint64 _newBaseBasisPoint) external;
 
     function updateTollRatio(uint256 _newTollRatio) external;
 
@@ -57,8 +57,9 @@ interface IPositionManager {
 
     function updateSpotPriceTwapInterval(uint256 _spotPriceTwapInterval) external;
 
-
     function hasLiquidity(uint128 _pip) external returns (bool);
+
+    function getLeverage() external view returns (uint128);
 
     function getCurrentPip() external view returns (uint128);
 
@@ -77,6 +78,8 @@ interface IPositionManager {
     function getQuoteAsset() external view returns (IERC20);
 
     function getUnderlyingPrice() external view returns (uint256);
+
+    function getNextFundingTime() external view returns (uint256);
 
     function updatePartialFilledOrder(uint128 pip, uint64 orderId) external;
 
@@ -119,7 +122,7 @@ interface IPositionManager {
     function getNotionalMarginAndFee(
         uint256 _pQuantity,
         uint128 _pip,
-        uint256 _leverage
+        uint16 _leverage
     )
         external
         view
@@ -128,6 +131,8 @@ interface IPositionManager {
             uint256 margin,
             uint256 fee
         );
+    function marketMakerRemove(MarketMaker.MMCancelOrder[] memory _orders) external;
+    function marketMakerSupply(MarketMaker.MMOrder[] memory _orders, uint256 leverage) external;
 
     function openLimitPosition(
         uint128 pip,
@@ -164,4 +169,6 @@ interface IPositionManager {
         returns (uint256 refundSize, uint256 partialFilled);
 
     function settleFunding() external returns (int256 premiumFraction);
+
+    function updateLeverage(uint128 _newLeverage) external;
 }
