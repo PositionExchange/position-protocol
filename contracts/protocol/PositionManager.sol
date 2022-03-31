@@ -30,6 +30,10 @@ contract PositionManager is
     using TickPosition for TickPosition.Data;
     using LiquidityBitmap for mapping(uint128 => uint256);
 
+    // IMPORTANT this digit must be the same to TOKEN_DIGIT in ChainLinkPriceFeed
+    uint256 private constant PRICE_FEED_TOKEN_DIGIT = 10**18;
+    int256 private constant PREMIUM_FRACTION_DENOMINATOR = 10 ** 10;
+
 
     modifier onlyCounterParty() {
         require(counterParty == _msgSender(), Errors.VL_NOT_COUNTERPARTY);
@@ -112,15 +116,15 @@ contract PositionManager is
     }
 
     function marketMakerSupply(MarketMaker.MMOrder[] memory _orders, uint256 leverage) external whenNotPaused onlyCounterParty {
-        SingleSlot memory _singleSlot = singleSlot;
+        SingleSlot memory _singleSlotMM = singleSlot;
         for(uint256 i = 0; i < _orders.length; i++){
             MarketMaker.MMOrder memory _order = _orders[i];
             // BUY, price should always less than market price
-            if(_order.quantity > 0 && _order.pip >= _singleSlot.pip){
+            if(_order.quantity > 0 && _order.pip >= _singleSlotMM.pip){
                 revert("!B");
             }
             // SELL, price should always greater than market price
-            if(_order.quantity < 0 && _order.pip <= _singleSlot.pip){
+            if(_order.quantity < 0 && _order.pip <= _singleSlotMM.pip){
                 revert("!S");
             }
             uint128 _quantity = uint128(Quantity.abs(_order.quantity));
@@ -231,14 +235,8 @@ contract PositionManager is
             _now() >= nextFundingTime,
             Errors.VL_SETTLE_FUNDING_TOO_EARLY
         );
-
-        // premium = twapMarketPrice - twapIndexPrice
-        // timeFraction = fundingPeriod(1 hour) / 1 day
-        // premiumFraction = premium * timeFraction
-        uint256 underlyingPrice = getUnderlyingTwapPrice(spotPriceTwapInterval);
-        int256 premium = int256(getTwapPrice(spotPriceTwapInterval)) -
-            int256(underlyingPrice);
-        premiumFraction = (premium * int256(fundingPeriod)) / int256(1 days);
+        uint256 underlyingPrice;
+        (premiumFraction, underlyingPrice) = getPremiumFraction();
 
         // update funding rate = premiumFraction / twapIndexPrice
         _updateFundingRate(premiumFraction, underlyingPrice);
@@ -261,6 +259,22 @@ contract PositionManager is
     //******************************************************************************************************************
     // VIEW FUNCTIONS
     //******************************************************************************************************************
+
+    function getCurrentFundingRate() external view returns (int256 fundingRate) {
+        (int256 premiumFraction, uint256 underlyingPrice) = getPremiumFraction();
+        return premiumFraction / int256(underlyingPrice);
+    }
+
+    function getPremiumFraction() public view returns (int256 premiumFraction, uint256 underlyingPrice) {
+        // premium = twapMarketPrice - twapIndexPrice
+        // timeFraction = fundingPeriod(1 hour) / 1 day
+        // premiumFraction = premium * timeFraction
+        underlyingPrice = getUnderlyingTwapPrice(spotPriceTwapInterval);
+        int256 _twapPrice = int256(getTwapPrice(spotPriceTwapInterval));
+        // 10 ** 8 is the divider
+        int256 premium =  (_twapPrice - int256(underlyingPrice)) * PREMIUM_FRACTION_DENOMINATOR / int256(getBaseBasisPoint());
+        premiumFraction = (premium * int256(fundingPeriod)) / int256(1 days);
+    }
 
     function getLeverage() public view returns (uint128) {
         return leverage;
@@ -421,7 +435,7 @@ contract PositionManager is
      * @return underlying price
      */
     function getUnderlyingPrice() public override view returns (uint256) {
-        return priceFeed.getPrice(priceFeedKey) * BASE_BASIC_POINT;
+        return _formatPriceFeedToBasicPoint(priceFeed.getPrice(priceFeedKey));
     }
 
     /**
@@ -435,8 +449,7 @@ contract PositionManager is
         returns (uint256)
     {
         return
-            priceFeed.getTwapPrice(priceFeedKey, _intervalInSeconds) *
-            BASE_BASIC_POINT;
+            _formatPriceFeedToBasicPoint(priceFeed.getTwapPrice(priceFeedKey, _intervalInSeconds));
     }
 
     /**
@@ -445,6 +458,7 @@ contract PositionManager is
     function getTwapPrice(uint256 _intervalInSeconds)
         public
         override
+        virtual
         view
         returns (uint256)
     {
@@ -776,6 +790,10 @@ contract PositionManager is
 
     function _blocknumber() internal view virtual returns (uint64) {
         return uint64(block.number);
+    }
+
+    function _formatPriceFeedToBasicPoint(uint256 _price) internal view virtual returns (uint256){
+        return _price * BASE_BASIC_POINT / PRICE_FEED_TOKEN_DIGIT;
     }
 
     // update funding rate = premiumFraction / twapIndexPrice

@@ -92,19 +92,24 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         Position.Side _side,
         uint256 _uQuantity,
         uint128 _pip,
-        uint16 _leverage
+        uint16 _leverage,
+        Position.Data memory _oldPosition
     ) internal {
         address _trader = msg.sender;
         PositionHouseStorage.OpenLimitResp memory openLimitResp;
+        address _pmAddress = address(_positionManager);
         int256 _quantity = _side == Position.Side.LONG
             ? int256(_uQuantity)
             : -int256(_uQuantity);
+        require(_requireSideOrder(_pmAddress, _trader, _side),Errors.VL_MUST_SAME_SIDE);
+
         (openLimitResp.orderId, openLimitResp.sizeOut) = _openLimitOrder(
             _positionManager,
             _trader,
             _pip,
             _quantity,
-            _leverage
+            _leverage,
+            _oldPosition
         );
         if (openLimitResp.sizeOut < _uQuantity) {
             PositionLimitOrder.Data memory _newOrder = PositionLimitOrder.Data({
@@ -129,7 +134,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             deposit(_positionManager, _trader, marginToVault, fee);
             uint256 limitOrderMargin = marginToVault * (_uQuantity - openLimitResp.sizeOut) / _uQuantity;
             ClaimableAmountManager._increase(
-                address(_positionManager),
+                _pmAddress,
                 _trader,
                 limitOrderMargin
             );
@@ -168,7 +173,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             }
             // else new limit order is larger than old position then close old position and open new opposite position
             else {
-                _newOrder.reduceQuantity = oldPosition.quantity.abs() - _sizeOut;
+                _newOrder.reduceQuantity = oldPosition.quantity.abs();
                 _newOrder.reduceLimitOrderId =
                     _getReduceLimitOrders(_pmAddress, _trader).length +
                     1;
@@ -188,11 +193,12 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         address _trader,
         uint128 _pip,
         int256 _rawQuantity,
-        uint16 _leverage
+        uint16 _leverage,
+        Position.Data memory oldPosition
     ) private returns (uint64 orderId, uint256 sizeOut) {
         {
             address _pmAddress = address(_positionManager);
-            Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
+            require(_requireQuantityOrder(_rawQuantity, oldPosition.quantity), Errors.VL_MUST_SMALLER_REVERSE_QUANTITY);
             require(
                 _leverage >= oldPosition.leverage &&
                     _leverage <= _positionManager.getLeverage() &&
@@ -321,6 +327,56 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         reduceLimitOrders[_pmAddress][_trader][index] = blankLimitOrderData;
     }
 
+    function _requireSideOrder(
+        address _pmAddress,
+        address _trader,
+        Position.Side _side
+    ) internal view returns (bool) {
+        PositionHouseStorage.LimitOrderPending[] memory listOrdersPending = PositionHouseFunction
+        .getListOrderPending(
+            _pmAddress,
+            _trader,
+            _getLimitOrders(_pmAddress, _trader),
+            _getReduceLimitOrders(_pmAddress, _trader)
+        );
+        if (listOrdersPending.length == 0) {
+            return true;
+        }
+
+        Position.Side _currentOrderSide = listOrdersPending[0].isBuy == true
+        ? Position.Side.LONG
+        : Position.Side.SHORT;
+
+        return _side == _currentOrderSide ? true : false;
+    }
+
+    function _requireQuantityOrder(
+        int256 _newOrderQuantity,
+        int256 _oldPositionQuantity
+    ) internal view returns (bool) {
+        bool noPosition = _oldPositionQuantity == 0;
+        bool smallerReverseQuantity =  _newOrderQuantity.abs() <= _oldPositionQuantity.abs() || _newOrderQuantity.isSameSide(_oldPositionQuantity);
+        return noPosition || smallerReverseQuantity;
+    }
+
+    function _needToClaimFund(
+        address _pmAddress,
+        address _trader,
+        Position.Data memory _positionData
+    ) internal view returns (bool needClaim, int256 claimableAmount) {
+        claimableAmount = PositionHouseFunction.getClaimAmount(
+            _pmAddress,
+            _trader,
+            _positionData,
+            _getPositionMap(_pmAddress, _trader),
+            _getLimitOrders(_pmAddress, _trader),
+            _getReduceLimitOrders(_pmAddress, _trader),
+            getClaimableAmount(_pmAddress, _trader),
+            _getManualMargin(_pmAddress, _trader)
+        );
+        needClaim = claimableAmount != 0 && _positionData.quantity == 0;
+    }
+
     function getPosition(address _pmAddress, address _trader)
         public
         view
@@ -348,19 +404,25 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         public
         view
         virtual
-        returns (int256[] memory);
+        returns (int128[] memory);
 
     function getLatestCumulativePremiumFraction(address _pmAddress)
         public
         view
         virtual
-        returns (int256);
+        returns (int128);
 
     function _getPositionMap(address _pmAddress, address _trader)
         internal
         view
         virtual
         returns (Position.Data memory);
+
+    function _getManualMargin(address _pmAddress, address _trader)
+        internal
+        view
+        virtual
+        returns (int256);
 
     function deposit(
         IPositionManager _positionManager,

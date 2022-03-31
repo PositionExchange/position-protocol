@@ -102,11 +102,19 @@ contract PositionHouse is
         uint256 _quantity,
         uint16 _leverage
     ) external whenNotPaused nonReentrant {
+        address _pmAddress = address (_positionManager);
+        address _trader = _msgSender();
+        Position.Data memory _positionData = getPosition(address(_positionManager), _msgSender());
+        (bool _needClaim, int256 _claimAbleAmount) = _needToClaimFund(_pmAddress, _trader, getPosition(_pmAddress, _trader));
+        if (_needClaim) {
+            _internalClaimFund(_positionManager, _positionData, _claimAbleAmount);
+        }
         _internalOpenMarketPosition(
             _positionManager,
             _side,
             _quantity,
-            _leverage
+            _leverage,
+            _positionData
         );
     }
 
@@ -117,12 +125,21 @@ contract PositionHouse is
         uint128 _pip,
         uint16 _leverage
     ) external whenNotPaused nonReentrant {
+        address _pmAddress = address (_positionManager);
+        address _trader = _msgSender();
+        Position.Data memory _positionData = getPosition(address(_positionManager), _msgSender());
+        require(_requireSideOrder(_pmAddress, _trader, _side),Errors.VL_MUST_SAME_SIDE);
+        (bool _needClaim, int256 _claimAbleAmount) = _needToClaimFund(_pmAddress, _trader, _positionData);
+        if (_needClaim) {
+            _internalClaimFund(_positionManager, _positionData, _claimAbleAmount);
+        }
         _internalOpenLimitOrder(
             _positionManager,
             _side,
             _uQuantity,
             _pip,
-            _leverage
+            _leverage,
+            _positionData
         );
     }
 
@@ -166,7 +183,8 @@ contract PositionHouse is
                 ? Position.Side.SHORT
                 : Position.Side.LONG,
             _quantity,
-            positionData.leverage
+            positionData.leverage,
+            positionData
         );
     }
 
@@ -197,7 +215,8 @@ contract PositionHouse is
                 : Position.Side.LONG,
             _quantity,
             _pip,
-            positionData.leverage
+            positionData.leverage,
+            positionData
         );
     }
 
@@ -206,13 +225,29 @@ contract PositionHouse is
         whenNotPaused
         nonReentrant
     {
-        address _trader = _msgSender();
-        address _pmAddress = address(_positionManager);
-        int256 totalRealizedPnl = getClaimAmount(_pmAddress, _trader);
+        Position.Data memory _positionData = getPosition(address(_positionManager), _msgSender());
         require(
-            getPosition(_pmAddress, _trader).quantity == 0,
+            _positionData.quantity == 0,
             Errors.VL_INVALID_CLAIM_FUND
         );
+        _internalClaimFund(_positionManager, _positionData, 0);
+    }
+
+    function _internalClaimFund(IPositionManager _positionManager, Position.Data memory _positionData, int256 totalRealizedPnl) internal {
+        address _trader = _msgSender();
+        address _pmAddress = address(_positionManager);
+        if(totalRealizedPnl == 0){
+            totalRealizedPnl = PositionHouseFunction.getClaimAmount(
+                _pmAddress,
+                _trader,
+                _positionData,
+                _getPositionMap(_pmAddress, _trader),
+                _getLimitOrders(_pmAddress, _trader),
+                _getReduceLimitOrders(_pmAddress, _trader),
+                getClaimableAmount(_pmAddress, _trader),
+                _getManualMargin(_pmAddress, _trader)
+            );
+        }
         clearPosition(_pmAddress, _trader);
         if (totalRealizedPnl > 0) {
             withdraw(_positionManager, _trader, totalRealizedPnl.abs());
@@ -411,11 +446,11 @@ contract PositionHouse is
                 _pmAddress,
                 _trader,
                 positionData,
-                positionMap[_pmAddress][_trader],
+                _getPositionMap(_pmAddress, _trader),
                 _getLimitOrders(_pmAddress, _trader),
                 _getReduceLimitOrders(_pmAddress, _trader),
                 getClaimableAmount(_pmAddress, _trader),
-                manualMargin[_pmAddress][_trader]
+                _getManualMargin(_pmAddress, _trader)
             );
     }
 
@@ -494,6 +529,28 @@ contract PositionHouse is
     //        }
     //    }
 
+    function getFundingPaymentAmount(IPositionManager _positionManager, address _trader) external view returns (int256 fundingPayment) {
+        address _pmAddress = address(_positionManager);
+        Position.Data memory positionData = getPosition(_pmAddress, _trader);
+        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
+            _positionManager,
+            _trader,
+            PnlCalcOption.SPOT_PRICE,
+            positionData
+        );
+        (
+        ,
+        ,
+         fundingPayment
+        ,
+
+        ) = calcRemainMarginWithFundingPayment(
+            _pmAddress,
+            positionData,
+            positionData.margin
+        );
+    }
+
     function getMaintenanceDetail(
         IPositionManager _positionManager,
         address _trader
@@ -517,6 +574,7 @@ contract PositionHouse is
         (
             uint256 remainMarginWithFundingPayment,
             ,
+            int256 fundingPayment
             ,
 
         ) = calcRemainMarginWithFundingPayment(
@@ -535,15 +593,19 @@ contract PositionHouse is
             : (maintenanceMargin * 100) / uint256(marginBalance);
     }
 
-    function getNextFundingTime(IPositionManager _positionManager) public view returns (uint256) {
+    function getNextFundingTime(IPositionManager _positionManager) external view returns (uint256) {
         return _positionManager.getNextFundingTime();
+    }
+
+    function getCurrentFundingRate(IPositionManager _positionManager) external view returns (int256) {
+        return _positionManager.getCurrentFundingRate();
     }
 
     function getCumulativePremiumFractions(address _pmAddress)
         public
         view
         override(CumulativePremiumFractions, LimitOrderManager)
-        returns (int256[] memory)
+        returns (int128[] memory)
     {
         return
             CumulativePremiumFractions.getCumulativePremiumFractions(
@@ -555,7 +617,7 @@ contract PositionHouse is
         public
         view
         override(CumulativePremiumFractions, LimitOrderManager)
-        returns (int256)
+        returns (int128)
     {
         return
         CumulativePremiumFractions.getLatestCumulativePremiumFraction(
@@ -571,14 +633,16 @@ contract PositionHouse is
         IPositionManager _positionManager,
         Position.Side _side,
         uint256 _quantity,
-        uint16 _leverage
+        uint16 _leverage,
+        Position.Data memory oldPosition
     ) internal {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
+        require(_requireSideOrder(_pmAddress, _trader, _side),Errors.VL_MUST_SAME_SIDE);
         int256 pQuantity = _side == Position.Side.LONG
             ? int256(_quantity)
             : -int256(_quantity);
-        Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
+        require(_requireQuantityOrder(pQuantity, oldPosition.quantity), Errors.VL_MUST_SMALLER_REVERSE_QUANTITY);
         if (oldPosition.quantity == 0) {
             oldPosition.leverage = 1;
         }
@@ -888,17 +952,12 @@ contract PositionHouse is
         return positionMap[_pmAddress][_trader];
     }
 
-    // NEW REQUIRE: restriction mode
-    // In restriction mode, no one can do multi open/close/liquidate position in the same block
-    // If any underwater position being closed (having a bad debt and make insuranceFund loss),
-    // or any liquidation happened,
-    // restriction mode is ON in that block and OFF(default) in the next block.
-    // This design is to prevent the attacker being benefited from the multiple action in one block
-    //    function requireNotRestrictionMode(IAmm _amm) private view {
-    //        uint256 currentBlock = _blockNumber();
-    //        if (currentBlock == positionManagerMap[address].lastRestrictionBlock) {
-    //            // only one action allowed
-    //
-    //        }
-    //    }
+    function _getManualMargin(address _pmAddress, address _trader)
+        internal
+        view
+        override
+        returns (int256)
+    {
+        return manualMargin[_pmAddress][_trader];
+    }
 }
