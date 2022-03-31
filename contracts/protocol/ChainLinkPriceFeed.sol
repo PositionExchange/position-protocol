@@ -311,4 +311,11 @@ contract ChainLinkPriceFeed is OwnableUpgradeable, IChainLinkPriceFeed {
         // a negative price should be reverted to prevent an extremely large/small premiumFraction
         require(_price > 0, "Negative price");
     }
+
+    /**
+     * @dev This empty reserved space is put in place to allow future versions to add new
+     * variables without shifting down storage in the inheritance chain.
+     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[49] private __gap;
 }

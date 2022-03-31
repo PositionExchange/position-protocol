@@ -15,7 +15,7 @@ import {
     PositionData,
     PositionLimitOrderID,
     priceToPip,
-    SIDE,
+    SIDE, subDecimal,
     toWeiBN,
     toWeiWithString
 } from "../shared/utilities";
@@ -34,14 +34,17 @@ describe("FundingRate", () => {
     let trader2: any;
     let trader3: any;
     let trader4: any;
-    let trader5: any;
+    let tradercp1: any;
+    let tradercp2: any;
     let fundingRateTest: FundingRateTest;
     let insuranceFund: InsuranceFund
     let bep20Mintable: BEP20Mintable
     let positionHouse: PositionHouse;
 
+    const BASE_BASIC_POINT = 10000;
+
     beforeEach(async () => {
-        [trader0, trader1, trader2, trader3, trader4, trader5] = await ethers.getSigners();
+        [trader0, trader1, trader2, trader3, trader4, tradercp1, tradercp2] = await ethers.getSigners();
         const positionHouseFunction = await ethers.getContractFactory('PositionHouseFunction')
         const libraryIns = (await positionHouseFunction.deploy())
         const PositionHouseMath = await ethers.getContractFactory('PositionHouseMath')
@@ -72,12 +75,22 @@ describe("FundingRate", () => {
         await insuranceFund.connect(trader0).setCounterParty(positionHouse.address);
         await bep20Mintable.mint(insuranceFund.address, BigNumber.from('10000000000000000000000000000000'));
 
-        [trader0, trader1, trader2, trader3, trader4, trader5].forEach(element => {
+        [trader0, trader1, trader2, trader3, trader4, tradercp1, tradercp2].forEach(element => {
             bep20Mintable.mint(element.address, BigNumber.from('10000000000000000000000000000000'))
             bep20Mintable.connect(element).approve(insuranceFund.address, BigNumber.from('1000000000000000000000000000000000000'))
         })
 
-        await fundingRateTest.initialize(BigNumber.from(500000), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(3600), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
+        await fundingRateTest.initialize(
+            BigNumber.from(25*BASE_BASIC_POINT),
+            bep20Mintable.address,
+            ethers.utils.formatBytes32String('BTC'),
+            BigNumber.from(100),
+            BigNumber.from(10000),
+            BigNumber.from(10000),
+            BigNumber.from(3000),
+            BigNumber.from(86400), // funding period = 1 days to make it easy for calculation
+            '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(),
+            positionHouse.address);
         await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), insuranceFund.address)
 
         await positionHouse.updateWhitelistManager(fundingRateTest.address, true);
@@ -114,14 +127,14 @@ describe("FundingRate", () => {
             quantity: BigNumber.from("1"),
             leverage: 10,
             side: toHigherPrice ? 1 : 0,
-            instanceTrader: trader5
+            instanceTrader: tradercp1
         })
 
         await openMarketPosition({
             quantity: BigNumber.from("1"),
             leverage: 10,
             side: toHigherPrice ? 0 : 1,
-            instanceTrader: trader5
+            instanceTrader: tradercp2
         })
     }
 
@@ -130,43 +143,215 @@ describe("FundingRate", () => {
         await fundingRateTest.setBlockNumber(blocknumber)
     }
 
-    describe("should open limit and market to change price", async () => {
-        it("should open limit and market success", async () => {
-            await setMockTimeAndBlockNumber(1647923687,1)
 
+    describe('should calculate premium fraction correctly', function () {
+        async function getMaintenanceDetail(traderAddress, expectFundingPayment = undefined) {
+            const result = await positionHouse.getMaintenanceDetail(fundingRateTest.address, traderAddress)
+            const fundingPayment = await positionHouse.getFundingPaymentAmount(fundingRateTest.address, traderAddress)
+            const parsedData = {
+                maintenanceMargin: result.maintenanceMargin.toNumber() / 10**6,
+                marginBalance: (result.marginBalance.toNumber() / 10**6),
+                marginRatio: result.marginRatio.toString(),
+                fundingPayment: fundingPayment.toNumber() / 10**6
+            }
+            expectFundingPayment && expect(parsedData.fundingPayment).eq(expectFundingPayment)
+            console.table(parsedData)
+            return parsedData
+        }
+
+        async function case1(){
             await openLimitOrder({
-                pip: BigNumber.from("490000"),
-                quantity: BigNumber.from(1),
+                pip: BigNumber.from(24.6*BASE_BASIC_POINT),
+                quantity: BigNumber.from(37*10**6),
                 leverage: 10,
                 side: 0,
                 instanceTrader: trader0
             })
 
             await openMarketPosition({
-                quantity: BigNumber.from(1),
+                quantity: BigNumber.from(37*10**6),
                 leverage: 10,
                 side: 1,
                 instanceTrader: trader1
             })
-
-            await changePrice({
-                limitPrice: 490000,
-                toHigherPrice: false
-            })
-
-            await setMockTimeAndBlockNumber(1647923690,2)
-            await changePrice({
-                limitPrice: 510000,
-                toHigherPrice: true
-            })
-
-            await setMockTimeAndBlockNumber(1647923692,2)
-            console.log((await fundingRateTest.getTwapPrice(3600)).toString())
-            expect((await fundingRateTest.getTwapPrice(3600)).toString()).eq("49999722")
+            const {marginBalance: marginBalanceBefore1} = await getMaintenanceDetail(trader0.address)
+            const {marginBalance: marginBalanceBefore2} = await getMaintenanceDetail(trader1.address)
+            await fundingRateTest.setMockPrice(25.5*BASE_BASIC_POINT, 25.6*BASE_BASIC_POINT);
+            const [premiuumFraction, fundingRate] = await fundingRateTest.getFundingRate()
+            console.log(premiuumFraction.toString(), fundingRate.toString())
             await positionHouse.payFunding(fundingRateTest.address)
-            console.log((await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
+            const latestCumulativePremiumFraction = await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address).then(a => a.toString())
+            expect(latestCumulativePremiumFraction).eq('1000000000') // 0.1
+            const {marginBalance: marginBalanceAfter1} = await getMaintenanceDetail(trader0.address)
+            const {marginBalance: marginBalanceAfter2} = await getMaintenanceDetail(trader1.address)
+            // funding payment = position size * premiumFraction = 37*0.1 = 3.7
+            expect(subDecimal(marginBalanceAfter1, marginBalanceBefore1)).eq(3.7)
+            expect(subDecimal(marginBalanceAfter2, marginBalanceBefore2)).eq(-3.7) // trader 1 (short) paid trader 0 (long)
+        }
 
-        })
-    })
+        it('should get premiuum price correctly', async function () {
+            //set mock
+            await fundingRateTest.setMockPrice(47239 * BASE_BASIC_POINT, BASE_BASIC_POINT*47247);
+
+            const [premiuumFraction, fundingRate] = await fundingRateTest.getFundingRate()
+            expect(premiuumFraction.toString()).eq('80000000000')
+            expect(fundingRate.toString()).eq('169')
+
+        });
+        it('trader 1 long should pay funding fee to trader 0 after 1 day', async function () {
+            await case1()
+        });
+
+        it('trader 0, trader 1, trader 2 short should pay funding fee to trader 3, 4, 5, 6 long after 1 day', async function () {
+            await openLimitOrder({
+                pip: BigNumber.from(25.6 * BASE_BASIC_POINT),
+                quantity: BigNumber.from(37 * 10 ** 6),
+                leverage: 10,
+                side: 1,
+                instanceTrader: trader0
+            })
+            await openLimitOrder({
+                pip: BigNumber.from(25.7 * BASE_BASIC_POINT),
+                quantity: BigNumber.from(37 * 10 ** 6),
+                leverage: 10,
+                side: 1,
+                instanceTrader: trader1
+            })
+            await openLimitOrder({
+                pip: BigNumber.from(25.8 * BASE_BASIC_POINT),
+                quantity: BigNumber.from(35 * 10 ** 6),
+                leverage: 10,
+                side: 1,
+                instanceTrader: trader2
+            })
+            await openLimitOrder({
+                pip: BigNumber.from(25.9 * BASE_BASIC_POINT),
+                quantity: BigNumber.from(2 * 10 ** 6),
+                leverage: 10,
+                side: 1,
+                instanceTrader: trader2
+            })
+            await openMarketPosition({
+                quantity: BigNumber.from(37*10**6),
+                leverage: 10,
+                side: 0,
+                instanceTrader: trader3
+            })
+            await openMarketPosition({
+                quantity: BigNumber.from(37*10**6),
+                leverage: 10,
+                side: 0,
+                instanceTrader: trader4
+            })
+            await openMarketPosition({
+                quantity: BigNumber.from(37*10**6),
+                leverage: 10,
+                side: 0,
+                instanceTrader: tradercp1
+            })
+            const traders = [trader0, trader1, trader2, trader3, trader4, tradercp1]
+            const maintenanceMargins = [], maintenanceMarginsAfter = []
+            for(const _trader of traders ) {
+                maintenanceMargins.push(await getMaintenanceDetail(_trader.address))
+            }
+            await fundingRateTest.setMockPrice(25.5*BASE_BASIC_POINT, 25.75*BASE_BASIC_POINT);
+            await positionHouse.payFunding(fundingRateTest.address)
+            for(const _trader of traders ) {
+                maintenanceMarginsAfter.push(await getMaintenanceDetail(_trader.address))
+            }
+            for(const i in traders){
+                // @ts-ignore
+                if(i <= 2){
+                    // decrease
+                    expect(subDecimal(maintenanceMarginsAfter[i].marginBalance, maintenanceMargins[i].marginBalance)).eq(-9.25)
+                }else{
+                    expect(subDecimal(maintenanceMarginsAfter[i].marginBalance, maintenanceMargins[i].marginBalance)).eq(9.25)
+                }
+            }
+
+
+        });
+
+        it('should calculate funding payment correctly after claim funding payment', async function () {
+            await case1()
+
+            // now trader 0 open a market position
+            // trader2 do the market maker works
+            await openLimitOrder({
+                pip: BigNumber.from(27*BASE_BASIC_POINT),
+                quantity: BigNumber.from(37*5*10**6),
+                leverage: 10,
+                side: 1,
+                instanceTrader: trader2
+            })
+
+            await openMarketPosition({
+                quantity: BigNumber.from(37*10**6),
+                leverage: 10,
+                side: 0,
+                instanceTrader: trader0
+            })
+            expect(await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address).then(a => a.toString())).eq('1000000000') // 0.1
+            await getMaintenanceDetail(trader0.address, 7.4)
+            await getMaintenanceDetail(trader1.address, -3.7)
+            await getMaintenanceDetail(trader2.address, -3.7)
+
+            await fundingRateTest.setMockTime(await fundingRateTest.nextFundingTime())
+            await positionHouse.payFunding(fundingRateTest.address)
+
+            expect(await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address).then(a => a.toString())).eq('2000000000') // 0.1
+
+             await getMaintenanceDetail(trader0.address, 14.8)
+             await getMaintenanceDetail(trader1.address, -7.4)
+            await getMaintenanceDetail(trader2.address, -7.4)
+            await openMarketPosition({
+                quantity: BigNumber.from(37*10**6),
+                leverage: 10,
+                side: 0,
+                instanceTrader: trader0
+            })
+            await getMaintenanceDetail(trader0.address, 22.2)
+            await getMaintenanceDetail(trader1.address, -7.4)
+            await getMaintenanceDetail(trader2.address, -14.8)
+            await openMarketPosition({
+                quantity: BigNumber.from(37*10**6),
+                leverage: 10,
+                side: 0,
+                instanceTrader: trader0
+            })
+            await getMaintenanceDetail(trader0.address)
+
+            await openLimitOrder({
+                pip: BigNumber.from(26*BASE_BASIC_POINT),
+                quantity: BigNumber.from(37*5*10**6),
+                leverage: 10,
+                side: 0,
+                instanceTrader: trader3
+            })
+
+
+            const tx = await positionHouse.closePosition(fundingRateTest.address, 37*4*10**6)
+            console.log(await tx.wait())
+
+            // await expect(tx).to.emit(insuranceFund, 'Withdraw').withArgs(bep20Mintable.address, trader0.address, '33181600000')
+            await getMaintenanceDetail(trader0.address)
+            await fundingRateTest.setMockTime(await fundingRateTest.nextFundingTime())
+            await positionHouse.payFunding(fundingRateTest.address)
+
+            await getMaintenanceDetail(trader0.address, 0)
+
+            await openMarketPosition({
+                quantity: BigNumber.from(37*10**6),
+                leverage: 10,
+                side: 1,
+                instanceTrader: trader0
+            })
+            await fundingRateTest.setMockTime(await fundingRateTest.nextFundingTime())
+            await positionHouse.payFunding(fundingRateTest.address)
+            await getMaintenanceDetail(trader0.address, -3.7)
+
+
+        });
+    });
 
 })

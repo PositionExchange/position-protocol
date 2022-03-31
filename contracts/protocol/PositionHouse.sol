@@ -71,7 +71,6 @@ contract PositionHouse is
     event LiquidationPenaltyRatioUpdated(uint256 oldLiquidationPenaltyRatio, uint256 newLiquidationPenaltyRatio);
     event PartialLiquidationRatioUpdated(uint256 oldPartialLiquidationLiquid,uint256 newPartialLiquidationLiquid);
     event WhitelistManagerUpdated(address positionManager, bool isWhitelite);
-    event FundingPaid(int256 premiumFraction, address positionManager, uint256 blockTimestamp);
 
     function initialize(
         uint256 _maintenanceMarginRatio,
@@ -117,6 +116,7 @@ contract PositionHouse is
         uint128 _pip,
         uint16 _leverage
     ) external whenNotPaused nonReentrant {
+        require(_requireSideOrder(address(_positionManager), _msgSender(), _side),Errors.VL_MUST_SAME_SIDE);
         _internalOpenLimitOrder(
             _positionManager,
             _side,
@@ -493,6 +493,28 @@ contract PositionHouse is
     //        }
     //    }
 
+    function getFundingPaymentAmount(IPositionManager _positionManager, address _trader) external view returns (int256 fundingPayment) {
+        address _pmAddress = address(_positionManager);
+        Position.Data memory positionData = getPosition(_pmAddress, _trader);
+        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
+            _positionManager,
+            _trader,
+            PnlCalcOption.SPOT_PRICE,
+            positionData
+        );
+        (
+        ,
+        ,
+         fundingPayment
+        ,
+
+        ) = calcRemainMarginWithFundingPayment(
+            _pmAddress,
+            positionData,
+            positionData.margin
+        );
+    }
+
     function getMaintenanceDetail(
         IPositionManager _positionManager,
         address _trader
@@ -516,6 +538,7 @@ contract PositionHouse is
         (
             uint256 remainMarginWithFundingPayment,
             ,
+            int256 fundingPayment
             ,
 
         ) = calcRemainMarginWithFundingPayment(
@@ -534,8 +557,12 @@ contract PositionHouse is
             : (maintenanceMargin * 100) / uint256(marginBalance);
     }
 
-    function getNextFundingTime(IPositionManager _positionManager) public view returns (uint256) {
+    function getNextFundingTime(IPositionManager _positionManager) external view returns (uint256) {
         return _positionManager.getNextFundingTime();
+    }
+
+    function getCurrentFundingRate(IPositionManager _positionManager) external view returns (int256) {
+        return _positionManager.getCurrentFundingRate();
     }
 
     function getCumulativePremiumFractions(address _pmAddress)
@@ -574,10 +601,12 @@ contract PositionHouse is
     ) internal {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
+        require(_requireSideOrder(_pmAddress, _trader, _side),Errors.VL_MUST_SAME_SIDE);
         int256 pQuantity = _side == Position.Side.LONG
             ? int256(_quantity)
             : -int256(_quantity);
         Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
+        require(_requireQuantityOrder(pQuantity, oldPosition.quantity), Errors.VL_MUST_SMALLER_REVERSE_QUANTITY);
         if (oldPosition.quantity == 0) {
             oldPosition.leverage = 1;
         }
@@ -886,18 +915,4 @@ contract PositionHouse is
     {
         return positionMap[_pmAddress][_trader];
     }
-
-    // NEW REQUIRE: restriction mode
-    // In restriction mode, no one can do multi open/close/liquidate position in the same block
-    // If any underwater position being closed (having a bad debt and make insuranceFund loss),
-    // or any liquidation happened,
-    // restriction mode is ON in that block and OFF(default) in the next block.
-    // This design is to prevent the attacker being benefited from the multiple action in one block
-    //    function requireNotRestrictionMode(IAmm _amm) private view {
-    //        uint256 currentBlock = _blockNumber();
-    //        if (currentBlock == positionManagerMap[address].lastRestrictionBlock) {
-    //            // only one action allowed
-    //
-    //        }
-    //    }
 }

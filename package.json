@@ -31,7 +31,7 @@
     "@types/node": "^15.12.4",
     "@types/shelljs": "^0.8.9",
     "chai": "^4.3.4",
-    "decimal.js": "^10.3.1",
+    "decimal.js": "^3.0.0",
     "ethereum-waffle": "^3.4.0",
     "ethers": "^5.4.5",
     "hardhat": "^2.6.8",

@@ -11,7 +11,6 @@ contract PositionHouseStorage {
 
     using Position for Position.Data;
     using Position for Position.LiquidatedData;
-    type PositionManager is address;
 
     enum PnlCalcOption {
         TWAP,
@@ -81,4 +80,13 @@ contract PositionHouseStorage {
     uint256 liquidationPenaltyRatio;
 
     IInsuranceFund public insuranceFund;
+
+
+    /**
+     * @dev This empty reserved space is put in place to allow future versions to add new
+     * variables without shifting down storage in the inheritance chain.
+     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[49] private __gap;
+
 }
