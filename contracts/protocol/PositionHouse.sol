@@ -53,17 +53,17 @@ contract PositionHouse is
         IPositionManager positionManager
     );
 
-    event MarginAdded(
-        address trader,
-        uint256 marginAdded,
-        IPositionManager positionManager
-    );
-
-    event MarginRemoved(
-        address trader,
-        uint256 marginRemoved,
-        IPositionManager positionManager
-    );
+//    event MarginAdded(
+//        address trader,
+//        uint256 marginAdded,
+//        IPositionManager positionManager
+//    );
+//
+//    event MarginRemoved(
+//        address trader,
+//        uint256 marginRemoved,
+//        IPositionManager positionManager
+//    );
 
     event FullyLiquidated(address pmAddress, address trader);
     event PartiallyLiquidated(address pmAddress, address trader);
@@ -337,7 +337,7 @@ contract PositionHouse is
 
         insuranceFund.deposit(_pmAddress, _trader, _amount, 0);
 
-        emit MarginAdded(_trader, _amount, _positionManager);
+//        emit MarginAdded(_trader, _amount, _positionManager);
     }
 
     /**
@@ -359,7 +359,7 @@ contract PositionHouse is
 
         insuranceFund.withdraw(address(_positionManager), _trader, _amount);
 
-        emit MarginRemoved(_trader, _amount, _positionManager);
+//        emit MarginRemoved(_trader, _amount, _positionManager);
     }
 
     // OWNER UPDATE VARIABLE STORAGE
