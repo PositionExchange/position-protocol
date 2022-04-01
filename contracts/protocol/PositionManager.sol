@@ -167,29 +167,10 @@ contract PositionManager is
         uint256 _leverage
     ) external whenNotPaused onlyCounterParty {
         for (uint256 i = 0; i < _mmFills.length; i++) {
-            SingleSlot memory _singleSlotMM = singleSlot;
-
-            MarketMaker.MMFill memory mmFill = _mmFills[i];
-            (uint128 toPip, uint128 startPip) = _getSumQuantityAndPip(
-                mmFill.quantity,
-                mmFill.isBuy
-            );
-            bool pass;
-            if (mmFill.isBuy) {
-                pass = ((toPip - startPip) * percentBase) / startPip >
-                    maxPercent ||
-                    startPip == 0
-                    ? false
-                    : true;
-            } else {
-                pass = ((startPip - toPip) * percentBase) / startPip > maxPercent || startPip == 0
-                    ? false
-                    : true;
-            }
-
-            if (pass) {
-                _internalOpenMarketOrder(mmFill.quantity, mmFill.isBuy, 0);
-            }
+            uint128 _beforePip = singleSlot.pip;
+            _internalOpenMarketOrder(mmFill.quantity, mmFill.isBuy, 0);
+            uint128 _afterPip = singleSlot.pip;
+            // TODO check afterPip and beforePip
         }
     }
 
