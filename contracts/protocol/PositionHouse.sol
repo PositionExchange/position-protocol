@@ -226,7 +226,7 @@ contract PositionHouse is
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
         if(totalRealizedPnl == 0){
-            totalRealizedPnl = PositionHouseFunction.getClaimAmount(
+            totalRealizedPnl = _getClaimAmount(
                 _pmAddress,
                 _trader,
                 _positionData,
@@ -239,7 +239,7 @@ contract PositionHouse is
         }
         clearPosition(_pmAddress, _trader);
         if (totalRealizedPnl > 0) {
-            insuranceFund.withdraw(_pmAddress, _trader, totalRealizedPnl.abs());
+            _withdraw(_pmAddress, _trader, totalRealizedPnl.abs());
         }
     }
 
@@ -306,7 +306,7 @@ contract PositionHouse is
                     100;
                 emit FullyLiquidated(_pmAddress, _trader);
             }
-            insuranceFund.withdraw(_pmAddress, _caller, feeToLiquidator);
+            _withdraw(_pmAddress, _caller, feeToLiquidator);
             // count as bad debt, transfer money to insurance fund and liquidator
         }
     }
@@ -329,7 +329,7 @@ contract PositionHouse is
         );
         manualMargin[_pmAddress][_trader] += int256(_amount);
 
-        insuranceFund.deposit(_pmAddress, _trader, _amount, 0);
+        _deposit(_pmAddress, _trader, _amount, 0);
 
 //        emit MarginAdded(_trader, _amount, _positionManager);
     }
@@ -351,7 +351,7 @@ contract PositionHouse is
 
         manualMargin[address(_positionManager)][_trader] -= int256(_amount);
 
-        insuranceFund.withdraw(address(_positionManager), _trader, _amount);
+        _withdraw(address(_positionManager), _trader, _amount);
 
 //        emit MarginRemoved(_trader, _amount, _positionManager);
     }
@@ -623,10 +623,10 @@ contract PositionHouse is
 
         if (pResp.marginToVault > 0) {
             //transfer from trader to vault
-            insuranceFund.deposit(_pmAddress, _trader, pResp.marginToVault.abs(), pResp.fee);
+            _deposit(_pmAddress, _trader, pResp.marginToVault.abs(), pResp.fee);
         } else if (pResp.marginToVault < 0) {
             // withdraw from vault to user
-            insuranceFund.withdraw(_pmAddress, _trader, pResp.marginToVault.abs());
+            _withdraw(_pmAddress, _trader, pResp.marginToVault.abs());
         }
         emit OpenMarket(
             _trader,
@@ -714,6 +714,8 @@ contract PositionHouse is
                 _getLimitOrders(_pmAddress, _trader),
                 _getReduceLimitOrders(_pmAddress, _trader)
             );
+
+
         _emptyLimitOrders(_pmAddress, _trader);
         for (uint256 i = 0; i < subListLimitOrders.length; i++) {
             if (subListLimitOrders[i].pip == 0) {
@@ -880,4 +882,25 @@ contract PositionHouse is
     {
         return manualMargin[_pmAddress][_trader];
     }
+
+    function _deposit(
+        address positionManager,
+        address trader,
+        uint256 amount,
+        uint256 fee)
+        internal
+    {
+        insuranceFund.deposit(positionManager, trader, amount, fee);
+    }
+
+    function _withdraw(
+        address positionManager,
+        address trader,
+        uint256 amount
+    ) internal
+    {
+        insuranceFund.withdraw(positionManager, trader, amount);
+    }
+
+
 }

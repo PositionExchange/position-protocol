@@ -359,7 +359,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         address _trader,
         Position.Data memory _positionData
     ) internal view returns (bool needClaim, int256 claimableAmount) {
-        claimableAmount = PositionHouseFunction.getClaimAmount(
+        claimableAmount = _getClaimAmount(
             _pmAddress,
             _trader,
             _positionData,
@@ -370,6 +370,35 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             _getManualMargin(_pmAddress, _trader)
         );
         needClaim = claimableAmount != 0 && _positionData.quantity == 0;
+    }
+
+    function _getClaimAmount(
+        address _pmAddress,
+        address _trader,
+        Position.Data memory _positionData,
+        Position.Data memory _positionDataWithoutLimit,
+        PositionLimitOrder.Data[] memory _limitOrders,
+        PositionLimitOrder.Data[] memory _reduceLimitOrders,
+        uint256 _canClaimAmountInMap,
+        int256 _manualMarginInMap
+    ) internal view returns (int256) {
+        address a = _pmAddress;
+        address t = _trader;
+
+        {
+            return PositionHouseFunction.getClaimAmount(
+                a,
+                t,
+                _positionData,
+                _getPositionMap(a, t),
+                _getLimitOrders(a, t),
+                _getReduceLimitOrders(a, t),
+                getClaimableAmount(a, t),
+                _getManualMargin(a, t)
+            );
+
+        }
+
     }
 
     function getPosition(address _pmAddress, address _trader)
