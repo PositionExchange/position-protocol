@@ -79,6 +79,8 @@ contract PositionManager is
         priceFeed = IChainLinkPriceFeed(_priceFeed);
         counterParty = _counterParty;
         leverage = 125;
+        maxPercent = 10;
+        percentBase = 1000;
         emit ReserveSnapshotted(_initialPip, _now());
     }
 
@@ -159,18 +161,30 @@ contract PositionManager is
     }
 
     // mean max for market market fill is 1%
-    uint16 maxPercent = 10;
-    uint32 percentBase = 1000;
+
 
     function marketMakerFill(
         MarketMaker.MMFill[] memory _mmFills,
         uint256 _leverage
     ) external whenNotPaused onlyCounterParty {
         for (uint256 i = 0; i < _mmFills.length; i++) {
+            MarketMaker.MMFill memory mmFill = _mmFills[i];
             uint128 _beforePip = singleSlot.pip;
             _internalOpenMarketOrder(mmFill.quantity, mmFill.isBuy, 0);
             uint128 _afterPip = singleSlot.pip;
-            // TODO check afterPip and beforePip
+            bool pass;
+            if (mmFill.isBuy) {
+                pass = ((_afterPip - _beforePip) * percentBase) / _beforePip >
+                maxPercent
+                ? false
+                : true;
+            } else {
+                pass = ((_beforePip - _afterPip) * percentBase) / _beforePip > maxPercent
+                ? false
+                : true;
+            }
+
+            require(pass, "!MM");
         }
     }
 
@@ -593,6 +607,16 @@ contract PositionManager is
     //******************************************************************************************************************
     // ONLY OWNER FUNCTIONS
     //******************************************************************************************************************
+
+    function updateMaxPercentMarketMarket(uint16 newMaxPercent) public onlyOwner {
+        maxPercent = newMaxPercent;
+
+    }
+
+    function updatePercentBaseMarketMarket(uint32 newPercentBase) public onlyOwner {
+        percentBase = newPercentBase;
+
+    }
 
     function updateLeverage(uint128 _newLeverage) public onlyOwner {
         require(0 < _newLeverage, Errors.VL_INVALID_LEVERAGE);

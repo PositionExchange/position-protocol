@@ -4,12 +4,15 @@ import {ethers, waffle} from "hardhat";
 import {deployPositionHouse} from "../shared/deploy";
 import {use, expect} from "chai";
 import {OrderSide, POSITION_SIDE, PositionData, toWeiBN} from "../shared/utilities";
+import {BigNumber} from "ethers";
 const {solidity} = waffle
 use(solidity)
 
 function parseOrder(obj){
     return {pip: obj.pip * 10, quantity: ethers.utils.parseEther(obj.quantity.toString())}
 }
+
+
 
 describe('Market Maker', function () {
     let deployer: SignerWithAddress
@@ -190,5 +193,136 @@ describe('Market Maker', function () {
             expect(liquidityAtFilledPipAfter.toString()).eq('0')
         });
     });
+
+    describe("mm market fill", async ()=>{
+
+
+        async function setUpAndTest(orders) {
+            const tx = await positionHouse.supply(positionManager.address, orders.map(parseOrder), 10)
+            expect(tx.hash).not.to.be.eq(null)
+            const receipt = await tx.wait()
+            console.log(receipt)
+            console.log("Gas: ", receipt.gasUsed.toString())
+        }
+
+        describe("revert", async ()=>{
+            // max percent is 1% from init price is 50000
+
+            it("should revert 1", async ()=>{
+
+
+                await setUpAndTest([
+                    {pip: 40000, quantity: 100},
+                    {pip: 20000, quantity: 100},
+                    {pip: 30000, quantity: 100},
+                    {pip: 56000, quantity: -100},
+                    {pip: 50001, quantity: -100},
+                    {pip: 50002, quantity: -100},
+                ])
+
+
+                const marketFills =[
+                    { quantity: ethers.utils.parseEther("100"), isBuy: true},
+                    { quantity:  ethers.utils.parseEther("100"), isBuy : false}
+                ]
+                // const tx = await
+               await expect(positionHouse.marketMakerFill(positionManager.address, marketFills, 10)).to.revertedWith("!MM")
+
+            })
+
+            it("should revert 2", async ()=>{
+
+
+
+                await setUpAndTest([
+                    {pip: 49600, quantity: 100},
+                    {pip: 50600, quantity: -100}
+                ])
+
+
+                const marketFills =[
+                    { quantity: ethers.utils.parseEther("100"), isBuy: true},
+                    { quantity:  ethers.utils.parseEther("100"), isBuy : false}
+                ]
+                await expect(positionHouse.marketMakerFill(positionManager.address, marketFills, 10)).to.revertedWith("!MM")
+
+            })
+            it("should revert then success after update percent to 2%", async ()=>{
+
+
+                await setUpAndTest([
+                    {pip: 49600, quantity: 100},
+                    {pip: 50600, quantity: -100}
+                ])
+
+                const marketFills =[
+                    { quantity: ethers.utils.parseEther("100"), isBuy: true},
+                    { quantity:  ethers.utils.parseEther("100"), isBuy : false}
+                ]
+                await expect(positionHouse.marketMakerFill(positionManager.address, marketFills, 10)).to.revertedWith("!MM")
+
+                await positionManager.updateMaxPercentMarketMarket(BigNumber.from("20"))
+
+                await expect(positionHouse.marketMakerFill(positionManager.address, marketFills, 10)).to.not.revertedWith("!MM")
+
+            })
+
+        })
+
+
+
+
+        it("should successfully", async ()=>{
+
+            it("should success 1%", async ()=>{
+
+
+
+                await setUpAndTest([
+                    {pip: 49800, quantity: 100},
+                    {pip: 50100, quantity: -100}
+                ])
+
+                const marketFills =[
+                    { quantity: ethers.utils.parseEther("100"), isBuy: true},
+                    { quantity:  ethers.utils.parseEther("100"), isBuy : false}
+                ]
+                await expect(positionHouse.marketMakerFill(positionManager.address, marketFills, 10)).to.not.revertedWith("!MM")
+
+
+            })
+
+            it("should still success when change maxPercent to 2%", async ()=>{
+
+
+                await setUpAndTest([
+                    {pip: 49200, quantity: 100},
+
+                    {pip: 49800, quantity: 100},
+
+                    {pip: 50100, quantity: -100},
+                    {pip: 40900, quantity: -100},
+
+                ])
+
+
+                const marketFills =[
+                    { quantity: ethers.utils.parseEther("100"), isBuy: true},
+                    { quantity:  ethers.utils.parseEther("100"), isBuy : false}
+                ]
+                await expect(positionHouse.marketMakerFill(positionManager.address, marketFills, 10)).to.not.revertedWith("!MM")
+
+                await positionManager.updateMaxPercentMarketMarket(BigNumber.from("20"))
+
+                await expect(positionHouse.marketMakerFill(positionManager.address, marketFills, 10)).to.not.revertedWith("!MM")
+
+
+
+            })
+
+        })
+
+
+    })
 
 });
