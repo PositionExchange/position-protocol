@@ -42,6 +42,18 @@ export interface CreatePositionManagerInput {
     counterParty : string
 }
 
+
+export interface ConfigPositionManagerInput {
+    initialPrice: number;
+    priceFeedKey: string;
+    basisPoint: number;
+    baseBasisPoint: number;
+    tollRatio: number;
+    maxFindingWordsIndex: number;
+    fundingPeriod: number;
+    quote: string;
+}
+
 export interface CreatePositionHouseInput {
     insuranceFund: string,
     positionHouseConfigurationProxy: string

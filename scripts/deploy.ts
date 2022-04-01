@@ -5,6 +5,7 @@ import {ExecOptions} from "child_process";
 import {MigrationContext, Network, Stage} from "../deploy/types";
 import {ContractWrapperFactory} from "../deploy/ContractWrapperFactory";
 import {DeployDataStore} from "../deploy/DataStore";
+import {BUSD, BUSD_ADDRESS} from "../constants";
 
 
 task('deploy', 'deploy contracts', async (taskArgs: {stage: Stage}, hre, runSuper) => {
@@ -17,6 +18,10 @@ task('deploy', 'deploy contracts', async (taskArgs: {stage: Stage}, hre, runSupe
         factory: new ContractWrapperFactory(db, hre),
         db,
         hre
+    }
+
+    if (taskArgs.stage == 'production') {
+        await db.saveAddressByKey(BUSD, BUSD_ADDRESS)
     }
     for (const filename of filenames) {
         console.info(`Start migration: ${filename}`)
