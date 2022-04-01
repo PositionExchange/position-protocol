@@ -8,9 +8,9 @@ export const BTCBUSD : ConfigPositionManagerInput = {
     basisPoint: 100,
     baseBasisPoint: 10000,
     // fee: 0.02%
-    tollRatio: 20000,
-    maxFindingWordsIndex: 1800,
-    fundingPeriod: 1000,
+    tollRatio: 5000,
+    maxFindingWordsIndex: 585,
+    fundingPeriod: 3600,
     quote: BUSD,
 }
 
@@ -20,8 +20,8 @@ export const BNBBUSD : ConfigPositionManagerInput = {
     basisPoint: 100,
     baseBasisPoint: 10000,
     // fee: 0.02%
-    tollRatio: 20000,
-    maxFindingWordsIndex: 900,
-    fundingPeriod: 1000,
+    tollRatio: 5000,
+    maxFindingWordsIndex: 40, // find in $100 range
+    fundingPeriod: 3600,
     quote: BUSD,
 }
