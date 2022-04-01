@@ -38,6 +38,7 @@ interface IPositionManager {
     event FundingRateUpdated(int256 fundingRate, uint256 underlyingPrice);
     event LimitOrderUpdated(uint64 orderId, uint128 pip, uint256 size);
     event LeverageUpdated(uint128 oldLeverage, uint128 newLeverage);
+    event MaxMarketMakerSlipageUpdated(uint32 oldMaxMarketMakerSlipage, uint32 newMaxMarketMakerSlipage);
 
 
     // FUNCTIONS

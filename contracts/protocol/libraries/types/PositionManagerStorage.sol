@@ -91,7 +91,7 @@ contract PositionManagerStorage {
     // a packed array of bit, where liquidity is filled or not
     mapping(uint128 => uint256) public liquidityBitmap;
 
-    uint16 internal maxMarketMakerSlipage;
+    uint16 public maxMarketMakerSlipage;
     uint32 internal constant PERCENT_BASE = 1000000;
 
     /**
