@@ -528,7 +528,8 @@ library PositionHouseFunction {
         PositionLimitOrder.Data[] memory _limitOrders,
         PositionLimitOrder.Data[] memory _reduceLimitOrders,
         uint256 _canClaimAmountInMap,
-        int256 _manualMarginInMap
+        int256 _manualMarginInMap,
+        int256 _pendingProfit
     ) public view returns (int256 totalClaimableAmount) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         uint256 indexReduce;
@@ -601,7 +602,8 @@ library PositionHouseFunction {
             totalClaimableAmount +
             int256(_canClaimAmountInMap) +
             _manualMarginInMap +
-            int256(_positionDataWithoutLimit.margin);
+            int256(_positionDataWithoutLimit.margin) +
+            _pendingProfit;
         if (totalClaimableAmount <= 0) {
             totalClaimableAmount = 0;
         }
@@ -772,13 +774,13 @@ library PositionHouseFunction {
         Position.Data memory _positionData,
         Position.Data memory _positionDataWithoutLimit,
         int128 _latestCumulativePremiumFraction
-    ) public returns (PositionHouseStorage.PositionResp memory positionResp, uint256 debtMargin) {
+    ) public returns (PositionHouseStorage.PositionResp memory positionResp, int256 debtMargin) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         uint256 reduceMarginRequirement = (_positionData.margin *
             _quantity.abs()) / _positionData.quantity.abs();
         int256 totalQuantity = _positionDataWithoutLimit.quantity + _quantity;
         (
-            positionResp.exchangedPositionSize,,,
+            positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount,,
         ) = openMarketOrder(
             _pmAddress,
             _quantity.abs(),
@@ -803,9 +805,6 @@ library PositionHouseFunction {
         // NOTICE calc unrealizedPnl after open reverse
         positionResp.unrealizedPnl = unrealizedPnl - positionResp.realizedPnl;
         {
-            if (reduceMarginRequirement > _positionDataWithoutLimit.margin) {
-                debtMargin = reduceMarginRequirement;
-            }
             positionResp.position = Position.Data(
                 totalQuantity,
                 handleMarginInOpenReverse(
@@ -825,7 +824,7 @@ library PositionHouseFunction {
                 1
             );
         }
-        return (positionResp, debtMargin);
+        return (positionResp, -int256(reduceMarginRequirement) - int256(positionResp.exchangedQuoteAssetAmount / _leverage));
     }
 
     function calcRemainMarginWithFundingPayment(
