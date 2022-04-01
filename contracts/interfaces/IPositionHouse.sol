@@ -41,4 +41,9 @@ interface IPositionHouse {
     external
     view
     returns (int256);
+
+    function _getPendingProfit(address _trader)
+    external
+    view
+    returns (int256);
 }

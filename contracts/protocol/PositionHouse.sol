@@ -700,6 +700,7 @@ contract PositionHouse is
         positionMap[_pmAddress][_trader].clear();
         debtPosition[_pmAddress][_trader].clearDebt();
         manualMargin[_pmAddress][_trader] = 0;
+        pendingProfit[_trader] = 0;
         ClaimableAmountManager._reset(_pmAddress, _trader);
         (
             PositionLimitOrder.Data[] memory subListLimitOrders,
@@ -738,7 +739,7 @@ contract PositionHouse is
         address _pmAddress = address(_positionManager);
         if (_quantity.abs() < _oldPosition.quantity.abs()) {
             {
-                uint256 debtMargin;
+                int256 debtMargin;
                 (positionResp, debtMargin) = PositionHouseFunction.openReversePosition(
                     _pmAddress,
                     _side,
@@ -749,7 +750,7 @@ contract PositionHouse is
                     positionMap[_pmAddress][_trader],
                     getLatestCumulativePremiumFraction(_pmAddress)
                 );
-                ClaimableAmountManager._decrease(_pmAddress, _trader, debtMargin);
+                pendingProfit[_trader] += debtMargin;
                 return positionResp;
             }
         }
@@ -858,6 +859,15 @@ contract PositionHouse is
         returns (int256)
     {
         return manualMargin[_pmAddress][_trader];
+    }
+
+    function _getPendingProfit(address _trader)
+        external
+        view
+        override
+        returns (int256)
+    {
+        return pendingProfit[_trader];
     }
 
     function _deposit(

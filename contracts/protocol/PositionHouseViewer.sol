@@ -34,7 +34,8 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
             positionHouse._getLimitOrders(_pmAddress, _trader),
             positionHouse._getReduceLimitOrders(_pmAddress, _trader),
             positionHouse.getClaimableAmount(_pmAddress, _trader),
-            positionHouse.getAddedMargin(_pmAddress, _trader)
+            positionHouse.getAddedMargin(_pmAddress, _trader),
+            positionHouse._getPendingProfit(_trader)
         );
     }
 
