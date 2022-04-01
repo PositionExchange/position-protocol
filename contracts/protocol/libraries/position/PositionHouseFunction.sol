@@ -11,6 +11,7 @@ import "../types/PositionHouseStorage.sol";
 import {Errors} from "../helpers/Errors.sol";
 
 library PositionHouseFunction {
+    int256 private constant PREMIUM_FRACTION_DENOMINATOR = 10 ** 10;
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
     using Position for Position.Data;
     using Position for Position.LiquidatedData;
@@ -481,8 +482,7 @@ library PositionHouseFunction {
             uint256 _intervalTime = 90;
             positionNotional = (positionManager.getTwapPrice(_intervalTime) * _position.quantity.abs()) / positionManager.getBaseBasisPoint();
         } else {
-            uint256 _intervalTime = 90;
-            positionNotional = (positionManager.getUnderlyingTwapPrice(_intervalTime) * _position.quantity.abs()) / positionManager.getBaseBasisPoint();
+            positionNotional = (positionManager.getUnderlyingPrice() * _position.quantity.abs()) / positionManager.getBaseBasisPoint();
         }
 
         if (_position.side() == Position.Side.LONG) {
@@ -694,11 +694,11 @@ library PositionHouseFunction {
         address _pmAddress,
         uint256 _quantity,
         Position.Side _side
-    ) internal returns (int256 exchangedQuantity, uint256 openNotional) {
+    ) internal returns (int256 exchangedQuantity, uint256 openNotional, uint256 entryPrice, uint256 fee) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
 
         uint256 exchangedSize;
-        (exchangedSize, openNotional) = _positionManager.openMarketPosition(
+        (exchangedSize, openNotional, entryPrice, fee) = _positionManager.openMarketPosition(
             _quantity,
             _side == Position.Side.LONG
         );
@@ -720,7 +720,9 @@ library PositionHouseFunction {
     ) public returns (PositionHouseStorage.PositionResp memory positionResp) {
         (
             positionResp.exchangedPositionSize,
-            positionResp.exchangedQuoteAssetAmount
+            positionResp.exchangedQuoteAssetAmount,
+            positionResp.entryPrice,
+            positionResp.fee
         ) = openMarketOrder(_pmAddress, _quantity.abs(), _side);
         if (positionResp.exchangedPositionSize != 0) {
             int256 _newSize = _positionDataWithoutLimit.quantity +
@@ -770,12 +772,14 @@ library PositionHouseFunction {
         Position.Data memory _positionData,
         Position.Data memory _positionDataWithoutLimit,
         int128 _latestCumulativePremiumFraction
-    ) public returns (PositionHouseStorage.PositionResp memory positionResp) {
+    ) public returns (PositionHouseStorage.PositionResp memory positionResp, uint256 debtMargin) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         uint256 reduceMarginRequirement = (_positionData.margin *
             _quantity.abs()) / _positionData.quantity.abs();
         int256 totalQuantity = _positionDataWithoutLimit.quantity + _quantity;
-        (positionResp.exchangedPositionSize, ) = openMarketOrder(
+        (
+            positionResp.exchangedPositionSize,,,
+        ) = openMarketOrder(
             _pmAddress,
             _quantity.abs(),
             _side
@@ -799,6 +803,9 @@ library PositionHouseFunction {
         // NOTICE calc unrealizedPnl after open reverse
         positionResp.unrealizedPnl = unrealizedPnl - positionResp.realizedPnl;
         {
+            if (reduceMarginRequirement > _positionDataWithoutLimit.margin) {
+                debtMargin = reduceMarginRequirement;
+            }
             positionResp.position = Position.Data(
                 totalQuantity,
                 handleMarginInOpenReverse(
@@ -818,7 +825,7 @@ library PositionHouseFunction {
                 1
             );
         }
-        return positionResp;
+        return (positionResp, debtMargin);
     }
 
     function calcRemainMarginWithFundingPayment(
@@ -839,7 +846,7 @@ library PositionHouseFunction {
             fundingPayment =
                 (_latestCumulativePremiumFraction -
                     _oldPosition.lastUpdatedCumulativePremiumFraction) *
-                _oldPosition.quantity / (10**18);
+                _oldPosition.quantity / (PREMIUM_FRACTION_DENOMINATOR);
         }
 
         // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt

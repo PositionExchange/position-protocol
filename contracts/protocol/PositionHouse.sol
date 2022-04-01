@@ -9,7 +9,6 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "../interfaces/IPositionManager.sol";
 import "./libraries/position/Position.sol";
-import "./PositionManager.sol";
 import "./libraries/helpers/Quantity.sol";
 import "./libraries/position/PositionLimitOrder.sol";
 import "../interfaces/IInsuranceFund.sol";
@@ -18,24 +17,17 @@ import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.
 import {PositionHouseMath} from "./libraries/position/PositionHouseMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
 import {Int256Math} from "./libraries/helpers/Int256Math.sol";
-import {WhitelistManager} from "./modules/WhitelistManager.sol";
 import {CumulativePremiumFractions} from "./modules/CumulativePremiumFractions.sol";
 import {LimitOrderManager} from "./modules/LimitOrder.sol";
 import {ClaimableAmountManager} from "./modules/ClaimableAmountManager.sol";
 import {MarketMakerLogic} from "./modules/MarketMaker.sol";
 
-// TODO remove on production
-import "hardhat/console.sol";
 
 contract PositionHouse is
     ReentrancyGuardUpgradeable,
-    OwnableUpgradeable,
-    PositionHouseStorage,
-    WhitelistManager,
     CumulativePremiumFractions,
     ClaimableAmountManager,
     LimitOrderManager,
-    PausableUpgradeable,
     MarketMakerLogic
 {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
@@ -55,38 +47,30 @@ contract PositionHouse is
         IPositionManager positionManager
     );
 
-    event MarginAdded(
-        address trader,
-        uint256 marginAdded,
-        IPositionManager positionManager
-    );
-
-    event MarginRemoved(
-        address trader,
-        uint256 marginRemoved,
-        IPositionManager positionManager
-    );
+//    event MarginAdded(
+//        address trader,
+//        uint256 marginAdded,
+//        IPositionManager positionManager
+//    );
+//
+//    event MarginRemoved(
+//        address trader,
+//        uint256 marginRemoved,
+//        IPositionManager positionManager
+//    );
 
     event FullyLiquidated(address pmAddress, address trader);
     event PartiallyLiquidated(address pmAddress, address trader);
-    event LiquidationPenaltyRatioUpdated(uint256 oldLiquidationPenaltyRatio, uint256 newLiquidationPenaltyRatio);
-    event PartialLiquidationRatioUpdated(uint256 oldPartialLiquidationLiquid,uint256 newPartialLiquidationLiquid);
-    event WhitelistManagerUpdated(address positionManager, bool isWhitelite);
+//    event WhitelistManagerUpdated(address positionManager, bool isWhitelite);
 
     function initialize(
-        uint256 _maintenanceMarginRatio,
-        uint256 _partialLiquidationRatio,
-        uint256 _liquidationFeeRatio,
-        uint256 _liquidationPenaltyRatio,
-        address _insuranceFund
+        address _insuranceFund,
+        IPositionHouseConfigurationProxy _positionHouseConfigurationProxy
     ) public initializer {
         __ReentrancyGuard_init();
         __Ownable_init();
-        maintenanceMarginRatio = _maintenanceMarginRatio;
-        partialLiquidationRatio = _partialLiquidationRatio;
-        liquidationFeeRatio = _liquidationFeeRatio;
-        liquidationPenaltyRatio = _liquidationPenaltyRatio;
         insuranceFund = IInsuranceFund(_insuranceFund);
+        positionHouseConfigurationProxy = _positionHouseConfigurationProxy;
     }
 
     /**
@@ -101,7 +85,7 @@ contract PositionHouse is
         Position.Side _side,
         uint256 _quantity,
         uint16 _leverage
-    ) external whenNotPaused nonReentrant {
+    ) external  nonReentrant {
         address _pmAddress = address (_positionManager);
         address _trader = _msgSender();
         Position.Data memory _positionData = getPosition(address(_positionManager), _msgSender());
@@ -124,7 +108,7 @@ contract PositionHouse is
         uint256 _uQuantity,
         uint128 _pip,
         uint16 _leverage
-    ) external whenNotPaused nonReentrant {
+    ) external  nonReentrant {
         address _pmAddress = address (_positionManager);
         address _trader = _msgSender();
         Position.Data memory _positionData = getPosition(address(_positionManager), _msgSender());
@@ -154,7 +138,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         uint64 _orderIdx,
         uint8 _isReduce
-    ) external whenNotPaused nonReentrant {
+    ) external  nonReentrant {
         _internalCancelLimitOrder(_positionManager, _orderIdx, _isReduce);
     }
 
@@ -165,7 +149,7 @@ contract PositionHouse is
      */
     function closePosition(IPositionManager _positionManager, uint256 _quantity)
         external
-        whenNotPaused
+        
         nonReentrant
     {
         address _trader = _msgSender();
@@ -198,7 +182,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         uint128 _pip,
         uint256 _quantity
-    ) external whenNotPaused nonReentrant {
+    ) external  nonReentrant {
         address _trader = _msgSender();
         Position.Data memory positionData = getPosition(
             address(_positionManager),
@@ -222,7 +206,7 @@ contract PositionHouse is
 
     function claimFund(IPositionManager _positionManager)
         external
-        whenNotPaused
+        
         nonReentrant
     {
         Position.Data memory _positionData = getPosition(address(_positionManager), _msgSender());
@@ -237,7 +221,7 @@ contract PositionHouse is
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
         if(totalRealizedPnl == 0){
-            totalRealizedPnl = PositionHouseFunction.getClaimAmount(
+            totalRealizedPnl = _getClaimAmount(
                 _pmAddress,
                 _trader,
                 _positionData,
@@ -250,7 +234,7 @@ contract PositionHouse is
         }
         clearPosition(_pmAddress, _trader);
         if (totalRealizedPnl > 0) {
-            withdraw(_positionManager, _trader, totalRealizedPnl.abs());
+            _withdraw(_pmAddress, _trader, totalRealizedPnl.abs());
         }
     }
 
@@ -262,7 +246,7 @@ contract PositionHouse is
      */
     function liquidate(IPositionManager _positionManager, address _trader)
         external
-        whenNotPaused
+        
         nonReentrant
     {
         address _caller = _msgSender();
@@ -271,9 +255,9 @@ contract PositionHouse is
             _trader,
             PnlCalcOption.ORACLE
         );
-
+        uint256 _partialLiquidationRatio = positionHouseConfigurationProxy.partialLiquidationRatio();
         require(
-            marginRatio >= partialLiquidationRatio,
+            marginRatio >= _partialLiquidationRatio,
             Errors.VL_NOT_ENOUGH_MARGIN_RATIO
         );
         address _pmAddress = address(_positionManager);
@@ -281,23 +265,20 @@ contract PositionHouse is
         uint256 liquidationPenalty;
         {
             uint256 feeToLiquidator;
-            uint256 feeToInsuranceFund;
             Position.Data memory positionData = getPosition(
                 _pmAddress,
                 _trader
             );
+            (uint256 _liquidationFeeRatio, uint256 _liquidationPenaltyRatio) = positionHouseConfigurationProxy.getLiquidationRatio();
             // partially liquidate position
-            if (marginRatio >= partialLiquidationRatio && marginRatio < 100) {
+            if (marginRatio >= _partialLiquidationRatio && marginRatio < 100) {
                 // calculate amount quantity of position to reduce
                 int256 partiallyLiquidateQuantity = positionData
                     .quantity
-                    .getPartiallyLiquidate(liquidationPenaltyRatio);
+                    .getPartiallyLiquidate(_liquidationPenaltyRatio);
                 // partially liquidate position by reduce position's quantity
                 positionResp = partialLiquidate(
                     _positionManager,
-                    positionData.quantity > 0
-                        ? Position.Side.SHORT
-                        : Position.Side.LONG,
                     -partiallyLiquidateQuantity,
                     positionData,
                     _trader
@@ -306,7 +287,7 @@ contract PositionHouse is
                 // half of the liquidationFee goes to liquidator & another half goes to insurance fund
                 liquidationPenalty = uint256(positionResp.marginToVault);
                 feeToLiquidator = liquidationPenalty / 2;
-                feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
+                uint256 feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
                 emit PartiallyLiquidated(_pmAddress, _trader);
             } else {
                 // fully liquidate trader's position
@@ -315,12 +296,12 @@ contract PositionHouse is
                     uint256(manualMargin[_pmAddress][_trader]);
                 clearPosition(_pmAddress, _trader);
                 feeToLiquidator =
-                    (liquidationPenalty * liquidationFeeRatio) /
+                    (liquidationPenalty * _liquidationFeeRatio) /
                     2 /
                     100;
                 emit FullyLiquidated(_pmAddress, _trader);
             }
-            withdraw(_positionManager, _caller, feeToLiquidator);
+            _withdraw(_pmAddress, _caller, feeToLiquidator);
             // count as bad debt, transfer money to insurance fund and liquidator
         }
     }
@@ -332,7 +313,7 @@ contract PositionHouse is
      */
     function addMargin(IPositionManager _positionManager, uint256 _amount)
         external
-        whenNotPaused
+        
         nonReentrant
     {
         address _trader = _msgSender();
@@ -343,17 +324,9 @@ contract PositionHouse is
         );
         manualMargin[_pmAddress][_trader] += int256(_amount);
 
-        deposit(_positionManager, _trader, _amount, 0);
+        _deposit(_pmAddress, _trader, _amount, 0);
 
-        emit MarginAdded(_trader, _amount, _positionManager);
-    }
-
-    function getAddedMargin(IPositionManager _positionManager, address _trader)
-        external
-        view
-        returns (int256)
-    {
-        return manualMargin[address(_positionManager)][_trader];
+//        emit MarginAdded(_trader, _amount, _positionManager);
     }
 
     /**
@@ -363,7 +336,7 @@ contract PositionHouse is
      */
     function removeMargin(IPositionManager _positionManager, uint256 _amount)
         external
-        whenNotPaused
+        
         nonReentrant
     {
         address _trader = _msgSender();
@@ -373,49 +346,30 @@ contract PositionHouse is
 
         manualMargin[address(_positionManager)][_trader] -= int256(_amount);
 
-        withdraw(_positionManager, _trader, _amount);
+        _withdraw(address(_positionManager), _trader, _amount);
 
-        emit MarginRemoved(_trader, _amount, _positionManager);
+//        emit MarginRemoved(_trader, _amount, _positionManager);
     }
 
     // OWNER UPDATE VARIABLE STORAGE
-    function updatePartialLiquidationRatio(uint256 _partialLiquidationRatio)
-        external
-        onlyOwner
-    {
-        emit PartialLiquidationRatioUpdated(partialLiquidationRatio, _partialLiquidationRatio);
-        partialLiquidationRatio = _partialLiquidationRatio;
-    }
 
-    function updateLiquidationPenaltyRatio(uint256 _liquidationPenaltyRatio)
-        external
-        onlyOwner
-    {
-        emit LiquidationPenaltyRatioUpdated(liquidationPenaltyRatio, _liquidationPenaltyRatio);
-        liquidationPenaltyRatio = _liquidationPenaltyRatio;
-    }
-
-    function updateWhitelistManager(address _positionManager, bool _isWhitelist)
-        external
-        onlyOwner
-    {
-        if (_isWhitelist) {
-            _setWhitelistManager(_positionManager);
-        } else {
-            _removeWhitelistManager(_positionManager);
-        }
-        emit WhitelistManagerUpdated(_positionManager, _isWhitelist);
-    }
-
-    function setPauseStatus(bool _isPause) external onlyOwner {
-        if (_isPause) {
-            _pause();
-        } else {
-            _unpause();
-        }
-    }
+//    function setPauseStatus(bool _isPause) external onlyOwner {
+//        if (_isPause) {
+//            _pause();
+//        } else {
+//            _unpause();
+//        }
+//    }
 
     // PUBLIC VIEW QUERY
+
+    function getAddedMargin(address _positionManager, address _trader)
+    external
+    view
+    returns (int256)
+    {
+        return manualMargin[_positionManager][_trader];
+    }
 
     function getRemovableMargin(
         IPositionManager _positionManager,
@@ -436,38 +390,38 @@ contract PositionHouse is
             );
     }
 
-    function getClaimAmount(address _pmAddress, address _trader)
-        public
-        view
-        returns (int256 totalClaimableAmount)
-    {
-        Position.Data memory positionData = getPosition(_pmAddress, _trader);
-        return
-            PositionHouseFunction.getClaimAmount(
-                _pmAddress,
-                _trader,
-                positionData,
-                _getPositionMap(_pmAddress, _trader),
-                _getLimitOrders(_pmAddress, _trader),
-                _getReduceLimitOrders(_pmAddress, _trader),
-                getClaimableAmount(_pmAddress, _trader),
-                _getManualMargin(_pmAddress, _trader)
-            );
-    }
-
-    function getListOrderPending(
-        IPositionManager _positionManager,
-        address _trader
-    ) public view override returns (LimitOrderPending[] memory) {
-        address _pmAddress = address(_positionManager);
-        return
-            PositionHouseFunction.getListOrderPending(
-                _pmAddress,
-                _trader,
-                _getLimitOrders(_pmAddress, _trader),
-                _getReduceLimitOrders(_pmAddress, _trader)
-            );
-    }
+//    function getClaimAmount(address _pmAddress, address _trader)
+//        public
+//        view
+//        returns (int256 totalClaimableAmount)
+//    {
+//        Position.Data memory positionData = getPosition(_pmAddress, _trader);
+//        return
+//            PositionHouseFunction.getClaimAmount(
+//                _pmAddress,
+//                _trader,
+//                positionData,
+//                _getPositionMap(_pmAddress, _trader),
+//                _getLimitOrders(_pmAddress, _trader),
+//                _getReduceLimitOrders(_pmAddress, _trader),
+//                getClaimableAmount(_pmAddress, _trader),
+//                _getManualMargin(_pmAddress, _trader)
+//            );
+//    }
+//
+//    function getListOrderPending(
+//        IPositionManager _positionManager,
+//        address _trader
+//    ) public view returns (LimitOrderPending[] memory) {
+//        address _pmAddress = address(_positionManager);
+//        return
+//            PositionHouseFunction.getListOrderPending(
+//                _pmAddress,
+//                _trader,
+//                _getLimitOrders(_pmAddress, _trader),
+//                _getReduceLimitOrders(_pmAddress, _trader)
+//            );
+//    }
 
     function getPosition(address _pmAddress, address _trader)
         public
@@ -506,7 +460,7 @@ contract PositionHouse is
         address _trader,
         PnlCalcOption _pnlCalcOption,
         Position.Data memory _oldPosition
-    ) public view returns (uint256 positionNotional, int256 unrealizedPnl) {
+    ) internal view returns (uint256 positionNotional, int256 unrealizedPnl) {
         (positionNotional, unrealizedPnl) = PositionHouseFunction
             .getPositionNotionalAndUnrealizedPnl(
                 address(_positionManager),
@@ -530,34 +484,34 @@ contract PositionHouse is
     //        }
     //    }
 
-    function getFundingPaymentAmount(IPositionManager _positionManager, address _trader) external view returns (int256 fundingPayment) {
-        address _pmAddress = address(_positionManager);
-        Position.Data memory positionData = getPosition(_pmAddress, _trader);
-        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
-            _positionManager,
-            _trader,
-            PnlCalcOption.SPOT_PRICE,
-            positionData
-        );
-        (
-        ,
-        ,
-         fundingPayment
-        ,
-
-        ) = calcRemainMarginWithFundingPayment(
-            _pmAddress,
-            positionData,
-            positionData.margin
-        );
-    }
+//    function getFundingPaymentAmount(IPositionManager _positionManager, address _trader) external view returns (int256 fundingPayment) {
+//        address _pmAddress = address(_positionManager);
+//        Position.Data memory positionData = getPosition(_pmAddress, _trader);
+//        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
+//            _positionManager,
+//            _trader,
+//            PnlCalcOption.SPOT_PRICE,
+//            positionData
+//        );
+//        (
+//        ,
+//        ,
+//         fundingPayment
+//        ,
+//
+//        ) = calcRemainMarginWithFundingPayment(
+//            _pmAddress,
+//            positionData,
+//            positionData.margin
+//        );
+//    }
 
     function getMaintenanceDetail(
         IPositionManager _positionManager,
         address _trader,
         PnlCalcOption _calcOption
     )
-        public
+        internal
         view
         returns (
             uint256 maintenanceMargin,
@@ -576,7 +530,6 @@ contract PositionHouse is
         (
             uint256 remainMarginWithFundingPayment,
             ,
-            int256 fundingPayment
             ,
 
         ) = calcRemainMarginWithFundingPayment(
@@ -587,7 +540,7 @@ contract PositionHouse is
         maintenanceMargin =
             ((remainMarginWithFundingPayment -
                 uint256(manualMargin[_pmAddress][_trader])) *
-                maintenanceMarginRatio) /
+                positionHouseConfigurationProxy.maintenanceMarginRatio()) /
             100;
         marginBalance = int256(remainMarginWithFundingPayment) + unrealizedPnl;
         marginRatio = marginBalance <= 0
@@ -595,25 +548,7 @@ contract PositionHouse is
             : (maintenanceMargin * 100) / uint256(marginBalance);
     }
 
-    function getNextFundingTime(IPositionManager _positionManager) external view returns (uint256) {
-        return _positionManager.getNextFundingTime();
-    }
 
-    function getCurrentFundingRate(IPositionManager _positionManager) external view returns (int256) {
-        return _positionManager.getCurrentFundingRate();
-    }
-
-    function getCumulativePremiumFractions(address _pmAddress)
-        public
-        view
-        override(CumulativePremiumFractions, LimitOrderManager)
-        returns (int128[] memory)
-    {
-        return
-            CumulativePremiumFractions.getCumulativePremiumFractions(
-                _pmAddress
-            );
-    }
 
     function getLatestCumulativePremiumFraction(address _pmAddress)
         public
@@ -683,18 +618,16 @@ contract PositionHouse is
 
         if (pResp.marginToVault > 0) {
             //transfer from trader to vault
-            uint256 fee = _positionManager.calcFee(pResp.position.openNotional);
-            deposit(_positionManager, _trader, pResp.marginToVault.abs(), fee);
+            _deposit(_pmAddress, _trader, pResp.marginToVault.abs(), pResp.fee);
         } else if (pResp.marginToVault < 0) {
             // withdraw from vault to user
-            withdraw(_positionManager, _trader, pResp.marginToVault.abs());
+            _withdraw(_pmAddress, _trader, pResp.marginToVault.abs());
         }
         emit OpenMarket(
             _trader,
             pQuantity,
             _leverage,
-            (pResp.exchangedQuoteAssetAmount *
-                _positionManager.getBasisPoint()) / _quantity,
+            pResp.entryPrice,
             _positionManager
         );
     }
@@ -724,7 +657,9 @@ contract PositionHouse is
 
         (
             positionResp.exchangedPositionSize,
-            positionResp.exchangedQuoteAssetAmount
+            positionResp.exchangedQuoteAssetAmount,
+            positionResp.entryPrice,
+            positionResp.fee
         ) = PositionHouseFunction.openMarketOrder(
             _pmAddress,
             openMarketQuantity,
@@ -774,6 +709,8 @@ contract PositionHouse is
                 _getLimitOrders(_pmAddress, _trader),
                 _getReduceLimitOrders(_pmAddress, _trader)
             );
+
+
         _emptyLimitOrders(_pmAddress, _trader);
         for (uint256 i = 0; i < subListLimitOrders.length; i++) {
             if (subListLimitOrders[i].pip == 0) {
@@ -801,7 +738,8 @@ contract PositionHouse is
         address _pmAddress = address(_positionManager);
         if (_quantity.abs() < _oldPosition.quantity.abs()) {
             {
-                positionResp = PositionHouseFunction.openReversePosition(
+                uint256 debtMargin;
+                (positionResp, debtMargin) = PositionHouseFunction.openReversePosition(
                     _pmAddress,
                     _side,
                     _quantity,
@@ -811,29 +749,11 @@ contract PositionHouse is
                     positionMap[_pmAddress][_trader],
                     getLatestCumulativePremiumFraction(_pmAddress)
                 );
+                ClaimableAmountManager._decrease(_pmAddress, _trader, debtMargin);
                 return positionResp;
             }
         }
         // if new position is larger then close old and open new
-        return
-            closeAndOpenReversePosition(
-                _positionManager,
-                _side,
-                _quantity,
-                _leverage,
-                _oldPosition
-            );
-    }
-
-    function closeAndOpenReversePosition(
-        IPositionManager _positionManager,
-        Position.Side _side,
-        int256 _quantity,
-        uint16 _leverage,
-        Position.Data memory _oldPosition
-    ) internal returns (PositionResp memory positionResp) {
-        address _trader = _msgSender();
-        address _pmAddress = address(_positionManager);
         PositionResp memory closePositionResp = _internalClosePosition(
             _positionManager,
             _trader,
@@ -846,20 +766,20 @@ contract PositionHouse is
         } else {
             _oldPosition = getPosition(_pmAddress, _trader);
             PositionResp memory increasePositionResp = PositionHouseFunction
-                .increasePosition(
-                    address(_positionManager),
-                    _side,
-                    _quantity - closePositionResp.exchangedPositionSize,
-                    _leverage,
-                    _trader,
-                    _oldPosition,
-                    positionMap[_pmAddress][_trader],
-                    getLatestCumulativePremiumFraction(_pmAddress)
-                );
+            .increasePosition(
+                address(_positionManager),
+                _side,
+                _quantity - closePositionResp.exchangedPositionSize,
+                _leverage,
+                _trader,
+                _oldPosition,
+                positionMap[_pmAddress][_trader],
+                getLatestCumulativePremiumFraction(_pmAddress)
+            );
             positionResp = PositionResp({
                 position: increasePositionResp.position,
                 exchangedQuoteAssetAmount: closePositionResp
-                    .exchangedQuoteAssetAmount +
+                .exchangedQuoteAssetAmount +
                     increasePositionResp.exchangedQuoteAssetAmount,
                 fundingPayment: increasePositionResp.fundingPayment,
                 exchangedPositionSize: closePositionResp.exchangedPositionSize +
@@ -868,48 +788,25 @@ contract PositionHouse is
                     increasePositionResp.realizedPnl,
                 unrealizedPnl: 0,
                 marginToVault: closePositionResp.marginToVault +
-                    increasePositionResp.marginToVault
+                    increasePositionResp.marginToVault,
+                fee: closePositionResp.fee,
+                entryPrice: closePositionResp.entryPrice
             });
         }
         return positionResp;
     }
 
-    function withdraw(
-        IPositionManager _positionManager,
-        address _trader,
-        uint256 _amount
-    ) internal override onlyWhitelistManager(address(_positionManager)) {
-        insuranceFund.withdraw(
-            address(_positionManager.getQuoteAsset()),
-            _trader,
-            _amount
-        );
-    }
-
-    function deposit(
-        IPositionManager _positionManager,
-        address _trader,
-        uint256 _amount,
-        uint256 _fee
-    ) internal override onlyWhitelistManager(address(_positionManager)) {
-        insuranceFund.deposit(
-            address(_positionManager.getQuoteAsset()),
-            _trader,
-            _amount + _fee
-        );
-        insuranceFund.updateTotalFee(_fee);
-    }
-
     function partialLiquidate(
         IPositionManager _positionManager,
-        Position.Side _side,
         int256 _quantity,
         Position.Data memory _oldPosition,
         address _trader
     ) internal returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
-        (positionResp.exchangedPositionSize, ) = PositionHouseFunction
-            .openMarketOrder(_pmAddress, _quantity.abs(), _side);
+        (positionResp.exchangedPositionSize, ,, ) = PositionHouseFunction
+            .openMarketOrder(_pmAddress, _quantity.abs(), _quantity > 0
+                        ? Position.Side.SHORT
+                        : Position.Side.LONG);
         positionResp.exchangedQuoteAssetAmount = _quantity
             .getExchangedQuoteAssetAmount(
                 _oldPosition.openNotional,
@@ -924,7 +821,7 @@ contract PositionHouse is
         // TODO need to calculate remain margin with funding payment
         uint256 _newMargin = PositionHouseMath.calculatePartialLiquidateMargin(
             _oldPosition.margin,
-            liquidationFeeRatio
+            positionHouseConfigurationProxy.liquidationFeeRatio()
         );
         // unchecked
         positionResp.marginToVault = int256(_newMargin);
@@ -962,4 +859,25 @@ contract PositionHouse is
     {
         return manualMargin[_pmAddress][_trader];
     }
+
+    function _deposit(
+        address positionManager,
+        address trader,
+        uint256 amount,
+        uint256 fee)
+        internal
+    {
+        insuranceFund.deposit(positionManager, trader, amount, fee);
+    }
+
+    function _withdraw(
+        address positionManager,
+        address trader,
+        uint256 amount
+    ) internal
+    {
+        insuranceFund.withdraw(positionManager, trader, amount);
+    }
+
+
 }

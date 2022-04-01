@@ -9,7 +9,7 @@ import "../libraries/types/PositionHouseStorage.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
 import "./ClaimableAmountManager.sol";
 
-abstract contract LimitOrderManager is ClaimableAmountManager {
+abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStorage {
     event OpenLimit(
         uint64 orderId,
         address trader,
@@ -82,7 +82,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             _order.pip,
             _order.leverage
         );
-        withdraw(_positionManager, _trader, _refundMargin);
+        insuranceFund.withdraw(_pmAddress, _trader, _refundMargin);
         ClaimableAmountManager._decrease(_pmAddress, _trader, _refundMargin);
         emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
     }
@@ -131,7 +131,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             );
             (, uint256 marginToVault, uint256 fee) = _positionManager
                 .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
-            deposit(_positionManager, _trader, marginToVault, fee);
+            insuranceFund.deposit(_pmAddress, _trader, marginToVault, fee);
             uint256 limitOrderMargin = marginToVault * (_uQuantity - openLimitResp.sizeOut) / _uQuantity;
             ClaimableAmountManager._increase(
                 _pmAddress,
@@ -230,7 +230,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
                 ) {
                     sizeOut = _rawQuantity.abs();
                     if (closePositionResp.marginToVault < 0) {
-                        withdraw(_positionManager, _trader, closePositionResp.marginToVault.abs());
+                        insuranceFund.withdraw(_pmAddress, _trader, closePositionResp.marginToVault.abs());
                     }
                 } else {
                     _quantity -= (closePositionResp.exchangedPositionSize)
@@ -243,8 +243,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
                     // case: open a limit order at the last price
                     // the order must be partially executed
                     // then update the current position
-                    Position.Data memory newData;
-                    newData = PositionHouseFunction.handleMarketPart(
+                    Position.Data memory newData = PositionHouseFunction.handleMarketPart(
                         oldPosition,
                         _getPositionMap(_pmAddress, _trader),
                         openNotional,
@@ -270,7 +269,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
     }
 
     function _getLimitOrders(address _pmAddress, address _trader)
-        internal
+        public
         view
         returns (PositionLimitOrder.Data[] memory)
     {
@@ -278,7 +277,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
     }
 
     function _getReduceLimitOrders(address _pmAddress, address _trader)
-        internal
+        public
         view
         returns (PositionLimitOrder.Data[] memory)
     {
@@ -343,11 +342,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             return true;
         }
 
-        Position.Side _currentOrderSide = listOrdersPending[0].isBuy == true
-        ? Position.Side.LONG
-        : Position.Side.SHORT;
-
-        return _side == _currentOrderSide ? true : false;
+        return _side == (listOrdersPending[0].isBuy == true ? Position.Side.LONG : Position.Side.SHORT);
     }
 
     function _requireQuantityOrder(
@@ -364,7 +359,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         address _trader,
         Position.Data memory _positionData
     ) internal view returns (bool needClaim, int256 claimableAmount) {
-        claimableAmount = PositionHouseFunction.getClaimAmount(
+        claimableAmount = _getClaimAmount(
             _pmAddress,
             _trader,
             _positionData,
@@ -375,6 +370,35 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
             _getManualMargin(_pmAddress, _trader)
         );
         needClaim = claimableAmount != 0 && _positionData.quantity == 0;
+    }
+
+    function _getClaimAmount(
+        address _pmAddress,
+        address _trader,
+        Position.Data memory _positionData,
+        Position.Data memory _positionDataWithoutLimit,
+        PositionLimitOrder.Data[] memory _limitOrders,
+        PositionLimitOrder.Data[] memory _reduceLimitOrders,
+        uint256 _canClaimAmountInMap,
+        int256 _manualMarginInMap
+    ) internal view returns (int256) {
+        address a = _pmAddress;
+        address t = _trader;
+
+        {
+            return PositionHouseFunction.getClaimAmount(
+                a,
+                t,
+                _positionData,
+                _getPositionMap(a, t),
+                _getLimitOrders(a, t),
+                _getReduceLimitOrders(a, t),
+                getClaimableAmount(a, t),
+                _getManualMargin(a, t)
+            );
+
+        }
+
     }
 
     function getPosition(address _pmAddress, address _trader)
@@ -400,11 +424,6 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         Position.Data memory newData
     ) internal virtual;
 
-    function getCumulativePremiumFractions(address _pmAddress)
-        public
-        view
-        virtual
-        returns (int128[] memory);
 
     function getLatestCumulativePremiumFraction(address _pmAddress)
         public
@@ -423,19 +442,6 @@ abstract contract LimitOrderManager is ClaimableAmountManager {
         view
         virtual
         returns (int256);
-
-    function deposit(
-        IPositionManager _positionManager,
-        address _trader,
-        uint256 _amount,
-        uint256 _fee
-    ) internal virtual;
-
-    function withdraw(
-        IPositionManager _positionManager,
-        address _trader,
-        uint256 _amount
-    ) internal virtual;
 
 
     /**

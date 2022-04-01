@@ -18,7 +18,7 @@ import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
 import {IPositionManager} from "../interfaces/IPositionManager.sol";
 
-import "hardhat/console.sol";
+//import "hardhat/console.sol";
 
 contract PositionManager is
     ReentrancyGuardUpgradeable,
@@ -216,9 +216,11 @@ contract PositionManager is
         external
         whenNotPaused
         onlyCounterParty
-        returns (uint256 sizeOut, uint256 openNotional)
+        returns (uint256 sizeOut, uint256 openNotional, uint256 entryPrice, uint256 fee)
     {
-        return _internalOpenMarketOrder(_size, _isBuy, 0);
+        (sizeOut, openNotional) = _internalOpenMarketOrder(_size, _isBuy, 0);
+        fee = calcFee(openNotional);
+        entryPrice = openNotional * getBasisPoint() / _size;
     }
 
     /**

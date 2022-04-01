@@ -6,7 +6,14 @@ const {solidity} = waffle
 
 import {expect, use} from 'chai'
 import InsuranceFundArtifact from '../../artifacts/contracts/protocol/InsuranceFund.sol/InsuranceFund.json'
-import {PositionManager, PositionHouse, ChainLinkPriceFeed, BEP20Mintable, InsuranceFund} from "../../typeChain";
+import {
+    PositionManager,
+    PositionHouse,
+    ChainLinkPriceFeed,
+    BEP20Mintable,
+    InsuranceFund,
+    PositionHouseViewer, PositionHouseConfigurationProxy
+} from "../../typeChain";
 import {
     ClaimFund, LimitOrderReturns,
     MaintenanceDetail, NotionalAndUnrealizedPnlReturns, OpenLimitPositionAndExpectParams,
@@ -45,6 +52,8 @@ describe("PositionHouse_01", () => {
     let positionHouseTestingTool: PositionHouseTestingTool
     let bep20Mintable: BEP20Mintable
     let insuranceFund: InsuranceFund
+    let positionHouseViewer: PositionHouseViewer;
+    let positionHouseConfigurationProxy: PositionHouseConfigurationProxy;
 
     beforeEach(async () => {
         [trader, trader1, trader2, trader3, trader4, trader5, trader6] = await ethers.getSigners();
@@ -55,7 +64,9 @@ describe("PositionHouse_01", () => {
             positionManagerTestingTool,
             positionHouseTestingTool,
             bep20Mintable,
-            insuranceFund
+            insuranceFund,
+            positionHouseViewer,
+            positionHouseConfigurationProxy
         ] = await deployPositionHouse() as any
 
     })
@@ -166,7 +177,7 @@ describe("PositionHouse_01", () => {
     }
 
     async function cancelLimitOrder(positionManagerAddress: string, trader: SignerWithAddress, orderId: string, pip: string) {
-        const listPendingOrder = await positionHouse.connect(trader).getListOrderPending(positionManagerAddress, trader.address)
+        const listPendingOrder = await positionHouseViewer.connect(trader).getListOrderPending(positionManagerAddress, trader.address)
         const obj = listPendingOrder.find(x => () => {
             (x.orderId.toString() == orderId && x.pip.toString() == pip)
         });
@@ -175,7 +186,7 @@ describe("PositionHouse_01", () => {
 
     async function getPositionNotionalAndUnrealizedPnl(positionManagerAddress: string, traderAddress: string): Promise<NotionalAndUnrealizedPnlReturns> {
         const oldPosition = await positionHouse.getPosition(positionManagerAddress, traderAddress)
-        return positionHouse.getPositionNotionalAndUnrealizedPnl(positionManagerAddress, traderAddress, BigNumber.from(1), oldPosition)
+        return positionHouseViewer.getPositionNotionalAndUnrealizedPnl(positionManagerAddress, traderAddress, BigNumber.from(1), oldPosition)
 
     }
 

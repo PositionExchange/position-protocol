@@ -3,8 +3,9 @@ pragma solidity ^0.8.8;
 
 import "../position/PositionLimitOrder.sol";
 import "../../../interfaces/IInsuranceFund.sol";
+import "../../../interfaces/IPositionHouseConfigurationProxy.sol";
 
-contract PositionHouseStorage {
+abstract contract PositionHouseStorage {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
     using Quantity for int256;
     using Quantity for int128;
@@ -26,6 +27,8 @@ contract PositionHouseStorage {
         int256 exchangedPositionSize;
         uint256 exchangedQuoteAssetAmount;
         uint256 fundingPayment;
+        uint256 entryPrice;
+        uint256 fee;
     }
 
     struct LimitOrderPending {
@@ -70,14 +73,8 @@ contract PositionHouseStorage {
 
 
     // update added margin type from int256 to uint256
-    mapping(address => mapping(address => int256)) public manualMargin;
+    mapping(address => mapping(address => int256)) internal manualMargin;
     //can update with index => no need delete array when close all
-
-
-    uint256 maintenanceMarginRatio;
-    uint256 partialLiquidationRatio;
-    uint256 liquidationFeeRatio;
-    uint256 liquidationPenaltyRatio;
 
     IInsuranceFund public insuranceFund;
 
@@ -88,5 +85,7 @@ contract PositionHouseStorage {
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
     uint256[49] private __gap;
+
+    IPositionHouseConfigurationProxy public positionHouseConfigurationProxy;
 
 }

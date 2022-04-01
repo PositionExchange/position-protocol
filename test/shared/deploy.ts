@@ -1,5 +1,13 @@
 import {ethers} from "hardhat";
-import {BEP20Mintable, InsuranceFund, PositionHouse, PositionManager} from "../../typeChain";
+import {
+    BEP20Mintable,
+    InsuranceFund,
+    PositionHouse,
+    PositionHouseConfigurationProxy,
+    PositionHouseFunction,
+    PositionHouseViewer,
+    PositionManager
+} from "../../typeChain";
 import {BigNumber} from "ethers";
 import PositionManagerTestingTool from "./positionManagerTestingTool";
 import PositionHouseTestingTool from "./positionHouseTestingTool";
@@ -20,9 +28,17 @@ export async function deployPositionHouse(){
     const insuranceFundFactory = await ethers.getContractFactory('InsuranceFund')
     let insuranceFund = (await insuranceFundFactory.deploy()) as unknown as InsuranceFund
 
+    const positionHouseConfigurationProxyFactory = await ethers.getContractFactory('PositionHouseConfigurationProxy')
+    let positionHouseConfiguration = (await positionHouseConfigurationProxyFactory.deploy()) as unknown as PositionHouseConfigurationProxy
+
     // Deploy position manager contract
     let positionManagerFactory = await ethers.getContractFactory("PositionManager")
     let positionManager = (await positionManagerFactory.deploy()) as unknown as PositionManager;
+    let positionHouseViewer = await ((await ethers.getContractFactory('PositionHouseViewer', {
+        libraries: {
+            PositionHouseFunction: libraryIns.address
+        }
+    })).deploy()) as unknown as PositionHouseViewer
 
     // Deploy position house contract
     const factory = await ethers.getContractFactory("PositionHouse", {
@@ -40,12 +56,14 @@ export async function deployPositionHouse(){
         bep20Mintable.connect(element).approve(insuranceFund.address, BigNumber.from('1000000000000000000000000000000000000'))
     })
     let positionManagerTestingTool = new PositionManagerTestingTool(positionManager)
-    let positionHouseTestingTool = new PositionHouseTestingTool(positionHouse, positionManager)
+    let positionHouseTestingTool = new PositionHouseTestingTool(positionHouse, positionManager, positionHouseViewer)
 
     await positionManager.initialize(BigNumber.from(500000), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
-    await positionHouse.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20), insuranceFund.address)
+    await positionHouseConfiguration.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20))
+    await positionHouse.initialize(insuranceFund.address, positionHouseConfiguration.address)
+    await positionHouseViewer.initialize(positionHouse.address, positionHouseConfiguration.address)
 
-    await positionHouse.updateWhitelistManager(positionManager.address, true);
+    await insuranceFund.updateWhitelistManager(positionManager.address, true);
 
     return [
         positionHouse,
@@ -54,7 +72,8 @@ export async function deployPositionHouse(){
         positionManagerTestingTool,
         positionHouseTestingTool,
         bep20Mintable,
-        insuranceFund
+        insuranceFund,
+        positionHouseViewer
     ]
 
 }
