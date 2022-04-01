@@ -43,12 +43,21 @@ export interface CreatePositionManagerInput {
 }
 
 export interface CreatePositionHouseInput {
+    insuranceFund: string,
+    positionHouseConfigurationProxy: string
+    // feePool: string
+}
+
+export interface CreatePositionHouseConfigurationProxyInput {
     maintenanceMarginRatio: number,
     partialLiquidationRatio: number,
     liquidationFeeRatio: number,
     liquidationPenaltyRatio: number,
-    insuranceFund: string,
-    // feePool: string
+}
+
+export interface CreatePositionHouseViewerInput {
+    positionHouse: string,
+    positionHouseConfigurationProxy: string
 }
 
 

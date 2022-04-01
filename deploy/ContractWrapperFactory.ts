@@ -3,7 +3,10 @@ import {
     PositionManager,
     CreatePositionHouseInput,
     CreateInsuranceFund,
-    CreatePositionHouseFunction, CreateChainLinkPriceFeed
+    CreatePositionHouseFunction,
+    CreateChainLinkPriceFeed,
+    CreatePositionHouseConfigurationProxyInput,
+    CreatePositionHouseViewerInput
 } from "./types";
 import {DeployDataStore} from "./DataStore";
 import {verifyContract} from "../scripts/utils";
@@ -98,11 +101,8 @@ export class ContractWrapperFactory {
 
         } else {
             const contractArgs = [
-                args.maintenanceMarginRatio,
-                args.partialLiquidationRatio,
-                args.liquidationFeeRatio,
-                args.liquidationPenaltyRatio,
                 args.insuranceFund,
+                args.positionHouseConfigurationProxy
                 // args.feePool
             ];
 
@@ -114,6 +114,73 @@ export class ContractWrapperFactory {
             const address = instance.address.toString().toLowerCase();
             console.log(`PositionHouse address : ${address}`)
             await this.db.saveAddressByKey('PositionHouse', address);
+        }
+    }
+
+    async createPositionHouseConfigurationProxy(args: CreatePositionHouseConfigurationProxyInput) {
+        console.log(`into create PositionHouseConfigurationProxy`);
+
+        const PositionHouseConfiguration = await this.hre.ethers.getContractFactory("PositionHouseConfigurationProxy")
+        const positionHouseConfigurationContractAddress = await this.db.findAddressByKey(`PositionHouseConfigurationProxy`);
+
+        if (positionHouseConfigurationContractAddress) {
+            console.log('Start upgrade position house configuration')
+            const upgraded = await this.hre.upgrades.upgradeProxy(positionHouseConfigurationContractAddress, PositionHouseConfiguration, {unsafeAllowLinkedLibraries: true});
+            console.log('Starting verify upgrade PositionHouseConfiguration');
+            await this.verifyImplContract(upgraded.deployTransaction);
+
+        } else {
+            const contractArgs = [
+                args.maintenanceMarginRatio,
+                args.partialLiquidationRatio,
+                args.liquidationFeeRatio,
+                args.liquidationPenaltyRatio
+            ];
+
+            //@ts-ignore
+            const instance = await upgrades.deployProxy(PositionHouseConfiguration, contractArgs, {unsafeAllowLinkedLibraries: true});
+            console.log("wait for deploy")
+            await instance.deployed();
+
+            const address = instance.address.toString().toLowerCase();
+            console.log(`PositionHouseConfiguration address : ${address}`)
+            await this.db.saveAddressByKey('PositionHouseConfigurationProxy', address);
+        }
+    }
+
+    async createPositionHouseViewer(args: CreatePositionHouseViewerInput) {
+        console.log(`into create PositionHouseViewer`);
+        const positionHouseFunctionContractAddress = await this.db.findAddressByKey(`PositionHouseFunction`);
+        console.log(`positionHouseFunctionContractAddress ${positionHouseFunctionContractAddress}`);
+
+
+        const PositionHouseViewer = await this.hre.ethers.getContractFactory("PositionHouseViewer", {
+            libraries: {
+                PositionHouseFunction: positionHouseFunctionContractAddress,
+            }
+        })
+        const positionHouseViewerContractAddress = await this.db.findAddressByKey(`PositionHouseViewer`);
+
+        if (positionHouseViewerContractAddress) {
+            console.log('Start upgrade position house configuration')
+            const upgraded = await this.hre.upgrades.upgradeProxy(positionHouseViewerContractAddress, PositionHouseViewer, {unsafeAllowLinkedLibraries: true});
+            console.log('Starting verify upgrade PositionHouseConfiguration');
+            await this.verifyImplContract(upgraded.deployTransaction);
+
+        } else {
+            const contractArgs = [
+                args.positionHouse,
+                args.positionHouseConfigurationProxy,
+            ];
+
+            //@ts-ignore
+            const instance = await upgrades.deployProxy(PositionHouseViewer, contractArgs, {unsafeAllowLinkedLibraries: true});
+            console.log("wait for deploy")
+            await instance.deployed();
+
+            const address = instance.address.toString().toLowerCase();
+            console.log(`PositionHouseViewer address : ${address}`)
+            await this.db.saveAddressByKey('PositionHouseViewer', address);
         }
     }
 
