@@ -444,7 +444,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         virtual
         returns (int256);
 
-    function _getPendingProfit(address _trader)
+    function getPendingProfit(address _trader)
         external
         view
         virtual

@@ -42,7 +42,7 @@ interface IPositionHouse {
     view
     returns (int256);
 
-    function _getPendingProfit(address _trader)
+    function getPendingProfit(address _trader)
     external
     view
     returns (int256);

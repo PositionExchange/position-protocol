@@ -861,7 +861,7 @@ contract PositionHouse is
         return manualMargin[_pmAddress][_trader];
     }
 
-    function _getPendingProfit(address _trader)
+    function getPendingProfit(address _trader)
         external
         view
         override
