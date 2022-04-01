@@ -261,7 +261,7 @@ describe('Market Maker', function () {
                 ]
                 await expect(positionHouse.marketMakerFill(positionManager.address, marketFills, 10)).to.revertedWith("!MM")
 
-                await positionManager.updateMaxPercentMarketMarket(BigNumber.from("20"))
+                await positionManager.updateMaxPercentMarketMarket(BigNumber.from("20000"))
 
                 await expect(positionHouse.marketMakerFill(positionManager.address, marketFills, 10)).to.not.revertedWith("!MM")
 
@@ -312,7 +312,7 @@ describe('Market Maker', function () {
                 ]
                 await expect(positionHouse.marketMakerFill(positionManager.address, marketFills, 10)).to.not.revertedWith("!MM")
 
-                await positionManager.updateMaxPercentMarketMarket(BigNumber.from("20"))
+                await positionManager.updateMaxPercentMarketMarket(BigNumber.from("20000"))
 
                 await expect(positionHouse.marketMakerFill(positionManager.address, marketFills, 10)).to.not.revertedWith("!MM")
 

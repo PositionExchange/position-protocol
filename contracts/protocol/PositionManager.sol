@@ -79,8 +79,8 @@ contract PositionManager is
         priceFeed = IChainLinkPriceFeed(_priceFeed);
         counterParty = _counterParty;
         leverage = 125;
-        maxPercent = 10;
-        percentBase = 1000;
+        // default is 1% Market market slippage
+        maxMarketMakerSlipage = 10000;
         emit ReserveSnapshotted(_initialPip, _now());
     }
 
@@ -174,12 +174,12 @@ contract PositionManager is
             uint128 _afterPip = singleSlot.pip;
             bool pass;
             if (mmFill.isBuy) {
-                pass = ((_afterPip - _beforePip) * percentBase) / _beforePip >
-                maxPercent
+                pass = ((_afterPip - _beforePip) * PERCENT_BASE) / _beforePip >
+                maxMarketMakerSlipage
                 ? false
                 : true;
             } else {
-                pass = ((_beforePip - _afterPip) * percentBase) / _beforePip > maxPercent
+                pass = ((_beforePip - _afterPip) * PERCENT_BASE) / _beforePip > maxMarketMakerSlipage
                 ? false
                 : true;
             }
@@ -608,15 +608,12 @@ contract PositionManager is
     // ONLY OWNER FUNCTIONS
     //******************************************************************************************************************
 
-    function updateMaxPercentMarketMarket(uint16 newMaxPercent) public onlyOwner {
-        maxPercent = newMaxPercent;
+    function updateMaxPercentMarketMarket(uint16 newMarketMakerSlipage) public onlyOwner {
+        maxMarketMakerSlipage = newMarketMakerSlipage;
 
     }
 
-    function updatePercentBaseMarketMarket(uint32 newPercentBase) public onlyOwner {
-        percentBase = newPercentBase;
 
-    }
 
     function updateLeverage(uint128 _newLeverage) public onlyOwner {
         require(0 < _newLeverage, Errors.VL_INVALID_LEVERAGE);
@@ -721,77 +718,6 @@ contract PositionManager is
         return msg.data;
     }
 
-    function _getSumQuantityAndPip(uint256 _size, bool _isBuy)
-        internal
-        view
-        returns (uint128 toPip, uint128 startPip)
-    {
-        SingleSlot memory _initialSingleSlot = singleSlot;
-
-        SwapState memory state = SwapState({
-            remainingSize: _size,
-            pip: _initialSingleSlot.pip
-        });
-        bool isSkipFirstPip;
-        uint128 startPip;
-        {
-            CurrentLiquiditySide currentLiquiditySide = CurrentLiquiditySide(
-                _initialSingleSlot.isFullBuy
-            );
-            if (currentLiquiditySide != CurrentLiquiditySide.NotSet) {
-                if (_isBuy)
-                    // if buy and latest liquidity is buy. skip current pip
-                    isSkipFirstPip =
-                        currentLiquiditySide == CurrentLiquiditySide.Buy;
-                    // if sell and latest liquidity is sell. skip current pip
-                else
-                    isSkipFirstPip =
-                        currentLiquiditySide == CurrentLiquiditySide.Sell;
-            }
-        }
-        bool onlyLoopOnce;
-        while (!onlyLoopOnce && state.remainingSize != 0) {
-            StepComputations memory step;
-            // updated findHasLiquidityInMultipleWords, save more gas
-            (step.pipNext) = liquidityBitmap.findHasLiquidityInMultipleWords(
-                state.pip,
-                maxFindingWordsIndex,
-                !_isBuy
-            );
-            if (step.pipNext == 0) {
-                // no more next pip
-                // state pip back 1 pip
-                if (_isBuy) {
-                    state.pip--;
-                } else {
-                    state.pip++;
-                }
-                break;
-            } else {
-                if (!isSkipFirstPip) {
-                    if (startPip == 0) startPip = step.pipNext;
-                    // get liquidity at a tick index
-                    uint128 liquidity = tickPosition[step.pipNext].liquidity;
-                    if (liquidity > state.remainingSize) {
-                        state.remainingSize = 0;
-                    } else if (state.remainingSize > liquidity) {
-                        // order in that pip will be fulfilled
-                        state.remainingSize = state.remainingSize - liquidity;
-                        state.pip = state.remainingSize > 0
-                            ? (_isBuy ? step.pipNext + 1 : step.pipNext - 1)
-                            : step.pipNext;
-                    } else {
-                        state.remainingSize = 0;
-                    }
-                } else {
-                    isSkipFirstPip = false;
-                    state.pip = _isBuy ? step.pipNext + 1 : step.pipNext - 1;
-                }
-            }
-        }
-
-        return (singleSlot.pip, startPip);
-    }
 
     function _internalOpenMarketOrder(
         uint256 _size,
