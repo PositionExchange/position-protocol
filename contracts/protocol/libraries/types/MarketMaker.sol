@@ -11,4 +11,9 @@ library MarketMaker {
         uint128 pip;
         int256 quantity;
     }
+
+    struct MMFill {
+        uint256 quantity;
+        bool isBuy;
+    }
 }

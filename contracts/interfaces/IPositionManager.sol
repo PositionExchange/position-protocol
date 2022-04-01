@@ -38,6 +38,7 @@ interface IPositionManager {
     event FundingRateUpdated(int256 fundingRate, uint256 underlyingPrice);
     event LimitOrderUpdated(uint64 orderId, uint128 pip, uint256 size);
     event LeverageUpdated(uint128 oldLeverage, uint128 newLeverage);
+    event MaxMarketMakerSlipageUpdated(uint32 oldMaxMarketMakerSlipage, uint32 newMaxMarketMakerSlipage);
 
 
     // FUNCTIONS
@@ -135,6 +136,7 @@ interface IPositionManager {
         );
     function marketMakerRemove(MarketMaker.MMCancelOrder[] memory _orders) external;
     function marketMakerSupply(MarketMaker.MMOrder[] memory _orders, uint256 leverage) external;
+    function marketMakerFill(MarketMaker.MMFill[] memory _mmFills, uint256 _leverage) external;
 
     function openLimitPosition(
         uint128 pip,
