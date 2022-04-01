@@ -42,13 +42,34 @@ export interface CreatePositionManagerInput {
     counterParty : string
 }
 
+
+export interface ConfigPositionManagerInput {
+    initialPrice: number;
+    priceFeedKey: string;
+    basisPoint: number;
+    baseBasisPoint: number;
+    tollRatio: number;
+    maxFindingWordsIndex: number;
+    fundingPeriod: number;
+    quote: string;
+}
+
 export interface CreatePositionHouseInput {
+    insuranceFund: string,
+    positionHouseConfigurationProxy: string
+    // feePool: string
+}
+
+export interface CreatePositionHouseConfigurationProxyInput {
     maintenanceMarginRatio: number,
     partialLiquidationRatio: number,
     liquidationFeeRatio: number,
     liquidationPenaltyRatio: number,
-    insuranceFund: string,
-    // feePool: string
+}
+
+export interface CreatePositionHouseViewerInput {
+    positionHouse: string,
+    positionHouseConfigurationProxy: string
 }
 
 
