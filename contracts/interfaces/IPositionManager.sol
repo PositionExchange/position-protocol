@@ -135,6 +135,7 @@ interface IPositionManager {
         );
     function marketMakerRemove(MarketMaker.MMCancelOrder[] memory _orders) external;
     function marketMakerSupply(MarketMaker.MMOrder[] memory _orders, uint256 leverage) external;
+    function marketMakerFill(MarketMaker.MMFill[] memory _mmFills, uint256 _leverage) external;
 
     function openLimitPosition(
         uint128 pip,
