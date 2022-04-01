@@ -25,12 +25,9 @@ import {MarketMakerLogic} from "./modules/MarketMaker.sol";
 
 contract PositionHouse is
     ReentrancyGuardUpgradeable,
-    OwnableUpgradeable,
     CumulativePremiumFractions,
     ClaimableAmountManager,
-    PositionHouseStorage,
     LimitOrderManager,
-    PausableUpgradeable,
     MarketMakerLogic
 {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
@@ -88,7 +85,7 @@ contract PositionHouse is
         Position.Side _side,
         uint256 _quantity,
         uint16 _leverage
-    ) external whenNotPaused nonReentrant {
+    ) external  nonReentrant {
         address _pmAddress = address (_positionManager);
         address _trader = _msgSender();
         Position.Data memory _positionData = getPosition(address(_positionManager), _msgSender());
@@ -111,7 +108,7 @@ contract PositionHouse is
         uint256 _uQuantity,
         uint128 _pip,
         uint16 _leverage
-    ) external whenNotPaused nonReentrant {
+    ) external  nonReentrant {
         address _pmAddress = address (_positionManager);
         address _trader = _msgSender();
         Position.Data memory _positionData = getPosition(address(_positionManager), _msgSender());
@@ -141,7 +138,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         uint64 _orderIdx,
         uint8 _isReduce
-    ) external whenNotPaused nonReentrant {
+    ) external  nonReentrant {
         _internalCancelLimitOrder(_positionManager, _orderIdx, _isReduce);
     }
 
@@ -152,7 +149,7 @@ contract PositionHouse is
      */
     function closePosition(IPositionManager _positionManager, uint256 _quantity)
         external
-        whenNotPaused
+        
         nonReentrant
     {
         address _trader = _msgSender();
@@ -185,7 +182,7 @@ contract PositionHouse is
         IPositionManager _positionManager,
         uint128 _pip,
         uint256 _quantity
-    ) external whenNotPaused nonReentrant {
+    ) external  nonReentrant {
         address _trader = _msgSender();
         Position.Data memory positionData = getPosition(
             address(_positionManager),
@@ -209,7 +206,7 @@ contract PositionHouse is
 
     function claimFund(IPositionManager _positionManager)
         external
-        whenNotPaused
+        
         nonReentrant
     {
         Position.Data memory _positionData = getPosition(address(_positionManager), _msgSender());
@@ -249,7 +246,7 @@ contract PositionHouse is
      */
     function liquidate(IPositionManager _positionManager, address _trader)
         external
-        whenNotPaused
+        
         nonReentrant
     {
         address _caller = _msgSender();
@@ -316,7 +313,7 @@ contract PositionHouse is
      */
     function addMargin(IPositionManager _positionManager, uint256 _amount)
         external
-        whenNotPaused
+        
         nonReentrant
     {
         address _trader = _msgSender();
@@ -339,7 +336,7 @@ contract PositionHouse is
      */
     function removeMargin(IPositionManager _positionManager, uint256 _amount)
         external
-        whenNotPaused
+        
         nonReentrant
     {
         address _trader = _msgSender();
@@ -356,13 +353,13 @@ contract PositionHouse is
 
     // OWNER UPDATE VARIABLE STORAGE
 
-    function setPauseStatus(bool _isPause) external onlyOwner {
-        if (_isPause) {
-            _pause();
-        } else {
-            _unpause();
-        }
-    }
+//    function setPauseStatus(bool _isPause) external onlyOwner {
+//        if (_isPause) {
+//            _pause();
+//        } else {
+//            _unpause();
+//        }
+//    }
 
     // PUBLIC VIEW QUERY
 
