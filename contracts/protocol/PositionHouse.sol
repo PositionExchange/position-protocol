@@ -757,25 +757,6 @@ contract PositionHouse is
             }
         }
         // if new position is larger then close old and open new
-        return
-            closeAndOpenReversePosition(
-                _positionManager,
-                _side,
-                _quantity,
-                _leverage,
-                _oldPosition
-            );
-    }
-
-    function closeAndOpenReversePosition(
-        IPositionManager _positionManager,
-        Position.Side _side,
-        int256 _quantity,
-        uint16 _leverage,
-        Position.Data memory _oldPosition
-    ) internal returns (PositionResp memory positionResp) {
-        address _trader = _msgSender();
-        address _pmAddress = address(_positionManager);
         PositionResp memory closePositionResp = _internalClosePosition(
             _positionManager,
             _trader,
@@ -788,20 +769,20 @@ contract PositionHouse is
         } else {
             _oldPosition = getPosition(_pmAddress, _trader);
             PositionResp memory increasePositionResp = PositionHouseFunction
-                .increasePosition(
-                    address(_positionManager),
-                    _side,
-                    _quantity - closePositionResp.exchangedPositionSize,
-                    _leverage,
-                    _trader,
-                    _oldPosition,
-                    positionMap[_pmAddress][_trader],
-                    getLatestCumulativePremiumFraction(_pmAddress)
-                );
+            .increasePosition(
+                address(_positionManager),
+                _side,
+                _quantity - closePositionResp.exchangedPositionSize,
+                _leverage,
+                _trader,
+                _oldPosition,
+                positionMap[_pmAddress][_trader],
+                getLatestCumulativePremiumFraction(_pmAddress)
+            );
             positionResp = PositionResp({
                 position: increasePositionResp.position,
                 exchangedQuoteAssetAmount: closePositionResp
-                    .exchangedQuoteAssetAmount +
+                .exchangedQuoteAssetAmount +
                     increasePositionResp.exchangedQuoteAssetAmount,
                 fundingPayment: increasePositionResp.fundingPayment,
                 exchangedPositionSize: closePositionResp.exchangedPositionSize +
@@ -817,7 +798,6 @@ contract PositionHouse is
         }
         return positionResp;
     }
-
 
     function partialLiquidate(
         IPositionManager _positionManager,
