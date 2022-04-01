@@ -5556,7 +5556,8 @@ describe("PositionHouse_02", () => {
                 _trader: trader4
             })
             console.log((await positionHouse.getPosition(positionManager.address, trader1.address)))
-            console.log((await positionHouse.getClaimAmount(positionManager.address, trader1.address)).toString())
+            const trader1CanClaimAmount = (await positionHouseViewer.getClaimAmount(positionManager.address, trader1.address)).toString()
+            console.log((await positionHouseViewer.getClaimAmount(positionManager.address, trader1.address)).toString())
         })
     })
 })

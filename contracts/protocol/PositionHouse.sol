@@ -23,8 +23,6 @@ import {LimitOrderManager} from "./modules/LimitOrder.sol";
 import {ClaimableAmountManager} from "./modules/ClaimableAmountManager.sol";
 import {MarketMakerLogic} from "./modules/MarketMaker.sol";
 
-// TODO remove on production
-//import "hardhat/console.sol";
 
 contract PositionHouse is
     ReentrancyGuardUpgradeable,
@@ -758,11 +756,7 @@ contract PositionHouse is
                     positionMap[_pmAddress][_trader],
                     getLatestCumulativePremiumFraction(_pmAddress)
                 );
-                debtPosition[_pmAddress][_trader].updateDebt(
-                    0,
-                    debtMargin,
-                    0
-                );
+                ClaimableAmountManager._decrease(_pmAddress, _trader, debtMargin);
                 return positionResp;
             }
         }

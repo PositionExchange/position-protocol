@@ -117,7 +117,7 @@ library PositionHouseFunction {
             margin =
                 _positionDataWithoutLimit.margin +
                 _reduceMarginRequirement;
-        } else if (_positionDataWithoutLimit.quantity * _positionData.quantity > 0){
+        } else {
             if (_positionDataWithoutLimit.margin > _reduceMarginRequirement) {
                 margin =
                     _positionDataWithoutLimit.margin -
@@ -800,7 +800,7 @@ library PositionHouseFunction {
         positionResp.unrealizedPnl = unrealizedPnl - positionResp.realizedPnl;
         {
             if (reduceMarginRequirement > _positionDataWithoutLimit.margin) {
-                debtMargin = reduceMarginRequirement - _positionDataWithoutLimit.margin;
+                debtMargin = reduceMarginRequirement;
             }
             positionResp.position = Position.Data(
                 totalQuantity,
