@@ -19,7 +19,7 @@ const migrations: MigrationDefinition = {
             const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
             await context.factory.createPositionManager({
                 quoteAsset: await context.db.getMockContract(`BUSD`),
-                initialPrice: 6500000,
+                initialPrice: 4500000,
                 priceFeedKey: 'BTC',
                 basisPoint: 100,
                 baseBasisPoint: 10000,
@@ -32,7 +32,7 @@ const migrations: MigrationDefinition = {
             })
         },
         // add multi pair
-        'deploy ETHBUSD position manager': async () => {
+        'deploy DOTBUSD position manager': async () => {
             /**
              quoteAsset: string;
              initialPrice: number;
@@ -48,12 +48,12 @@ const migrations: MigrationDefinition = {
             const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
             await context.factory.createPositionManager({
                 quoteAsset: await context.db.getMockContract(`BUSD`),
-                initialPrice: 5000000,
-                priceFeedKey: 'ETH',
-                basisPoint: 100,
-                baseBasisPoint: 10000,
+                initialPrice: 21000,
+                priceFeedKey: 'DOT',
+                basisPoint: 1000,
+                baseBasisPoint: 1000000,
                 tollRatio: 10000,
-                maxFindingWordsIndex: 1800,
+                maxFindingWordsIndex: 20,
                 fundingPeriod: 1000,
                 priceFeed: chainLinkPriceFeedContractAddress,
                 quote: 'BUSD',
@@ -76,19 +76,19 @@ const migrations: MigrationDefinition = {
             const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
             await context.factory.createPositionManager({
                 quoteAsset: await context.db.getMockContract(`BUSD`),
-                initialPrice: 3500000,
+                initialPrice: 43000,
                 priceFeedKey: 'BNB',
                 basisPoint: 100,
                 baseBasisPoint: 10000,
                 tollRatio: 10000,
-                maxFindingWordsIndex: 1800,
+                maxFindingWordsIndex: 900,
                 fundingPeriod: 1000,
                 priceFeed: chainLinkPriceFeedContractAddress,
                 quote: 'BUSD',
                 counterParty: positionHouseFunctionContractAddress
             })
         },
-        'deploy SOLBUSD position manager': async () => {
+        'deploy LINKBUSD position manager': async () => {
             /**
              quoteAsset: string;
              initialPrice: number;
@@ -104,47 +104,18 @@ const migrations: MigrationDefinition = {
             const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
             await context.factory.createPositionManager({
                 quoteAsset: await context.db.getMockContract(`BUSD`),
-                initialPrice: 2000000,
-                priceFeedKey: 'SOL',
-                basisPoint: 100,
-                baseBasisPoint: 10000,
-                tollRatio: 10000,
-                maxFindingWordsIndex: 1800,
-                fundingPeriod: 1000,
-                priceFeed: chainLinkPriceFeedContractAddress,
-                quote: 'BUSD',
-                counterParty: positionHouseFunctionContractAddress
-            })
-        },
-        'deploy POSIBUSD position manager': async () => {
-            /**
-             quoteAsset: string;
-             initialPrice: number;
-             priceFeedKey: string;
-             basisPoint: number;
-             baseBasisPoint: number;
-             tollRatio: number;
-             maxFindingWordsIndex: number;
-             fundingPeriod: number;
-             priceFeed: string;
-             */
-            const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouse');
-            const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
-            await context.factory.createPositionManager({
-                quoteAsset: await context.db.getMockContract(`BUSD`),
-                initialPrice: 4000,
-                priceFeedKey: 'POSI',
+                initialPrice: 17000,
+                priceFeedKey: 'LINK',
                 basisPoint: 1000,
-                baseBasisPoint: 1000000,
+                baseBasisPoint: 100000,
                 tollRatio: 10000,
-                maxFindingWordsIndex: 10,
+                maxFindingWordsIndex: 50,
                 fundingPeriod: 1000,
                 priceFeed: chainLinkPriceFeedContractAddress,
                 quote: 'BUSD',
                 counterParty: positionHouseFunctionContractAddress
             })
-        }
-
+        },
     })
 }
 
