@@ -87,7 +87,9 @@ contract PositionManager is
         // initialize singleSlot.pip
         require(!_isInitiatedPip, "initialized");
         uint256 _price = priceFeed.getPrice(priceFeedKey);
-        singleSlot.pip = uint128(_price * basisPoint/PRICE_FEED_TOKEN_DIGIT);
+        singleSlot.pip = uint128(
+            (_price * basisPoint) / PRICE_FEED_TOKEN_DIGIT
+        );
         _isInitiatedPip = true;
         __Pausable_init();
     }
@@ -170,7 +172,6 @@ contract PositionManager is
 
     // mean max for market market fill is 1%
 
-
     function marketMakerFill(
         MarketMaker.MMFill[] memory _mmFills,
         uint256 _leverage
@@ -183,13 +184,14 @@ contract PositionManager is
             bool pass;
             if (mmFill.isBuy) {
                 pass = ((_afterPip - _beforePip) * PERCENT_BASE) / _beforePip >
-                maxMarketMakerSlipage
-                ? false
-                : true;
+                    maxMarketMakerSlipage
+                    ? false
+                    : true;
             } else {
-                pass = ((_beforePip - _afterPip) * PERCENT_BASE) / _beforePip > maxMarketMakerSlipage
-                ? false
-                : true;
+                pass = ((_beforePip - _afterPip) * PERCENT_BASE) / _beforePip >
+                    maxMarketMakerSlipage
+                    ? false
+                    : true;
             }
 
             require(pass, "!MM");
@@ -616,14 +618,16 @@ contract PositionManager is
     // ONLY OWNER FUNCTIONS
     //******************************************************************************************************************
 
-    function updateMaxPercentMarketMarket(uint16 newMarketMakerSlipage) public onlyOwner {
-
-        emit MaxMarketMakerSlipageUpdated(maxMarketMakerSlipage, newMarketMakerSlipage);
+    function updateMaxPercentMarketMarket(uint16 newMarketMakerSlipage)
+        public
+        onlyOwner
+    {
+        emit MaxMarketMakerSlipageUpdated(
+            maxMarketMakerSlipage,
+            newMarketMakerSlipage
+        );
         maxMarketMakerSlipage = newMarketMakerSlipage;
-
     }
-
-
 
     function updateLeverage(uint128 _newLeverage) public onlyOwner {
         require(0 < _newLeverage, Errors.VL_INVALID_LEVERAGE);
@@ -727,7 +731,6 @@ contract PositionManager is
     {
         return msg.data;
     }
-
 
     function _internalOpenMarketOrder(
         uint256 _size,

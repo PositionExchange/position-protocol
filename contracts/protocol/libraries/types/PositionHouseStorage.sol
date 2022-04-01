@@ -71,7 +71,6 @@ abstract contract PositionHouseStorage {
     mapping(address => mapping(address => Position.LiquidatedData))
         public debtPosition;
 
-
     // update added margin type from int256 to uint256
     mapping(address => mapping(address => int256)) internal manualMargin;
     //can update with index => no need delete array when close all
@@ -87,5 +86,4 @@ abstract contract PositionHouseStorage {
     uint256[49] private __gap;
 
     IPositionHouseConfigurationProxy public positionHouseConfigurationProxy;
-
 }
