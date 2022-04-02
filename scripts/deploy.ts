@@ -6,6 +6,8 @@ import {MigrationContext, Network, Stage} from "../deploy/types";
 import {ContractWrapperFactory} from "../deploy/ContractWrapperFactory";
 import {DeployDataStore} from "../deploy/DataStore";
 import {BUSD, BUSD_ADDRESS} from "../constants";
+import {TransactionResponse} from "@ethersproject/abstract-provider";
+import {verifyContract} from "./utils";
 
 
 task('deploy', 'deploy contracts', async (taskArgs: {stage: Stage}, hre, runSuper) => {
@@ -36,12 +38,37 @@ task('deploy', 'deploy contracts', async (taskArgs: {stage: Stage}, hre, runSupe
     }
 }).addParam('stage', 'Stage')
 
-task('listDeployedContract', 'list all deployed contracts', async () => {
-    const db = new DeployDataStore()
+task('listDeployedContract', 'list all deployed contracts', async (taskArgs: {stage: Stage}) => {
+    const db = new DeployDataStore( './deployData_mainnet.db')
     const data = await db.listAllContracts()
     for(const obj of data){
         console.log(obj.key, obj.address)
     }
+})
+async function verifyImplContract(deployTransaction: TransactionResponse, hre) {
+    const {data} = deployTransaction
+    const decodedData = hre.ethers.utils.defaultAbiCoder.decode(
+        ['address', 'address'],
+        hre.ethers.utils.hexDataSlice(data, 4)
+    );
+    const implContractAddress = decodedData[1]
+    console.log("Upgraded to impl contract", implContractAddress)
+    try {
+        await verifyContract(hre, implContractAddress)
+    } catch (err) {
+        console.error(`-- verify contract error`, err)
+    }
+}
+task('upgradePositionManager', '', async (taskArgs, hre) => {
+    const PositionManager = await hre.ethers.getContractFactory("PositionManager")
+    // const upgraded = await hre.upgrades.upgradeProxy('0x9300cf53112b7d88896e748a8c22d946e8441a16', PositionManager);
+    // console.log(`Starting verify upgrade Position Manager `)
+    // await verifyImplContract(upgraded.deployTransaction)
+    const upgraded2 = await hre.upgrades.upgradeProxy('0xa334b8fb7f033b9698895a7c8220d48ac3dc6968', PositionManager);
+    console.log(`Starting verify upgrade Position Manager `)
+    await verifyImplContract(upgraded2.deployTransaction, hre)
+
+
 })
 
 
