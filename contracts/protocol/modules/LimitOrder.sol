@@ -111,7 +111,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             _leverage,
             _oldPosition
         );
-        if (openLimitResp.sizeOut < _uQuantity) {
+        if (openLimitResp.sizeOut <= _uQuantity) {
             PositionLimitOrder.Data memory _newOrder = PositionLimitOrder.Data({
                 pip: _pip,
                 orderId: openLimitResp.orderId,
@@ -236,6 +236,9 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                     _quantity -= (closePositionResp.exchangedPositionSize)
                         .abs128();
                 }
+
+                sizeOut = _rawQuantity.abs() + 1;
+
             } else {
                 (orderId, sizeOut, openNotional) = _positionManager
                     .openLimitPosition(_pip, _quantity, _rawQuantity > 0);
