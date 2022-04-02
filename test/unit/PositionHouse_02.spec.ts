@@ -5673,7 +5673,7 @@ describe("PositionHouse_02", () => {
             await openLimitPositionAndExpect({
                 limitPrice: 3300,
                 side: SIDE.LONG,
-                leverage: 10,
+                leverage: 1,
                 quantity: BigNumber.from('1'),
                 _trader: trader2
             })
@@ -5681,6 +5681,8 @@ describe("PositionHouse_02", () => {
 
             const balanceAfterTrader2 = await bep20Mintable.balanceOf(trader2.address)
             console.log("balanceAfterTrader2: ", balanceAfterTrader2.toString())
+
+            expect(balanceBeforeTrader2.sub(balanceAfterTrader2)).to.be.equal(3300)
 
 
         })
