@@ -62,11 +62,9 @@ contract PositionManager is
 
         __ReentrancyGuard_init();
         __Ownable_init();
+        __Pausable_init();
 
         priceFeedKey = _priceFeedKey;
-        reserveSnapshots.push(
-            ReserveSnapshot(_initialPip, _now(), _blocknumber())
-        );
         quoteAsset = IERC20(_quoteAsset);
         basisPoint = _basisPoint;
         BASE_BASIC_POINT = _BASE_BASIC_POINT;
@@ -80,18 +78,27 @@ contract PositionManager is
         leverage = 125;
         // default is 1% Market market slippage
         maxMarketMakerSlipage = 10000;
-        emit ReserveSnapshotted(_initialPip, _now());
+        if(_initialPip != 0){
+            reserveSnapshots.push(
+                ReserveSnapshot(_initialPip, _now(), _blocknumber())
+            );
+            singleSlot.pip = _initialPip;
+            emit ReserveSnapshotted(_initialPip, _now());
+        }
+
     }
 
     function initializePip() external {
         // initialize singleSlot.pip
-        require(!_isInitiatedPip, "initialized");
+        require(!_isInitiatedPip && singleSlot.pip == 0, "initialized");
         uint256 _price = priceFeed.getPrice(priceFeedKey);
-        singleSlot.pip = uint128(
-            (_price * basisPoint) / PRICE_FEED_TOKEN_DIGIT
+        uint128 _pip = uint128(_price * basisPoint/PRICE_FEED_TOKEN_DIGIT);
+        singleSlot.pip = _pip;
+        reserveSnapshots.push(
+            ReserveSnapshot(_pip, _now(), _blocknumber())
         );
         _isInitiatedPip = true;
-//        __Pausable_init();
+        emit ReserveSnapshotted(_pip, _now());
     }
 
     function updatePartialFilledOrder(uint128 _pip, uint64 _orderId)
@@ -172,6 +179,7 @@ contract PositionManager is
 
     // mean max for market market fill is 1%
 
+
     function marketMakerFill(
         MarketMaker.MMFill[] memory _mmFills,
         uint256 _leverage
@@ -184,14 +192,13 @@ contract PositionManager is
             bool pass;
             if (mmFill.isBuy) {
                 pass = ((_afterPip - _beforePip) * PERCENT_BASE) / _beforePip >
-                    maxMarketMakerSlipage
-                    ? false
-                    : true;
+                maxMarketMakerSlipage
+                ? false
+                : true;
             } else {
-                pass = ((_beforePip - _afterPip) * PERCENT_BASE) / _beforePip >
-                    maxMarketMakerSlipage
-                    ? false
-                    : true;
+                pass = ((_beforePip - _afterPip) * PERCENT_BASE) / _beforePip > maxMarketMakerSlipage
+                ? false
+                : true;
             }
 
             require(pass, "!MM");
@@ -618,16 +625,14 @@ contract PositionManager is
     // ONLY OWNER FUNCTIONS
     //******************************************************************************************************************
 
-    function updateMaxPercentMarketMarket(uint16 newMarketMakerSlipage)
-        public
-        onlyOwner
-    {
-        emit MaxMarketMakerSlipageUpdated(
-            maxMarketMakerSlipage,
-            newMarketMakerSlipage
-        );
+    function updateMaxPercentMarketMarket(uint16 newMarketMakerSlipage) public onlyOwner {
+
+        emit MaxMarketMakerSlipageUpdated(maxMarketMakerSlipage, newMarketMakerSlipage);
         maxMarketMakerSlipage = newMarketMakerSlipage;
+
     }
+
+
 
     function updateLeverage(uint128 _newLeverage) public onlyOwner {
         require(0 < _newLeverage, Errors.VL_INVALID_LEVERAGE);
@@ -731,6 +736,7 @@ contract PositionManager is
     {
         return msg.data;
     }
+
 
     function _internalOpenMarketOrder(
         uint256 _size,
