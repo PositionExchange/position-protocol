@@ -5649,5 +5649,42 @@ describe("PositionHouse_02", () => {
             const trader1CanClaimAmount = (await positionHouseViewer.getClaimAmount(positionManager.address, trader1.address)).toString()
             await expect(trader1CanClaimAmount).eq("7150")
         })
+
+        it( "should transfer when open limit in current pip", async ()=>{
+
+            await changePrice({
+                limitPrice: 3300,
+                toHigherPrice: false
+            })
+
+
+            await openLimitPositionAndExpect({
+                limitPrice: 3300,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1
+            })
+
+
+
+            const balanceBeforeTrader2 = await bep20Mintable.balanceOf(trader2.address)
+            console.log("balanceBeforeTrader2: ", balanceBeforeTrader2.toString())
+            await openLimitPositionAndExpect({
+                limitPrice: 3300,
+                side: SIDE.LONG,
+                leverage: 1,
+                quantity: BigNumber.from('1'),
+                _trader: trader2
+            })
+
+
+            const balanceAfterTrader2 = await bep20Mintable.balanceOf(trader2.address)
+            console.log("balanceAfterTrader2: ", balanceAfterTrader2.toString())
+
+            expect(balanceBeforeTrader2.sub(balanceAfterTrader2)).to.be.equal(3300)
+
+
+        })
     })
 })

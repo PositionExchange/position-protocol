@@ -111,7 +111,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             _leverage,
             _oldPosition
         );
-        if (openLimitResp.sizeOut < _uQuantity) {
+        if (openLimitResp.sizeOut <= _uQuantity) {
             PositionLimitOrder.Data memory _newOrder = PositionLimitOrder.Data({
                 pip: _pip,
                 orderId: openLimitResp.orderId,
@@ -122,13 +122,15 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 reduceQuantity: 0,
                 blockNumber: uint64(block.number)
             });
-            _storeLimitOrder(
-                _newOrder,
-                _positionManager,
-                _trader,
-                _quantity,
-                openLimitResp.sizeOut
-            );
+            if (openLimitResp.orderId != 0){
+                _storeLimitOrder(
+                    _newOrder,
+                    _positionManager,
+                    _trader,
+                    _quantity,
+                    openLimitResp.sizeOut
+                );
+            }
             (, uint256 marginToVault, uint256 fee) = _positionManager
                 .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
             insuranceFund.deposit(_pmAddress, _trader, marginToVault, fee);
@@ -228,7 +230,10 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 if (
                     _rawQuantity - closePositionResp.exchangedPositionSize == 0
                 ) {
-                    sizeOut = _rawQuantity.abs();
+                    // TODO refactor to a flag
+                    // flag to compare if (openLimitResp.sizeOut <= _uQuantity)
+                    // in this case, sizeOut is just only used to compare to open the limit order
+                    sizeOut = _rawQuantity.abs() + 1;
                     if (closePositionResp.marginToVault < 0) {
                         insuranceFund.withdraw(_pmAddress, _trader, closePositionResp.marginToVault.abs());
                     }
@@ -236,6 +241,8 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                     _quantity -= (closePositionResp.exchangedPositionSize)
                         .abs128();
                 }
+
+
             } else {
                 (orderId, sizeOut, openNotional) = _positionManager
                     .openLimitPosition(_pip, _quantity, _rawQuantity > 0);
