@@ -230,6 +230,9 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 if (
                     _rawQuantity - closePositionResp.exchangedPositionSize == 0
                 ) {
+                    // TODO refactor to a flag
+                    // flag to compare if (openLimitResp.sizeOut <= _uQuantity)
+                    // in this case, sizeOut is just only used to compare to open the limit order
                     sizeOut = _rawQuantity.abs() + 1;
                     if (closePositionResp.marginToVault < 0) {
                         insuranceFund.withdraw(_pmAddress, _trader, closePositionResp.marginToVault.abs());
