@@ -11,7 +11,7 @@ import {BUSD, BUSD_ADDRESS} from "../constants";
 task('deploy', 'deploy contracts', async (taskArgs: {stage: Stage}, hre, runSuper) => {
     const basePath = path.join(__dirname, "../deploy/migrations")
     const filenames = await readdir(basePath)
-    const db = new DeployDataStore()
+    const db = new DeployDataStore(taskArgs.stage == 'production' && './deployData_mainnet.db')
     const context: MigrationContext = {
         stage: taskArgs.stage,
         network: hre.network.name as Network,

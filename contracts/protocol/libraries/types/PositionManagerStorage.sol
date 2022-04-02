@@ -25,11 +25,11 @@ contract PositionManagerStorage {
     // Max finding word can be 3500
     uint128 public maxFindingWordsIndex;
 
-    address counterParty;
+    address public counterParty;
 
-    bool public isOpen;
+    uint128 public leverage;
 
-    uint128 leverage;
+    bool internal _isInitiatedPip;
 
     //    bool public paused;
 
