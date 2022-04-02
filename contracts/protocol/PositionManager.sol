@@ -62,11 +62,9 @@ contract PositionManager is
 
         __ReentrancyGuard_init();
         __Ownable_init();
+        __Pausable_init();
 
         priceFeedKey = _priceFeedKey;
-        reserveSnapshots.push(
-            ReserveSnapshot(_initialPip, _now(), _blocknumber())
-        );
         quoteAsset = IERC20(_quoteAsset);
         basisPoint = _basisPoint;
         BASE_BASIC_POINT = _BASE_BASIC_POINT;
@@ -80,16 +78,27 @@ contract PositionManager is
         leverage = 125;
         // default is 1% Market market slippage
         maxMarketMakerSlipage = 10000;
-        emit ReserveSnapshotted(_initialPip, _now());
+        if(_initialPip != 0){
+            reserveSnapshots.push(
+                ReserveSnapshot(_initialPip, _now(), _blocknumber())
+            );
+            singleSlot.pip = _initialPip;
+            emit ReserveSnapshotted(_initialPip, _now());
+        }
+
     }
 
     function initializePip() external {
         // initialize singleSlot.pip
-        require(!_isInitiatedPip, "initialized");
+        require(!_isInitiatedPip && singleSlot.pip == 0, "initialized");
         uint256 _price = priceFeed.getPrice(priceFeedKey);
-        singleSlot.pip = uint128(_price * basisPoint/PRICE_FEED_TOKEN_DIGIT);
+        uint128 _pip = uint128(_price * basisPoint/PRICE_FEED_TOKEN_DIGIT);
+        singleSlot.pip = _pip;
+        reserveSnapshots.push(
+            ReserveSnapshot(_pip, _now(), _blocknumber())
+        );
         _isInitiatedPip = true;
-        __Pausable_init();
+        emit ReserveSnapshotted(_pip, _now());
     }
 
     function updatePartialFilledOrder(uint128 _pip, uint64 _orderId)
