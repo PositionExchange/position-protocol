@@ -122,13 +122,15 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 reduceQuantity: 0,
                 blockNumber: uint64(block.number)
             });
-            _storeLimitOrder(
-                _newOrder,
-                _positionManager,
-                _trader,
-                _quantity,
-                openLimitResp.sizeOut
-            );
+            if (openLimitResp.orderId != 0){
+                _storeLimitOrder(
+                    _newOrder,
+                    _positionManager,
+                    _trader,
+                    _quantity,
+                    openLimitResp.sizeOut
+                );
+            }
             (, uint256 marginToVault, uint256 fee) = _positionManager
                 .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
             insuranceFund.deposit(_pmAddress, _trader, marginToVault, fee);
@@ -228,7 +230,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 if (
                     _rawQuantity - closePositionResp.exchangedPositionSize == 0
                 ) {
-                    sizeOut = _rawQuantity.abs();
+                    sizeOut = _rawQuantity.abs() + 1;
                     if (closePositionResp.marginToVault < 0) {
                         insuranceFund.withdraw(_pmAddress, _trader, closePositionResp.marginToVault.abs());
                     }
@@ -237,7 +239,6 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                         .abs128();
                 }
 
-                sizeOut = _rawQuantity.abs() + 1;
 
             } else {
                 (orderId, sizeOut, openNotional) = _positionManager
