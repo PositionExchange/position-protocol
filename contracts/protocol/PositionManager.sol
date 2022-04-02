@@ -91,7 +91,7 @@ contract PositionManager is
             (_price * basisPoint) / PRICE_FEED_TOKEN_DIGIT
         );
         _isInitiatedPip = true;
-        __Pausable_init();
+//        __Pausable_init();
     }
 
     function updatePartialFilledOrder(uint128 _pip, uint64 _orderId)
