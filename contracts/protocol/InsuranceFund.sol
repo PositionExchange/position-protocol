@@ -99,7 +99,7 @@ contract InsuranceFund is
             address(this)
         );
         if (_tokenBalance < _amount) {
-            uint256 _gap = _amount - _tokenBalance;
+            uint256 _gap = (_amount - _tokenBalance) * 110 / 100;
             uint256[] memory _amountIns = router.getAmountsIn(
                 _gap,
                 getPosiToTokenRoute(_token)
