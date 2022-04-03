@@ -5683,8 +5683,49 @@ describe("PositionHouse_02", () => {
             console.log("balanceAfterTrader2: ", balanceAfterTrader2.toString())
 
             expect(balanceBeforeTrader2.sub(balanceAfterTrader2)).to.be.equal(3300)
+        })
 
+        it("should reduce manual margin when open reverse position", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 1,
+                quantity: BigNumber.from('10'),
+                _trader: trader1
+            })
 
+            await openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader4.address,
+                    instanceTrader: trader4,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await positionHouse.connect(trader1).addMargin(positionManager.address, BigNumber.from("1000"))
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 1,
+                quantity: BigNumber.from('3'),
+                _trader: trader2
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            const addedMargin = await positionHouse.getAddedMargin(positionManager.address, trader1.address)
+            await expect(addedMargin.toString()).eq("700")
         })
     })
 })
