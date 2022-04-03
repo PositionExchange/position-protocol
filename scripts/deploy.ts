@@ -61,20 +61,26 @@ async function verifyImplContract(deployTransaction: TransactionResponse, hre) {
 }
 task('upgradePositionManager', '', async (taskArgs, hre) => {
     const PositionManager = await hre.ethers.getContractFactory("PositionManager")
+    //BTC_BUSD
+    const upgraded = await hre.upgrades.upgradeProxy('0x9300cf53112b7d88896e748a8c22d946e8441a16', PositionManager);
+    console.log(`Starting verify upgrade Position Manager BTC_BUSD `)
+    await verifyImplContract(upgraded.deployTransaction, hre)
+    //BNB_BUSD
+    const upgraded2 = await hre.upgrades.upgradeProxy('0xa334b8fb7f033b9698895a7c8220d48ac3dc6968', PositionManager, {unsafeAllowLinkedLibraries: true});
+    console.log(`Starting verify upgrade Position Manager BNB_BUSD`)
+    await verifyImplContract(upgraded2.deployTransaction, hre)
+})
+
+task("upgradePositionHouse", '', async (taskArgs, hre) => {
     const PositionHouse = await hre.ethers.getContractFactory("PositionHouse", {
         libraries: {
             PositionHouseMath: '0x8fb5ca4b12fa8b945f89c57891328e7a1ca38682',
             PositionHouseFunction: '0x95dbdb5fa5883e8b2a6aa833c3e4dcded6b6d21c'
         }
     })
-    // const upgraded = await hre.upgrades.upgradeProxy('0x9300cf53112b7d88896e748a8c22d946e8441a16', PositionManager);
-    // console.log(`Starting verify upgrade Position Manager `)
-    // await verifyImplContract(upgraded.deployTransaction)
     const upgraded2 = await hre.upgrades.upgradeProxy('0xf495d56a70585c729c822b0a6050c5ccc38d33fa', PositionHouse, {unsafeAllowLinkedLibraries: true});
-    console.log(`Starting verify upgrade Position Manager `)
+    console.log(`Starting verify upgrade PositionHouse`)
     await verifyImplContract(upgraded2.deployTransaction, hre)
-
-
 })
 
 
