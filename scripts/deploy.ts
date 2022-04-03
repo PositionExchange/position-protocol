@@ -83,5 +83,12 @@ task("upgradePositionHouse", '', async (taskArgs, hre) => {
     await verifyImplContract(upgraded2.deployTransaction, hre)
 })
 
+task("upgradeInstanceFund", '', async (taskArgs, hre) => {
+    const InsuranceFund = await hre.ethers.getContractFactory("InsuranceFund")
+    const upgraded2 = await hre.upgrades.upgradeProxy('0xebf1d0c59638f8ffac0004475819af1e07fb17dc', InsuranceFund);
+    console.log(`Starting verify upgrade upgradeInstanceFund`)
+    await verifyImplContract(upgraded2.deployTransaction, hre)
+})
+
 
 export default {}
