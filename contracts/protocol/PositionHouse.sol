@@ -60,7 +60,7 @@ contract PositionHouse is
 //    );
 
     event FullyLiquidated(address pmAddress, address trader);
-    event PartiallyLiquidated(address pmAddress, address trader);
+//    event PartiallyLiquidated(address pmAddress, address trader);
 //    event WhitelistManagerUpdated(address positionManager, bool isWhitelite);
 
     function initialize(
@@ -288,7 +288,7 @@ contract PositionHouse is
                 liquidationPenalty = uint256(positionResp.marginToVault);
                 feeToLiquidator = liquidationPenalty / 2;
                 uint256 feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
-                emit PartiallyLiquidated(_pmAddress, _trader);
+//                emit PartiallyLiquidated(_pmAddress, _trader);
             } else {
                 // fully liquidate trader's position
                 liquidationPenalty =
@@ -750,6 +750,7 @@ contract PositionHouse is
                     positionMap[_pmAddress][_trader],
                     getLatestCumulativePremiumFraction(_pmAddress)
                 );
+                manualMargin[_pmAddress][_trader] *= (_oldPosition.quantity - _quantity) / _oldPosition.quantity;
                 pendingProfit[_trader] += debtMargin;
                 return positionResp;
             }
