@@ -750,7 +750,7 @@ contract PositionHouse is
                     positionMap[_pmAddress][_trader],
                     getLatestCumulativePremiumFraction(_pmAddress)
                 );
-                manualMargin[_pmAddress][_trader] *= (_oldPosition.quantity - _quantity) / _oldPosition.quantity;
+                manualMargin[_pmAddress][_trader] = manualMargin[_pmAddress][_trader] * (_oldPosition.quantity.absInt() - _quantity.absInt()) / _oldPosition.quantity.absInt();
                 pendingProfit[_trader] += debtMargin;
                 return positionResp;
             }
