@@ -109,6 +109,9 @@ module.exports = {
         outDir: "typeChain",
         target: "ethers-v5",
     },
+    contractSizer: {
+        strict: true
+    },
     mocha: {
         timeout: 100000
     }

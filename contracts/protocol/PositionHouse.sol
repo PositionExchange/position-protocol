@@ -805,10 +805,9 @@ contract PositionHouse is
         address _trader
     ) internal returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
+        Position.Side _side = _quantity > 0 ? Position.Side.SHORT : Position.Side.LONG;
         (positionResp.exchangedPositionSize, ,, ) = PositionHouseFunction
-            .openMarketOrder(_pmAddress, _quantity.abs(), _quantity > 0
-                        ? Position.Side.SHORT
-                        : Position.Side.LONG);
+            .openMarketOrder(_pmAddress, _quantity.abs(), _side);
         positionResp.exchangedQuoteAssetAmount = _quantity
             .getExchangedQuoteAssetAmount(
                 _oldPosition.openNotional,
