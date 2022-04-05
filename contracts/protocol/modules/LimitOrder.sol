@@ -402,7 +402,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 _getReduceLimitOrders(a, t),
                 getClaimableAmount(a, t),
                 _getManualMargin(a, t),
-                debtProfit[a][t]
+                getDebtProfit(a, t)
             );
 
         }
@@ -452,7 +452,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         returns (int256);
 
     function getDebtProfit(address _pmAddress, address _trader)
-        external
+        public
         view
         virtual
         returns (int256);

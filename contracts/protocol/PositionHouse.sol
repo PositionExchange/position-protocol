@@ -863,7 +863,7 @@ contract PositionHouse is
     }
 
     function getDebtProfit(address _pmAddress, address _trader)
-        external
+        public
         view
         override
         returns (int256)
