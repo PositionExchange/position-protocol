@@ -5727,5 +5727,30 @@ describe("PositionHouse_02", () => {
             const addedMargin = await positionHouse.getAddedMargin(positionManager.address, trader1.address)
             await expect(addedMargin.toString()).eq("700")
         })
+
+
+        it("should clear error position success", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader2
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1
+            })
+
+            console.log((await positionHouse.getPosition(positionManager.address, trader1.address)).toString())
+
+            await positionHouse.connect(trader0).clearErrorPosition(positionManager.address, trader1.address)
+
+            console.log((await positionHouse.getPosition(positionManager.address, trader1.address)).toString())
+        })
     })
 })

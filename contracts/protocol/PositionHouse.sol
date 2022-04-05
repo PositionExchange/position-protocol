@@ -351,6 +351,12 @@ contract PositionHouse is
 //        emit MarginRemoved(_trader, _amount, _positionManager);
     }
 
+    function clearErrorPosition(address _pmAddress, address _trader)
+        external
+        onlyOwner
+    {
+        positionMap[_pmAddress][_trader].clear();
+    }
     // OWNER UPDATE VARIABLE STORAGE
 
 //    function setPauseStatus(bool _isPause) external onlyOwner {
