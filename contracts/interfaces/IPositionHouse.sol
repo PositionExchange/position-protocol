@@ -6,44 +6,44 @@ import "../protocol/libraries/position/PositionLimitOrder.sol";
 
 interface IPositionHouse {
     function getPosition(address _pmAddress, address _trader)
-        external
-        view
-        returns (Position.Data memory positionData);
+    external
+    view
+    returns (Position.Data memory positionData);
 
-    function positionMap(address _pmAddress, address _trader)
-        external
-        view
-        returns (Position.Data memory positionData);
+    function positionMap(address _pmAddress, address _trader) external view returns (Position.Data memory positionData);
 
     function _getLimitOrders(address _pmAddress, address _trader)
-        external
-        view
-        returns (PositionLimitOrder.Data[] memory);
+    external
+    view
+    returns (PositionLimitOrder.Data[] memory);
 
     function _getReduceLimitOrders(address _pmAddress, address _trader)
-        external
-        view
-        returns (PositionLimitOrder.Data[] memory);
+    external
+    view
+    returns (PositionLimitOrder.Data[] memory);
 
     function _getManualMargin(address _pmAddress, address _trader)
-        external
-        view
-        returns (int256);
+    external
+    view
+    returns (int256);
 
     function getClaimableAmount(address _pmAddress, address _trader)
-        external
-        view
-        returns (uint256);
+    external
+    view
+    returns (uint256);
 
     function getLatestCumulativePremiumFraction(address _pmAddress)
-        external
-        view
-        returns (int128);
+    external
+    view
+    returns (int128);
 
     function getAddedMargin(address _positionManager, address _trader)
-        external
-        view
-        returns (int256);
+    external
+    view
+    returns (int256);
 
-    function getPendingProfit(address _trader) external view returns (int256);
+    function getDebtProfit(address _pmAddress, address _trader)
+    external
+    view
+    returns (int256);
 }
