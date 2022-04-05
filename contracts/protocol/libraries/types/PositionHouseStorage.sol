@@ -85,7 +85,7 @@ abstract contract PositionHouseStorage {
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
     uint256[49] private __gap;
-
+    mapping(address => mapping(address => int256)) internal debtProfit;
     IPositionHouseConfigurationProxy public positionHouseConfigurationProxy;
 
 }
