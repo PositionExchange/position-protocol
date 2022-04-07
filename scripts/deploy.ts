@@ -10,7 +10,7 @@ import {TransactionResponse} from "@ethersproject/abstract-provider";
 import {verifyContract} from "./utils";
 
 
-task('deploy', 'deploy contracts', async (taskArgs: {stage: Stage}, hre, runSuper) => {
+task('deploy', 'deploy contracts', async (taskArgs: {stage: Stage, task: string}, hre, runSuper) => {
     const basePath = path.join(__dirname, "../deploy/migrations")
     const filenames = await readdir(basePath)
     const db = new DeployDataStore(taskArgs.stage == 'production' && './deployData_mainnet.db')
@@ -30,13 +30,15 @@ task('deploy', 'deploy contracts', async (taskArgs: {stage: Stage}, hre, runSupe
         const module = await import(path.join(basePath, filename))
         const tasks = module.default.getTasks(context)
         for(const key of Object.keys(tasks)){
-            console.group(`-- Start run task ${key}`)
-            await tasks[key]()
-            console.groupEnd()
+            if(!taskArgs.task || taskArgs.task == key){
+                console.group(`-- Start run task ${key}`)
+                await tasks[key]()
+                console.groupEnd()
+            }
         }
 
     }
-}).addParam('stage', 'Stage')
+}).addParam('stage', 'Stage').addParam('task', 'Task Name')
 
 task('listDeployedContract', 'list all deployed contracts', async (taskArgs: {stage: Stage}) => {
     const db = new DeployDataStore( './deployData_mainnet.db')
@@ -107,6 +109,18 @@ task("upgradeInstanceFund", '', async (taskArgs, hre) => {
     console.log(`Starting verify upgrade upgradeInstanceFund`)
     await verifyImplContract(upgraded2.deployTransaction, hre)
 })
+
+task('upgradeHouseAndViewer', async (taskArgs: {stage: Stage}, hre) => {
+    const db = new DeployDataStore(taskArgs.stage == 'production' && './deployData_mainnet.db')
+    const context: MigrationContext = {
+        stage: taskArgs.stage,
+        network: hre.network.name as Network,
+        factory: new ContractWrapperFactory(db, hre),
+        db,
+        hre
+    }
+
+}).addParam('stage', 'Stage')
 
 
 export default {}
