@@ -794,7 +794,7 @@ library PositionHouseFunction {
         );
 
         positionResp.realizedPnl =
-            (unrealizedPnl * int256(positionResp.exchangedPositionSize)) /
+            (unrealizedPnl * positionResp.exchangedPositionSize.absInt()) /
             _positionData.quantity.absInt();
         positionResp.exchangedQuoteAssetAmount =
             (_quantity.abs() * _positionData.getEntryPrice(_pmAddress)) /
