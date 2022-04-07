@@ -246,14 +246,13 @@ contract PositionHouse is
      */
     function liquidate(IPositionManager _positionManager, address _trader)
         external
-        
         nonReentrant
     {
         address _caller = _msgSender();
         (, , uint256 marginRatio) = getMaintenanceDetail(
             _positionManager,
             _trader,
-            PnlCalcOption.ORACLE
+            PnlCalcOption.TWAP
         );
         uint256 _partialLiquidationRatio = positionHouseConfigurationProxy.partialLiquidationRatio();
         require(
@@ -380,7 +379,7 @@ contract PositionHouse is
             uint256 maintenanceMargin,
             int256 marginBalance,
 
-        ) = getMaintenanceDetail(_positionManager, _trader, PnlCalcOption.ORACLE);
+        ) = getMaintenanceDetail(_positionManager, _trader, PnlCalcOption.TWAP);
         int256 _remainingMargin = marginBalance - int256(maintenanceMargin);
         return
             uint256(
