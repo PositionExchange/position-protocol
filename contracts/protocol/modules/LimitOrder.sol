@@ -50,12 +50,11 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         require(_orderIdx < _orders.length, Errors.VL_INVALID_ORDER);
         // save gas
         PositionLimitOrder.Data memory _order = _orders[_orderIdx];
-        PositionLimitOrder.Data memory blankLimitOrderData;
 
         (uint256 refundQuantity, uint256 partialFilled) = _positionManager
         .cancelLimitOrder(_order.pip, _order.orderId);
         if (partialFilled == 0) {
-            _orders[_orderIdx] = blankLimitOrderData;
+            delete _orders[_orderIdx];
             if (_order.reduceLimitOrderId != 0) {
                 _blankReduceLimitOrder(
                     _pmAddress,
@@ -73,7 +72,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                     1
                 );
                 _reduceOrders[_order.reduceLimitOrderId - 1].reduceQuantity = partialFilled;
-                _orders[_orderIdx] = blankLimitOrderData;
+                delete _orders[_orderIdx];
             }
         }
 
