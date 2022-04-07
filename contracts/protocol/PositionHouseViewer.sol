@@ -117,6 +117,9 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         marginRatio = marginBalance <= 0
         ? 100
         : (maintenanceMargin * 100) / uint256(marginBalance);
+        if (positionData.quantity == 0) {
+            marginRatio = 0;
+        }
     }
 
     function getPositionNotionalAndUnrealizedPnl(

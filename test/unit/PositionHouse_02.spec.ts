@@ -5727,5 +5727,10 @@ describe("PositionHouse_02", () => {
             const addedMargin = await positionHouse.getAddedMargin(positionManager.address, trader1.address)
             await expect(addedMargin.toString()).eq("700")
         })
+
+        it("should cannot liquidate user don't have position", async () => {
+            const maintenanceDetail = await positionHouseViewer.getMaintenanceDetail(positionManager.address, trader1.address, 1)
+            await expect(maintenanceDetail.marginRatio).eq(0)
+        })
     })
 })
