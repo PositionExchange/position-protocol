@@ -137,6 +137,15 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         );
     }
 
+    function getPositionAndUnreliablePnl(
+        IPositionManager _positionManager,
+        address _trader,
+        PositionHouseStorage.PnlCalcOption _pnlCalcOption
+    ) public view returns (Position.Data memory position, uint256 positionNotional, int256 unrealizedPnl) {
+        position = positionHouse.getPosition(address(_positionManager), _trader);
+        (positionNotional, unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, _pnlCalcOption, position);
+    }
+
     function getFundingPaymentAmount(IPositionManager _positionManager, address _trader) external view returns (int256 fundingPayment) {
         address _pmAddress = address(_positionManager);
         Position.Data memory positionData = positionHouse.getPosition(_pmAddress, _trader);
