@@ -70,7 +70,7 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         uint256 maintenanceMargin,
         int256 marginBalance,
 
-        ) = getMaintenanceDetail(_positionManager, _trader, PositionHouseStorage.PnlCalcOption.ORACLE);
+        ) = getMaintenanceDetail(_positionManager, _trader, PositionHouseStorage.PnlCalcOption.TWAP);
         int256 _remainingMargin = marginBalance - int256(maintenanceMargin);
         return
         uint256(
