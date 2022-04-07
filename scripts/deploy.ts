@@ -75,7 +75,25 @@ task("upgradePositionHouse", '', async (taskArgs, hre) => {
     const PositionHouse = await hre.ethers.getContractFactory("PositionHouse", {
         libraries: {
             PositionHouseMath: '0x8fb5ca4b12fa8b945f89c57891328e7a1ca38682',
-            PositionHouseFunction: '0x95dbdb5fa5883e8b2a6aa833c3e4dcded6b6d21c'
+            PositionHouseFunction: '0x422923c13DdA7D713ff5fA1aDd4f5dEA709D0C00'
+        }
+    })
+    const upgraded2 = await hre.upgrades.upgradeProxy('0xf495d56a70585c729c822b0a6050c5ccc38d33fa', PositionHouse, {unsafeAllowLinkedLibraries: true});
+    console.log(`Starting verify upgrade PositionHouse`)
+    await verifyImplContract(upgraded2.deployTransaction, hre)
+})
+
+task("upgradePositionHouseLibrary", '', async (taskArgs, hre) => {
+    const PositionHouseFunction = await hre.ethers.getContractFactory("PositionHouseFunction");
+
+    const deployTx = await PositionHouseFunction.deploy();
+    await deployTx.deployTransaction.wait(3)
+    console.log("new position house function", deployTx.address)
+
+    const PositionHouse = await hre.ethers.getContractFactory("PositionHouse", {
+        libraries: {
+            PositionHouseMath: '0x8fb5ca4b12fa8b945f89c57891328e7a1ca38682',
+            PositionHouseFunction: deployTx.address
         }
     })
     const upgraded2 = await hre.upgrades.upgradeProxy('0xf495d56a70585c729c822b0a6050c5ccc38d33fa', PositionHouse, {unsafeAllowLinkedLibraries: true});
