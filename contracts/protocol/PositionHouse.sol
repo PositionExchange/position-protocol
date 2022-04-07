@@ -353,6 +353,15 @@ contract PositionHouse is
 
     // OWNER UPDATE VARIABLE STORAGE
 
+    // THIS FUNCTION IS TO CLOSE ERROR POSITION AND REFUND MARGIN
+    // WILL BE REMOVED ONCE END OF BETA STAGE
+    function settlePosition(IPositionManager _positionManager, address _trader, uint256 _refundAmount) external onlyOwner {
+        address _pmAddress = address(_positionManager);
+        Position.Data memory _oldPosition = getPosition(_pmAddress, _trader);
+        _withdraw(_pmAddress, _trader, _refundAmount == 0 ? _oldPosition.margin : _refundAmount);
+        clearPosition(_pmAddress, _trader);
+    }
+
 //    function setPauseStatus(bool _isPause) external onlyOwner {
 //        if (_isPause) {
 //            _pause();
