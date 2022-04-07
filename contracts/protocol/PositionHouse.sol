@@ -444,6 +444,9 @@ contract PositionHouse is
             positionData
         );
         positionData.margin += uint256(manualMargin[_pmAddress][_trader]);
+        if (positionData.lastUpdatedCumulativePremiumFraction == 0) {
+            positionData.lastUpdatedCumulativePremiumFraction = _getLimitOrderPremiumFraction(_pmAddress, _trader);
+        }
         Position.LiquidatedData memory _debtPosition = debtPosition[_pmAddress][
             _trader
         ];

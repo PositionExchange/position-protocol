@@ -6,7 +6,8 @@ import {
     PositionHouseConfigurationProxy,
     PositionHouseFunction,
     PositionHouseViewer,
-    PositionManager
+    PositionManager,
+    FundingRateTest
 } from "../../typeChain";
 import {BigNumber} from "ethers";
 import PositionManagerTestingTool from "./positionManagerTestingTool";
@@ -34,6 +35,11 @@ export async function deployPositionHouse(){
     // Deploy position manager contract
     let positionManagerFactory = await ethers.getContractFactory("PositionManager")
     let positionManager = (await positionManagerFactory.deploy()) as unknown as PositionManager;
+
+    // Deploy funding rate test contract
+    let fundingRateTestFactory = await ethers.getContractFactory("FundingRateTest")
+    let fundingRateTest = (await fundingRateTestFactory.deploy()) as unknown as FundingRateTest;
+
     let positionHouseViewer = await ((await ethers.getContractFactory('PositionHouseViewer', {
         libraries: {
             PositionHouseFunction: libraryIns.address
@@ -59,11 +65,13 @@ export async function deployPositionHouse(){
     let positionHouseTestingTool = new PositionHouseTestingTool(positionHouse, positionManager, positionHouseViewer)
 
     await positionManager.initialize(BigNumber.from(500000), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
+    await fundingRateTest.initialize(BigNumber.from(500000), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
     await positionHouseConfiguration.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20))
     await positionHouse.initialize(insuranceFund.address, positionHouseConfiguration.address)
     await positionHouseViewer.initialize(positionHouse.address, positionHouseConfiguration.address)
 
     await insuranceFund.updateWhitelistManager(positionManager.address, true);
+    await insuranceFund.updateWhitelistManager(fundingRateTest.address, true);
 
     return [
         positionHouse,
@@ -73,7 +81,8 @@ export async function deployPositionHouse(){
         positionHouseTestingTool,
         bep20Mintable,
         insuranceFund,
-        positionHouseViewer
+        positionHouseViewer,
+        fundingRateTest
     ]
 
 }

@@ -28,7 +28,6 @@ abstract contract CumulativePremiumFractions {
             msg.sender,
             block.timestamp
         );
-
     }
 
     function getLatestCumulativePremiumFraction(address _positionManager)
