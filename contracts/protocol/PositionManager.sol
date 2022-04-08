@@ -151,11 +151,13 @@ contract PositionManager is
             MarketMaker.MMOrder memory _order = _orders[i];
             // BUY, price should always less than market price
             if (_order.quantity > 0 && _order.pip >= _singleSlotMM.pip) {
-                revert("!B");
+                //skip
+                continue;
             }
             // SELL, price should always greater than market price
             if (_order.quantity < 0 && _order.pip <= _singleSlotMM.pip) {
-                revert("!S");
+                //skip
+                continue;
             }
             uint128 _quantity = uint128(Quantity.abs(_order.quantity));
             bool _hasLiquidity = liquidityBitmap.hasLiquidity(_order.pip);
