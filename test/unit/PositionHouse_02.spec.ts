@@ -5768,5 +5768,79 @@ describe("PositionHouse_02", () => {
 
             await positionHouse.liquidate(positionManager.address, trader1.address)
         })
+
+        it("should withdraw and deposit nothing when reverse position has loss more than margin", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 125,
+                quantity: BigNumber.from('5'),
+                _trader: trader2
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 125,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await changePrice({
+                limitPrice: 4000,
+                toHigherPrice: false
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4000,
+                side: SIDE.LONG,
+                leverage: 125,
+                quantity: BigNumber.from('3'),
+                _trader: trader4
+            })
+
+            const balanceBeforeClosePositionTrader2 = await bep20Mintable.balanceOf(trader2.address)
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 125,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                }
+            );
+            const balanceAfterClosePositionTrader2 = await bep20Mintable.balanceOf(trader2.address)
+            const exchangedQuoteAmountTrader2 = BigNumber.from(balanceAfterClosePositionTrader2).sub(BigNumber.from(balanceBeforeClosePositionTrader2))
+            await expect(exchangedQuoteAmountTrader2.toString()).eq("0")
+
+            await changePrice({
+                limitPrice: 6000,
+                toHigherPrice: true
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 6000,
+                side: SIDE.SHORT,
+                leverage: 125,
+                quantity: BigNumber.from('3'),
+                _trader: trader4
+            })
+
+            const balanceBeforeClosePositionTrader1 = await bep20Mintable.balanceOf(trader1.address)
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 125,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+            const balanceAfterClosePositionTrader1 = await bep20Mintable.balanceOf(trader1.address)
+            const exchangedQuoteAmountTrader1 = BigNumber.from(balanceAfterClosePositionTrader1).sub(BigNumber.from(balanceBeforeClosePositionTrader1))
+            await expect(exchangedQuoteAmountTrader1.toString()).eq("0")
+        })
     })
 })

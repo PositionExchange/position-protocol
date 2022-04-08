@@ -614,6 +614,10 @@ contract PositionHouse is
                 _trader,
                 oldPosition
             );
+            // TODO remove this when update close and open reverse position
+            if (pResp.marginToVault > 0) {
+                pResp.marginToVault = 0;
+            }
         }
         // update position state
         positionMap[_pmAddress][_trader].update(pResp.position);
