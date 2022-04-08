@@ -486,6 +486,42 @@ contract PositionManager is
         return 0;
     }
 
+    function getOrderbook(uint128 limit) external view returns (Orderbook memory ob){
+        SingleSlot memory _singleSlot = singleSlot;
+        uint128 _currentPip = _singleSlot.pip;
+        uint128[] memory _askPips = liquidityBitmap.findAllLiquidityInMultipleWords(_currentPip, uint256(limit), true);
+        uint128[] memory _bidPips = liquidityBitmap.findAllLiquidityInMultipleWords(_currentPip, uint256(limit), false);
+        ob.asks = new uint128[][](_askPips.length);
+        ob.bids = new uint128[][](_bidPips.length);
+        bool shiftAsk;
+        for(uint256 i=0; i<_askPips.length; i++){
+            uint128[] memory _liquidity = new uint128[](2);
+            if(_askPips[i] != 0){
+                if(!(i == 0 && _currentPip == _askPips[0] && _singleSlot.isFullBuy == 1)){
+                    _liquidity[0] = _askPips[i];
+                    _liquidity[1] = tickPosition[_askPips[i]].liquidity;
+                    ob.asks[shiftAsk ? i - 1 : i] = _liquidity;
+                }else{
+                    shiftAsk = true;
+                }
+            }
+        }
+        bool shiftBid;
+        for(uint256 i=0; i<_bidPips.length; i++){
+            uint128[] memory _liquidity = new uint128[](2);
+            if(_bidPips[i] != 0){
+                if(!(i == 0 && _currentPip == _askPips[0] && _singleSlot.isFullBuy == 2)){
+                    _liquidity[0] = _bidPips[i];
+                    _liquidity[1] = tickPosition[_bidPips[i]].liquidity;
+                    ob.bids[shiftBid ? i - 1 : i] = _liquidity;
+                }else{
+                    shiftBid = true;
+                }
+            }
+        }
+
+    }
+
     function getLiquidityInPipRange(
         uint128 _fromPip,
         uint256 _dataLength,
