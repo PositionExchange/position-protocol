@@ -865,11 +865,13 @@ library PositionHouseFunction {
     {
         // calculate fundingPayment
         if (_oldPosition.quantity != 0) {
-            fundingPayment =
-                ((_latestCumulativePremiumFraction -
-                    _oldPosition.lastUpdatedCumulativePremiumFraction) *
-                    _oldPosition.quantity) /
-                (PREMIUM_FRACTION_DENOMINATOR);
+            fundingPayment = 0;
+            // TODO resume when the limit funding payment is fixed
+//            fundingPayment =
+//                ((_latestCumulativePremiumFraction -
+//                    _oldPosition.lastUpdatedCumulativePremiumFraction) *
+//                    _oldPosition.quantity) /
+//                (PREMIUM_FRACTION_DENOMINATOR);
         }
 
         // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt

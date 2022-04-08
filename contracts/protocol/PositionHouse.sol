@@ -316,15 +316,16 @@ contract PositionHouse is
 
         nonReentrant
     {
-        address _trader = _msgSender();
-        address _pmAddress = address(_positionManager);
-        require(
-            getPosition(_pmAddress, _trader).quantity != 0,
-            Errors.VL_NO_POSITION_TO_ADD
-        );
-        manualMargin[_pmAddress][_trader] += int256(_amount);
-
-        _deposit(_pmAddress, _trader, _amount, 0);
+        revert("add margin paused");
+//        address _trader = _msgSender();
+//        address _pmAddress = address(_positionManager);
+//        require(
+//            getPosition(_pmAddress, _trader).quantity != 0,
+//            Errors.VL_NO_POSITION_TO_ADD
+//        );
+//        manualMargin[_pmAddress][_trader] += int256(_amount);
+//
+//        _deposit(_pmAddress, _trader, _amount, 0);
 
 //        emit MarginAdded(_trader, _amount, _positionManager);
     }
@@ -339,14 +340,15 @@ contract PositionHouse is
 
         nonReentrant
     {
-        address _trader = _msgSender();
-
-        uint256 removableMargin = getRemovableMargin(_positionManager, _trader);
-        require(_amount <= removableMargin, Errors.VL_INVALID_REMOVE_MARGIN);
-
-        manualMargin[address(_positionManager)][_trader] -= int256(_amount);
-
-        _withdraw(address(_positionManager), _trader, _amount);
+        revert("removeMargin paused");
+//        address _trader = _msgSender();
+//
+//        uint256 removableMargin = getRemovableMargin(_positionManager, _trader);
+//        require(_amount <= removableMargin, Errors.VL_INVALID_REMOVE_MARGIN);
+//
+//        manualMargin[address(_positionManager)][_trader] -= int256(_amount);
+//
+//        _withdraw(address(_positionManager), _trader, _amount);
 
 //        emit MarginRemoved(_trader, _amount, _positionManager);
     }
@@ -360,6 +362,11 @@ contract PositionHouse is
         Position.Data memory _oldPosition = getPosition(_pmAddress, _trader);
         _withdraw(_pmAddress, _trader, _refundAmount == 0 ? _oldPosition.margin : _refundAmount);
         clearPosition(_pmAddress, _trader);
+    }
+
+
+    function resetLatestCumulativePremiumFractions(address _positionManager) external onlyOwner {
+        _resetLatestCumulativePremiumFractions(_positionManager);
     }
 
 //    function setPauseStatus(bool _isPause) external onlyOwner {
