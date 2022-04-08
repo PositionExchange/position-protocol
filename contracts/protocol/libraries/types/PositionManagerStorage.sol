@@ -48,6 +48,11 @@ contract PositionManagerStorage {
         uint256 liquidity;
     }
 
+    struct Orderbook {
+        uint128[][] asks;
+        uint128[][] bids;
+    }
+
     IERC20 quoteAsset;
 
     struct ReserveSnapshot {
