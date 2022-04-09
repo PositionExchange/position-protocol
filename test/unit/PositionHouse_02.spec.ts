@@ -256,6 +256,11 @@ describe("PositionHouse_02", () => {
         await positionHouse.connect(trader).cancelLimitOrder(positionManagerAddress, obj.orderIdx, obj.isReduce);
     }
 
+    async function expectPositionMargin(positionManager, trader, amount){
+        const {margin} = await positionHouse.getPosition(positionManager.address, trader.address)
+        await expect(margin.toString()).eq(amount.toString())
+    }
+
     describe('Increase size in order', async () => {
 
         /**
@@ -5704,8 +5709,108 @@ describe("PositionHouse_02", () => {
                 }
             );
 
+            // Trader1's margin = price * leverage * quantity = 5000 * 1 * 10 = 50000
+            await expectPositionMargin(positionManager, trader1, 50000)
             await positionHouse.connect(trader1).addMargin(positionManager.address, BigNumber.from("1000"))
+            // Trader1's margin += 1000 = 50000 + 1000
+            await expectPositionMargin(positionManager, trader1, 51000)
 
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 1,
+                quantity: BigNumber.from('5'),
+                _trader: trader2
+            })
+
+            // closing 3/10 position, should get back 3/10 position's margin
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+            // Trader's margin -= 3*51000/10 = 35700
+            await expectPositionMargin(positionManager, trader1, 35700)
+
+            // closing 2/7 position, should get back 2/7 position's margin
+            await openMarketPosition({
+                    quantity: BigNumber.from('2'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+            // Trader1's margin = 35700 - (2*35700)/7 = 25500
+            await expectPositionMargin(positionManager, trader1, 25500)
+        })
+
+        it("should return margin when close position correct", async () => {
+            await changePrice({
+                limitPrice: 2000,
+                toHigherPrice: false
+            })
+
+            await changePrice({
+                limitPrice: 442.07,
+                toHigherPrice: false
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 442.07,
+                side: SIDE.SHORT,
+                leverage: 1,
+                quantity: BigNumber.from('10'),
+                _trader: trader2
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 125,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 441.49,
+                side: SIDE.LONG,
+                leverage: 1,
+                quantity: BigNumber.from('10'),
+                _trader: trader2
+            })
+
+            await positionHouse.connect(trader1).addMargin(positionManager.address, BigNumber.from('3500'))
+
+            console.log("before first time reverse")
+            let balanceBeforeReversePosition = await bep20Mintable.balanceOf(trader1.address)
+            await positionHouse.connect(trader1).closePosition(positionManager.address, BigNumber.from('7'))
+            let balanceAfterReversePosition = await bep20Mintable.balanceOf(trader1.address)
+            let exchangedAmount = BigNumber.from(balanceAfterReversePosition).sub(BigNumber.from(balanceBeforeReversePosition))
+            await expect(exchangedAmount).eq('2470')
+            await expect((await positionHouse.getPosition(positionManager.address, trader1.address)).margin).eq("1061")
+            console.log("before second time reverse")
+            balanceBeforeReversePosition = await bep20Mintable.balanceOf(trader1.address)
+            await positionHouse.connect(trader1).closePosition(positionManager.address, BigNumber.from('2'))
+            balanceAfterReversePosition = await bep20Mintable.balanceOf(trader1.address)
+            exchangedAmount = BigNumber.from(balanceAfterReversePosition).sub(BigNumber.from(balanceBeforeReversePosition))
+            await expect(exchangedAmount).eq('706')
+            await expect((await positionHouse.getPosition(positionManager.address, trader1.address)).margin).eq("354")
+        })
+
+        it("should cannot liquidate user don't have position", async () => {
+            const maintenanceDetail = await positionHouseViewer.getMaintenanceDetail(positionManager.address, trader1.address, 1)
+            await expect(maintenanceDetail.marginRatio).eq(0)
+        })
+
+        it("should liquidate success", async () => {
             await openLimitPositionAndExpect({
                 limitPrice: 5000,
                 side: SIDE.LONG,
@@ -5723,9 +5828,22 @@ describe("PositionHouse_02", () => {
                     _positionManager: positionManager,
                 }
             );
+            await changePrice({
+                limitPrice: 9000,
+                toHigherPrice: true
+            })
 
-            const addedMargin = await positionHouse.getAddedMargin(positionManager.address, trader1.address)
-            await expect(addedMargin.toString()).eq("700")
+            await changePrice({
+                limitPrice: 13000,
+                toHigherPrice: true
+            })
+
+            await changePrice({
+                limitPrice: 17000,
+                toHigherPrice: true
+            })
+
+            await positionHouse.liquidate(positionManager.address, trader1.address)
         })
 
         it("should cannot liquidate user don't have position", async () => {

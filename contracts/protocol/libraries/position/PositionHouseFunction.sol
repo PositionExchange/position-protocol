@@ -773,12 +773,13 @@ library PositionHouseFunction {
         address _trader,
         Position.Data memory _positionData,
         Position.Data memory _positionDataWithoutLimit,
-        int128 _latestCumulativePremiumFraction
+        int128 _latestCumulativePremiumFraction,
+        int256 _manualMargin
     ) public returns (PositionHouseStorage.PositionResp memory positionResp, int256 debtMargin) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         uint256 reduceMarginRequirement = (_positionData.margin *
             _quantity.abs()) / _positionData.quantity.abs();
-        int256 totalQuantity = _positionDataWithoutLimit.quantity + _quantity;
+//        int256 totalQuantity = _positionDataWithoutLimit.quantity + _quantity;
         (
             positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount,,
         ) = openMarketOrder(
@@ -805,10 +806,11 @@ library PositionHouseFunction {
         // NOTICE calc unrealizedPnl after open reverse
         positionResp.unrealizedPnl = unrealizedPnl - positionResp.realizedPnl;
         {
+            uint256 reduceMarginWithoutManual = ((_positionData.margin - _manualMargin.abs()) * _quantity.abs()) / _positionData.quantity.abs();
             positionResp.position = Position.Data(
-                totalQuantity,
+                _positionDataWithoutLimit.quantity + _quantity,
                 handleMarginInOpenReverse(
-                    reduceMarginRequirement,
+                    reduceMarginWithoutManual,
                     _positionData,
                     _positionDataWithoutLimit,
                     _latestCumulativePremiumFraction
