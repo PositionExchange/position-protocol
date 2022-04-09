@@ -529,7 +529,7 @@ library PositionHouseFunction {
         PositionLimitOrder.Data[] memory _reduceLimitOrders,
         uint256 _canClaimAmountInMap,
         int256 _manualMarginInMap,
-        int256 _pendingProfit
+        int256 _debtProfit
     ) public view returns (int256 totalClaimableAmount) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         uint256 indexReduce;
@@ -603,7 +603,7 @@ library PositionHouseFunction {
             int256(_canClaimAmountInMap) +
             _manualMarginInMap +
             int256(_positionDataWithoutLimit.margin) +
-            _pendingProfit;
+            _debtProfit;
         if (totalClaimableAmount <= 0) {
             totalClaimableAmount = 0;
         }

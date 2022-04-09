@@ -246,14 +246,13 @@ contract PositionHouse is
      */
     function liquidate(IPositionManager _positionManager, address _trader)
         external
-        
         nonReentrant
     {
         address _caller = _msgSender();
         (, , uint256 marginRatio) = getMaintenanceDetail(
             _positionManager,
             _trader,
-            PnlCalcOption.ORACLE
+            PnlCalcOption.TWAP
         );
         uint256 _partialLiquidationRatio = positionHouseConfigurationProxy.partialLiquidationRatio();
         require(
@@ -313,7 +312,7 @@ contract PositionHouse is
      */
     function addMargin(IPositionManager _positionManager, uint256 _amount)
         external
-        
+
         nonReentrant
     {
         address _trader = _msgSender();
@@ -336,7 +335,7 @@ contract PositionHouse is
      */
     function removeMargin(IPositionManager _positionManager, uint256 _amount)
         external
-        
+
         nonReentrant
     {
         address _trader = _msgSender();
@@ -380,7 +379,7 @@ contract PositionHouse is
             uint256 maintenanceMargin,
             int256 marginBalance,
 
-        ) = getMaintenanceDetail(_positionManager, _trader, PnlCalcOption.ORACLE);
+        ) = getMaintenanceDetail(_positionManager, _trader, PnlCalcOption.TWAP);
         int256 _remainingMargin = marginBalance - int256(maintenanceMargin);
         return
             uint256(
@@ -546,6 +545,9 @@ contract PositionHouse is
         marginRatio = marginBalance <= 0
             ? 100
             : (maintenanceMargin * 100) / uint256(marginBalance);
+        if (positionData.quantity == 0) {
+            marginRatio = 0;
+        }
     }
 
 
@@ -700,7 +702,7 @@ contract PositionHouse is
         positionMap[_pmAddress][_trader].clear();
         debtPosition[_pmAddress][_trader].clearDebt();
         manualMargin[_pmAddress][_trader] = 0;
-        pendingProfit[_trader] = 0;
+        debtProfit[_pmAddress][_trader] = 0;
         ClaimableAmountManager._reset(_pmAddress, _trader);
         (
             PositionLimitOrder.Data[] memory subListLimitOrders,
@@ -753,7 +755,7 @@ contract PositionHouse is
                     _manualAddedMargin
                 );
                 manualMargin[_pmAddress][_trader] = _manualAddedMargin * (_oldPosition.quantity.absInt() - _quantity.absInt()) / _oldPosition.quantity.absInt();
-                pendingProfit[_trader] += debtMargin;
+                debtProfit[_pmAddress][_trader] += debtMargin;
                 return positionResp;
             }
         }
@@ -863,13 +865,13 @@ contract PositionHouse is
         return manualMargin[_pmAddress][_trader];
     }
 
-    function getPendingProfit(address _trader)
-        external
+    function getDebtProfit(address _pmAddress, address _trader)
+        public
         view
         override
         returns (int256)
     {
-        return pendingProfit[_trader];
+        return debtProfit[_pmAddress][_trader];
     }
 
     function _deposit(

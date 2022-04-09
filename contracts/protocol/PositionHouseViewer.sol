@@ -35,7 +35,7 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
             positionHouse._getReduceLimitOrders(_pmAddress, _trader),
             positionHouse.getClaimableAmount(_pmAddress, _trader),
             positionHouse.getAddedMargin(_pmAddress, _trader),
-            positionHouse.getPendingProfit(_trader)
+            positionHouse.getDebtProfit(_pmAddress, _trader)
         );
     }
 
@@ -70,7 +70,7 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         uint256 maintenanceMargin,
         int256 marginBalance,
 
-        ) = getMaintenanceDetail(_positionManager, _trader, PositionHouseStorage.PnlCalcOption.ORACLE);
+        ) = getMaintenanceDetail(_positionManager, _trader, PositionHouseStorage.PnlCalcOption.TWAP);
         int256 _remainingMargin = marginBalance - int256(maintenanceMargin);
         return
         uint256(
@@ -117,6 +117,9 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         marginRatio = marginBalance <= 0
         ? 100
         : (maintenanceMargin * 100) / uint256(marginBalance);
+        if (positionData.quantity == 0) {
+            marginRatio = 0;
+        }
     }
 
     function getPositionNotionalAndUnrealizedPnl(
