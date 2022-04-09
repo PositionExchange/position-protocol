@@ -129,7 +129,7 @@ export interface OpenLimitPositionAndExpectParams {
     _trader?: SignerWithAddress
     limitPrice: number | string
     leverage: number,
-    quantity: number
+    quantity: number | BigNumber
     side: number
     _positionManager?: PositionManager
 }
@@ -148,10 +148,13 @@ export interface OpenMarketPositionParams {
 }
 
 export interface PositionData {
-    quantity: BigNumber
-    margin: BigNumber
-    openNotional: BigNumber
-    side: BigNumber
+      quantity: BigNumber;
+      margin: BigNumber;
+      openNotional: BigNumber;
+      lastUpdatedCumulativePremiumFraction: BigNumber;
+      blockNumber: BigNumber;
+      leverage: number;
+      __dummy: number;
 }
 
 export interface MaintenanceDetail {
