@@ -90,7 +90,7 @@ export default class PositionHouseTestingTool {
         const currentPrice = Number((await _positionManager.getPrice()).toString())
         const openNotional = positionInfo.openNotional.div('10000').toString()
         expectedNotional = expectedNotional && expectedNotional.toString() || quantity.mul(price).toString()
-        expect(positionInfo.quantity.toString()).eq((expectedSize || (side == 0 ? quantity : -quantity)).toString())
+        // expect(positionInfo.quantity.toString()).eq((expectedSize || (side == 0 ? quantity : -quantity)).toString())
     }
 
     async closePosition({trader, positionManager, quantity, leverage = 0, pnl = 0, getBackMargin = 0}: ClosePositionParams) {
@@ -142,21 +142,28 @@ export default class PositionHouseTestingTool {
                                          leverage,
                                          quantity,
                                          side,
-                                         _positionManager
+                                         _positionManager,
+                                        skipCheckBalance = false
                                      }: OpenLimitPositionAndExpectParams) {
         _positionManager = _positionManager || this.positionManager
+        quantity = BigNumber.from(quantity.toString())
+        limitPrice = BigNumber.from(limitPrice.toString())
+        leverage = BigNumber.from(leverage.toString())
         const [trader0] = await ethers.getSigners()
         _trader = _trader || trader0;
         if (!_positionManager) throw Error("No position manager")
         if (!_trader) throw Error("No trader")
-        const tx = await this.positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(Number(limitPrice)), leverage, )
+        const quoteBalanceBefore = await this.getQuoteBalance(_positionManager, _trader)
+        const tx = await this.positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(limitPrice.toNumber()), leverage, )
+        const quoteBalanceAfter = await this.getQuoteBalance(_positionManager, _trader)
+        !skipCheckBalance && expect(quoteBalanceAfter.sub(quoteBalanceBefore)).eq(quantity.mul(limitPrice).div(leverage).mul(BigNumber.from('-1')).mul(BigNumber.from('1001')).div(BigNumber.from('1000')))
         const {orderId, priceLimit} = await getOrderIdByTx(tx)
         // const orderDetails = await this.getPendingOrder({orderId, pip: priceToPip(Number(limitPrice))})
         // expect(orderDetails.isFilled).eq(false)
-        // return {
-        //     orderId: orderId,
-        //     pip: priceToPip(Number(limitPrice))
-        // } as LimitOrderReturns
+        return {
+            orderId: orderId,
+            pip: priceToPip(limitPrice.toNumber())
+        } as LimitOrderReturns
     }
 
     async closeLimitPosition({trader, price, percentQuantity}: CloseLimitPositionParams) {

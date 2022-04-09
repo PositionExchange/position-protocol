@@ -50,6 +50,7 @@ describe("PositionHouse_02", () => {
     let insuranceFund: InsuranceFund
     let positionHouseViewer: PositionHouseViewer;
     let positionHouseConfigurationProxy: PositionHouseConfigurationProxy;
+    let positionHouseTestingTool: PositionHouseTestingTool;
     let _;
     beforeEach(async () => {
         [trader0, trader1, trader2, trader3, trader4, trader5, tradercp, tradercp2] = await ethers.getSigners();
@@ -58,7 +59,7 @@ describe("PositionHouse_02", () => {
             positionManager,
             positionManagerFactory,
             _,
-            _,
+            positionHouseTestingTool,
             bep20Mintable,
             insuranceFund,
             positionHouseViewer,
@@ -67,38 +68,8 @@ describe("PositionHouse_02", () => {
 
     })
 
-    const openMarketPosition = async ({
-                                          quantity,
-                                          leverage,
-                                          side,
-                                          trader,
-                                          instanceTrader,
-                                          expectedMargin,
-                                          expectedNotional,
-                                          expectedSize,
-                                          price = 5000,
-                                          _positionManager = positionManager
-                                      }: {
-        quantity: BigNumber,
-        leverage: number,
-        side: number,
-        trader?: string,
-        instanceTrader: any,
-        expectedMargin?: BigNumber,
-        expectedNotional?: BigNumber | string,
-        expectedSize?: BigNumber,
-        price?: number,
-        _positionManager?: any
-    }) => {
-        trader = instanceTrader && instanceTrader.address || trader
-        if (!trader) throw new Error("No trader")
-        const tx = await positionHouse.connect(instanceTrader).openMarketPosition(
-            _positionManager.address,
-            side,
-            quantity,
-            leverage,
-        )
-        console.log("GAS USED MARKET", (await tx.wait()).gasUsed.toString())
+    const openMarketPosition = async (input) => {
+        return positionHouseTestingTool.openMarketPosition(input)
     }
 
     interface OpenLimitPositionAndExpectParams {
@@ -116,27 +87,8 @@ describe("PositionHouse_02", () => {
         return orderId
     }
 
-    async function openLimitPositionAndExpect({
-                                                  _trader,
-                                                  limitPrice,
-                                                  leverage,
-                                                  quantity,
-                                                  side,
-                                                  _positionManager
-                                              }: OpenLimitPositionAndExpectParams): Promise<LimitOrderReturns> {
-        _positionManager = _positionManager || positionManager
-        _trader = _trader || trader0
-        if (!_positionManager) throw Error("No position manager")
-        if (!_trader) throw Error("No trader")
-        const tx = await positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(Number(limitPrice)), leverage)
-        console.log("GAS USED LIMIT", (await tx.wait()).gasUsed.toString())
-        const orderId = await getOrderIdByTx(tx)
-
-        return {
-            orderId: orderId,
-            pip: priceToPip(Number(limitPrice))
-        } as LimitOrderReturns
-        // expect(positionLimitInOrder..div(10000)).eq(limitPrice);
+    async function openLimitPositionAndExpect(input): Promise<LimitOrderReturns> {
+        return positionHouseTestingTool.openLimitPositionAndExpect(input)
     }
 
     async function liquidate(_positionManagerAddress, _traderAddress) {
@@ -5137,7 +5089,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: BigNumber.from('1'),
-                _trader: trader0
+                _trader: trader0,
+                skipCheckBalance: true
             })
 
             const balanceOfTrader0AfterClose = (await bep20Mintable.balanceOf(trader0.address)).toString()
@@ -5677,7 +5630,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 1,
                 quantity: BigNumber.from('1'),
-                _trader: trader2
+                _trader: trader2,
+                skipCheckBalance: true
             })
 
 
@@ -5695,16 +5649,17 @@ describe("PositionHouse_02", () => {
             })
 
             await changePrice({
-                limitPrice: 442.07,
+                limitPrice: 442,
                 toHigherPrice: false
             })
 
             await openLimitPositionAndExpect({
-                limitPrice: 442.07,
+                limitPrice: 442,
                 side: SIDE.SHORT,
                 leverage: 1,
                 quantity: BigNumber.from('10'),
-                _trader: trader2
+                _trader: trader2,
+                skipCheckBalance: true
             })
 
             await openMarketPosition({
@@ -5718,11 +5673,12 @@ describe("PositionHouse_02", () => {
             );
 
             await openLimitPositionAndExpect({
-                limitPrice: 441.49,
+                limitPrice: 441,
                 side: SIDE.LONG,
                 leverage: 1,
                 quantity: BigNumber.from('10'),
-                _trader: trader2
+                _trader: trader2,
+                skipCheckBalance: true
             })
 
             await positionHouse.connect(trader1).addMargin(positionManager.address, BigNumber.from('3500'))
@@ -5732,14 +5688,14 @@ describe("PositionHouse_02", () => {
             await positionHouse.connect(trader1).closePosition(positionManager.address, BigNumber.from('7'))
             let balanceAfterReversePosition = await bep20Mintable.balanceOf(trader1.address)
             let exchangedAmount = BigNumber.from(balanceAfterReversePosition).sub(BigNumber.from(balanceBeforeReversePosition))
-            await expect(exchangedAmount).eq('2470')
+            await expect(exchangedAmount).eq('2467')
             await expect((await positionHouse.getPosition(positionManager.address, trader1.address)).margin).eq("1061")
             console.log("before second time reverse")
             balanceBeforeReversePosition = await bep20Mintable.balanceOf(trader1.address)
             await positionHouse.connect(trader1).closePosition(positionManager.address, BigNumber.from('2'))
             balanceAfterReversePosition = await bep20Mintable.balanceOf(trader1.address)
             exchangedAmount = BigNumber.from(balanceAfterReversePosition).sub(BigNumber.from(balanceBeforeReversePosition))
-            await expect(exchangedAmount).eq('706')
+            await expect(exchangedAmount).eq('705')
             await expect((await positionHouse.getPosition(positionManager.address, trader1.address)).margin).eq("354")
         })
 
@@ -5754,7 +5710,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 1,
                 quantity: BigNumber.from('3'),
-                _trader: trader2
+                _trader: trader2,
+                skipCheckBalance: true
             })
 
             await openMarketPosition({
@@ -5795,7 +5752,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 1,
                 quantity: BigNumber.from('3'),
-                _trader: trader2
+                _trader: trader2,
+                skipCheckBalance: true
             })
 
             await openMarketPosition({

@@ -127,11 +127,12 @@ export const SIDE = {
 
 export interface OpenLimitPositionAndExpectParams {
     _trader?: SignerWithAddress
-    limitPrice: number | string
-    leverage: number,
+    limitPrice: number | string | BigNumber
+    leverage: number | BigNumber,
     quantity: number | BigNumber
     side: number
     _positionManager?: PositionManager
+    skipCheckBalance?: boolean
 }
 
 export interface OpenMarketPositionParams {
