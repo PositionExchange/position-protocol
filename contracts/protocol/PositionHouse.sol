@@ -738,6 +738,7 @@ contract PositionHouse is
     ) internal returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
         if (_quantity.abs() < _oldPosition.quantity.abs()) {
+            int256 _manualAddedMargin = _getManualMargin(_pmAddress, _trader);
             {
                 int256 debtMargin;
                 (positionResp, debtMargin) = PositionHouseFunction.openReversePosition(
@@ -748,9 +749,10 @@ contract PositionHouse is
                     _trader,
                     _oldPosition,
                     positionMap[_pmAddress][_trader],
-                    getLatestCumulativePremiumFraction(_pmAddress)
+                    getLatestCumulativePremiumFraction(_pmAddress),
+                    _manualAddedMargin
                 );
-                manualMargin[_pmAddress][_trader] = manualMargin[_pmAddress][_trader] * (_oldPosition.quantity.absInt() - _quantity.absInt()) / _oldPosition.quantity.absInt();
+                manualMargin[_pmAddress][_trader] = _manualAddedMargin * (_oldPosition.quantity.absInt() - _quantity.absInt()) / _oldPosition.quantity.absInt();
                 pendingProfit[_trader] += debtMargin;
                 return positionResp;
             }

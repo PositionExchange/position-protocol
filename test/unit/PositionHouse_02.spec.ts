@@ -5710,7 +5710,7 @@ describe("PositionHouse_02", () => {
                 limitPrice: 5000,
                 side: SIDE.LONG,
                 leverage: 1,
-                quantity: BigNumber.from('3'),
+                quantity: BigNumber.from('5'),
                 _trader: trader2
             })
 
@@ -5724,8 +5724,89 @@ describe("PositionHouse_02", () => {
                 }
             );
 
-            const addedMargin = await positionHouse.getAddedMargin(positionManager.address, trader1.address)
+            let addedMargin = await positionHouse.getAddedMargin(positionManager.address, trader1.address)
             await expect(addedMargin.toString()).eq("700")
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('2'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            addedMargin = await positionHouse.getAddedMargin(positionManager.address, trader1.address)
+            await expect(addedMargin.toString()).eq("500")
+        })
+
+        it("should return margin when close position correct", async () => {
+            await changePrice({
+                limitPrice: 2000,
+                toHigherPrice: false
+            })
+
+            await changePrice({
+                limitPrice: 442.07,
+                toHigherPrice: false
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 442.07,
+                side: SIDE.SHORT,
+                leverage: 1,
+                quantity: BigNumber.from('10'),
+                _trader: trader2
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 125,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 441.49,
+                side: SIDE.LONG,
+                leverage: 1,
+                quantity: BigNumber.from('10'),
+                _trader: trader2
+            })
+
+            await positionHouse.connect(trader1).addMargin(positionManager.address, BigNumber.from('3500'))
+
+            console.log("before first time reverse")
+            let balanceBeforeReversePosition = await bep20Mintable.balanceOf(trader1.address)
+            await positionHouse.connect(trader1).closePosition(positionManager.address, BigNumber.from('7'))
+            let balanceAfterReversePosition = await bep20Mintable.balanceOf(trader1.address)
+            let exchangedAmount = BigNumber.from(balanceAfterReversePosition).sub(BigNumber.from(balanceBeforeReversePosition))
+            await expect(exchangedAmount).eq('2470')
+            await expect((await positionHouse.getPosition(positionManager.address, trader1.address)).margin).eq("1061")
+            console.log("before second time reverse")
+            balanceBeforeReversePosition = await bep20Mintable.balanceOf(trader1.address)
+            await positionHouse.connect(trader1).closePosition(positionManager.address, BigNumber.from('2'))
+            balanceAfterReversePosition = await bep20Mintable.balanceOf(trader1.address)
+            exchangedAmount = BigNumber.from(balanceAfterReversePosition).sub(BigNumber.from(balanceBeforeReversePosition))
+            await expect(exchangedAmount).eq('706')
+            await expect((await positionHouse.getPosition(positionManager.address, trader1.address)).margin).eq("354")
+        })
+
+        it("should receive correct amount of pnl", async() => {
+            await changePrice({
+                limitPrice:
+            })
+            await openLimitPositionAndExpect({
+                limitPrice: 4600,
+                side: SIDE.LONG,
+                leverage: 1,
+                quantity: BigNumber.from('10'),
+                _trader: trader2
+            })
         })
     })
 })
