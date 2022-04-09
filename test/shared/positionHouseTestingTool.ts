@@ -1,4 +1,4 @@
-import {PositionHouse, PositionHouseViewer, PositionManager} from "../../typeChain";
+import {BEP20Mintable, PositionHouse, PositionHouseViewer, PositionManager} from "../../typeChain";
 import {BigNumber} from "ethers";
 import {
     ClaimFund,
@@ -44,6 +44,15 @@ export interface PendingOrderParam {
 
 }
 
+export interface ClosePositionParams {
+    trader: SignerWithAddress
+    positionManager: PositionManager
+    quantity: number | string | BigNumber
+    leverage?: number
+    getBackMargin?: number | string | BigNumber
+    pnl?: number | string | BigNumber
+}
+
 
 export default class PositionHouseTestingTool {
     private positionHouse: PositionHouse;
@@ -81,7 +90,50 @@ export default class PositionHouseTestingTool {
         const currentPrice = Number((await _positionManager.getPrice()).toString())
         const openNotional = positionInfo.openNotional.div('10000').toString()
         expectedNotional = expectedNotional && expectedNotional.toString() || quantity.mul(price).toString()
-        expect(positionInfo.quantity.toString()).eq((expectedSize || quantity).toString())
+        expect(positionInfo.quantity.toString()).eq((expectedSize || (side == 0 ? quantity : -quantity)).toString())
+    }
+
+    async closePosition({trader, positionManager, quantity, leverage = 0, pnl = 0, getBackMargin = 0}: ClosePositionParams) {
+        quantity = BigNumber.from(quantity.toString())
+        const currentPosition = await this.positionHouse.getPosition(positionManager.address, trader.address) as unknown as PositionData;
+        if(currentPosition.quantity.eq(0)){
+            throw new Error("No opening position")
+        }
+        leverage = leverage || currentPosition.leverage
+        const side = currentPosition.quantity.lt(0) ? 0 : 1
+        const quoteBalanceBefore = await this.getQuoteBalance(positionManager, trader)
+        if(!pnl){
+            const liquidityRange = await positionManager.getLiquidityInPipRange(await positionManager.getCurrentPip(), 500, side == 0)
+            const liquidity = liquidityRange[0].map(o => ({pip: o[0].toString(), quantity: o[1].toString()}));
+            let toPip, rawQuantity = Number(quantity.toString());
+            for(const liquidityObj of liquidity){
+                rawQuantity -= Number(liquidityObj.quantity)
+                if(rawQuantity <= 0){
+                    toPip = liquidityObj.pip
+                    break;
+                }
+            }
+            if(!toPip){
+                throw new Error(`No liquidity to close`)
+            }
+            pnl = currentPosition.quantity.mul(this.pipToPrice(toPip)).sub(currentPosition.openNotional).mul(quantity).div(currentPosition.quantity)
+        }
+        await this.positionHouse.connect(trader).openMarketPosition(
+            positionManager.address,
+            side,
+            quantity,
+            leverage
+        )
+        const quoteBalanceAfter = await this.getQuoteBalance(positionManager, trader)
+        // trader should get back margin = (closeQuantity / positionQuantity) * positionMargin + PnL
+        getBackMargin = getBackMargin || quantity.mul(currentPosition.margin).div(currentPosition.quantity)
+        expect(quoteBalanceAfter.sub(quoteBalanceBefore)).eq(BigNumber.from(getBackMargin.toString()).add(BigNumber.from(pnl.toString())), `Quote asset receive is not correctly, received: ${quoteBalanceAfter.sub(quoteBalanceBefore).toString()}`)
+
+    }
+
+    async expectPositionMargin(positionManager, trader, amount){
+        const {margin} = await this.positionHouse.getPosition(positionManager.address, trader.address)
+        await expect(margin.toString()).eq(amount.toString())
     }
 
     async openLimitPositionAndExpect({
@@ -214,6 +266,17 @@ export default class PositionHouseTestingTool {
 
     async dumpPrice() {
 
+    }
+
+
+    async getQuoteBalance(positionManager: PositionManager, user: SignerWithAddress): Promise<BigNumber>{
+        const quoteAsset = await positionManager.getQuoteAsset()
+        const token = await ethers.getContractAt("BEP20Mintable", quoteAsset) as unknown as BEP20Mintable
+        return token.balanceOf(user.address)
+    }
+
+    protected pipToPrice(pip): BigNumber{
+        return BigNumber.from(pip.toString()).div(100)
     }
 
 
