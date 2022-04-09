@@ -5836,5 +5836,46 @@ describe("PositionHouse_02", () => {
 
             await positionHouse.liquidate(positionManager.address, trader1.address)
         })
+
+        it("should cannot liquidate user don't have position", async () => {
+            const maintenanceDetail = await positionHouseViewer.getMaintenanceDetail(positionManager.address, trader1.address, 1)
+            await expect(maintenanceDetail.marginRatio).eq(0)
+        })
+
+        it("should liquidate success", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 1,
+                quantity: BigNumber.from('3'),
+                _trader: trader2
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+            await changePrice({
+                limitPrice: 9000,
+                toHigherPrice: true
+            })
+
+            await changePrice({
+                limitPrice: 13000,
+                toHigherPrice: true
+            })
+
+            await changePrice({
+                limitPrice: 17000,
+                toHigherPrice: true
+            })
+
+            await positionHouse.liquidate(positionManager.address, trader1.address)
+        })
     })
 })
