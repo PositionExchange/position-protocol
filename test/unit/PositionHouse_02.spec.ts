@@ -256,6 +256,11 @@ describe("PositionHouse_02", () => {
         await positionHouse.connect(trader).cancelLimitOrder(positionManagerAddress, obj.orderIdx, obj.isReduce);
     }
 
+    async function expectPositionMargin(positionManager, trader, amount){
+        const {margin} = await positionHouse.getPosition(positionManager.address, trader.address)
+        await expect(margin.toString()).eq(amount.toString())
+    }
+
     describe('Increase size in order', async () => {
 
         /**
@@ -5704,7 +5709,11 @@ describe("PositionHouse_02", () => {
                 }
             );
 
+            // Trader1's margin = price * leverage * quantity = 5000 * 1 * 10 = 50000
+            await expectPositionMargin(positionManager, trader1, 50000)
             await positionHouse.connect(trader1).addMargin(positionManager.address, BigNumber.from("1000"))
+            // Trader1's margin += 1000 = 50000 + 1000
+            await expectPositionMargin(positionManager, trader1, 51000)
 
             await openLimitPositionAndExpect({
                 limitPrice: 5000,
@@ -5714,6 +5723,7 @@ describe("PositionHouse_02", () => {
                 _trader: trader2
             })
 
+            // closing 3/10 position, should get back 3/10 position's margin
             await openMarketPosition({
                     quantity: BigNumber.from('3'),
                     leverage: 10,
@@ -5723,10 +5733,10 @@ describe("PositionHouse_02", () => {
                     _positionManager: positionManager,
                 }
             );
+            // Trader's margin -= 3*51000/10 = 35700
+            await expectPositionMargin(positionManager, trader1, 35700)
 
-            let addedMargin = await positionHouse.getAddedMargin(positionManager.address, trader1.address)
-            await expect(addedMargin.toString()).eq("700")
-
+            // closing 2/7 position, should get back 2/7 position's margin
             await openMarketPosition({
                     quantity: BigNumber.from('2'),
                     leverage: 10,
@@ -5736,9 +5746,8 @@ describe("PositionHouse_02", () => {
                     _positionManager: positionManager,
                 }
             );
-
-            addedMargin = await positionHouse.getAddedMargin(positionManager.address, trader1.address)
-            await expect(addedMargin.toString()).eq("500")
+            // Trader1's margin = 35700 - (2*35700)/7 = 25500
+            await expectPositionMargin(positionManager, trader1, 25500)
         })
 
         it("should return margin when close position correct", async () => {
