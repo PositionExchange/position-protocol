@@ -88,7 +88,8 @@ contract PositionHouse is
     ) external  nonReentrant {
         address _pmAddress = address (_positionManager);
         address _trader = _msgSender();
-        Position.Data memory _positionData = getPosition(address(_positionManager), _msgSender());
+        Position.Data memory _positionData = getPosition(_pmAddress, _trader);
+        _positionData = getPositionWithManualMargin(_pmAddress, _trader, _positionData);
         (bool _needClaim, int256 _claimAbleAmount) = _needToClaimFund(_pmAddress, _trader, getPosition(_pmAddress, _trader));
         if (_needClaim) {
             _internalClaimFund(_positionManager, _positionData, _claimAbleAmount);
@@ -152,11 +153,13 @@ contract PositionHouse is
         
         nonReentrant
     {
+        address _pmAddress = address(_positionManager);
         address _trader = _msgSender();
         Position.Data memory positionData = getPosition(
-            address(_positionManager),
+            _pmAddress,
             _trader
         );
+        positionData = getPositionWithManualMargin(_pmAddress, _trader, positionData);
         require(
             _quantity > 0 && _quantity <= positionData.quantity.abs(),
             Errors.VL_INVALID_CLOSE_QUANTITY
@@ -443,7 +446,7 @@ contract PositionHouse is
             _reduceOrders,
             positionData
         );
-        positionData.margin += uint256(manualMargin[_pmAddress][_trader]);
+//        positionData.margin += uint256(manualMargin[_pmAddress][_trader]);
         Position.LiquidatedData memory _debtPosition = debtPosition[_pmAddress][
             _trader
         ];
@@ -452,6 +455,15 @@ contract PositionHouse is
             positionData.margin -= _debtPosition.margin;
             positionData.openNotional -= _debtPosition.notional;
         }
+    }
+
+    function getPositionWithManualMargin(
+        address _pmAddress,
+        address _trader,
+        Position.Data memory _oldPosition
+    ) public view returns (Position.Data memory) {
+        _oldPosition.margin += _getManualMargin(_pmAddress, _trader).abs();
+        return _oldPosition;
     }
 
     function getPositionNotionalAndUnrealizedPnl(
@@ -669,14 +681,13 @@ contract PositionHouse is
                 ? Position.Side.SHORT
                 : Position.Side.LONG
         );
-
+        _oldPosition = getPositionWithManualMargin(_pmAddress, _trader, _oldPosition);
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
             _positionManager,
             _trader,
             _pnlCalcOption,
             _oldPosition
         );
-
         (
             uint256 remainMargin,
             uint256 badDebt,
@@ -691,7 +702,6 @@ contract PositionHouse is
         positionResp.realizedPnl = unrealizedPnl;
         positionResp.marginToVault = -int256(remainMargin)
             .add(positionResp.realizedPnl)
-            .add(manualMargin[_pmAddress][_trader])
             .kPositive();
         positionResp.unrealizedPnl = 0;
         ClaimableAmountManager._reset(_pmAddress, _trader);
@@ -824,6 +834,7 @@ contract PositionHouse is
             _oldPosition
         );
         // TODO need to calculate remain margin with funding payment
+        _oldPosition = getPositionWithManualMargin(_pmAddress, _trader, _oldPosition);
         uint256 _newMargin = PositionHouseMath.calculatePartialLiquidateMargin(
             _oldPosition.margin,
             positionHouseConfigurationProxy.liquidationFeeRatio()

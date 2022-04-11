@@ -42,6 +42,11 @@ interface IPositionHouse {
     view
     returns (int256);
 
+    function getPositionWithManualMargin(address _positionManager, address _trader, Position.Data memory _oldPosition)
+    external
+    view
+    returns (Position.Data memory);
+
     function getDebtProfit(address _pmAddress, address _trader)
     external
     view

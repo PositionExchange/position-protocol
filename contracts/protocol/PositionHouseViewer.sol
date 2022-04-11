@@ -95,6 +95,7 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
     {
         address _pmAddress = address(_positionManager);
         Position.Data memory positionData = positionHouse.getPosition(_pmAddress, _trader);
+        positionData = positionHouse.getPositionWithManualMargin(_pmAddress, _trader, positionData);
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
             _positionManager,
             _trader,
@@ -151,5 +152,8 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         );
     }
 
-
+    function getPosition(address _pmAddress, address _trader) public view returns (Position.Data memory positionData) {
+        positionData = positionHouse.getPosition(_pmAddress, _trader);
+        positionData = positionHouse.getPositionWithManualMargin(_pmAddress, _trader, positionData);
+    }
 }
