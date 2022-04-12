@@ -273,7 +273,7 @@ contract PositionHouse is
                 // partially liquidate position by reduce position's quantity
                 positionResp = partialLiquidate(
                     _positionManager,
-                    -partiallyLiquidateQuantity,
+                    partiallyLiquidateQuantity,
                     positionDataWithManualMargin,
                     _trader
                 );
@@ -808,6 +808,7 @@ contract PositionHouse is
         address _trader
     ) internal returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
+        int256 _manualMargin = _getManualMargin(_pmAddress, _trader);
         Position.Side _side = _quantity > 0 ? Position.Side.SHORT : Position.Side.LONG;
         (positionResp.exchangedPositionSize, ,, ) = PositionHouseFunction
             .openMarketOrder(_pmAddress, _quantity.abs(), _side);
@@ -823,16 +824,18 @@ contract PositionHouse is
             _oldPosition
         );
         // TODO need to calculate remain margin with funding payment
-        uint256 _newMargin = PositionHouseMath.calculatePartialLiquidateMargin(
-            _oldPosition.margin,
+        (uint256 _liquidatedPositionMargin, uint256 _liquidatedManualMargin) = PositionHouseMath.calculatePartialLiquidateMargin(
+            _oldPosition.margin - _manualMargin.abs(),
+            _manualMargin.abs(),
             positionHouseConfigurationProxy.liquidationFeeRatio()
         );
         // unchecked
-        positionResp.marginToVault = int256(_newMargin);
+        manualMargin[_pmAddress][_trader] -= int256(_liquidatedManualMargin);
+        positionResp.marginToVault = int256(_liquidatedPositionMargin + _liquidatedManualMargin);
         positionResp.unrealizedPnl = unrealizedPnl;
         debtPosition[_pmAddress][_trader].updateDebt(
-            -_quantity,
-            _newMargin,
+            _quantity,
+            _liquidatedPositionMargin,
             positionResp.exchangedQuoteAssetAmount
         );
         return positionResp;

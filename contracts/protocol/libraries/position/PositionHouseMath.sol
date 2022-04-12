@@ -12,10 +12,12 @@ library PositionHouseMath {
 
     function calculatePartialLiquidateMargin(
         uint256 _oldMargin,
+        uint256 _manualMargin,
         uint256 _liquidationFeeRatio
-    ) public pure returns (uint256) {
-        uint256 remainMargin = (_oldMargin * (100 - _liquidationFeeRatio)) /
+    ) public pure returns (uint256 liquidatedPositionMargin, uint256 liquidatedManualMargin) {
+        liquidatedPositionMargin = (_oldMargin * _liquidationFeeRatio) /
             100;
-        return _oldMargin - remainMargin;
+        liquidatedManualMargin = (_manualMargin * _liquidationFeeRatio) /
+            100;
     }
 }
