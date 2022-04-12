@@ -111,11 +111,11 @@ contract PositionHouse is
     ) external  nonReentrant {
         address _pmAddress = address (_positionManager);
         address _trader = _msgSender();
-        Position.Data memory _positionData = getPosition(address(_positionManager), _msgSender());
+        Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
         require(_requireSideOrder(_pmAddress, _trader, _side),Errors.VL_MUST_SAME_SIDE);
-        (bool _needClaim, int256 _claimAbleAmount) = _needToClaimFund(_pmAddress, _trader, _positionData);
+        (bool _needClaim, int256 _claimAbleAmount) = _needToClaimFund(_pmAddress, _trader, _positionDataWithManualMargin);
         if (_needClaim) {
-            _internalClaimFund(_positionManager, _positionData, _claimAbleAmount);
+            _internalClaimFund(_positionManager, _positionDataWithManualMargin, _claimAbleAmount);
         }
         _internalOpenLimitOrder(
             _positionManager,
@@ -123,7 +123,7 @@ contract PositionHouse is
             _uQuantity,
             _pip,
             _leverage,
-            _positionData
+            _positionDataWithManualMargin
         );
     }
 
@@ -154,19 +154,19 @@ contract PositionHouse is
     {
         address _pmAddress = address(_positionManager);
         address _trader = _msgSender();
-        Position.Data memory positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
+        Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
         require(
-            _quantity > 0 && _quantity <= positionDataWithManualMargin.quantity.abs(),
+            _quantity > 0 && _quantity <= _positionDataWithManualMargin.quantity.abs(),
             Errors.VL_INVALID_CLOSE_QUANTITY
         );
         _internalOpenMarketPosition(
             _positionManager,
-                positionDataWithManualMargin.quantity > 0
+                _positionDataWithManualMargin.quantity > 0
                 ? Position.Side.SHORT
                 : Position.Side.LONG,
             _quantity,
-            positionDataWithManualMargin.leverage,
-            positionDataWithManualMargin
+            _positionDataWithManualMargin.leverage,
+            _positionDataWithManualMargin
         );
     }
 
@@ -181,24 +181,22 @@ contract PositionHouse is
         uint128 _pip,
         uint256 _quantity
     ) external  nonReentrant {
+        address _pmAddress = address(_positionManager);
         address _trader = _msgSender();
-        Position.Data memory positionData = getPosition(
-            address(_positionManager),
-            _trader
-        );
+        Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
         require(
-            _quantity > 0 && _quantity <= positionData.quantity.abs(),
+            _quantity > 0 && _quantity <= _positionDataWithManualMargin.quantity.abs(),
             Errors.VL_INVALID_CLOSE_QUANTITY
         );
         _internalOpenLimitOrder(
             _positionManager,
-            positionData.quantity > 0
+            _positionDataWithManualMargin.quantity > 0
                 ? Position.Side.SHORT
                 : Position.Side.LONG,
             _quantity,
             _pip,
-            positionData.leverage,
-            positionData
+            _positionDataWithManualMargin.leverage,
+            _positionDataWithManualMargin
         );
     }
 
@@ -207,12 +205,14 @@ contract PositionHouse is
         
         nonReentrant
     {
-        Position.Data memory _positionData = getPosition(address(_positionManager), _msgSender());
+        address _pmAddress = address(_positionManager);
+        address _trader = _msgSender();
+        Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
         require(
-            _positionData.quantity == 0,
+            _positionDataWithManualMargin.quantity == 0,
             Errors.VL_INVALID_CLAIM_FUND
         );
-        _internalClaimFund(_positionManager, _positionData, 0);
+        _internalClaimFund(_positionManager, _positionDataWithManualMargin, 0);
     }
 
     function _internalClaimFund(IPositionManager _positionManager, Position.Data memory _positionData, int256 totalRealizedPnl) internal {
