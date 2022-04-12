@@ -365,7 +365,7 @@ describe('Test Margin Intergration', function () {
             await phTT.expectPositionMargin(positionManager, trader1, 0)
         });
 
-        it("should be partial liquidated when losing more than added margin", async () => {
+        it("should be partial liquidated when losing almost added margin + position margin", async () => {
             await phTT.openLimitPositionAndExpect({
                 limitPrice: 5000,
                 side: SIDE.LONG,
@@ -457,7 +457,51 @@ describe('Test Margin Intergration', function () {
             await phTT.expectPositionMargin(fundingRateTest, trader1, 0)
             await expectManualAddedMargin(trader1, 0, fundingRateTest)
         })
-        // test liquidate with manual margin
+
+        it("should be full liquidated when losing more than added margin + position margin", async () => {
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1,
+                _positionManager: fundingRateTest
+            })
+
+            await phTT.openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader4.address,
+                    instanceTrader: trader4,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+            // Trader1's margin = price * leverage * quantity = 5000 * 1 * 10 = 50000
+            await phTT.expectPositionMargin(fundingRateTest, trader1, 5000)
+
+            await positionHouse.connect(trader1).addMargin(fundingRateTest.address, BigNumber.from("1000"))
+            // Trader1's margin += 1000 = 50000 + 1000
+            await phTT.expectPositionMargin(fundingRateTest, trader1, 6000)
+            await expectManualAddedMargin(trader1,1000, fundingRateTest)
+
+            await phTT.dumpPrice({
+                toPrice: 4410,
+                pumper: tradercp1,
+                pumper2: tradercp2,
+                positionManager: fundingRateTest
+            })
+
+            await fundingRateTest.setMockPrice(BigNumber.from("44100000"), BigNumber.from("44100000"))
+
+            // full liquidate trader1's position
+            await positionHouse.liquidate(fundingRateTest.address, trader1.address)
+
+            // position after liquidated loss 3%
+            await phTT.expectPositionMargin(fundingRateTest, trader1, 0)
+            await expectManualAddedMargin(trader1,0, fundingRateTest)
+        })
 
     });
 
