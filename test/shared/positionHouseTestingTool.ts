@@ -86,7 +86,7 @@ export default class PositionHouseTestingTool {
             leverage,
         )
 
-        const positionInfo = await this.positionHouse.getPosition(_positionManager.address, trader) as unknown as PositionData;
+        const positionInfo = await this.positionHouseViewer.getPosition(_positionManager.address, trader) as unknown as PositionData;
         const currentPrice = Number((await _positionManager.getPrice()).toString())
         const openNotional = positionInfo.openNotional.div('10000').toString()
         expectedNotional = expectedNotional && expectedNotional.toString() || quantity.mul(price).toString()
@@ -95,7 +95,7 @@ export default class PositionHouseTestingTool {
 
     async closePosition({trader, positionManager, quantity, leverage = 0, pnl = 0, getBackMargin = 0}: ClosePositionParams) {
         quantity = BigNumber.from(quantity.toString())
-        const currentPosition = await this.positionHouse.getPosition(positionManager.address, trader.address) as unknown as PositionData;
+        const currentPosition = await this.positionHouseViewer.getPosition(positionManager.address, trader.address) as unknown as PositionData;
         if(currentPosition.quantity.eq(0)){
             throw new Error("No opening position")
         }
@@ -132,7 +132,7 @@ export default class PositionHouseTestingTool {
     }
 
     async expectPositionMargin(positionManager, trader, amount){
-        const {margin} = await this.positionHouse.getPosition(positionManager.address, trader.address)
+        const {margin} = await this.positionHouseViewer.getPosition(positionManager.address, trader.address)
         await expect(margin.toString()).eq(amount.toString())
     }
 
@@ -156,7 +156,9 @@ export default class PositionHouseTestingTool {
         const quoteBalanceBefore = await this.getQuoteBalance(_positionManager, _trader)
         const tx = await this.positionHouse.connect(_trader).openLimitOrder(_positionManager.address, side, quantity, priceToPip(limitPrice.toNumber()), leverage, )
         const quoteBalanceAfter = await this.getQuoteBalance(_positionManager, _trader)
-        !skipCheckBalance && expect(quoteBalanceAfter.sub(quoteBalanceBefore)).eq(quantity.mul(limitPrice).div(leverage).mul(BigNumber.from('-1')).mul(BigNumber.from('1001')).div(BigNumber.from('1000')))
+        const margin = quantity.mul(limitPrice).div(leverage).mul(BigNumber.from('-1'))
+        const fee = quantity.mul(limitPrice).div(BigNumber.from('10000')).mul(BigNumber.from('-1'))
+        !skipCheckBalance && expect(quoteBalanceAfter.sub(quoteBalanceBefore)).eq(margin.add(fee))
         const {orderId, priceLimit} = await getOrderIdByTx(tx)
         // const orderDetails = await this.getPendingOrder({orderId, pip: priceToPip(Number(limitPrice))})
         // expect(orderDetails.isFilled).eq(false)
@@ -188,10 +190,10 @@ export default class PositionHouseTestingTool {
     }
 
     async closeMarketPosition({trader, _percentQuantity}: CloseMarketPositionParams) {
-        const positionData1 = (await this.positionHouse.connect(trader).getPosition(this.positionManager.address, trader.address)) as unknown as PositionData;
+        const positionData1 = (await this.positionHouseViewer.connect(trader).getPosition(this.positionManager.address, trader.address)) as unknown as PositionData;
         await this.positionHouse.connect(trader).closePosition(this.positionManager.address, _percentQuantity);
 
-        const positionData = (await this.positionHouse.getPosition(this.positionManager.address, trader.address)) as unknown as PositionData;
+        const positionData = (await this.positionHouseViewer.getPosition(this.positionManager.address, trader.address)) as unknown as PositionData;
         expect(positionData.margin).eq(0);
         expect(positionData.quantity).eq(0);
     }
@@ -209,7 +211,7 @@ export default class PositionHouseTestingTool {
 
     async getPosition(trader: SignerWithAddress): Promise<PositionData> {
 
-        return (await this.positionHouse.getPosition(this.positionManager.address, trader.address)) as unknown as PositionData;
+        return (await this.positionHouseViewer.getPosition(this.positionManager.address, trader.address)) as unknown as PositionData;
 
     }
 
@@ -225,13 +227,13 @@ export default class PositionHouseTestingTool {
     }
 
     async debugPosition(trader: SignerWithAddress){
-        const positionInfo = await this.positionHouse.getPosition(this.positionManager.address, trader.address) as unknown as PositionData;
+        const positionInfo = await this.positionHouseViewer.getPosition(this.positionManager.address, trader.address) as unknown as PositionData;
         // console.log("positionInfo", positionInfo)
         const currentPrice = Number((await this.positionManager.getPrice()).div('10000').toString())
         const openNotional = positionInfo.openNotional.div('10000').toString()
         // expectedNotional = expectedNotional && expectedNotional.toString() || quantity.mul(price).toString()
         console.log(`debugPosition Position Info of ${trader.address}`)
-        const oldPosition = await this.positionHouse.getPosition(this.positionManager.address, trader.address)
+        const oldPosition = await this.positionHouseViewer.getPosition(this.positionManager.address, trader.address)
         const pnl = await this.positionHouseViewer.getPositionNotionalAndUnrealizedPnl(this.positionManager.address, trader.address,0, oldPosition)
         console.table([
             {
@@ -271,8 +273,13 @@ export default class PositionHouseTestingTool {
         })
     }
 
-    async dumpPrice() {
-
+    async dumpPrice({toPrice, pumper, pumper2} : any) {
+        await this.openLimitPositionAndExpect({
+            _trader: pumper, leverage: 10, limitPrice: toPrice, quantity: 1, side: 0
+        })
+        await this.openMarketPosition({
+            instanceTrader: pumper2, leverage: 10, quantity: BigNumber.from('1'), side: 1, expectedSize: BigNumber.from('1')
+        })
     }
 
 

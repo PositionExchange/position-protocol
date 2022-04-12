@@ -208,7 +208,10 @@ describe("PositionHouse_02", () => {
         await positionHouse.connect(trader).cancelLimitOrder(positionManagerAddress, obj.orderIdx, obj.isReduce);
     }
 
-
+    async function expectPositionMargin(positionManager, trader, amount){
+        const {margin} = await positionHouseViewer.getPosition(positionManager.address, trader.address)
+        await expect(margin.toString()).eq(amount.toString())
+    }
 
     describe('Increase size in order', async () => {
 
@@ -5689,14 +5692,14 @@ describe("PositionHouse_02", () => {
             let balanceAfterReversePosition = await bep20Mintable.balanceOf(trader1.address)
             let exchangedAmount = BigNumber.from(balanceAfterReversePosition).sub(BigNumber.from(balanceBeforeReversePosition))
             await expect(exchangedAmount).eq('2467')
-            await expect((await positionHouse.getPosition(positionManager.address, trader1.address)).margin).eq("1061")
+            await expect((await positionHouseViewer.getPosition(positionManager.address, trader1.address)).margin).eq("1061")
             console.log("before second time reverse")
             balanceBeforeReversePosition = await bep20Mintable.balanceOf(trader1.address)
             await positionHouse.connect(trader1).closePosition(positionManager.address, BigNumber.from('2'))
             balanceAfterReversePosition = await bep20Mintable.balanceOf(trader1.address)
             exchangedAmount = BigNumber.from(balanceAfterReversePosition).sub(BigNumber.from(balanceBeforeReversePosition))
             await expect(exchangedAmount).eq('705')
-            await expect((await positionHouse.getPosition(positionManager.address, trader1.address)).margin).eq("354")
+            await expect((await positionHouseViewer.getPosition(positionManager.address, trader1.address)).margin).eq("354")
         })
 
         it("should cannot liquidate user don't have position", async () => {
