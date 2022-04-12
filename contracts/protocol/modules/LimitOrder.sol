@@ -369,12 +369,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         claimableAmount = _getClaimAmount(
             _pmAddress,
             _trader,
-            _positionData,
-            _getPositionMap(_pmAddress, _trader),
-            _getLimitOrders(_pmAddress, _trader),
-            _getReduceLimitOrders(_pmAddress, _trader),
-            getClaimableAmount(_pmAddress, _trader),
-            _getManualMargin(_pmAddress, _trader)
+            _positionData
         );
         needClaim = claimableAmount != 0 && _positionData.quantity == 0;
     }
@@ -382,12 +377,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
     function _getClaimAmount(
         address _pmAddress,
         address _trader,
-        Position.Data memory _positionData,
-        Position.Data memory _positionDataWithoutLimit,
-        PositionLimitOrder.Data[] memory _limitOrders,
-        PositionLimitOrder.Data[] memory _reduceLimitOrders,
-        uint256 _canClaimAmountInMap,
-        int256 _manualMarginInMap
+        Position.Data memory _positionData
     ) internal view returns (int256) {
         address a = _pmAddress;
         address t = _trader;
@@ -401,7 +391,6 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 _getLimitOrders(a, t),
                 _getReduceLimitOrders(a, t),
                 getClaimableAmount(a, t),
-                _getManualMargin(a, t),
                 getDebtProfit(a, t)
             );
 

@@ -24,7 +24,7 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
     view
     returns (int256 totalClaimableAmount)
     {
-        Position.Data memory positionData = positionHouse.getPosition(_pmAddress, _trader);
+        Position.Data memory positionData = getPosition(_pmAddress, _trader);
         return
         PositionHouseFunction.getClaimAmount(
             _pmAddress,
@@ -34,7 +34,6 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
             positionHouse._getLimitOrders(_pmAddress, _trader),
             positionHouse._getReduceLimitOrders(_pmAddress, _trader),
             positionHouse.getClaimableAmount(_pmAddress, _trader),
-            positionHouse.getAddedMargin(_pmAddress, _trader),
             positionHouse.getDebtProfit(_pmAddress, _trader)
         );
     }

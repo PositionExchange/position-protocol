@@ -222,12 +222,7 @@ contract PositionHouse is
             totalRealizedPnl = _getClaimAmount(
                 _pmAddress,
                 _trader,
-                _positionData,
-                _getPositionMap(_pmAddress, _trader),
-                _getLimitOrders(_pmAddress, _trader),
-                _getReduceLimitOrders(_pmAddress, _trader),
-                getClaimableAmount(_pmAddress, _trader),
-                _getManualMargin(_pmAddress, _trader)
+                _positionData
             );
         }
         clearPosition(_pmAddress, _trader);
