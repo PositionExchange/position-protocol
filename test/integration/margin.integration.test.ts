@@ -365,7 +365,7 @@ describe('Test Margin Intergration', function () {
             await phTT.expectPositionMargin(positionManager, trader1, 0)
         });
 
-        it("should be liquidated when losing more than added margin", async () => {
+        it("should be partial liquidated when losing more than added margin", async () => {
             await phTT.openLimitPositionAndExpect({
                 limitPrice: 5000,
                 side: SIDE.LONG,
