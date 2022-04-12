@@ -443,7 +443,6 @@ contract PositionHouse is
             _reduceOrders,
             positionData
         );
-        positionData.margin += uint256(manualMargin[_pmAddress][_trader]);
         Position.LiquidatedData memory _debtPosition = debtPosition[_pmAddress][
             _trader
         ];
@@ -452,6 +451,15 @@ contract PositionHouse is
             positionData.margin -= _debtPosition.margin;
             positionData.openNotional -= _debtPosition.notional;
         }
+    }
+
+    function getPositionWithManualMargin(
+        address _pmAddress,
+        address _trader,
+        Position.Data memory _oldPosition
+    ) public view returns (Position.Data memory) {
+        _oldPosition.margin += _getManualMargin(_pmAddress, _trader).abs();
+        return _oldPosition;
     }
 
     function getPositionNotionalAndUnrealizedPnl(

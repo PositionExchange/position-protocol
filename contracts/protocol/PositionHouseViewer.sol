@@ -151,5 +151,8 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         );
     }
 
-
+    function getPosition(address _pmAddress, address _trader) public view returns (Position.Data memory positionData) {
+        positionData = positionHouse.getPosition(_pmAddress, _trader);
+        positionData = positionHouse.getPositionWithManualMargin(_pmAddress, _trader, positionData);
+    }
 }
