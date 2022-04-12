@@ -264,21 +264,23 @@ export default class PositionHouseTestingTool {
     /*
      * Pump price when empty order book
      */
-    async pumpPrice({toPrice, pumper, pumper2} : any) {
+    async pumpPrice({toPrice, pumper, pumper2, positionManager} : any) {
+        positionManager = positionManager || this.positionManager
         await this.openLimitPositionAndExpect({
-            _trader: pumper, leverage: 10, limitPrice: toPrice, quantity: 1, side: 1
+            _trader: pumper, leverage: 10, limitPrice: toPrice, quantity: 1, side: 1, _positionManager: positionManager
         })
         await this.openMarketPosition({
-            instanceTrader: pumper2, leverage: 10, quantity: BigNumber.from('1'), side: 0, expectedSize: BigNumber.from('1')
+            instanceTrader: pumper2, leverage: 10, quantity: BigNumber.from('1'), side: 0, expectedSize: BigNumber.from('1'), _positionManager: positionManager
         })
     }
 
-    async dumpPrice({toPrice, pumper, pumper2} : any) {
+    async dumpPrice({toPrice, pumper, pumper2, positionManager} : any) {
+        positionManager = positionManager || this.positionManager
         await this.openLimitPositionAndExpect({
-            _trader: pumper, leverage: 10, limitPrice: toPrice, quantity: 1, side: 0
+            _trader: pumper, leverage: 10, limitPrice: toPrice, quantity: 1, side: 0, _positionManager: positionManager
         })
         await this.openMarketPosition({
-            instanceTrader: pumper2, leverage: 10, quantity: BigNumber.from('1'), side: 1, expectedSize: BigNumber.from('1')
+            instanceTrader: pumper2, leverage: 10, quantity: BigNumber.from('1'), side: 1, expectedSize: BigNumber.from('1'), _positionManager: positionManager
         })
     }
 

@@ -1,7 +1,7 @@
 import {ethers} from "hardhat";
 import {deployPositionHouse} from "../shared/deploy";
 import {
-    BEP20Mintable,
+    BEP20Mintable, FundingRateTest,
     InsuranceFund,
     PositionHouse,
     PositionHouseConfigurationProxy,
@@ -22,6 +22,7 @@ describe('Test Margin Intergration', function () {
     let insuranceFund: InsuranceFund
     let positionHouseViewer: PositionHouseViewer;
     let positionHouseConfigurationProxy: PositionHouseConfigurationProxy;
+    let fundingRateTest : FundingRateTest
     let phTT: PositionHouseTestingTool
     let _;
     let trader0, trader1, trader2, trader3, trader4, tradercp1, tradercp2;
@@ -36,13 +37,14 @@ describe('Test Margin Intergration', function () {
             bep20Mintable,
             insuranceFund,
             positionHouseViewer,
-            positionHouseConfigurationProxy
+            fundingRateTest
         ] = await deployPositionHouse() as any
     })
 
     describe('margin without funding rate', function () {
-        async function expectManualAddedMargin(trader: SignerWithAddress, amount: number){
-            const addedMargin = await positionHouse.getAddedMargin(positionManager.address, trader.address)
+        async function expectManualAddedMargin(trader: SignerWithAddress, amount: number, _positionManager? : any){
+            _positionManager = _positionManager || positionManager
+            const addedMargin = await positionHouse.getAddedMargin(_positionManager.address, trader.address)
             expect(addedMargin.toString()).eq(amount.toString())
         }
         it("should reduce manual margin when open reverse position without PnL", async () => {
@@ -276,7 +278,7 @@ describe('Test Margin Intergration', function () {
             await phTT.dumpPrice({
                 toPrice: 4800,
                 pumper: tradercp1,
-                pumper2: tradercp2
+                pumper2: tradercp2,
             })
 
             // Trader1's margin = price * leverage * quantity = 5000 * 1 * 10 = 50000
@@ -363,7 +365,98 @@ describe('Test Margin Intergration', function () {
             await phTT.expectPositionMargin(positionManager, trader1, 0)
         });
 
+        it("should be liquidated when losing more than added margin", async () => {
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1,
+                _positionManager: fundingRateTest
+            })
 
+            await phTT.openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader4.address,
+                    instanceTrader: trader4,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+            // Trader1's margin = price * leverage * quantity = 5000 * 1 * 10 = 50000
+            await phTT.expectPositionMargin(fundingRateTest, trader1, 5000)
+
+            await positionHouse.connect(trader1).addMargin(fundingRateTest.address, BigNumber.from("1000"))
+            // Trader1's margin += 1000 = 50000 + 1000
+            await phTT.expectPositionMargin(fundingRateTest, trader1, 6000)
+            await expectManualAddedMargin(trader1,1000, fundingRateTest)
+
+            await phTT.dumpPrice({
+                toPrice: 4417,
+                pumper: tradercp1,
+                pumper2: tradercp2,
+                positionManager: fundingRateTest
+            })
+
+            await fundingRateTest.setMockPrice(BigNumber.from("44170000"), BigNumber.from("44170000"))
+
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 4417,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('2'),
+                _trader: trader3,
+                _positionManager: fundingRateTest
+            })
+            // partial liquidate trader1's position
+            await positionHouse.liquidate(fundingRateTest.address, trader1.address)
+
+            // position after liquidated loss 3%
+            await phTT.expectPositionMargin(fundingRateTest, trader1, 5820)
+            await expectManualAddedMargin(trader1,970, fundingRateTest)
+
+            await phTT.pumpPrice({
+                toPrice: 4800,
+                pumper: tradercp1,
+                pumper2: tradercp2,
+                positionManager: fundingRateTest
+            })
+
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 4800,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('8'),
+                _trader: trader2,
+                _positionManager: fundingRateTest
+            })
+
+            // close 5/8 position
+            await phTT.closePosition({
+                    quantity: BigNumber.from('5'),
+                    trader: trader1,
+                    positionManager: fundingRateTest,
+                    pnl: -1000
+                }
+            );
+
+            await phTT.expectPositionMargin(fundingRateTest, trader1, 2182)
+            await expectManualAddedMargin(trader1, 363, fundingRateTest)
+
+            // close all
+            await phTT.closePosition({
+                    quantity: BigNumber.from('3'),
+                    trader: trader1,
+                    positionManager: fundingRateTest,
+                    pnl: -600
+                }
+            );
+
+            await phTT.expectPositionMargin(fundingRateTest, trader1, 0)
+            await expectManualAddedMargin(trader1, 0, fundingRateTest)
+        })
         // test liquidate with manual margin
 
     });
