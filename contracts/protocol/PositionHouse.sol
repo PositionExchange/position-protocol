@@ -88,17 +88,17 @@ contract PositionHouse is
     ) external  nonReentrant {
         address _pmAddress = address (_positionManager);
         address _trader = _msgSender();
-        Position.Data memory _positionData = getPosition(address(_positionManager), _msgSender());
-        (bool _needClaim, int256 _claimAbleAmount) = _needToClaimFund(_pmAddress, _trader, getPosition(_pmAddress, _trader));
+        Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
+        (bool _needClaim, int256 _claimAbleAmount) = _needToClaimFund(_pmAddress, _trader, _positionDataWithManualMargin);
         if (_needClaim) {
-            _internalClaimFund(_positionManager, _positionData, _claimAbleAmount);
+            _internalClaimFund(_positionManager, _positionDataWithManualMargin, _claimAbleAmount);
         }
         _internalOpenMarketPosition(
             _positionManager,
             _side,
             _quantity,
             _leverage,
-            _positionData
+            _positionDataWithManualMargin
         );
     }
 
@@ -152,23 +152,21 @@ contract PositionHouse is
         
         nonReentrant
     {
+        address _pmAddress = address(_positionManager);
         address _trader = _msgSender();
-        Position.Data memory positionData = getPosition(
-            address(_positionManager),
-            _trader
-        );
+        Position.Data memory positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
         require(
-            _quantity > 0 && _quantity <= positionData.quantity.abs(),
+            _quantity > 0 && _quantity <= positionDataWithManualMargin.quantity.abs(),
             Errors.VL_INVALID_CLOSE_QUANTITY
         );
         _internalOpenMarketPosition(
             _positionManager,
-            positionData.quantity > 0
+                positionDataWithManualMargin.quantity > 0
                 ? Position.Side.SHORT
                 : Position.Side.LONG,
             _quantity,
-            positionData.leverage,
-            positionData
+            positionDataWithManualMargin.leverage,
+            positionDataWithManualMargin
         );
     }
 
@@ -264,22 +262,19 @@ contract PositionHouse is
         uint256 liquidationPenalty;
         {
             uint256 feeToLiquidator;
-            Position.Data memory positionData = getPosition(
-                _pmAddress,
-                _trader
-            );
+            Position.Data memory positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
             (uint256 _liquidationFeeRatio, uint256 _liquidationPenaltyRatio) = positionHouseConfigurationProxy.getLiquidationRatio();
             // partially liquidate position
             if (marginRatio >= _partialLiquidationRatio && marginRatio < 100) {
                 // calculate amount quantity of position to reduce
-                int256 partiallyLiquidateQuantity = positionData
+                int256 partiallyLiquidateQuantity = positionDataWithManualMargin
                     .quantity
                     .getPartiallyLiquidate(_liquidationPenaltyRatio);
                 // partially liquidate position by reduce position's quantity
                 positionResp = partialLiquidate(
                     _positionManager,
                     -partiallyLiquidateQuantity,
-                    positionData,
+                    positionDataWithManualMargin,
                     _trader
                 );
 
@@ -291,8 +286,7 @@ contract PositionHouse is
             } else {
                 // fully liquidate trader's position
                 liquidationPenalty =
-                    positionData.margin +
-                    uint256(manualMargin[_pmAddress][_trader]);
+                    positionDataWithManualMargin.margin ;
                 clearPosition(_pmAddress, _trader);
                 feeToLiquidator =
                     (liquidationPenalty * _liquidationFeeRatio) /
@@ -527,12 +521,12 @@ contract PositionHouse is
         )
     {
         address _pmAddress = address(_positionManager);
-        Position.Data memory positionData = getPosition(_pmAddress, _trader);
+        Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
             _positionManager,
             _trader,
             _calcOption,
-            positionData
+            _positionDataWithManualMargin
         );
         (
             uint256 remainMarginWithFundingPayment,
@@ -541,8 +535,8 @@ contract PositionHouse is
 
         ) = calcRemainMarginWithFundingPayment(
                 _pmAddress,
-                positionData,
-                positionData.margin
+                _positionDataWithManualMargin,
+                _positionDataWithManualMargin.margin
             );
         maintenanceMargin =
             ((remainMarginWithFundingPayment -
@@ -553,7 +547,7 @@ contract PositionHouse is
         marginRatio = marginBalance <= 0
             ? 100
             : (maintenanceMargin * 100) / uint256(marginBalance);
-        if (positionData.quantity == 0) {
+        if (_positionDataWithManualMargin.quantity == 0) {
             marginRatio = 0;
         }
     }
@@ -677,14 +671,12 @@ contract PositionHouse is
                 ? Position.Side.SHORT
                 : Position.Side.LONG
         );
-
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
             _positionManager,
             _trader,
             _pnlCalcOption,
             _oldPosition
         );
-
         (
             uint256 remainMargin,
             uint256 badDebt,
@@ -699,7 +691,6 @@ contract PositionHouse is
         positionResp.realizedPnl = unrealizedPnl;
         positionResp.marginToVault = -int256(remainMargin)
             .add(positionResp.realizedPnl)
-            .add(manualMargin[_pmAddress][_trader])
             .kPositive();
         positionResp.unrealizedPnl = 0;
         ClaimableAmountManager._reset(_pmAddress, _trader);
