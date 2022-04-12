@@ -93,7 +93,7 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
     )
     {
         address _pmAddress = address(_positionManager);
-        Position.Data memory _positionDataWithManualMargin = positionHouse.getPositionWithManualMargin(_pmAddress, _trader, positionHouse.getPosition(_pmAddress, _trader));
+        Position.Data memory _positionDataWithManualMargin = getPosition(_pmAddress, _trader);
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
             _positionManager,
             _trader,
@@ -138,7 +138,7 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
 
     function getFundingPaymentAmount(IPositionManager _positionManager, address _trader) external view returns (int256 fundingPayment) {
         address _pmAddress = address(_positionManager);
-        Position.Data memory _positionDataWithManualMargin = positionHouse.getPositionWithManualMargin(_pmAddress, _trader, positionHouse.getPosition(_pmAddress, _trader));
+        Position.Data memory _positionDataWithManualMargin = getPosition(_pmAddress, _trader);
         (
         ,
         ,
@@ -152,6 +152,6 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
 
     function getPosition(address _pmAddress, address _trader) public view returns (Position.Data memory positionData) {
         positionData = positionHouse.getPosition(_pmAddress, _trader);
-        positionData = positionHouse.getPositionWithManualMargin(_pmAddress, _trader, positionData);
+        positionData.margin += uint256(positionHouse.getAddedMargin(_pmAddress, _trader));
     }
 }

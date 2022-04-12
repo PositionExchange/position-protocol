@@ -446,7 +446,7 @@ contract PositionHouse is
         address _pmAddress,
         address _trader,
         Position.Data memory _oldPosition
-    ) public view returns (Position.Data memory) {
+    ) internal view returns (Position.Data memory) {
         _oldPosition.margin += _getManualMargin(_pmAddress, _trader).abs();
         return _oldPosition;
     }
