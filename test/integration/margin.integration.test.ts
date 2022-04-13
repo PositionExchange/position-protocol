@@ -173,10 +173,10 @@ describe('Test Margin Intergration', function () {
             })
 
             // Trader1's margin = price * leverage * quantity = 5000 * 1 * 10 = 50000
-            await phTT.expectPositionMargin(positionManager, trader1, 50000)
+            await phTT.expectPositionMargin(positionManager, trader1, 50000, 1000)
             await positionHouse.connect(trader1).addMargin(positionManager.address, BigNumber.from("1000"))
             // Trader1's margin += 1000 = 50000 + 1000
-            await phTT.expectPositionMargin(positionManager, trader1, 51000)
+            await phTT.expectPositionMargin(positionManager, trader1, 51000) // TODO add pnl
             await expectManualAddedMargin(trader1,1000)
 
             await phTT.openLimitPositionAndExpect({
@@ -187,7 +187,7 @@ describe('Test Margin Intergration', function () {
                 _trader: trader2
             })
 
-            // closing 3/10 position, should get back 3/10 position's margin
+            // closing 3/10 position, should get back 3/10 position's margin + pnl 300
             await phTT.closePosition({
                     quantity: BigNumber.from('3'),
                     trader: trader1,

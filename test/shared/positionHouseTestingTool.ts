@@ -131,9 +131,11 @@ export default class PositionHouseTestingTool {
 
     }
 
-    async expectPositionMargin(positionManager, trader, amount){
-        const {margin} = await this.positionHouseViewer.getPosition(positionManager.address, trader.address)
-        await expect(margin.toString()).eq(amount.toString())
+    async expectPositionMargin(positionManager, trader, marginAmount, pnl?: number){
+        const {position, positionNotional, unrealizedPnl} = await this.positionHouseViewer.getPositionAndUnreliablePnl(positionManager.address, trader.address, 1)
+        const {margin} = position
+        expect(margin.toString()).eq(margin.toString())
+        pnl && expect(unrealizedPnl.toString()).eq(pnl.toString())
     }
 
     async openLimitPositionAndExpect({
