@@ -522,7 +522,7 @@ library PositionHouseFunction {
 
     function getClaimAmount(
         address _pmAddress,
-        address _trader,
+        int256 _manualMargin,
         Position.Data memory _positionData,
         Position.Data memory _positionDataWithoutLimit,
         PositionLimitOrder.Data[] memory _limitOrders,
@@ -600,6 +600,7 @@ library PositionHouseFunction {
         totalClaimableAmount =
             totalClaimableAmount +
             int256(_canClaimAmountInMap) +
+            _manualMargin +
             int256(_positionDataWithoutLimit.margin) +
             _debtProfit;
         if (totalClaimableAmount <= 0) {

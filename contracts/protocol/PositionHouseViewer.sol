@@ -28,7 +28,7 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         return
         PositionHouseFunction.getClaimAmount(
             _pmAddress,
-            _trader,
+            positionHouse.getAddedMargin(_pmAddress, _trader),
             positionData,
             positionHouse.positionMap(_pmAddress, _trader),
             positionHouse._getLimitOrders(_pmAddress, _trader),

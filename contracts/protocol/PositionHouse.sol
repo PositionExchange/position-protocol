@@ -824,7 +824,6 @@ contract PositionHouse is
             _manualMargin.abs(),
             positionHouseConfigurationProxy.liquidationFeeRatio()
         );
-        // unchecked
         manualMargin[_pmAddress][_trader] -= int256(_liquidatedManualMargin);
         positionResp.marginToVault = int256(_liquidatedPositionMargin + _liquidatedManualMargin);
         positionResp.unrealizedPnl = unrealizedPnl;

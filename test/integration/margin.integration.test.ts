@@ -531,7 +531,7 @@ describe('Test Margin Intergration', function () {
             // full liquidate trader1's position
             await positionHouse.liquidate(fundingRateTest.address, trader1.address)
 
-            // position after liquidated loss 3%
+            // position is clear after fully liquidated
             await phTT.expectPositionMargin(fundingRateTest, trader1, 0)
             await expectManualAddedMargin(trader1,0, fundingRateTest)
         })
