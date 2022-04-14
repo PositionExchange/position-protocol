@@ -39,6 +39,25 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         );
     }
 
+    function getClaimableAmountParams(address _pmAddress, address _trader)
+    public view returns (
+        Position.Data memory,
+        Position.Data memory,
+        PositionLimitOrder.Data[] memory,
+        PositionLimitOrder.Data[] memory,
+        uint256,
+        int256
+    ) {
+        return (
+            positionHouse.getPosition(_pmAddress, _trader),
+            positionHouse.positionMap(_pmAddress, _trader),
+            positionHouse._getLimitOrders(_pmAddress, _trader),
+            positionHouse._getReduceLimitOrders(_pmAddress, _trader),
+            positionHouse.getClaimableAmount(_pmAddress, _trader),
+            positionHouse.getAddedMargin(_pmAddress, _trader)
+        );
+    }
+
     function getListOrderPending(
         IPositionManager _positionManager,
         address _trader
