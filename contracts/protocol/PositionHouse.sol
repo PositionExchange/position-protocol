@@ -327,14 +327,15 @@ contract PositionHouse is
 
         nonReentrant
     {
+        address _pmAddress = address(_positionManager);
         address _trader = _msgSender();
 
         uint256 removableMargin = getRemovableMargin(_positionManager, _trader);
         require(_amount <= removableMargin, Errors.VL_INVALID_REMOVE_MARGIN);
 
-        manualMargin[address(_positionManager)][_trader] -= int256(_amount);
+        manualMargin[_pmAddress][_trader] -= int256(_amount);
 
-        _withdraw(address(_positionManager), _trader, _amount);
+        _withdraw(_pmAddress, _trader, _amount);
 
 //        emit MarginRemoved(_trader, _amount, _positionManager);
     }
@@ -439,6 +440,10 @@ contract PositionHouse is
             positionData.quantity -= _debtPosition.quantity;
             positionData.margin -= _debtPosition.margin;
             positionData.openNotional -= _debtPosition.notional;
+        }
+        if (positionData.quantity == 0) {
+            positionData.margin = 0;
+            positionData.openNotional = 0;
         }
     }
 
