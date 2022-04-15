@@ -10,6 +10,8 @@ import "../../PositionHouse.sol";
 import "../types/PositionHouseStorage.sol";
 import {Errors} from "../helpers/Errors.sol";
 
+import "hardhat/console.sol";
+
 library PositionHouseFunction {
     int256 private constant PREMIUM_FRACTION_DENOMINATOR = 10 ** 10;
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
@@ -531,53 +533,46 @@ library PositionHouseFunction {
         int256 _debtProfit
     ) public view returns (int256 totalClaimableAmount) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
-        uint256 indexReduce;
-        uint256 indexLimit;
+        console.log(" _positionDataWithoutLimit.quantity",  _positionDataWithoutLimit.quantity.abs());
         if (_positionData.quantity == 0) {
             _positionData.quantity = _positionDataWithoutLimit.quantity;
             _positionData.margin = _positionDataWithoutLimit.margin;
             _positionData.openNotional = _positionDataWithoutLimit.openNotional;
         }
-        for (indexLimit; indexLimit < _limitOrders.length; indexLimit++) {
+        // position data with increase only
+        Position.Data memory _pDataIncr = _positionDataWithoutLimit;
+        for (uint256 i; i < _limitOrders.length; i++) {
             {
                 if (
-                    _limitOrders[indexLimit].pip == 0 &&
-                    _limitOrders[indexLimit].orderId == 0
-                ) continue;
-                if (
-                    _limitOrders[indexLimit].reduceQuantity != 0 ||
-                    indexLimit == _limitOrders.length - 1
+                    _limitOrders[i].pip == 0 && _limitOrders[i].orderId == 0
                 ) {
-                    {
-                        (
-                            indexReduce,
-                            totalClaimableAmount,
-                            _positionData
-                        ) = calculatePnlFromReduceOrder(
-                            _positionManager,
-                            indexReduce,
-                            totalClaimableAmount,
-                            _positionData,
-                            _positionDataWithoutLimit,
-                            _reduceLimitOrders
-                        );
-                    }
-                    _positionData = accumulateLimitOrderToPositionData(
-                        _pmAddress,
-                        _limitOrders[indexLimit],
-                        _positionData,
-                        _limitOrders[indexLimit].entryPrice,
-                        _limitOrders[indexLimit].reduceQuantity
-                    );
-                } else {
-                    _positionData = accumulateLimitOrderToPositionData(
-                        _pmAddress,
-                        _limitOrders[indexLimit],
-                        _positionData,
-                        _limitOrders[indexLimit].entryPrice,
-                        _limitOrders[indexLimit].reduceQuantity
-                    );
+                    // skip
+                    continue;
                 }
+//                if (
+//                    _limitOrders[i].reduceQuantity != 0 || i == _limitOrders.length - 1
+//                ) {
+//                    {
+//                        int256 totalRealizedPnl;
+//                        (
+//                            totalRealizedPnl,
+//                            _positionData
+//                        ) = calculatePnlFromReduceOrder(
+//                            _positionManager,
+//                            _positionData,
+//                            _positionDataWithoutLimit,
+//                            _reduceLimitOrders
+//                        );
+//                        totalClaimableAmount += totalRealizedPnl;
+//                    }
+//                }
+                _pDataIncr = accumulateLimitOrderToPositionData(
+                    _pmAddress,
+                    _limitOrders[i],
+                    _pDataIncr,
+                    _limitOrders[i].entryPrice,
+                    _limitOrders[i].reduceQuantity
+                );
             }
 
             (
@@ -586,27 +581,51 @@ library PositionHouseFunction {
                 uint256 quantity,
                 uint256 partialFilled
             ) = _positionManager.getPendingOrderDetail(
-                    _limitOrders[indexLimit].pip,
-                    _limitOrders[indexLimit].orderId
+                    _limitOrders[i].pip,
+                    _limitOrders[i].orderId
                 );
             if (!isFilled) {
+                // remove unfilled margin
                 totalClaimableAmount -= int256(
                     ((quantity - partialFilled) *
                         _positionManager.pipToPrice(
-                            _limitOrders[indexLimit].pip
+                            _limitOrders[i].pip
                         )) /
                         _positionManager.getBaseBasisPoint() /
-                        _limitOrders[indexLimit].leverage
+                        _limitOrders[i].leverage
                 );
             }
+            console.log("isFilled", isFilled, quantity, partialFilled);
         }
+        if(_pDataIncr.quantity == 0){
+            return 0;
+        }
+        console.log("_pDataIncr quantity",  _pDataIncr.quantity.abs());
+        (int256 totalRealizedPnl, uint256 filledQuantity) = calculatePnlFromReduceOrder(
+            _positionManager,
+            _pDataIncr,
+            _positionDataWithoutLimit,
+            _reduceLimitOrders
+        );
+        {
+            console.log("totalRealizedPnl", totalRealizedPnl.abs(), filledQuantity, _pDataIncr.margin);
+            console.log("_pDataIncr quantity after",  _pDataIncr.quantity.abs());
+        }
+        totalClaimableAmount += totalRealizedPnl;
+        uint256 _accReduceMargin = _pDataIncr.margin*filledQuantity/_pDataIncr.quantity.abs();
 
+
+        {
+            console.log("totalClaimableAmount", totalClaimableAmount.abs(), _canClaimAmountInMap);
+            console.log("totalClaimableAmount 2", _accReduceMargin, _debtProfit.abs(), _pDataIncr.quantity.abs());
+        }
         totalClaimableAmount =
             totalClaimableAmount +
             int256(_canClaimAmountInMap) +
             _manualMargin +
-            int256(_positionDataWithoutLimit.margin) +
+            int256(_accReduceMargin) +
             _debtProfit;
+        console.log("totalClaimableAmount:", uint256(totalClaimableAmount));
         if (totalClaimableAmount <= 0) {
             totalClaimableAmount = 0;
         }
@@ -614,8 +633,6 @@ library PositionHouseFunction {
 
     function calculatePnlFromReduceOrder(
         IPositionManager _positionManager,
-        uint256 _indexReduce,
-        int256 _totalClaimableAmount,
         Position.Data memory _positionData,
         Position.Data memory _positionDataWithoutLimit,
         PositionLimitOrder.Data[] memory _reduceLimitOrders
@@ -623,76 +640,52 @@ library PositionHouseFunction {
         public
         view
         returns (
-            uint256 indexReduce,
-            int256 totalClaimableAmount,
-            Position.Data memory positionData
+            int256 totalRealizedPnl,
+            uint256 filledQuantity
         )
     {
+        uint256 _rawQuantity = _positionData.quantity.abs();
+        uint256 _rawOpenNotional = _positionData.openNotional;
         for (
-            _indexReduce;
-            _indexReduce < _reduceLimitOrders.length;
-            _indexReduce++
+            uint256 i;
+            i < _reduceLimitOrders.length;
+            i++
         ) {
             (bool isFilled, , , uint256 partialFilled) = _positionManager
                 .getPendingOrderDetail(
-                    _reduceLimitOrders[_indexReduce].pip,
-                    _reduceLimitOrders[_indexReduce].orderId
+                    _reduceLimitOrders[i].pip,
+                    _reduceLimitOrders[i].orderId
                 );
             {
-                int256 realizedPnl = int256(
-                    ((
-                        (partialFilled <
-                            _reduceLimitOrders[_indexReduce].reduceQuantity &&
-                            !isFilled)
-                            ? partialFilled
-                            : _reduceLimitOrders[_indexReduce].reduceQuantity
-                    ) *
-                        _positionManager.pipToPrice(
-                            _reduceLimitOrders[_indexReduce].pip
-                        )) / _positionManager.getBaseBasisPoint()
-                ) -
-                    int256(
-                        ((
-                            _positionData.openNotional != 0
-                                ? _positionData.openNotional
-                                : _positionDataWithoutLimit.openNotional
-                        ) *
-                            (
-                                (partialFilled <
-                                    _reduceLimitOrders[_indexReduce]
-                                        .reduceQuantity &&
-                                    !isFilled)
-                                    ? partialFilled
-                                    : _reduceLimitOrders[_indexReduce]
-                                        .reduceQuantity
-                            )) /
-                            (
-                                _positionData.quantity.abs() != 0
-                                    ? _positionData.quantity.abs()
-                                    : _positionDataWithoutLimit.quantity.abs()
-                            )
-                    );
-                _totalClaimableAmount += _reduceLimitOrders[_indexReduce]
-                    .isBuy == 2
-                    ? realizedPnl
-                    : (-realizedPnl);
+                uint256 _filledAmount = !isFilled && partialFilled < _reduceLimitOrders[i].reduceQuantity ? partialFilled : _reduceLimitOrders[i].reduceQuantity;
+                // realizedPnl = _positionDataWithoutLimit.openNotional - closed notional
+                uint256 closedNotional = (_filledAmount * _positionManager.pipToPrice(_reduceLimitOrders[i].pip)) / _positionManager.getBaseBasisPoint();
+                // already checked if _positionData.openNotional == 0, then used _positionDataWithoutLimit before
+                uint256 openNotionalRatio = _rawOpenNotional * _filledAmount /  _rawQuantity;
+                console.log("openNotionalRatio", _rawOpenNotional, openNotionalRatio, closedNotional);
+                console.log("rawQuantity.abs();", _rawQuantity);
+                totalRealizedPnl += int256(openNotionalRatio) - int256(closedNotional);
+                filledQuantity += _filledAmount;
+                // now position should be reduced
+                // should never overflow?
+                _rawQuantity -= _filledAmount;
+                _rawOpenNotional -= openNotionalRatio;
             }
-            {
-                positionData = accumulateLimitOrderToPositionData(
-                    address(_positionManager),
-                    _reduceLimitOrders[_indexReduce],
-                    _positionData,
-                    _reduceLimitOrders[_indexReduce].entryPrice,
-                    _reduceLimitOrders[_indexReduce].reduceQuantity
-                );
-            }
-            if (_reduceLimitOrders[_indexReduce].reduceLimitOrderId != 0) {
-                _indexReduce++;
+//            {
+//                positionData = accumulateLimitOrderToPositionData(
+//                    address(_positionManager),
+//                    _reduceLimitOrders[i],
+//                    _positionData,
+//                    _reduceLimitOrders[i].entryPrice,
+//                    _reduceLimitOrders[i].reduceQuantity
+//                );
+//            }
+            // WHY should break?
+            if (_reduceLimitOrders[i].reduceLimitOrderId != 0) {
+                i++;
                 break;
             }
         }
-        indexReduce = _indexReduce;
-        totalClaimableAmount = _totalClaimableAmount;
     }
 
     function openMarketOrder(
