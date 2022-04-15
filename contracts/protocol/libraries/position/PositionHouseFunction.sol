@@ -618,6 +618,7 @@ library PositionHouseFunction {
         {
             console.log("totalClaimableAmount", totalClaimableAmount.abs(), _canClaimAmountInMap);
             console.log("totalClaimableAmount 2", _accReduceMargin, _debtProfit.abs(), _pDataIncr.quantity.abs());
+            console.log("_debtProfit < 0 ?", _debtProfit < 0);
         }
         totalClaimableAmount =
             totalClaimableAmount +
@@ -625,7 +626,7 @@ library PositionHouseFunction {
             _manualMargin +
             int256(_accReduceMargin) +
             _debtProfit;
-        console.log("totalClaimableAmount:", uint256(totalClaimableAmount));
+        console.log("totalClaimableAmount final:", uint256(totalClaimableAmount));
         if (totalClaimableAmount <= 0) {
             totalClaimableAmount = 0;
         }
