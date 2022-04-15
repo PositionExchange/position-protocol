@@ -533,7 +533,11 @@ library PositionHouseFunction {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         uint256 indexReduce;
         uint256 indexLimit;
-
+        if (_positionData.quantity == 0) {
+            _positionData.quantity = _positionDataWithoutLimit.quantity;
+            _positionData.margin = _positionDataWithoutLimit.margin;
+            _positionData.openNotional = _positionDataWithoutLimit.openNotional;
+        }
         for (indexLimit; indexLimit < _limitOrders.length; indexLimit++) {
             {
                 if (
