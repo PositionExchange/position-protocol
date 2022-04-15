@@ -784,7 +784,7 @@ library PositionHouseFunction {
             _quantity.abs()) / _positionData.quantity.abs();
 //        int256 totalQuantity = _positionDataWithoutLimit.quantity + _quantity;
         (
-            positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount,,
+            positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount, positionResp.entryPrice,
         ) = openMarketOrder(
             _pmAddress,
             _quantity.abs(),
