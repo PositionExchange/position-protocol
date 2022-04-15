@@ -452,6 +452,10 @@ contract PositionHouse is
             positionData.margin -= _debtPosition.margin;
             positionData.openNotional -= _debtPosition.notional;
         }
+        if (positionData.quantity == 0) {
+            positionData.margin = 0;
+            positionData.openNotional = 0;
+        }
     }
 
     function getPositionNotionalAndUnrealizedPnl(
