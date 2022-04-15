@@ -786,6 +786,7 @@ describe('Test Margin Intergration', function () {
                 _positionManager: fundingRateTest
             })
 
+            // open market
             await phTT.openMarketPosition({
                     quantity: BigNumber.from('15'),
                     leverage: 10,
@@ -795,9 +796,15 @@ describe('Test Margin Intergration', function () {
                     _positionManager: fundingRateTest,
                 }
             );
+            await phTT.debugPosition(trader1, fundingRateTest)
+            // now position quantity should be -15
+            // open notional = 55000
+            // margin = 5500
 
             console.log("step 2")
             // STEP 2
+            // close limit 5/15 at the price of 3500
+            // should claimable (55000-3500*15)/3 = 833.3 (pnl) + 1833.33 (margin of the position) + 1750 (margin of limit order) = 4416.63
             await phTT.openLimitPositionAndExpect({
                 limitPrice: 3500,
                 side: SIDE.LONG,
@@ -816,6 +823,18 @@ describe('Test Margin Intergration', function () {
                     _positionManager: fundingRateTest,
                 }
             );
+            await phTT.debugPosition(trader1, fundingRateTest)
+            // const [positionData, positionDataWithoutLimit, limitOrders, reduceLimitOrders] = await positionHouseViewer.getClaimableAmountParams(fundingRateTest.address, trader1.address)
+            // printStruct(positionData)
+            // printStruct(positionDataWithoutLimit)
+            // printStruct(reduceLimitOrders[0])
+            // console.log(positionData.map(elm => elm.toString()), positionDataWithoutLimit, limitOrders, reduceLimitOrders)
+
+            // after this order the trader1's position should have
+            // open notional = 36667
+            // margin = 3667
+            // quantity = -10
+            expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq('4416')
 
             console.log("step 3")
             // STEP 3
@@ -834,6 +853,10 @@ describe('Test Margin Intergration', function () {
                     _positionManager: fundingRateTest,
                 }
             );
+            // after this order
+            // trader1's claimable amount should be
+            // 4416 + 1/5*3667 + 700 + 333 (pnl) = 5849
+            expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq('6182')
 
             console.log("step 5")
             // STEP 5
@@ -846,6 +869,8 @@ describe('Test Margin Intergration', function () {
                 _positionManager: fundingRateTest
             })
 
+            // close market
+            // trader1's should claim 6182 + 2/8*lastPnl = 6182 + 333
             await phTT.openMarketPosition({
                     quantity: BigNumber.from('2'),
                     leverage: 10,
@@ -855,6 +880,7 @@ describe('Test Margin Intergration', function () {
                     _positionManager: fundingRateTest,
                 }
             );
+            expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq('6515')
 
             console.log("step 6")
             // STEP 6
@@ -874,12 +900,16 @@ describe('Test Margin Intergration', function () {
                     _positionManager: fundingRateTest,
                 }
             );
+            // after this order trader's should receive all the profit + margin
+            // don't need to call claimFund
+            // the amount should be 7516 not 3100
+
 
             await positionHouse.connect(trader1).claimFund(fundingRateTest.address)
             const balanceOfTrader1AfterTestcase = await bep20Mintable.balanceOf(trader1.address)
             const exchangedQuoteAmount = BigNumber.from(balanceOfTrader1AfterTestcase).sub(BigNumber.from(balanceOfTrader1BeforeTestcase))
             console.log("exchangedQuoteAmount", exchangedQuoteAmount.toString())
-            expect(exchangedQuoteAmount).eq("3100")
+            expect(exchangedQuoteAmount).eq("7516") // not 3100
         })
     });
 
@@ -890,3 +920,15 @@ describe('Test Margin Intergration', function () {
 
 
 });
+
+
+function printStruct(result){
+    const keys = Object.keys(result)
+    const data = {}
+    for(const key of keys){
+        if(isNaN(Number(key))){
+            data[key] = result[key]._isBigNumber ? result[key].toString() : result[key]
+        }
+    }
+    console.table(data)
+}
