@@ -808,8 +808,8 @@ library PositionHouseFunction {
             positionResp.realizedPnl);
         // NOTICE calc unrealizedPnl after open reverse
         positionResp.unrealizedPnl = unrealizedPnl - positionResp.realizedPnl;
+        uint256 reduceMarginWithoutManual = ((_positionData.margin - _manualMargin.abs()) * _quantity.abs()) / _positionData.quantity.abs();
         {
-            uint256 reduceMarginWithoutManual = ((_positionData.margin - _manualMargin.abs()) * _quantity.abs()) / _positionData.quantity.abs();
             positionResp.position = Position.Data(
                 _positionDataWithoutLimit.quantity + _quantity,
                 handleMarginInOpenReverse(
@@ -829,7 +829,7 @@ library PositionHouseFunction {
                 1
             );
         }
-        return (positionResp, -int256(reduceMarginRequirement) - int256(positionResp.exchangedQuoteAssetAmount / _leverage));
+        return (positionResp, -int256(reduceMarginWithoutManual) - int256(positionResp.exchangedQuoteAssetAmount / _leverage));
     }
 
     function calcRemainMarginWithFundingPayment(
