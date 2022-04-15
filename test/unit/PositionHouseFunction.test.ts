@@ -2,6 +2,7 @@ import {ethers, waffle} from "hardhat";
 import {PositionHouseFunctionTest, PositionManager} from "../../typeChain";
 import {abi as PositionManagerAbi} from "../../artifacts/contracts/protocol/PositionManager.sol/PositionManager.json"
 import {expect} from "chai";
+import {BigNumber} from "ethers";
 
 const {deployMockContract} = waffle
 
@@ -31,8 +32,8 @@ describe('PositionHouseFunction', function () {
             trader1.address,
             {
                 quantity: '0',
-                margin: '538711776581',
-                openNotional: '67338972072726',
+                margin: '0',
+                openNotional: '0',
                 lastUpdatedCumulativePremiumFraction: 0,
                 blockNumber: 0,
                 leverage: 125,
@@ -71,8 +72,14 @@ describe('PositionHouseFunction', function () {
             '0',
             '0'
         )
-        const n = ethers.utils.formatEther(result.toString()).toString()
-        expect(result.toString()).eq('141517536465999739703855')
+        const n = Math.round(Number(ethers.utils.formatEther(result.toString())))
+        const positionMarginWithoutLimit = BigNumber.from("1114214453338711776581")
+        const closeLimitOrderMargin = BigNumber.from("1114312080000000000000")
+        // pnl = quantity * (closedPrice - entryPrice) = 3 * (46429.67 - 46425.60)
+        const pnl = BigNumber.from("3000000000000000000").mul(BigNumber.from("464296700").sub("464256022")).div(BigNumber.from("10000"))
+        // expectedClaimableAmount = positionMarginWithoutLimit + closeLimitOrderMargin + pnl
+        const expectedClaimableAmount = Math.round(Number(ethers.utils.formatEther(positionMarginWithoutLimit.add(closeLimitOrderMargin).add(pnl).toString())))
+        expect(n).eq(expectedClaimableAmount)
         console.log(n, result.toString())
     });
 
