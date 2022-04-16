@@ -58,6 +58,8 @@ interface IPositionManager {
 
     function updateSpotPriceTwapInterval(uint256 _spotPriceTwapInterval) external;
 
+    function getBasisPointFactors() external view returns (uint64 base, uint64 basisPoint);
+
     function hasLiquidity(uint128 _pip) external returns (bool);
 
     function getLeverage() external view returns (uint128);
