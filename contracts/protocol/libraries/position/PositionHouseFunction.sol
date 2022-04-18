@@ -740,7 +740,7 @@ library PositionHouseFunction {
                 1
             );
         }
-        return (positionResp, -int256(reduceMarginWithoutManual) - int256(positionResp.exchangedQuoteAssetAmount / _leverage));
+        return (positionResp, -int256(reduceMarginWithoutManual) - positionResp.realizedPnl);
     }
 
     function calcRemainMarginWithFundingPayment(
