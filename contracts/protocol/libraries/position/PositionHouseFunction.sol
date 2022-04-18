@@ -592,18 +592,24 @@ library PositionHouseFunction {
         ClaimAbleState memory state,
         Position.Data memory _cpIncrPosition,
         uint128 _pip,
-        uint256 _filledAmount
+        int256 _filledAmount,
+        uint256 _entryPrice
     ) private view{
         console.log("_cpIncrPosition.quantity.abs()", _cpIncrPosition.quantity.abs());
-        uint256 closedNotional = _filledAmount * _pip.toNotional(state.basisPoint);
+        console.log("filled amount is positive", _filledAmount > 0);
+        int256 closedNotional = _filledAmount * int128(_pip) / int64(state.basisPoint);
+        console.log("closeNotional", closedNotional.abs());
         // already checked if _positionData.openNotional == 0, then used _positionDataWithoutLimit before
-        uint256 openNotionalRatio = _cpIncrPosition.openNotional * _filledAmount /  _cpIncrPosition.quantity.abs();
-        state.amount += int256(openNotionalRatio) - int256(closedNotional);
-        state.totalReduceOrderFilledAmount += _filledAmount;
+//        uint256 openNotionalRatio = _cpIncrPosition.openNotional * _filledAmount /  _cpIncrPosition.quantity.abs();
+        int256 openNotional = _filledAmount * int256(_entryPrice) / int64(state.baseBasicPoint);
+        console.log("openNotional", openNotional.abs());
+        state.amount += (int256(openNotional) - int256(closedNotional));
+        state.totalReduceOrderFilledAmount += _filledAmount.abs();
         // now position should be reduced
         // should never overflow?
-        _cpIncrPosition.quantity = _cpIncrPosition.quantity.subAmount(_filledAmount);
-        _cpIncrPosition.openNotional -= openNotionalRatio;
+        _cpIncrPosition.quantity -= _filledAmount;
+//        _cpIncrPosition.openNotional -= openNotionalRatio;
+        _cpIncrPosition.openNotional -= openNotional.abs();
     }
 
     function openMarketOrder(
