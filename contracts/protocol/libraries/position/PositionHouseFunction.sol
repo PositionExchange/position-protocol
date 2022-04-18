@@ -608,7 +608,7 @@ library PositionHouseFunction {
             _manualMargin +
             _debtProfit;
 //        console.log("totalClaimableAmount final:", uint256(totalClaimableAmount));
-        return state.amount < 0 ? 0 : state.amount;
+        return state.amount < 0 ? int256(0) : state.amount;
     }
 
     function _removeUnfilledMargin(
