@@ -9,6 +9,7 @@ import "../../libraries/helpers/Int256Math.sol";
 import "../../PositionHouse.sol";
 import "../types/PositionHouseStorage.sol";
 import "./PipConversionMath.sol";
+import "../helpers/CommonMath.sol";
 import {Errors} from "../helpers/Errors.sol";
 
 import "hardhat/console.sol";
@@ -317,6 +318,7 @@ library PositionHouseFunction {
         int256 _orderQuantity = _getLimitOrderQuantity(_positionManager, _limitOrder);
         // if _entryPrice != 0, must calculate notional by _entryPrice (for reduce limit order)
         // if _entryPrice == 0, calculate notional by order pip (current price)
+        // NOTE: _entryPrice must divide _baseBasicPoint to get the "raw entry price"
         uint256 _orderNotional = _orderQuantity.abs() * (
             _entryPrice == 0 ?
             _limitOrder.pip.toNotional(_basisPoint)
@@ -328,9 +330,7 @@ library PositionHouseFunction {
             _orderMargin,
             _orderNotional
         );
-        _positionData.leverage = _positionData.leverage >= _limitOrder.leverage
-        ? _positionData.leverage
-        : _limitOrder.leverage;
+        _positionData.leverage = CommonMath.maxU16(_positionData.leverage, _limitOrder.leverage);
         return _positionData;
     }
 
