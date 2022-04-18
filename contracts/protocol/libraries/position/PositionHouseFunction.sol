@@ -318,6 +318,7 @@ library PositionHouseFunction {
         int256 _orderQuantity = _getLimitOrderQuantity(_positionManager, _limitOrder);
         // if _entryPrice != 0, must calculate notional by _entryPrice (for reduce limit order)
         // if _entryPrice == 0, calculate notional by order pip (current price)
+        // NOTE: _entryPrice must divide _baseBasicPoint to get the "raw entry price"
         uint256 _orderNotional = _orderQuantity.abs() * (
             _entryPrice == 0 ?
             _limitOrder.pip.toNotional(_basisPoint)
