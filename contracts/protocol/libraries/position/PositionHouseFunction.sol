@@ -283,8 +283,7 @@ library PositionHouseFunction {
                     _positionManager,
                     _limitOrders[i],
                     _positionData,
-                    _limitOrders[i].entryPrice,
-                    _limitOrders[i].reduceQuantity
+                    _limitOrders[i].entryPrice
                 );
             }
         }
@@ -294,100 +293,44 @@ library PositionHouseFunction {
                     _positionManager,
                     _reduceLimitOrders[i],
                     _positionData,
-                    _reduceLimitOrders[i].entryPrice,
-                    _reduceLimitOrders[i].reduceQuantity
+                    _reduceLimitOrders[i].entryPrice
                 );
             }
         }
         positionData = _positionData;
     }
 
+    /// @dev Accumulate limit order to Position Data
+    /// @param _pmAddress Position Manager address
+    /// @param _limitOrder can be reduce or increase limit order
+    /// @param _positionData the position data to accumulate
+    /// @param _entryPrice if a reduce limit order, _entryPrice will != 0
     function accumulateLimitOrderToPositionData(
         address _pmAddress,
         PositionLimitOrder.Data memory _limitOrder,
         Position.Data memory _positionData,
-        uint256 _entryPrice,
-        uint256 _reduceQuantity
-    ) public view returns (Position.Data memory) {
+        uint256 _entryPrice
+    ) private view returns (Position.Data memory) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
 
-        (
-            bool isFilled,
-            bool isBuy,
-            uint256 quantity,
-            uint256 partialFilled
-        ) = _positionManager.getPendingOrderDetail(
-                _limitOrder.pip,
-                _limitOrder.orderId
-            );
-        if (isFilled) {
-            int256 _orderQuantity;
-            if (_reduceQuantity == 0 && _entryPrice == 0) {
-                _orderQuantity = isBuy ? int256(quantity) : -int256(quantity);
-            } else if (_reduceQuantity != 0 && _entryPrice == 0) {
-                _orderQuantity = isBuy
-                    ? int256(quantity - _reduceQuantity)
-                    : -int256(quantity - _reduceQuantity);
-            } else {
-                _orderQuantity = isBuy
-                    ? int256(_reduceQuantity)
-                    : -int256(_reduceQuantity);
-            }
-            uint256 _orderNotional = _entryPrice == 0
-                ? ((_orderQuantity.abs() *
-                    _positionManager.pipToPrice(_limitOrder.pip)) /
-                    _positionManager.getBaseBasisPoint())
-                : ((_orderQuantity.abs() * _entryPrice) /
-                    _positionManager.getBaseBasisPoint());
-            // IMPORTANT UPDATE FORMULA WITH LEVERAGE
-            // TODO RECHECK THIS
-            uint256 _orderMargin = _orderNotional / _limitOrder.leverage;
-            _positionData = _positionData.accumulateLimitOrder(
-                _orderQuantity,
-                _orderMargin,
-                _orderNotional
-            );
-        } else if (!isFilled && partialFilled != 0) {
-            // partial filled
-            int256 _partialQuantity;
-            if (_reduceQuantity == 0 && _entryPrice == 0) {
-                _partialQuantity = isBuy
-                    ? int256(partialFilled)
-                    : -int256(partialFilled);
-            } else if (_reduceQuantity != 0 && _entryPrice == 0) {
-                int256 _partialQuantityTemp = partialFilled > _reduceQuantity
-                    ? int256(partialFilled - _reduceQuantity)
-                    : int256(0);
-                _partialQuantity = isBuy
-                    ? _partialQuantityTemp
-                    : -_partialQuantityTemp;
-            } else {
-                int256 _partialQuantityTemp = partialFilled > _reduceQuantity
-                    ? int256(_reduceQuantity)
-                    : int256(partialFilled);
-                _partialQuantity = isBuy
-                    ? _partialQuantityTemp
-                    : -_partialQuantityTemp;
-            }
-            uint256 _partialOpenNotional = _entryPrice == 0
-                ? ((_partialQuantity.abs() *
-                    _positionManager.pipToPrice(_limitOrder.pip)) /
-                    _positionManager.getBaseBasisPoint())
-                : ((_partialQuantity.abs() * _entryPrice) /
-                    _positionManager.getBaseBasisPoint());
-            // IMPORTANT UPDATE FORMULA WITH LEVERAGE
-            // TODO RECHECK THIS
-            uint256 _partialMargin = _partialOpenNotional /
-                _limitOrder.leverage;
-            _positionData = _positionData.accumulateLimitOrder(
-                _partialQuantity,
-                _partialMargin,
-                _partialOpenNotional
-            );
-        }
+        (uint64 _baseBasicPoint, uint64 _basisPoint) = _positionManager.getBasisPointFactors();
+        int256 _orderQuantity = _getLimitOrderQuantity(_positionManager, _limitOrder);
+        // if _entryPrice != 0, must calculate notional by _entryPrice (for reduce limit order)
+        // if _entryPrice == 0, calculate notional by order pip (current price)
+        uint256 _orderNotional = _orderQuantity.abs() * (
+            _entryPrice == 0 ?
+            _limitOrder.pip.toNotional(_basisPoint)
+            : _entryPrice / _baseBasicPoint
+        );
+        uint256 _orderMargin = _orderNotional / _limitOrder.leverage;
+        _positionData = _positionData.accumulateLimitOrder(
+            _orderQuantity,
+            _orderMargin,
+            _orderNotional
+        );
         _positionData.leverage = _positionData.leverage >= _limitOrder.leverage
-            ? _positionData.leverage
-            : _limitOrder.leverage;
+        ? _positionData.leverage
+        : _limitOrder.leverage;
         return _positionData;
     }
 
@@ -567,8 +510,7 @@ library PositionHouseFunction {
                 _pmAddress,
                 _limitOrders[i],
                 _pDataIncr,
-                _limitOrders[i].entryPrice,
-                _limitOrders[i].reduceQuantity
+                _limitOrders[i].entryPrice
             );
             _removeUnfilledMargin(_positionManager, state, _limitOrders[i]);
         }
@@ -821,5 +763,28 @@ library PositionHouseFunction {
 
     function blockNumber() internal view returns (uint64) {
         return uint64(block.number);
+    }
+
+    function _getLimitOrderQuantity(
+        IPositionManager _positionManager,
+        PositionLimitOrder.Data memory _limitOrder
+    ) private view returns (int256 _orderQuantity) {
+        (
+            bool isFilled,
+            bool isBuy,
+            uint256 quantity,
+            uint256 partialFilled
+        ) = _positionManager.getPendingOrderDetail(
+            _limitOrder.pip,
+            _limitOrder.orderId
+        );
+
+        // if order is fulfilled
+        if (isFilled) {
+            _orderQuantity = isBuy ? int256(quantity) : -int256(quantity) ;
+        } else if (!isFilled && partialFilled != 0) {
+            // partial filled
+            _orderQuantity = isBuy ? int256(partialFilled) : -int256(partialFilled);
+        }
     }
 }
