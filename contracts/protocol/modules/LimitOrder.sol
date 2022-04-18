@@ -56,25 +56,6 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         .cancelLimitOrder(_order.pip, _order.orderId);
         if (partialFilled == 0) {
             _orders[_orderIdx] = blankLimitOrderData;
-            if (_order.reduceLimitOrderId != 0) {
-                _blankReduceLimitOrder(
-                    _pmAddress,
-                    _trader,
-                    _order.reduceLimitOrderId - 1
-                );
-            }
-        } else if (_order.reduceQuantity != 0) {
-            if (_isReduce == 1) {
-                _orders[_orderIdx].reduceQuantity = partialFilled;
-            } else if (_order.reduceLimitOrderId != 0) {
-                PositionLimitOrder.Data[] storage _reduceOrders = _getLimitOrderPointer(
-                    _pmAddress,
-                    _trader,
-                    1
-                );
-                _reduceOrders[_order.reduceLimitOrderId - 1].reduceQuantity = partialFilled;
-                _orders[_orderIdx] = blankLimitOrderData;
-            }
         }
 
         (, uint256 _refundMargin, ) = _positionManager.getNotionalMarginAndFee(
