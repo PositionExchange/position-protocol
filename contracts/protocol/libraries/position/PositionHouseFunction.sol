@@ -717,6 +717,7 @@ library PositionHouseFunction {
             positionResp.realizedPnl);
         // NOTICE calc unrealizedPnl after open reverse
         positionResp.unrealizedPnl = unrealizedPnl - positionResp.realizedPnl;
+        // calculate margin ratio of the reduce order vs position margin without manual margin added
         uint256 reduceMarginWithoutManual = ((_positionData.margin - _manualMargin.abs()) * _quantity.abs()) / _positionData.quantity.abs();
         {
             positionResp.position = Position.Data(
