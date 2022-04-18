@@ -525,14 +525,14 @@ library PositionHouseFunction {
         console.log("reduce order length", _reduceLimitOrders.length);
         for (uint256 j; j < _reduceLimitOrders.length; j++) {
             // check is the reduce limit orders are filled
-            (bool isFilled, , , uint256 partialFilled) = _positionManager.getPendingOrderDetail(
-                _reduceLimitOrders[j].pip,
-                _reduceLimitOrders[j].orderId
-            );
-            uint256 _filledAmount = !isFilled &&
-                                    partialFilled < _reduceLimitOrders[j].reduceQuantity ?
-                                    partialFilled : _reduceLimitOrders[j].reduceQuantity;
-            _reduceMarginInReduceLimitOrder(state, _cpIncrPosition, _reduceLimitOrders[j].pip, _filledAmount);
+            int256 _filledAmount = _getPartialFilledAmount(_positionManager, _reduceLimitOrders[j].pip, _reduceLimitOrders[j].orderId);
+//            (bool isFilled, bool isBuy, uint256 size, uint256 partialFilled) = _positionManager.getPendingOrderDetail(
+//                _reduceLimitOrders[j].pip,
+//                _reduceLimitOrders[j].orderId
+//            );
+//            int256 _filledAmount = int256(!isFilled && partialFilled < size ? partialFilled : size);
+//            _filledAmount = isBuy ? _filledAmount : (-_filledAmount);
+            _reduceMarginInReduceLimitOrder(state, _cpIncrPosition, _reduceLimitOrders[j].pip, _filledAmount, _reduceLimitOrders[j].entryPrice);
         }
         {
             console.log("_pDataIncr quantity after",  _pDataIncr.quantity.abs());
@@ -549,6 +549,19 @@ library PositionHouseFunction {
             _debtProfit;
 //        console.log("totalClaimableAmount final:", uint256(totalClaimableAmount));
         return state.amount < 0 ? int256(0) : state.amount;
+    }
+
+    function _getPartialFilledAmount(
+        IPositionManager _positionManager,
+        uint128 _pip,
+        uint64 _orderId
+    ) private view returns (int256 _filledAmount) {
+        (bool isFilled, bool isBuy, uint256 size, uint256 partialFilled) = _positionManager.getPendingOrderDetail(
+            _pip,
+            _orderId
+        );
+        _filledAmount = int256(!isFilled && partialFilled < size ? partialFilled : size);
+        _filledAmount = isBuy ? _filledAmount : (-_filledAmount);
     }
 
     function _removeUnfilledMargin(
