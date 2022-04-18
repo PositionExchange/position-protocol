@@ -649,7 +649,6 @@ library PositionHouseFunction {
         state.totalReduceOrderFilledAmount += _filledAmount;
         // now position should be reduced
         // should never overflow?
-        // TODO write a sub for quantity, for short position
         _cpIncrPosition.quantity = _cpIncrPosition.quantity.subAmount(_filledAmount);
         _cpIncrPosition.openNotional -= openNotionalRatio;
     }
