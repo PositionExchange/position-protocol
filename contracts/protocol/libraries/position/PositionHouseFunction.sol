@@ -9,6 +9,7 @@ import "../../libraries/helpers/Int256Math.sol";
 import "../../PositionHouse.sol";
 import "../types/PositionHouseStorage.sol";
 import "./PipConversionMath.sol";
+import "../helpers/CommonMath.sol";
 import {Errors} from "../helpers/Errors.sol";
 
 import "hardhat/console.sol";
@@ -328,9 +329,7 @@ library PositionHouseFunction {
             _orderMargin,
             _orderNotional
         );
-        _positionData.leverage = _positionData.leverage >= _limitOrder.leverage
-        ? _positionData.leverage
-        : _limitOrder.leverage;
+        _positionData.leverage = CommonMath.maxU16(_positionData.leverage, _limitOrder.leverage);
         return _positionData;
     }
 
