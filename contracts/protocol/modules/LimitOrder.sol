@@ -96,7 +96,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             PositionLimitOrder.Data memory _newOrder = PositionLimitOrder.Data({
                 pip: _pip,
                 orderId: openLimitResp.orderId,
-                leverage: uint16(_leverage),
+                leverage: _leverage,
                 isBuy: _side == Position.Side.LONG ? 1 : 2,
                 entryPrice: 0,
                 reduceLimitOrderId: 0,
@@ -108,8 +108,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                     _newOrder,
                     _positionManager,
                     _trader,
-                    _quantity,
-                    openLimitResp.sizeOut
+                    _quantity
                 );
             }
             (, uint256 marginToVault, uint256 fee) = _positionManager
@@ -137,8 +136,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         PositionLimitOrder.Data memory _newOrder,
         IPositionManager _positionManager,
         address _trader,
-        int256 _quantity,
-        uint256 _sizeOut
+        int256 _quantity
     ) internal {
         address _pmAddress = address(_positionManager);
         Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
@@ -146,22 +144,11 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             oldPosition.quantity == 0 ||
             _quantity.isSameSide(oldPosition.quantity)
         ) {
+            // limit order increasing position
             _pushLimit(_pmAddress, _trader, _newOrder);
         } else {
             // limit order reducing position
             uint256 baseBasisPoint = _positionManager.getBaseBasisPoint();
-            // if new limit order is smaller than old position then just reduce old position
-            if (oldPosition.quantity.abs() > _quantity.abs()) {
-                _newOrder.reduceQuantity = _quantity.abs() - _sizeOut;
-            }
-            // else new limit order is larger than old position then close old position and open new opposite position
-            else {
-                _newOrder.reduceQuantity = oldPosition.quantity.abs();
-                _newOrder.reduceLimitOrderId =
-                    _getReduceLimitOrders(_pmAddress, _trader).length +
-                    1;
-                _pushLimit(_pmAddress, _trader, _newOrder);
-            }
             _newOrder.entryPrice = PositionHouseMath.entryPriceFromNotional(
                 oldPosition.openNotional,
                 oldPosition.quantity.abs(),
