@@ -383,9 +383,7 @@ library PositionHouseFunction {
                         _reduceLimitOrders[i].pip,
                         _reduceLimitOrders[i].orderId
                     );
-                if (
-                    !isFilled && _reduceLimitOrders[i].reduceLimitOrderId == 0
-                ) {
+                if (!isFilled) {
                     listPendingOrders[index] = PositionHouseStorage
                         .LimitOrderPending({
                             isBuy: isBuy,
