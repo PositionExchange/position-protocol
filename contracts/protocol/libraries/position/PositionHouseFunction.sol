@@ -8,6 +8,7 @@ import "../../libraries/helpers/Quantity.sol";
 import "../../libraries/helpers/Int256Math.sol";
 import "../../PositionHouse.sol";
 import "../types/PositionHouseStorage.sol";
+import "./PipConversionMath.sol";
 import {Errors} from "../helpers/Errors.sol";
 
 import "hardhat/console.sol";
@@ -20,6 +21,7 @@ library PositionHouseFunction {
     using Quantity for int256;
     using Quantity for int128;
     using Int256Math for int256;
+    using PipConversionMath for uint128;
 
     function handleMarketPart(
         Position.Data memory _positionData,
@@ -522,6 +524,15 @@ library PositionHouseFunction {
         }
     }
 
+    // used to benefit memory pointer
+    // used only in `getClaimAmount` memory
+    // please don't move me to other places
+    struct ClaimAbleState {
+        int256 amount;
+        uint64 baseBasicPoint;
+        uint64 basisPoint;
+        uint256 totalReduceOrderFilledAmount;
+    }
     function getClaimAmount(
         address _pmAddress,
         int256 _manualMargin,
@@ -532,8 +543,11 @@ library PositionHouseFunction {
         uint256 _canClaimAmountInMap,
         int256 _debtProfit
     ) public view returns (int256 totalClaimableAmount) {
+        ClaimAbleState memory state;
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         console.log(" _positionDataWithoutLimit.quantity",  _positionDataWithoutLimit.quantity.abs());
+        // avoid multiple calls
+        ( state.baseBasicPoint, state.basisPoint) = _positionManager.getBasisPointFactors();
         if (_positionData.quantity == 0) {
             _positionData.quantity = _positionDataWithoutLimit.quantity;
             _positionData.margin = _positionDataWithoutLimit.margin;
@@ -542,151 +556,102 @@ library PositionHouseFunction {
         // position data with increase only
         Position.Data memory _pDataIncr = _positionDataWithoutLimit;
         for (uint256 i; i < _limitOrders.length; i++) {
-            {
-                if (
-                    _limitOrders[i].pip == 0 && _limitOrders[i].orderId == 0
-                ) {
-                    // skip
-                    continue;
-                }
-//                if (
-//                    _limitOrders[i].reduceQuantity != 0 || i == _limitOrders.length - 1
-//                ) {
-//                    {
-//                        int256 totalRealizedPnl;
-//                        (
-//                            totalRealizedPnl,
-//                            _positionData
-//                        ) = calculatePnlFromReduceOrder(
-//                            _positionManager,
-//                            _positionData,
-//                            _positionDataWithoutLimit,
-//                            _reduceLimitOrders
-//                        );
-//                        totalClaimableAmount += totalRealizedPnl;
-//                    }
-//                }
-                _pDataIncr = accumulateLimitOrderToPositionData(
-                    _pmAddress,
-                    _limitOrders[i],
-                    _pDataIncr,
-                    _limitOrders[i].entryPrice,
-                    _limitOrders[i].reduceQuantity
-                );
+            if (
+                _limitOrders[i].pip == 0 && _limitOrders[i].orderId == 0
+            ) {
+                // skip
+                continue;
             }
-
-            (
-                bool isFilled,
-                ,
-                uint256 quantity,
-                uint256 partialFilled
-            ) = _positionManager.getPendingOrderDetail(
-                    _limitOrders[i].pip,
-                    _limitOrders[i].orderId
-                );
-            if (!isFilled) {
-                // remove unfilled margin
-                totalClaimableAmount -= int256(
-                    ((quantity - partialFilled) *
-                        _positionManager.pipToPrice(
-                            _limitOrders[i].pip
-                        )) /
-                        _positionManager.getBaseBasisPoint() /
-                        _limitOrders[i].leverage
-                );
-            }
-            console.log("isFilled", isFilled, quantity, partialFilled);
+            // TODO getPendingOrderDetail here instead
+            _pDataIncr = accumulateLimitOrderToPositionData(
+                _pmAddress,
+                _limitOrders[i],
+                _pDataIncr,
+                _limitOrders[i].entryPrice,
+                _limitOrders[i].reduceQuantity
+            );
+            _removeUnfilledMargin(_positionManager, state, _limitOrders[i]);
         }
         if(_pDataIncr.quantity == 0){
             return 0;
         }
         console.log("_pDataIncr quantity",  _pDataIncr.quantity.abs());
-        (int256 totalRealizedPnl, uint256 filledQuantity) = calculatePnlFromReduceOrder(
-            _positionManager,
-            _pDataIncr,
-            _positionDataWithoutLimit,
-            _reduceLimitOrders
-        );
+
+        // copy openNotional and quantity
+        Position.Data memory _cpIncrPosition;
+        _cpIncrPosition.openNotional = _pDataIncr.openNotional;
+        _cpIncrPosition.quantity = _pDataIncr.quantity;
+
+        console.log("reduce order length", _reduceLimitOrders.length);
+        for (uint256 j; j < _reduceLimitOrders.length; j++) {
+            // check is the reduce limit orders are filled
+            (bool isFilled, , , uint256 partialFilled) = _positionManager.getPendingOrderDetail(
+                _reduceLimitOrders[j].pip,
+                _reduceLimitOrders[j].orderId
+            );
+            uint256 _filledAmount = !isFilled &&
+                                    partialFilled < _reduceLimitOrders[j].reduceQuantity ?
+                                    partialFilled : _reduceLimitOrders[j].reduceQuantity;
+            _reduceMarginInReduceLimitOrder(state, _cpIncrPosition, _reduceLimitOrders[j].pip, _filledAmount);
+        }
         {
-            console.log("totalRealizedPnl", totalRealizedPnl.abs(), filledQuantity, _pDataIncr.margin);
             console.log("_pDataIncr quantity after",  _pDataIncr.quantity.abs());
         }
-        totalClaimableAmount += totalRealizedPnl;
-        uint256 _accReduceMargin = _pDataIncr.margin*filledQuantity/_pDataIncr.quantity.abs();
-
-
-        {
-            console.log("totalClaimableAmount", totalClaimableAmount.abs(), _canClaimAmountInMap);
-            console.log("totalClaimableAmount 2", _accReduceMargin, _debtProfit.abs(), _pDataIncr.quantity.abs());
-            console.log("_debtProfit < 0 ?", _debtProfit < 0);
-        }
-        totalClaimableAmount =
-            totalClaimableAmount +
+        state.amount += int256(_pDataIncr.margin*state.totalReduceOrderFilledAmount/_pDataIncr.quantity.abs());
+//        {
+//            console.log("totalClaimableAmount", totalClaimableAmount.abs(), _canClaimAmountInMap);
+//            console.log("totalClaimableAmount 2", _accReduceMargin, _debtProfit.abs(), _pDataIncr.quantity.abs());
+//            console.log("_debtProfit < 0 ?", _debtProfit < 0);
+//        }
+        state.amount +=
             int256(_canClaimAmountInMap) +
             _manualMargin +
-            int256(_accReduceMargin) +
             _debtProfit;
-        console.log("totalClaimableAmount final:", uint256(totalClaimableAmount));
-        if (totalClaimableAmount <= 0) {
-            totalClaimableAmount = 0;
+//        console.log("totalClaimableAmount final:", uint256(totalClaimableAmount));
+        return state.amount < 0 ? 0 : state.amount;
+    }
+
+    function _removeUnfilledMargin(
+        IPositionManager _positionManager,
+        ClaimAbleState memory state,
+        PositionLimitOrder.Data memory _limitOrder
+    ) private view {
+        (
+            bool isFilled,
+            ,
+            uint256 quantity,
+            uint256 partialFilled
+        ) = _positionManager.getPendingOrderDetail(
+            _limitOrder.pip,
+            _limitOrder.orderId
+        );
+        if (!isFilled) {
+            // remove unfilled margin
+            state.amount -= _limitOrder.pip.calMargin(
+                quantity - partialFilled,
+                _limitOrder.leverage,
+                state.basisPoint
+            );
         }
     }
 
-    function calculatePnlFromReduceOrder(
-        IPositionManager _positionManager,
-        Position.Data memory _positionData,
-        Position.Data memory _positionDataWithoutLimit,
-        PositionLimitOrder.Data[] memory _reduceLimitOrders
-    )
-        public
-        view
-        returns (
-            int256 totalRealizedPnl,
-            uint256 filledQuantity
-        )
-    {
-        uint256 _rawQuantity = _positionData.quantity.abs();
-        uint256 _rawOpenNotional = _positionData.openNotional;
-        for (
-            uint256 i;
-            i < _reduceLimitOrders.length;
-            i++
-        ) {
-            (bool isFilled, , , uint256 partialFilled) = _positionManager
-                .getPendingOrderDetail(
-                    _reduceLimitOrders[i].pip,
-                    _reduceLimitOrders[i].orderId
-                );
-            {
-                uint256 _filledAmount = !isFilled && partialFilled < _reduceLimitOrders[i].reduceQuantity ? partialFilled : _reduceLimitOrders[i].reduceQuantity;
-                // realizedPnl = _positionDataWithoutLimit.openNotional - closed notional
-                uint256 closedNotional = (_filledAmount * _positionManager.pipToPrice(_reduceLimitOrders[i].pip)) / _positionManager.getBaseBasisPoint();
-                // already checked if _positionData.openNotional == 0, then used _positionDataWithoutLimit before
-                uint256 openNotionalRatio = _rawOpenNotional * _filledAmount /  _rawQuantity;
-                console.log("openNotionalRatio", _rawOpenNotional, openNotionalRatio, closedNotional);
-                console.log("rawQuantity.abs();", _rawQuantity);
-                totalRealizedPnl += int256(openNotionalRatio) - int256(closedNotional);
-                filledQuantity += _filledAmount;
-                // now position should be reduced
-                // should never overflow?
-                _rawQuantity -= _filledAmount;
-                _rawOpenNotional -= openNotionalRatio;
-            }
-//            {
-//                positionData = accumulateLimitOrderToPositionData(
-//                    address(_positionManager),
-//                    _reduceLimitOrders[i],
-//                    _positionData,
-//                    _reduceLimitOrders[i].entryPrice,
-//                    _reduceLimitOrders[i].reduceQuantity
-//                );
-//            }
-            // WHY should break?
-            if (_reduceLimitOrders[i].reduceLimitOrderId != 0) {
-                i++;
-                break;
-            }
-        }
+    function _reduceMarginInReduceLimitOrder(
+        ClaimAbleState memory state,
+        Position.Data memory _cpIncrPosition,
+        uint128 _pip,
+        uint256 _filledAmount
+    ) private view{
+        console.log("_cpIncrPosition.quantity.abs()", _cpIncrPosition.quantity.abs());
+        uint256 closedNotional = _filledAmount * _pip.toNotional(state.basisPoint);
+        // already checked if _positionData.openNotional == 0, then used _positionDataWithoutLimit before
+        uint256 openNotionalRatio = _cpIncrPosition.openNotional * _filledAmount /  _cpIncrPosition.quantity.abs();
+        state.amount += int256(openNotionalRatio) - int256(closedNotional);
+        state.totalReduceOrderFilledAmount += _filledAmount;
+        // now position should be reduced
+        // should never overflow?
+        // TODO write a sub for quantity, for short position
+        _cpIncrPosition.quantity = _cpIncrPosition.quantity.subAmount(_filledAmount);
+        _cpIncrPosition.openNotional -= openNotionalRatio;
     }
 
     function openMarketOrder(
