@@ -589,14 +589,14 @@ library PositionHouseFunction {
         int256 _filledAmount,
         uint256 _entryPrice
     ) private view{
-        console.log("_cpIncrPosition.quantity.abs()", _cpIncrPosition.quantity.abs());
-        console.log("filled amount is positive", _filledAmount > 0);
+//        console.log("_cpIncrPosition.quantity.abs()", _cpIncrPosition.quantity.abs());
+//        console.log("filled amount is positive", _filledAmount > 0);
         int256 closedNotional = _filledAmount * int128(_pip) / int64(state.basisPoint);
-        console.log("closeNotional", closedNotional.abs());
+//        console.log("closeNotional", closedNotional.abs());
         // already checked if _positionData.openNotional == 0, then used _positionDataWithoutLimit before
 //        int256 openNotionalRatio = int256(_cpIncrPosition.openNotional) * _filledAmount /  _cpIncrPosition.quantity.absInt();
         int256 openNotional = _filledAmount * int256(_entryPrice) / int64(state.baseBasicPoint);
-        console.log("openNotional", openNotional.abs());
+//        console.log("openNotional", openNotional.abs());
         state.amount += (int256(openNotional) - int256(closedNotional));
         state.totalReduceOrderFilledAmount += _filledAmount.abs();
         // now position should be reduced
@@ -696,9 +696,6 @@ library PositionHouseFunction {
         int256 _manualMargin
     ) public returns (PositionHouseStorage.PositionResp memory positionResp, int256 debtProfit) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
-        uint256 reduceMarginRequirement = (_positionData.margin *
-            _quantity.abs()) / _positionData.quantity.abs();
-//        int256 totalQuantity = _positionDataWithoutLimit.quantity + _quantity;
         (
             positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount, positionResp.entryPrice,
         ) = openMarketOrder(
@@ -712,16 +709,19 @@ library PositionHouseFunction {
             PositionHouseStorage.PnlCalcOption.SPOT_PRICE,
             _positionData
         );
-
-        positionResp.realizedPnl =
-            (unrealizedPnl * positionResp.exchangedPositionSize.absInt()) /
-            _positionData.quantity.absInt();
-        positionResp.exchangedQuoteAssetAmount =
-            (_quantity.abs() * _positionData.getEntryPrice(_pmAddress)) /
-            _positionManager.getBaseBasisPoint();
-        // NOTICE margin to vault can be negative
-        positionResp.marginToVault = -(int256(reduceMarginRequirement) +
-            positionResp.realizedPnl);
+        {
+            uint256 reduceMarginRequirement = (_positionData.margin *
+            _quantity.abs()) / _positionData.quantity.abs();
+            positionResp.realizedPnl =
+                (unrealizedPnl * positionResp.exchangedPositionSize.absInt()) /
+                _positionData.quantity.absInt();
+            positionResp.exchangedQuoteAssetAmount =
+                (_quantity.abs() * _positionData.getEntryPrice(_pmAddress)) /
+                _positionManager.getBaseBasisPoint();
+            // NOTICE margin to vault can be negative
+            positionResp.marginToVault = -(int256(reduceMarginRequirement) +
+                positionResp.realizedPnl);
+        }
         // NOTICE calc unrealizedPnl after open reverse
 //        positionResp.unrealizedPnl = unrealizedPnl - positionResp.realizedPnl;
         uint256 reduceMarginWithoutManual = ((_positionData.margin - _manualMargin.abs()) * _quantity.abs()) / _positionData.quantity.abs();
@@ -746,24 +746,23 @@ library PositionHouseFunction {
             );
         }
         {
-//            uint256 _orderMargin = positionResp.exchangedQuoteAssetAmount / _leverage;
-            debtProfit = calculateDebtProfit(_positionDataWithoutLimit, _quantity, reduceMarginWithoutManual, positionResp.exchangedQuoteAssetAmount / _leverage);
+            debtProfit = calculateDebtProfit(_positionDataWithoutLimit, _positionData, _manualMargin, _quantity, reduceMarginWithoutManual);
         }
         return (positionResp, debtProfit);
     }
 
     function calculateDebtProfit(
         Position.Data memory _positionDataWithoutLimit,
-//        int256 _positionQuantity,
+        Position.Data memory _positionData,
+        int256 _manualMargin,
         int256 _orderQuantity,
-        uint256 _reduceMarginWithoutManual,
-        uint256 _orderMargin
+        uint256 _reduceMarginWithoutManual
     ) private view returns (int256 debtProfit) {
         if (_positionDataWithoutLimit.quantity.absInt() >= _orderQuantity.absInt()) {
             debtProfit = 0;
         } else {
-            console.log("calculate debt profit reduceMargin, orderMargin", _reduceMarginWithoutManual, _orderMargin);
-            debtProfit = int256((_reduceMarginWithoutManual - _positionDataWithoutLimit.margin) * 2) ;
+            console.log("calculate debt profit reduceMargin, orderMargin", _reduceMarginWithoutManual, _positionData.quantity.abs(), _positionDataWithoutLimit.quantity.abs());
+            debtProfit = int256((_reduceMarginWithoutManual - _positionDataWithoutLimit.margin) + (_orderQuantity.abs() - _positionDataWithoutLimit.quantity.abs()) * (_positionData.margin - _manualMargin.abs()) / _positionData.quantity.abs()) ;
         }
     }
 
