@@ -236,18 +236,18 @@ export default class PositionHouseTestingTool {
         const currentPrice = Number((await pm.getPrice()).div('10000').toString())
         const openNotional = positionInfo.openNotional.toString()
         // expectedNotional = expectedNotional && expectedNotional.toString() || quantity.mul(price).toString()
-        console.log(`debugPosition Position Info of ${trader.address}`)
+        // console.log(`debugPosition Position Info of ${trader.address}`)
         const oldPosition = await this.positionHouseViewer.getPosition(pm.address, trader.address)
-        const pnl = await this.positionHouseViewer.getPositionNotionalAndUnrealizedPnl(pm.address, trader.address,0, oldPosition)
+        const pnl = await this.positionHouseViewer.getPositionNotionalAndUnrealizedPnl(pm.address, trader.address,1, oldPosition)
         const basicPoint = await pm.getBasisPoint()
-        console.log("positionInfo", positionInfo)
+        // console.log("positionInfo", positionInfo)
         console.table([
             {
                 openNotional: openNotional,
                 currentPrice: currentPrice,
                 quantity: positionInfo.quantity.toString(),
                 margin: positionInfo.margin.toString(),
-                unrealizedPnl: pnl.unrealizedPnl.div('10000').toString(),
+                unrealizedPnl: pnl.unrealizedPnl.toString(),
                 // entryPrice: positionInfo.openNotional.mul(basicPoint).div(positionInfo.quantity.abs()).toString()
             }
         ])

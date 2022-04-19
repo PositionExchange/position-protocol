@@ -494,7 +494,6 @@ library PositionHouseFunction {
 //            _positionData.margin = _positionDataWithoutLimit.margin;
 //            _positionData.openNotional = _positionDataWithoutLimit.openNotional;
 //        }
-        console.log("margin without limit", _positionDataWithoutLimit.margin);
         // position data with increase only
         Position.Data memory _pDataIncr = _positionDataWithoutLimit;
         for (uint256 i; i < _limitOrders.length; i++) {
@@ -523,7 +522,6 @@ library PositionHouseFunction {
         _cpIncrPosition.quantity = _pDataIncr.quantity;
 
         console.log("state amount before calculate pnl", state.amount.abs());
-        console.log("pnl is negative", state.amount > 0 ? "false" : "true");
         for (uint256 j; j < _reduceLimitOrders.length; j++) {
             // check is the reduce limit orders are filled
             int256 _filledAmount = _getPartialFilledAmount(_positionManager, _reduceLimitOrders[j].pip, _reduceLimitOrders[j].orderId);
@@ -533,12 +531,16 @@ library PositionHouseFunction {
 //            );
 //            int256 _filledAmount = int256(!isFilled && partialFilled < size ? partialFilled : size);
 //            _filledAmount = isBuy ? _filledAmount : (-_filledAmount);
-            _reduceMarginInReduceLimitOrder(state, _cpIncrPosition, _reduceLimitOrders[j].pip, _filledAmount, _reduceLimitOrders[j].entryPrice);
+            _accumulatePnLInReduceLimitOrder(state, _cpIncrPosition, _reduceLimitOrders[j].pip, _filledAmount, _reduceLimitOrders[j].entryPrice);
         }
+        console.log("state amount after calculate pnl", state.amount.abs());
+        console.log("pnl is negative", state.amount > 0 ? "false" : "true");
+        console.log("other number", _canClaimAmountInMap, _positionMarginWithoutLimit);
+        console.log("other number 2", _manualMargin.abs(), _debtProfit.abs());
         state.amount +=
             int256(_canClaimAmountInMap) +
             int256(_positionMarginWithoutLimit) +
-            _manualMargin +
+            _manualMargin -
             _debtProfit;
         return state.amount < 0 ? int256(0) : state.amount;
     }
@@ -580,28 +582,33 @@ library PositionHouseFunction {
         }
     }
 
-    function _reduceMarginInReduceLimitOrder(
+    function _accumulatePnLInReduceLimitOrder(
         ClaimAbleState memory state,
         Position.Data memory _cpIncrPosition,
         uint128 _pip,
         int256 _filledAmount,
         uint256 _entryPrice
     ) private view{
-        console.log("_cpIncrPosition.quantity.abs()", _cpIncrPosition.quantity.abs());
-        console.log("filled amount is positive", _filledAmount > 0);
+//        console.log("_cpIncrPosition.quantity.abs()", _cpIncrPosition.quantity.abs());
+//        console.log("filled amount is positive", _filledAmount > 0);
         int256 closedNotional = _filledAmount * int128(_pip) / int64(state.basisPoint);
-        console.log("closeNotional", closedNotional.abs());
+//        console.log("closeNotional", closedNotional.abs());
         // already checked if _positionData.openNotional == 0, then used _positionDataWithoutLimit before
-//        uint256 openNotionalRatio = _cpIncrPosition.openNotional * _filledAmount /  _cpIncrPosition.quantity.abs();
+//        int256 openNotionalRatio = int256(_cpIncrPosition.openNotional) * _filledAmount /  _cpIncrPosition.quantity.absInt();
         int256 openNotional = _filledAmount * int256(_entryPrice) / int64(state.baseBasicPoint);
-        console.log("openNotional", openNotional.abs());
+//        console.log("openNotional", openNotional.abs());
         state.amount += (int256(openNotional) - int256(closedNotional));
         state.totalReduceOrderFilledAmount += _filledAmount.abs();
         // now position should be reduced
         // should never overflow?
         _cpIncrPosition.quantity -= _filledAmount;
 //        _cpIncrPosition.openNotional -= openNotionalRatio;
-        _cpIncrPosition.openNotional -= openNotional.abs();
+        // avoid overflow due to absolute error
+        if (openNotional.abs() >= _cpIncrPosition.openNotional) {
+            _cpIncrPosition.openNotional = 0;
+        } else {
+            _cpIncrPosition.openNotional -= openNotional.abs();
+        }
     }
 
     function openMarketOrder(
@@ -687,11 +694,8 @@ library PositionHouseFunction {
         Position.Data memory _positionDataWithoutLimit,
         int128 _latestCumulativePremiumFraction,
         int256 _manualMargin
-    ) public returns (PositionHouseStorage.PositionResp memory positionResp, int256 debtMargin) {
+    ) public returns (PositionHouseStorage.PositionResp memory positionResp, int256 debtProfit) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
-        uint256 reduceMarginRequirement = (_positionData.margin *
-            _quantity.abs()) / _positionData.quantity.abs();
-//        int256 totalQuantity = _positionDataWithoutLimit.quantity + _quantity;
         (
             positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount, positionResp.entryPrice,
         ) = openMarketOrder(
@@ -705,19 +709,21 @@ library PositionHouseFunction {
             PositionHouseStorage.PnlCalcOption.SPOT_PRICE,
             _positionData
         );
-
-        positionResp.realizedPnl =
-            (unrealizedPnl * positionResp.exchangedPositionSize.absInt()) /
-            _positionData.quantity.absInt();
-        positionResp.exchangedQuoteAssetAmount =
-            (_quantity.abs() * _positionData.getEntryPrice(_pmAddress)) /
-            _positionManager.getBaseBasisPoint();
-        // NOTICE margin to vault can be negative
-        positionResp.marginToVault = -(int256(reduceMarginRequirement) +
-            positionResp.realizedPnl);
+        {
+            uint256 reduceMarginRequirement = (_positionData.margin *
+            _quantity.abs()) / _positionData.quantity.abs();
+            positionResp.realizedPnl =
+                (unrealizedPnl * positionResp.exchangedPositionSize.absInt()) /
+                _positionData.quantity.absInt();
+            positionResp.exchangedQuoteAssetAmount =
+                (_quantity.abs() * _positionData.getEntryPrice(_pmAddress)) /
+                _positionManager.getBaseBasisPoint();
+            // NOTICE margin to vault can be negative
+            positionResp.marginToVault = -(int256(reduceMarginRequirement) +
+                positionResp.realizedPnl);
+        }
         // NOTICE calc unrealizedPnl after open reverse
-        positionResp.unrealizedPnl = unrealizedPnl - positionResp.realizedPnl;
-        // calculate margin ratio of the reduce order vs position margin without manual margin added
+//        positionResp.unrealizedPnl = unrealizedPnl - positionResp.realizedPnl;
         uint256 reduceMarginWithoutManual = ((_positionData.margin - _manualMargin.abs()) * _quantity.abs()) / _positionData.quantity.abs();
         {
             positionResp.position = Position.Data(
@@ -739,7 +745,25 @@ library PositionHouseFunction {
                 1
             );
         }
-        return (positionResp, -int256(reduceMarginWithoutManual) - positionResp.realizedPnl);
+        {
+            debtProfit = calculateDebtProfit(_positionDataWithoutLimit, _positionData, _manualMargin, _quantity, reduceMarginWithoutManual);
+        }
+        return (positionResp, debtProfit);
+    }
+
+    function calculateDebtProfit(
+        Position.Data memory _positionDataWithoutLimit,
+        Position.Data memory _positionData,
+        int256 _manualMargin,
+        int256 _orderQuantity,
+        uint256 _reduceMarginWithoutManual
+    ) private view returns (int256 debtProfit) {
+        if (_positionDataWithoutLimit.quantity.absInt() >= _orderQuantity.absInt()) {
+            debtProfit = 0;
+        } else {
+            console.log("calculate debt profit reduceMargin, orderMargin", _reduceMarginWithoutManual, _positionData.quantity.abs(), _positionDataWithoutLimit.quantity.abs());
+            debtProfit = int256((_reduceMarginWithoutManual - _positionDataWithoutLimit.margin) + (_orderQuantity.abs() - _positionDataWithoutLimit.quantity.abs()) * (_positionData.margin - _manualMargin.abs()) / _positionData.quantity.abs()) ;
+        }
     }
 
     function calcRemainMarginWithFundingPayment(
