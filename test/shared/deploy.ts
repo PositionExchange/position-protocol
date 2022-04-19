@@ -55,6 +55,7 @@ export async function deployPositionHouse(){
     let positionHouse = (await factory.deploy()) as unknown as PositionHouse;
     await insuranceFund.connect(trader).initialize()
     await insuranceFund.connect(trader).setCounterParty(positionHouse.address);
+    await bep20Mintable.mint(insuranceFund.address, BigNumber.from('10000000000000000000000000000000'));
 
     (await ethers.getSigners()).forEach(element => {
         bep20Mintable.mint(element.address, BigNumber.from('10000000000000000000000000000000'))
