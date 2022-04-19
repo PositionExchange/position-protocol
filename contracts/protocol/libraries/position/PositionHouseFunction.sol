@@ -531,7 +531,7 @@ library PositionHouseFunction {
 //            );
 //            int256 _filledAmount = int256(!isFilled && partialFilled < size ? partialFilled : size);
 //            _filledAmount = isBuy ? _filledAmount : (-_filledAmount);
-            _reduceMarginInReduceLimitOrder(state, _cpIncrPosition, _reduceLimitOrders[j].pip, _filledAmount, _reduceLimitOrders[j].entryPrice);
+            _accumulatePnLInReduceLimitOrder(state, _cpIncrPosition, _reduceLimitOrders[j].pip, _filledAmount, _reduceLimitOrders[j].entryPrice);
         }
         console.log("state amount after calculate pnl", state.amount.abs());
         console.log("pnl is negative", state.amount > 0 ? "false" : "true");
@@ -582,7 +582,7 @@ library PositionHouseFunction {
         }
     }
 
-    function _reduceMarginInReduceLimitOrder(
+    function _accumulatePnLInReduceLimitOrder(
         ClaimAbleState memory state,
         Position.Data memory _cpIncrPosition,
         uint128 _pip,
