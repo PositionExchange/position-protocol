@@ -1048,7 +1048,7 @@ describe('Test Margin Intergration', function () {
             );
 
             console.log("third time expect getClaimAmount")
-            // claimableAmount += (newOrderMargin + pnl) = 5500 + (price * quantity / leverage + pnl) = 5500 + 3500 * 1 / 10 + 166.67 = 6016.666
+            // claimableAmount += (newOrderMargin + pnl) = 5500 + (price * quantity / leverage + pnl) = 5500 + 350 + 166.67 = 6016.666
             expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq(BigNumber.from("6016666600000000000000"))
 
             await phTT.debugPosition(trader1, fundingRateTest)
@@ -1096,11 +1096,11 @@ describe('Test Margin Intergration', function () {
             await phTT.debugPosition(trader1, fundingRateTest)
             console.log("position map", (await positionHouse.positionMap(fundingRateTest.address, trader1.address)).toString())
             const balanceBeforeReverseMarket = await bep20Mintable.balanceOf(trader1.address)
+            console.log("position map before", (await positionHouse.positionMap(fundingRateTest.address, trader1.address)))
             // close market
             // trader1's should claim able 6182
-            // TODO verify debt margin -1466 is it correct?
             await phTT.openMarketPosition({
-                    quantity: toWei('7'),
+                    quantity: toWei('6'),
                     leverage: 10,
                     side: SIDE.LONG,
                     trader: trader1.address,
@@ -1108,8 +1108,16 @@ describe('Test Margin Intergration', function () {
                     _positionManager: fundingRateTest,
                 }
             );
+            console.log("debtPosition", (await positionHouse.debtPosition(fundingRateTest.address, trader1.address)));
+            console.log("position map", (await positionHouse.positionMap(fundingRateTest.address, trader1.address)))
+
             const balanceAfterReverseMarket = await bep20Mintable.balanceOf(trader1.address)
             console.log("exchanged quote after reverse market", balanceAfterReverseMarket.sub(balanceBeforeReverseMarket).toString())
+            console.log("--------- claim amount after market")
+            console.log("debug margin after")
+            await phTT.debugPosition(trader1, fundingRateTest)
+            expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq(BigNumber.from("5849995000000000000000"))
+
             console.log("position map after close market", (await positionHouse.positionMap(fundingRateTest.address, trader1.address)).toString())
 
             console.log("fifth time expect getClaimAmount")
@@ -1117,8 +1125,6 @@ describe('Test Margin Intergration', function () {
             // expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq(BigNumber.from("5630"))
 
 
-            console.log("debug margin after")
-            await phTT.debugPosition(trader1, fundingRateTest)
 
 
             console.log("step 6")
@@ -1131,9 +1137,9 @@ describe('Test Margin Intergration', function () {
             // STEP 7
             await phTT.debugPosition(trader1, fundingRateTest)
 
-            await positionHouse.connect(trader1).closeLimitPosition(fundingRateTest.address, BigNumber.from("340000"), toWei(5))
+            await positionHouse.connect(trader1).closeLimitPosition(fundingRateTest.address, BigNumber.from("340000"), toWei(6))
             await phTT.openMarketPosition({
-                    quantity: toWei('5'),
+                    quantity: toWei('6'),
                     leverage: 10,
                     side: SIDE.SHORT,
                     trader: trader2.address,
