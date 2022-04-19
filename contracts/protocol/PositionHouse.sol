@@ -754,7 +754,9 @@ contract PositionHouse is
                     _manualAddedMargin
                 );
                 manualMargin[_pmAddress][_trader] = _manualAddedMargin * (_oldPosition.quantity.absInt() - _quantity.absInt()) / _oldPosition.quantity.absInt();
-                debtProfit[_pmAddress][_trader] += debtMargin;
+//                if (_getPositionMap(_pmAddress, _trader).margin < debtMargin.abs()) {
+                    debtProfit[_pmAddress][_trader] += debtMargin;
+//                }
                 return positionResp;
             }
         }
