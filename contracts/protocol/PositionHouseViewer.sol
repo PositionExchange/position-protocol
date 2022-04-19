@@ -79,6 +79,13 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         return _positionManager.getCurrentFundingRate();
     }
 
+    function getAddedMargin(
+        address _pmAddress,
+        address _trader
+    ) public view returns (int256) {
+        return positionHouse.getAddedMargin(_pmAddress, _trader);
+    }
+
     function getRemovableMargin(
         IPositionManager _positionManager,
         address _trader
