@@ -361,7 +361,8 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 getDebtPosition(a,t),
                 _getPositionMap(a, t),
                 _getLimitOrders(a, t),
-                _getReduceLimitOrders(a, t)
+                _getReduceLimitOrders(a, t),
+                getLatestCumulativePremiumFraction(a)
             );
 
         }

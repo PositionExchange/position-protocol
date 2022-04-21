@@ -31,7 +31,8 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
             positionHouse.getDebtPosition(_pmAddress, _trader),
             positionHouse.positionMap(_pmAddress, _trader),
             positionHouse._getLimitOrders(_pmAddress, _trader),
-            positionHouse._getReduceLimitOrders(_pmAddress, _trader)
+            positionHouse._getReduceLimitOrders(_pmAddress, _trader),
+            positionHouse.getLatestCumulativePremiumFraction(_pmAddress)
         );
     }
 
