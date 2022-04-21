@@ -114,6 +114,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             (, uint256 marginToVault, uint256 fee) = _positionManager
                 .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
             insuranceFund.deposit(_pmAddress, _trader, marginToVault, fee);
+            _setLimitOrderPremiumFraction(_pmAddress, _trader, getLatestCumulativePremiumFraction(_pmAddress));
             uint256 limitOrderMargin = marginToVault * (_uQuantity - openLimitResp.sizeOut) / _uQuantity;
             ClaimableAmountManager._increase(
                 _pmAddress,
@@ -274,6 +275,14 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         reduceLimitOrders[_pmAddress][_trader].push(order);
     }
 
+    function _setLimitOrderPremiumFraction(
+        address _pmAddress,
+        address _trader,
+        int128 _latestCumulativeFraction
+    ) internal {
+        limitOrderPremiumFraction[_pmAddress][_trader] = _latestCumulativeFraction;
+    }
+
     function _emptyLimitOrders(address _pmAddress, address _trader) internal {
         if (_getLimitOrders(_pmAddress, _trader).length > 0) {
             delete limitOrders[_pmAddress][_trader];
@@ -298,6 +307,13 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         // because we don't want to mess with order index (orderIdx)
         PositionLimitOrder.Data memory blankLimitOrderData;
         reduceLimitOrders[_pmAddress][_trader][index] = blankLimitOrderData;
+    }
+
+    function _getLimitOrderPremiumFraction(
+        address _pmAddress,
+        address _trader
+    ) internal view returns (int128) {
+        return limitOrderPremiumFraction[_pmAddress][_trader];
     }
 
     function _requireOrderSideAndQuantity(
@@ -407,4 +423,5 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
     uint256[49] private __gap;
+    mapping(address => mapping(address => int128)) public limitOrderPremiumFraction;
 }
