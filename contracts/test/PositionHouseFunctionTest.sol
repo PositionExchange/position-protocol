@@ -15,7 +15,7 @@ contract PositionHouseFunctionTest {
         PositionLimitOrder.Data[] memory _reduceLimitOrders,
         uint256 _canClaimAmountInMap,
         int256 _manualMarginInMap,
-        int256 _debtProfit
+        int256 _latestCumulativePremiumFraction
     ) public view returns (int256 totalClaimableAmount){
         return PositionHouseFunction.getClaimAmount(
                 _pmAddress,
@@ -23,7 +23,8 @@ contract PositionHouseFunctionTest {
                 _positionLiquidatedData,
                 _positionDataWithoutLimit,
                 _limitOrders,
-                _reduceLimitOrders
+                _reduceLimitOrders,
+                _latestCumulativePremiumFraction
         );
     }
 }
