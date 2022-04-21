@@ -523,14 +523,10 @@ library PositionHouseFunction {
         console.log("state amount before calculate pnl", state.amount.abs());
         for (uint256 j; j < _reduceLimitOrders.length; j++) {
             // check is the reduce limit orders are filled
-            int256 _filledAmount = _getPartialFilledAmount(_positionManager, _reduceLimitOrders[j].pip, _reduceLimitOrders[j].orderId);
-//            (bool isFilled, bool isBuy, uint256 size, uint256 partialFilled) = _positionManager.getPendingOrderDetail(
-//                _reduceLimitOrders[j].pip,
-//                _reduceLimitOrders[j].orderId
-//            );
-//            int256 _filledAmount = int256(!isFilled && partialFilled < size ? partialFilled : size);
-//            _filledAmount = isBuy ? _filledAmount : (-_filledAmount);
-            _accumulatePnLInReduceLimitOrder(state, _cpIncrPosition, _reduceLimitOrders[j].pip, _filledAmount, _reduceLimitOrders[j].entryPrice, _reduceLimitOrders[j].leverage);
+            if (_reduceLimitOrders[j].pip != 0) {
+                int256 _filledAmount = _getPartialFilledAmount(_positionManager, _reduceLimitOrders[j].pip, _reduceLimitOrders[j].orderId);
+                _accumulatePnLInReduceLimitOrder(state, _cpIncrPosition, _reduceLimitOrders[j].pip, _filledAmount, _reduceLimitOrders[j].entryPrice, _reduceLimitOrders[j].leverage);
+            }
         }
         console.log("state amount after calculate pnl", state.amount.abs());
         console.log("pnl is negative", state.amount > 0 ? "false" : "true");
