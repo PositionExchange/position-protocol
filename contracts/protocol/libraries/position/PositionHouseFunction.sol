@@ -567,7 +567,7 @@ library PositionHouseFunction {
             _limitOrder.pip,
             _limitOrder.orderId
         );
-        if (!isFilled) {
+        if (!isFilled && partialFilled != 0) {
             // remove unfilled margin
             state.amount -= _limitOrder.pip.calMargin(
                 quantity - partialFilled,
