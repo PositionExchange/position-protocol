@@ -534,7 +534,9 @@ library PositionHouseFunction {
         state.amount +=
 //            int256(_canClaimAmountInMap) +
             int256(state.accMargin) +
-            _manualMargin;// - _debtProfit;
+            _manualMargin -
+            int256(_positionLiquidatedData.margin);
+
         return state.amount < 0 ? int256(0) : state.amount;
     }
 
