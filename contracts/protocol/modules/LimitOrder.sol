@@ -408,11 +408,11 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         virtual
         returns (int256);
 
-    function getDebtProfit(address _pmAddress, address _trader)
+    function getDebtPosition(address _pmAddress, address _trader)
         public
         view
         virtual
-        returns (int256);
+        returns (Position.LiquidatedData memory);
 
 
     /**

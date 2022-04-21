@@ -868,13 +868,13 @@ contract PositionHouse is
         return manualMargin[_pmAddress][_trader];
     }
 
-    function getDebtProfit(address _pmAddress, address _trader)
+    function getDebtPosition(address _pmAddress, address _trader)
         public
         view
         override
-        returns (int256)
+        returns (Position.LiquidatedData memory)
     {
-        return debtProfit[_pmAddress][_trader];
+        return debtPosition[_pmAddress][_trader];
     }
 
     function _deposit(
