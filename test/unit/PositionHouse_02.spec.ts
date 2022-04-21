@@ -13,7 +13,8 @@ import {
     InsuranceFund,
     BEP20Mintable,
     PositionHouseViewer,
-    PositionHouseConfigurationProxy
+    PositionHouseConfigurationProxy,
+    FundingRateTest
 } from "../../typeChain";
 import {
     ClaimFund,
@@ -51,6 +52,7 @@ describe("PositionHouse_02", () => {
     let positionHouseViewer: PositionHouseViewer;
     let positionHouseConfigurationProxy: PositionHouseConfigurationProxy;
     let positionHouseTestingTool: PositionHouseTestingTool;
+    let fundingRateTest: FundingRateTest;
     let _;
     beforeEach(async () => {
         [trader0, trader1, trader2, trader3, trader4, trader5, tradercp, tradercp2] = await ethers.getSigners();
@@ -63,7 +65,7 @@ describe("PositionHouse_02", () => {
             bep20Mintable,
             insuranceFund,
             positionHouseViewer,
-            positionHouseConfigurationProxy
+            fundingRateTest
         ] = await deployPositionHouse() as any
 
     })
@@ -5859,5 +5861,62 @@ describe("PositionHouse_02", () => {
             console.log(exchangedQuoteAmount.toString())
             expect(exchangedQuoteAmount.toString()).eq("992")
         })
+
+        it("should have latest cumulative premium fraction for limit orders", async () => {
+            await fundingRateTest.setMockPrice(BigNumber.from("5500"), BigNumber.from("5400"))
+            await positionHouse.payFunding(fundingRateTest.address)
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 1,
+                quantity: BigNumber.from('3'),
+                _trader: trader1,
+                _positionManager: fundingRateTest
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 1,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+            const positionData = await positionHouse.getPosition(fundingRateTest.address, trader1.address)
+            console.log("last updated cumulative premium fraction", positionData.lastUpdatedCumulativePremiumFraction.toString())
+            await expect(positionData.lastUpdatedCumulativePremiumFraction.toString()).not.eq("0")
+            const marginBeforePayFunding = positionData.margin
+            await fundingRateTest.setMockTime(BigNumber.from("1500"))
+            await positionHouse.payFunding(fundingRateTest.address)
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 1,
+                quantity: BigNumber.from('3'),
+                _trader: trader3,
+                _positionManager: fundingRateTest
+            })
+
+            const balanceBeforeClosePosition = await bep20Mintable.balanceOf(trader1.address)
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 1,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: fundingRateTest,
+                }
+            );
+            const balanceAfterClosePosition = await bep20Mintable.balanceOf(trader1.address)
+            const exchangedQuoteAmount = BigNumber.from(balanceAfterClosePosition).sub(BigNumber.from(balanceBeforeClosePosition))
+            console.log("exchanged quote amount", exchangedQuoteAmount.toString())
+            console.log("margin before pay funding", marginBeforePayFunding.toString())
+            await expect(exchangedQuoteAmount.toString()).not.eq(marginBeforePayFunding.toString())
+        })
+
     })
 })
