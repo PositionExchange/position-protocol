@@ -689,8 +689,8 @@ contract PositionHouse is
             );
 
         positionResp.realizedPnl = unrealizedPnl;
-        positionResp.marginToVault = -int256(remainMargin)
-            .add(positionResp.realizedPnl)
+        positionResp.marginToVault = -fundingPayment
+            .add(positionResp.realizedPnl).add(_getClaimAmount(_pmAddress, _trader, _oldPosition))
             .kPositive();
         positionResp.unrealizedPnl = 0;
         ClaimableAmountManager._reset(_pmAddress, _trader);
