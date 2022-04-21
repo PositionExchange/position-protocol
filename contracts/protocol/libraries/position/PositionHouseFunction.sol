@@ -478,12 +478,10 @@ library PositionHouseFunction {
     function getClaimAmount(
         address _pmAddress,
         int256 _manualMargin,
-        Position.Data memory _positionData,
+        Position.LiquidatedData memory _positionLiquidatedData,
         Position.Data memory _positionDataWithoutLimit,
         PositionLimitOrder.Data[] memory _limitOrders,
-        PositionLimitOrder.Data[] memory _reduceLimitOrders,
-        uint256 _canClaimAmountInMap,
-        int256 _debtProfit
+        PositionLimitOrder.Data[] memory _reduceLimitOrders
     ) public view returns (int256 totalClaimableAmount) {
         ClaimAbleState memory state;
         IPositionManager _positionManager = IPositionManager(_pmAddress);

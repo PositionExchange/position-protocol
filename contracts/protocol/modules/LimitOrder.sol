@@ -354,12 +354,10 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             return PositionHouseFunction.getClaimAmount(
                 a,
                 _getManualMargin(a, t),
-                _positionData,
+                getDebtPosition(a,t),
                 _getPositionMap(a, t),
                 _getLimitOrders(a, t),
-                _getReduceLimitOrders(a, t),
-                getClaimableAmount(a, t),
-                getDebtProfit(a, t)
+                _getReduceLimitOrders(a, t)
             );
 
         }
