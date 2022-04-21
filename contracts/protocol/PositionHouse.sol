@@ -680,16 +680,6 @@ contract PositionHouse is
             _pnlCalcOption,
             _oldPosition
         );
-        (
-            uint256 remainMargin,
-            uint256 badDebt,
-            int256 fundingPayment,
-
-        ) = calcRemainMarginWithFundingPayment(
-                _pmAddress,
-                _oldPosition,
-                _oldPosition.margin
-            );
 
         positionResp.realizedPnl = unrealizedPnl;
         positionResp.marginToVault = -positionResp.realizedPnl
