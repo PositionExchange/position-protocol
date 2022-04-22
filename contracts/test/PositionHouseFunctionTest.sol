@@ -9,7 +9,7 @@ contract PositionHouseFunctionTest {
     function getClaimAmount(
         address _pmAddress,
         address _trader,
-        Position.Data memory _positionData,
+        Position.LiquidatedData memory _positionLiquidatedData,
         Position.Data memory _positionDataWithoutLimit,
         PositionLimitOrder.Data[] memory _limitOrders,
         PositionLimitOrder.Data[] memory _reduceLimitOrders,
@@ -20,12 +20,10 @@ contract PositionHouseFunctionTest {
         return PositionHouseFunction.getClaimAmount(
                 _pmAddress,
                 _manualMarginInMap,
-                _positionData,
+                _positionLiquidatedData,
                 _positionDataWithoutLimit,
                 _limitOrders,
-                _reduceLimitOrders,
-                _canClaimAmountInMap,
-                _debtProfit
+                _reduceLimitOrders
         );
     }
 }

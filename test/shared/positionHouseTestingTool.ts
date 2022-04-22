@@ -149,6 +149,7 @@ export default class PositionHouseTestingTool {
                                         skipCheckBalance = false
                                      }: OpenLimitPositionAndExpectParams) {
         _positionManager = _positionManager || this.positionManager
+
         quantity = BigNumber.from(quantity.toString())
         limitPrice = BigNumber.from(limitPrice.toString())
         leverage = BigNumber.from(leverage.toString())

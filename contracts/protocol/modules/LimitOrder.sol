@@ -354,12 +354,10 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             return PositionHouseFunction.getClaimAmount(
                 a,
                 _getManualMargin(a, t),
-                _positionData,
+                getDebtPosition(a,t),
                 _getPositionMap(a, t),
                 _getLimitOrders(a, t),
-                _getReduceLimitOrders(a, t),
-                getClaimableAmount(a, t),
-                getDebtProfit(a, t)
+                _getReduceLimitOrders(a, t)
             );
 
         }
@@ -408,11 +406,11 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         virtual
         returns (int256);
 
-    function getDebtProfit(address _pmAddress, address _trader)
+    function getDebtPosition(address _pmAddress, address _trader)
         public
         view
         virtual
-        returns (int256);
+        returns (Position.LiquidatedData memory);
 
 
     /**

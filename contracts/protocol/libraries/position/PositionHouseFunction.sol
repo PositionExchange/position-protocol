@@ -12,8 +12,6 @@ import "./PipConversionMath.sol";
 import "../helpers/CommonMath.sol";
 import {Errors} from "../helpers/Errors.sol";
 
-import "hardhat/console.sol";
-
 library PositionHouseFunction {
     int256 private constant PREMIUM_FRACTION_DENOMINATOR = 10 ** 10;
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
@@ -313,7 +311,6 @@ library PositionHouseFunction {
         uint256 _entryPrice
     ) private view returns (Position.Data memory) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
-
         (uint64 _baseBasicPoint, uint64 _basisPoint) = _positionManager.getBasisPointFactors();
         int256 _orderQuantity = _getLimitOrderQuantity(_positionManager, _limitOrder);
         // if _entryPrice != 0, must calculate notional by _entryPrice (for reduce limit order)
@@ -473,27 +470,20 @@ library PositionHouseFunction {
         uint64 baseBasicPoint;
         uint64 basisPoint;
         uint256 totalReduceOrderFilledAmount;
+        uint256 accMargin;
     }
     function getClaimAmount(
         address _pmAddress,
         int256 _manualMargin,
-        Position.Data memory _positionData,
+        Position.LiquidatedData memory _positionLiquidatedData,
         Position.Data memory _positionDataWithoutLimit,
         PositionLimitOrder.Data[] memory _limitOrders,
-        PositionLimitOrder.Data[] memory _reduceLimitOrders,
-        uint256 _canClaimAmountInMap,
-        int256 _debtProfit
+        PositionLimitOrder.Data[] memory _reduceLimitOrders
     ) public view returns (int256 totalClaimableAmount) {
         ClaimAbleState memory state;
         IPositionManager _positionManager = IPositionManager(_pmAddress);
-        uint256 _positionMarginWithoutLimit = _positionDataWithoutLimit.margin;
         // avoid multiple calls
         ( state.baseBasicPoint, state.basisPoint) = _positionManager.getBasisPointFactors();
-//        if (_positionData.quantity == 0) {
-//            _positionData.quantity = _positionDataWithoutLimit.quantity;
-//            _positionData.margin = _positionDataWithoutLimit.margin;
-//            _positionData.openNotional = _positionDataWithoutLimit.openNotional;
-//        }
         // position data with increase only
         Position.Data memory _pDataIncr = _positionDataWithoutLimit;
         for (uint256 i; i < _limitOrders.length; i++) {
@@ -511,8 +501,8 @@ library PositionHouseFunction {
                 _limitOrders[i].entryPrice
             );
             _removeUnfilledMargin(_positionManager, state, _limitOrders[i]);
-            console.log("state amount after remove unfilled margin", state.amount.abs());
         }
+        state.accMargin = _pDataIncr.margin;
         if(_pDataIncr.quantity == 0){
             return 0;
         }
@@ -520,28 +510,18 @@ library PositionHouseFunction {
         Position.Data memory _cpIncrPosition;
         _cpIncrPosition.openNotional = _pDataIncr.openNotional;
         _cpIncrPosition.quantity = _pDataIncr.quantity;
-
-        console.log("state amount before calculate pnl", state.amount.abs());
         for (uint256 j; j < _reduceLimitOrders.length; j++) {
             // check is the reduce limit orders are filled
-            int256 _filledAmount = _getPartialFilledAmount(_positionManager, _reduceLimitOrders[j].pip, _reduceLimitOrders[j].orderId);
-//            (bool isFilled, bool isBuy, uint256 size, uint256 partialFilled) = _positionManager.getPendingOrderDetail(
-//                _reduceLimitOrders[j].pip,
-//                _reduceLimitOrders[j].orderId
-//            );
-//            int256 _filledAmount = int256(!isFilled && partialFilled < size ? partialFilled : size);
-//            _filledAmount = isBuy ? _filledAmount : (-_filledAmount);
-            _accumulatePnLInReduceLimitOrder(state, _cpIncrPosition, _reduceLimitOrders[j].pip, _filledAmount, _reduceLimitOrders[j].entryPrice);
+            if (_reduceLimitOrders[j].pip != 0) {
+                int256 _filledAmount = _getPartialFilledAmount(_positionManager, _reduceLimitOrders[j].pip, _reduceLimitOrders[j].orderId);
+                _accumulatePnLInReduceLimitOrder(state, _cpIncrPosition, _reduceLimitOrders[j].pip, _filledAmount, _reduceLimitOrders[j].entryPrice, _reduceLimitOrders[j].leverage);
+            }
         }
-        console.log("state amount after calculate pnl", state.amount.abs());
-        console.log("pnl is negative", state.amount > 0 ? "false" : "true");
-        console.log("other number", _canClaimAmountInMap, _positionMarginWithoutLimit);
-        console.log("other number 2", _manualMargin.abs(), _debtProfit.abs());
         state.amount +=
-            int256(_canClaimAmountInMap) +
-            int256(_positionMarginWithoutLimit) +
+            int256(state.accMargin) +
             _manualMargin -
-            _debtProfit;
+            int256(_positionLiquidatedData.margin);
+
         return state.amount < 0 ? int256(0) : state.amount;
     }
 
@@ -572,7 +552,7 @@ library PositionHouseFunction {
             _limitOrder.pip,
             _limitOrder.orderId
         );
-        if (!isFilled) {
+        if (!isFilled && partialFilled != 0) {
             // remove unfilled margin
             state.amount -= _limitOrder.pip.calMargin(
                 quantity - partialFilled,
@@ -587,22 +567,21 @@ library PositionHouseFunction {
         Position.Data memory _cpIncrPosition,
         uint128 _pip,
         int256 _filledAmount,
-        uint256 _entryPrice
-    ) private view{
-//        console.log("_cpIncrPosition.quantity.abs()", _cpIncrPosition.quantity.abs());
-//        console.log("filled amount is positive", _filledAmount > 0);
+        uint256 _entryPrice,
+        uint16 _leverage
+    ) private view {
+        // closedNotional can be negative to calculate pnl in both Long/Short formula
         int256 closedNotional = _filledAmount * int128(_pip) / int64(state.basisPoint);
-//        console.log("closeNotional", closedNotional.abs());
         // already checked if _positionData.openNotional == 0, then used _positionDataWithoutLimit before
-//        int256 openNotionalRatio = int256(_cpIncrPosition.openNotional) * _filledAmount /  _cpIncrPosition.quantity.absInt();
+        // openNotional can be negative same as closedNotional
         int256 openNotional = _filledAmount * int256(_entryPrice) / int64(state.baseBasicPoint);
-//        console.log("openNotional", openNotional.abs());
-        state.amount += (int256(openNotional) - int256(closedNotional));
+        state.accMargin += closedNotional.abs() / _leverage;
+        state.amount += (openNotional - closedNotional);
         state.totalReduceOrderFilledAmount += _filledAmount.abs();
+
         // now position should be reduced
         // should never overflow?
-        _cpIncrPosition.quantity -= _filledAmount;
-//        _cpIncrPosition.openNotional -= openNotionalRatio;
+        _cpIncrPosition.quantity = _cpIncrPosition.quantity.subAmount(uint256(_filledAmount));
         // avoid overflow due to absolute error
         if (openNotional.abs() >= _cpIncrPosition.openNotional) {
             _cpIncrPosition.openNotional = 0;
@@ -761,7 +740,6 @@ library PositionHouseFunction {
         if (_positionDataWithoutLimit.quantity.absInt() >= _orderQuantity.absInt()) {
             debtProfit = 0;
         } else {
-            console.log("calculate debt profit reduceMargin, orderMargin", _reduceMarginWithoutManual, _positionData.quantity.abs(), _positionDataWithoutLimit.quantity.abs());
             debtProfit = int256((_reduceMarginWithoutManual - _positionDataWithoutLimit.margin) + (_orderQuantity.abs() - _positionDataWithoutLimit.quantity.abs()) * (_positionData.margin - _manualMargin.abs()) / _positionData.quantity.abs()) ;
         }
     }

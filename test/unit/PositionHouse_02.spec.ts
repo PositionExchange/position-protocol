@@ -4322,20 +4322,21 @@ describe("PositionHouse_02", () => {
                 }
             );
 
-            console.log(await positionHouseViewer.getListOrderPending(positionManager.address, trader0.address))
+            // console.log(await positionHouseViewer.getListOrderPending(positionManager.address, trader0.address))
 
             await positionHouse.connect(trader0).closeLimitPosition(positionManager.address, 499000, 10)
 
-            console.log(await positionHouseViewer.getListOrderPending(positionManager.address, trader0.address))
-
+            // console.log(await positionHouseViewer.getListOrderPending(positionManager.address, trader0.address))
+            console.log("before cancel limit order")
             await cancelLimitOrder(positionManager.address, trader0, '2', '499000')
-
+            console.log("before last limit order")
             await openLimitPositionAndExpect({
                 limitPrice: 4980,
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: 10,
-                _trader: trader0
+                _trader: trader0,
+                _positionManager: positionManager
             })
         })
 
@@ -5309,7 +5310,7 @@ describe("PositionHouse_02", () => {
             const traderBalanceBeforeCancel = (await bep20Mintable.balanceOf(trader1.address)).toString()
             console.log(positionDataBeforeCancel)
 
-            await positionHouse.connect(trader1).cancelLimitOrder(positionManager.address, 1, 0)
+            await positionHouse.connect(trader1).cancelLimitOrder(positionManager.address, 0, 1)
 
             const positionDataAfterCancel = (await positionHouse.getPosition(positionManager.address, trader1.address)).toString()
             const traderBalanceAfterCancel = (await bep20Mintable.balanceOf(trader1.address)).toString()
@@ -5784,6 +5785,79 @@ describe("PositionHouse_02", () => {
             })
 
             await positionHouse.liquidate(positionManager.address, trader1.address)
+        })
+
+        it("should get back correct amount after close limit position by limit and market order", async () => {
+            const balanceBeforeTestCase = await bep20Mintable.balanceOf(trader1.address)
+            console.log("step 1")
+            // STEP 1
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1,
+                skipCheckBalance: true
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                }
+            );
+
+            console.log("step 2")
+            // STEP 2
+            await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('7'),
+                _trader: trader1,
+                skipCheckBalance: true
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('7'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                }
+            );
+            console.log("getClaimableAmount", (await positionHouseViewer.getClaimAmount(positionManager.address, trader1.address)).toString())
+
+            console.log("step 3")
+            // STEP 3
+            await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader2,
+                skipCheckBalance: true
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            const balanceAfterTestCase = await bep20Mintable.balanceOf(trader1.address)
+            const exchangedQuoteAmount = balanceAfterTestCase.sub(balanceBeforeTestCase)
+            console.log(exchangedQuoteAmount.toString())
+            expect(exchangedQuoteAmount.toString()).eq("992")
         })
     })
 })
