@@ -76,8 +76,8 @@ export function encodePriceSqrt(reserve1: BigNumberish, reserve0: BigNumberish):
     )
 }
 
-export function toWei(n: number): any {
-    return web3Utils.toWei(n.toString())
+export function toWei(n: number | string): any {
+    return BigNumber.from(web3Utils.toWei(n.toString()))
 }
 
 export function fromWei(n: number): any {
@@ -127,11 +127,12 @@ export const SIDE = {
 
 export interface OpenLimitPositionAndExpectParams {
     _trader?: SignerWithAddress
-    limitPrice: number | string
-    leverage: number,
-    quantity: number
+    limitPrice: number | string | BigNumber
+    leverage: number | BigNumber,
+    quantity: number | BigNumber
     side: number
     _positionManager?: PositionManager
+    skipCheckBalance?: boolean
 }
 
 export interface OpenMarketPositionParams {
@@ -148,10 +149,13 @@ export interface OpenMarketPositionParams {
 }
 
 export interface PositionData {
-    quantity: BigNumber
-    margin: BigNumber
-    openNotional: BigNumber
-    side: BigNumber
+      quantity: BigNumber;
+      margin: BigNumber;
+      openNotional: BigNumber;
+      lastUpdatedCumulativePremiumFraction: BigNumber;
+      blockNumber: BigNumber;
+      leverage: number;
+      __dummy: number;
 }
 
 export interface MaintenanceDetail {

@@ -328,6 +328,11 @@ contract PositionManager is
     // VIEW FUNCTIONS
     //******************************************************************************************************************
 
+
+    function getBasisPointFactors() external view returns (uint64 base, uint64 basisPoint) {
+        return (BASE_BASIC_POINT, uint64(getBasisPoint()));
+    }
+
     function getCurrentFundingRate()
         external
         view

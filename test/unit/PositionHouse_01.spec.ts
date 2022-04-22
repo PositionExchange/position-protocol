@@ -2714,7 +2714,7 @@ describe("PositionHouse_01", () => {
 
             await positionHouse.connect(trader1).addMargin(positionManager.address, BigNumber.from('100'))
 
-            const positionData1 = (await positionHouse.getPosition(positionManager.address, trader1.address)) as unknown as PositionData;
+            const positionData1 = (await positionHouseViewer.getPosition(positionManager.address, trader1.address)) as unknown as PositionData;
 
             console.log('positionData after add margin margin: ', positionData1.margin.toString());
 
