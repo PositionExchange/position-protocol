@@ -42,8 +42,8 @@ interface IPositionHouse {
     view
     returns (int256);
 
-    function getDebtProfit(address _pmAddress, address _trader)
+    function getDebtPosition(address _pmAddress, address _trader)
     external
     view
-    returns (int256);
+    returns (Position.LiquidatedData memory);
 }

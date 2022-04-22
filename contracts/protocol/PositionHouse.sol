@@ -689,8 +689,8 @@ contract PositionHouse is
             );
 
         positionResp.realizedPnl = unrealizedPnl;
-        positionResp.marginToVault = -int256(remainMargin)
-            .add(positionResp.realizedPnl)
+        positionResp.marginToVault = -fundingPayment
+            .add(positionResp.realizedPnl).add(_getClaimAmount(_pmAddress, _trader, _oldPosition))
             .kPositive();
         positionResp.unrealizedPnl = 0;
         ClaimableAmountManager._reset(_pmAddress, _trader);
@@ -754,7 +754,9 @@ contract PositionHouse is
                     _manualAddedMargin
                 );
                 manualMargin[_pmAddress][_trader] = _manualAddedMargin * (_oldPosition.quantity.absInt() - _quantity.absInt()) / _oldPosition.quantity.absInt();
-                debtProfit[_pmAddress][_trader] += debtMargin;
+//                if (_getPositionMap(_pmAddress, _trader).margin < debtMargin.abs()) {
+                    debtProfit[_pmAddress][_trader] += debtMargin;
+//                }
                 return positionResp;
             }
         }
@@ -866,13 +868,13 @@ contract PositionHouse is
         return manualMargin[_pmAddress][_trader];
     }
 
-    function getDebtProfit(address _pmAddress, address _trader)
+    function getDebtPosition(address _pmAddress, address _trader)
         public
         view
         override
-        returns (int256)
+        returns (Position.LiquidatedData memory)
     {
-        return debtProfit[_pmAddress][_trader];
+        return debtPosition[_pmAddress][_trader];
     }
 
     function _deposit(

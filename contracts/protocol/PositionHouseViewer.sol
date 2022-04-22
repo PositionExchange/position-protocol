@@ -24,17 +24,33 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
     view
     returns (int256 totalClaimableAmount)
     {
-        Position.Data memory positionData = getPosition(_pmAddress, _trader);
         return
         PositionHouseFunction.getClaimAmount(
             _pmAddress,
             positionHouse.getAddedMargin(_pmAddress, _trader),
-            positionData,
+            positionHouse.getDebtPosition(_pmAddress, _trader),
+            positionHouse.positionMap(_pmAddress, _trader),
+            positionHouse._getLimitOrders(_pmAddress, _trader),
+            positionHouse._getReduceLimitOrders(_pmAddress, _trader)
+        );
+    }
+
+    function getClaimableAmountParams(address _pmAddress, address _trader)
+    public view returns (
+        Position.Data memory,
+        Position.Data memory,
+        PositionLimitOrder.Data[] memory,
+        PositionLimitOrder.Data[] memory,
+        uint256,
+        int256
+    ) {
+        return (
+            positionHouse.getPosition(_pmAddress, _trader),
             positionHouse.positionMap(_pmAddress, _trader),
             positionHouse._getLimitOrders(_pmAddress, _trader),
             positionHouse._getReduceLimitOrders(_pmAddress, _trader),
             positionHouse.getClaimableAmount(_pmAddress, _trader),
-            positionHouse.getDebtProfit(_pmAddress, _trader)
+            positionHouse.getAddedMargin(_pmAddress, _trader)
         );
     }
 
@@ -58,6 +74,13 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
 
     function getCurrentFundingRate(IPositionManager _positionManager) external view returns (int256) {
         return _positionManager.getCurrentFundingRate();
+    }
+
+    function getAddedMargin(
+        address _pmAddress,
+        address _trader
+    ) public view returns (int256) {
+        return positionHouse.getAddedMargin(_pmAddress, _trader);
     }
 
     function getRemovableMargin(

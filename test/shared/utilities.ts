@@ -76,8 +76,8 @@ export function encodePriceSqrt(reserve1: BigNumberish, reserve0: BigNumberish):
     )
 }
 
-export function toWei(n: number): any {
-    return web3Utils.toWei(n.toString())
+export function toWei(n: number | string): any {
+    return BigNumber.from(web3Utils.toWei(n.toString()))
 }
 
 export function fromWei(n: number): any {

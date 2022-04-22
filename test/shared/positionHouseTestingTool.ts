@@ -90,6 +90,7 @@ export default class PositionHouseTestingTool {
         const currentPrice = Number((await _positionManager.getPrice()).toString())
         const openNotional = positionInfo.openNotional.div('10000').toString()
         expectedNotional = expectedNotional && expectedNotional.toString() || quantity.mul(price).toString()
+        return positionInfo
         // expect(positionInfo.quantity.toString()).eq((expectedSize || (side == 0 ? quantity : -quantity)).toString())
     }
 
@@ -148,6 +149,7 @@ export default class PositionHouseTestingTool {
                                         skipCheckBalance = false
                                      }: OpenLimitPositionAndExpectParams) {
         _positionManager = _positionManager || this.positionManager
+
         quantity = BigNumber.from(quantity.toString())
         limitPrice = BigNumber.from(limitPrice.toString())
         leverage = BigNumber.from(leverage.toString())
@@ -228,23 +230,26 @@ export default class PositionHouseTestingTool {
         notional && expect(positionData.openNotional.toString()).eq(notional.toString());
     }
 
-    async debugPosition(trader: SignerWithAddress){
-        const positionInfo = await this.positionHouseViewer.getPosition(this.positionManager.address, trader.address) as unknown as PositionData;
+    async debugPosition(trader: SignerWithAddress, pm?: PositionManager){
+        pm = pm || this.positionManager
+        const positionInfo = await this.positionHouseViewer.getPosition(pm.address, trader.address) as unknown as PositionData;
         // console.log("positionInfo", positionInfo)
-        const currentPrice = Number((await this.positionManager.getPrice()).div('10000').toString())
-        const openNotional = positionInfo.openNotional.div('10000').toString()
+        const currentPrice = Number((await pm.getPrice()).div('10000').toString())
+        const openNotional = positionInfo.openNotional.toString()
         // expectedNotional = expectedNotional && expectedNotional.toString() || quantity.mul(price).toString()
-        console.log(`debugPosition Position Info of ${trader.address}`)
-        const oldPosition = await this.positionHouseViewer.getPosition(this.positionManager.address, trader.address)
-        const pnl = await this.positionHouseViewer.getPositionNotionalAndUnrealizedPnl(this.positionManager.address, trader.address,0, oldPosition)
+        // console.log(`debugPosition Position Info of ${trader.address}`)
+        const oldPosition = await this.positionHouseViewer.getPosition(pm.address, trader.address)
+        const pnl = await this.positionHouseViewer.getPositionNotionalAndUnrealizedPnl(pm.address, trader.address,1, oldPosition)
+        const basicPoint = await pm.getBasisPoint()
+        // console.log("positionInfo", positionInfo)
         console.table([
             {
                 openNotional: openNotional,
                 currentPrice: currentPrice,
                 quantity: positionInfo.quantity.toString(),
-                margin: positionInfo.margin.div('10000').toString(),
-                unrealizedPnl: pnl.unrealizedPnl.div('10000').toString(),
-                entryPrice: positionInfo.openNotional.div(positionInfo.quantity.abs()).div('10000').toString()
+                margin: positionInfo.margin.toString(),
+                unrealizedPnl: pnl.unrealizedPnl.toString(),
+                // entryPrice: positionInfo.openNotional.mul(basicPoint).div(positionInfo.quantity.abs()).toString()
             }
         ])
     }

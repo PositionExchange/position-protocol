@@ -10,7 +10,7 @@ import {
 } from "../../typeChain";
 import {BigNumber, ContractFactory} from "ethers";
 import PositionHouseTestingTool from "../shared/positionHouseTestingTool";
-import {SIDE} from "../shared/utilities";
+import {SIDE, toWei} from "../shared/utilities";
 import {expect} from "chai";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 
@@ -478,7 +478,7 @@ describe('Test Margin Intergration', function () {
             // Trader1's manualMargin = 3/8 * 970 = 363
             await expectManualAddedMargin(trader1, 363, fundingRateTest)
 
-            // close all should get back margin = 3638 and pnl = -600
+            // close all should get back margin = 2182 and pnl = -600
             await phTT.closePosition({
                     quantity: BigNumber.from('3'),
                     trader: trader1,
@@ -565,9 +565,18 @@ describe('Test Margin Intergration', function () {
                     _positionManager: fundingRateTest,
                 }
             );
+
+            // after market fill, trader1 should have a position created by limit order
+            // margin = quantity * price / leverage = 10 * 4000 / 10
+            await phTT.expectPositionMargin(positionManager, trader1, 4000, 0)
+
             console.log("step 3")
             // STEP 3
             await positionHouse.connect(trader1).addMargin(fundingRateTest.address, BigNumber.from("2000"))
+            // after added margin, trader1 have position with margin = positionMargin + manualMargin = 4000 + 2000 = 6000
+            await phTT.expectPositionMargin(fundingRateTest, trader1, 6000, 0)
+            // manualMargin = 2000
+            await expectManualAddedMargin(trader1,2000, fundingRateTest)
 
             await phTT.pumpPrice({
                 toPrice: 4100,
@@ -575,6 +584,8 @@ describe('Test Margin Intergration', function () {
                 pumper2: tradercp2,
                 positionManager: fundingRateTest
             })
+            // after price pump, trader
+
             console.log("step 4")
             // STEP 4
             await phTT.openLimitPositionAndExpect({
@@ -587,6 +598,10 @@ describe('Test Margin Intergration', function () {
             })
             console.log("step 5")
             // STEP 5
+            // reduce position by limit 2/10 at price 4200
+            // claimablePnl = (4000 - 4200) * 2 = -400
+            // claimableMargin = 2/10 * margin = 2/10 * 6000 = 1200
+            const balanceBeforeMarketReverse = await bep20Mintable.balanceOf(trader1.address)
             await phTT.openMarketPosition({
                     quantity: BigNumber.from('2'),
                     leverage: 10,
@@ -596,6 +611,9 @@ describe('Test Margin Intergration', function () {
                     _positionManager: fundingRateTest,
                 }
             );
+            const balanceAfterMarketReverse =  await bep20Mintable.balanceOf(trader1.address)
+            const claimedQuoteAmount = balanceAfterMarketReverse.sub(balanceBeforeMarketReverse)
+            expect(claimedQuoteAmount).eq(800)
             await fundingRateTest.setMockPrice(BigNumber.from("4100"), BigNumber.from("4100"))
             await positionHouse.connect(trader1).removeMargin(fundingRateTest.address, BigNumber.from("800"))
             console.log("step 6")
@@ -608,7 +626,7 @@ describe('Test Margin Intergration', function () {
                 _trader: trader1,
                 _positionManager: fundingRateTest
             })
-
+            console.log("before open market")
             await phTT.openMarketPosition({
                     quantity: BigNumber.from('2'),
                     leverage: 10,
@@ -631,7 +649,10 @@ describe('Test Margin Intergration', function () {
                     _positionManager: fundingRateTest,
                 }
             );
+            console.log("##################################################")
             await positionHouse.connect(trader1).claimFund(fundingRateTest.address)
+
+            console.log("##################################################")
             const balanceOfTrader1AfterTestcase = await bep20Mintable.balanceOf(trader1.address)
             const exchangedQuoteAmount = BigNumber.from(balanceOfTrader1AfterTestcase).sub(BigNumber.from(balanceOfTrader1BeforeTestcase))
             console.log("exchangedQuoteAmount", exchangedQuoteAmount.toString())
@@ -753,7 +774,7 @@ describe('Test Margin Intergration', function () {
             const balanceOfTrader1AfterTestcase = await bep20Mintable.balanceOf(trader1.address)
             const exchangedQuoteAmount = BigNumber.from(balanceOfTrader1AfterTestcase).sub(BigNumber.from(balanceOfTrader1BeforeTestcase))
             console.log("exchangedQuoteAmount", exchangedQuoteAmount.toString())
-            expect(exchangedQuoteAmount).eq("3391")
+            expect(exchangedQuoteAmount).eq("3390")
         })
 
         it("should get correct amount of claimable fund when add and remove margin then close position by limit order 3", async () => {
@@ -771,7 +792,7 @@ describe('Test Margin Intergration', function () {
                 limitPrice: 3700,
                 side: SIDE.LONG,
                 leverage: 10,
-                quantity: BigNumber.from('10'),
+                quantity: BigNumber.from('5'),
                 _trader: trader4,
                 _positionManager: fundingRateTest
             })
@@ -786,8 +807,9 @@ describe('Test Margin Intergration', function () {
                 _positionManager: fundingRateTest
             })
 
+            // open market
             await phTT.openMarketPosition({
-                    quantity: BigNumber.from('15'),
+                    quantity: BigNumber.from('10'),
                     leverage: 10,
                     side: SIDE.SHORT,
                     trader: trader1.address,
@@ -796,8 +818,34 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 3700,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('5'),
+                _trader: trader1,
+                _positionManager: fundingRateTest
+            })
+
+            await phTT.openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader4.address,
+                    instanceTrader: trader4,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+            await phTT.debugPosition(trader1, fundingRateTest)
+            // now position quantity should be -15
+            // open notional = 55000
+            // margin = 5500
+
             console.log("step 2")
             // STEP 2
+            // close limit 5/15 at the price of 3500
+            // should claimable (55000-3500*15)/3 = 833.3 (pnl) + 1833.33 (margin of the position) + 1750 (margin of limit order) = 4416.63
             await phTT.openLimitPositionAndExpect({
                 limitPrice: 3500,
                 side: SIDE.LONG,
@@ -816,6 +864,18 @@ describe('Test Margin Intergration', function () {
                     _positionManager: fundingRateTest,
                 }
             );
+            await phTT.debugPosition(trader1, fundingRateTest)
+            // const [positionData, positionDataWithoutLimit, limitOrders, reduceLimitOrders] = await positionHouseViewer.getClaimableAmountParams(fundingRateTest.address, trader1.address)
+            // printStruct(positionData)
+            // printStruct(positionDataWithoutLimit)
+            // printStruct(reduceLimitOrders[0])
+            // console.log(positionData.map(elm => elm.toString()), positionDataWithoutLimit, limitOrders, reduceLimitOrders)
+
+            // after this order the trader1's position should have
+            // open notional = 36667
+            // margin = 3667
+            // quantity = -10
+            // expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq('4416')
 
             console.log("step 3")
             // STEP 3
@@ -834,6 +894,10 @@ describe('Test Margin Intergration', function () {
                     _positionManager: fundingRateTest,
                 }
             );
+            // after this order
+            // trader1's claimable amount should be
+            // 4416 + 1/5*3667 + 700 + 333 (pnl) = 5849
+            // expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq('6182')
 
             console.log("step 5")
             // STEP 5
@@ -846,6 +910,9 @@ describe('Test Margin Intergration', function () {
                 _positionManager: fundingRateTest
             })
 
+            // close market
+            // trader1's should claim able 6182
+            // TODO verify debt margin -1466 is it correct?
             await phTT.openMarketPosition({
                     quantity: BigNumber.from('2'),
                     leverage: 10,
@@ -855,14 +922,15 @@ describe('Test Margin Intergration', function () {
                     _positionManager: fundingRateTest,
                 }
             );
-
             console.log("step 6")
+            // expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq('4716')// TODO verify??
             // STEP 6
             await fundingRateTest.setMockPrice(BigNumber.from("3500"), BigNumber.from("3500"))
             // await positionHouse.connect(trader1).removeMargin(fundingRateTest.address, BigNumber.from("750"))
 
             console.log("step 7")
             // STEP 7
+            await phTT.debugPosition(trader1, fundingRateTest)
 
             await positionHouse.connect(trader1).closeLimitPosition(fundingRateTest.address, BigNumber.from("340000"), BigNumber.from("6"))
             await phTT.openMarketPosition({
@@ -874,12 +942,732 @@ describe('Test Margin Intergration', function () {
                     _positionManager: fundingRateTest,
                 }
             );
+            // after this order trader's should receive all the profit + margin
+            // = 4716 + (3400*6/10 | margin) + (22001 - 20400 | pnl) = 8357
+            // the claimable amount should be 8357
+
+            // expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq('8357')
+            console.log("before claim fund")
+            await positionHouse.connect(trader1).claimFund(fundingRateTest.address)
+            const balanceOfTrader1AfterTestcase = await bep20Mintable.balanceOf(trader1.address)
+            const exchangedQuoteAmount = BigNumber.from(balanceOfTrader1AfterTestcase).sub(BigNumber.from(balanceOfTrader1BeforeTestcase))
+            console.log("exchangedQuoteAmount", exchangedQuoteAmount.toString())
+            expect(exchangedQuoteAmount).eq("3096")
+        })
+
+        it("should get correct claimableAmount when create position by both limit and market order, reduce by market > created market order then close by limit", async () => {
+            await phTT.dumpPrice({
+                toPrice: 3700,
+                pumper: tradercp1,
+                pumper2: tradercp2,
+                positionManager: fundingRateTest
+            })
+
+            console.log("step 1")
+            const balanceOfTrader1BeforeTestcase = await bep20Mintable.balanceOf(trader1.address)
+            // STEP 1
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 3700,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: toWei(10),
+                _trader: trader1,
+                _positionManager: fundingRateTest
+            })
+
+            // open market
+            await phTT.openMarketPosition({
+                    quantity: toWei(10),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader3.address,
+                    instanceTrader: trader3,
+                    _positionManager: fundingRateTest,
+                }
+            );
+            console.log("first time expect getClaimAmount")
+            // claimableAmount = positionMargin = price * quantity / leverage = 3700 * 10 / 10 = 3700
+            expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq(toWei('3700'))
+
+
+            await phTT.dumpPrice({
+                toPrice: 3600,
+                pumper: tradercp1,
+                pumper2: tradercp2,
+                positionManager: fundingRateTest
+            })
+
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 3600,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: toWei('5'),
+                _trader: trader4,
+                _positionManager: fundingRateTest
+            })
+
+            await phTT.openMarketPosition({
+                    quantity: toWei('5'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: fundingRateTest,
+                }
+            );
+            console.log("second time expect getClaimAmount")
+            // claimableAmount += newOrderMargin = 3700 + (price * quantity / leverage) = 3700 + 3600 * 5 / 10 = 5500
+            expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq(toWei('5500'))
+
+            await phTT.debugPosition(trader1, fundingRateTest)
+            // now position quantity should be -15
+            // open notional = 55000
+            // margin = 5500
+
+            console.log("step 2")
+            // STEP 2
+            // close limit 1/15 at the price of 3500
+            // should claimable (55000-3500*15)/15 = 166.6 (pnl) + 366.66 (margin of the position) + 350 (margin of limit order) = 4416.63
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 3500,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: toWei('1'),
+                _trader: trader1,
+                _positionManager: fundingRateTest
+            })
+
+            await phTT.openMarketPosition({
+                    quantity: toWei('1'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader4.address,
+                    instanceTrader: trader4,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+            console.log("third time expect getClaimAmount")
+            // claimableAmount += (newOrderMargin + pnl) = 5500 + (price * quantity / leverage + pnl) = 5500 + 350 + 166.67 = 6016.666
+            expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq(BigNumber.from("6016666600000000000000"))
+
+            await phTT.debugPosition(trader1, fundingRateTest)
+            // after this order the trader1's position should have
+            // open notional = 51333.33
+            // margin = 5133.33
+            // quantity = -14
+            // expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq('4416')
+
+            console.log("step 3")
+            // STEP 3
+            await positionHouse.connect(trader1).addMargin(fundingRateTest.address,toWei("2000"));
+
+            console.log("step 4")
+            // STEP 4
+            // close limit 2/14 at the price of 3500
+            // pnl = (entryPrice - closePrice) * closeQuantity = (3666.67 - 3500) * 2 = 333.34
+            await positionHouse.connect(trader1).closeLimitPosition(fundingRateTest.address, BigNumber.from("350000"), toWei("2"))
+
+            await phTT.openMarketPosition({
+                    quantity: toWei('2'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader4.address,
+                    instanceTrader: trader4,
+                    _positionManager: fundingRateTest,
+                }
+            );
+            console.log("fourth time expect getClaimAmount")
+            // claimableAmount += (newOrderMargin + pnl + manualMargin) = 6016.666 + (price * quantity / leverage + pnl + manual) =  6016.666 + 3500 * 2 / 10 + 333.34 + 2000 = 9050
+            expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq(BigNumber.from("9050095000000000000000"))
+
+            console.log("step 5")
+            // STEP 5
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 3500,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: toWei('7'),
+                _trader: trader3,
+                _positionManager: fundingRateTest
+            })
+
+            console.log("debug margin")
+            await phTT.debugPosition(trader1, fundingRateTest)
+            console.log("position map", (await positionHouse.positionMap(fundingRateTest.address, trader1.address)).toString())
+            const balanceBeforeReverseMarket = await bep20Mintable.balanceOf(trader1.address)
+            console.log("position map before", (await positionHouse.positionMap(fundingRateTest.address, trader1.address)))
+            // close market
+            // trader1's should claim able 6182
+            await phTT.openMarketPosition({
+                    quantity: toWei('6'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: fundingRateTest,
+                }
+            );
+            console.log("debtPosition", (await positionHouse.debtPosition(fundingRateTest.address, trader1.address)));
+            console.log("position map", (await positionHouse.positionMap(fundingRateTest.address, trader1.address)))
+
+            const balanceAfterReverseMarket = await bep20Mintable.balanceOf(trader1.address)
+            console.log("exchanged quote after reverse market", balanceAfterReverseMarket.sub(balanceBeforeReverseMarket).toString())
+            console.log("--------- claim amount after market")
+            console.log("debug margin after")
+            await phTT.debugPosition(trader1, fundingRateTest)
+            expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq(BigNumber.from("5849995000000000000000"))
+
+            console.log("position map after close market", (await positionHouse.positionMap(fundingRateTest.address, trader1.address)).toString())
+
+            console.log("fifth time expect getClaimAmount")
+            // claimableAmount = 9050 - pnl - claimedManualMargin -
+            // expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq(BigNumber.from("5630"))
+
+
+
+
+            console.log("step 6")
+            // expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq('4716')// TODO verify??
+            // STEP 6
+            await fundingRateTest.setMockPrice(BigNumber.from("3500"), BigNumber.from("3500"))
+            await positionHouse.connect(trader1).removeMargin(fundingRateTest.address, BigNumber.from("750"))
+
+            console.log("step 7")
+            // STEP 7
+            await phTT.debugPosition(trader1, fundingRateTest)
+
+            await positionHouse.connect(trader1).closeLimitPosition(fundingRateTest.address, BigNumber.from("340000"), toWei(6))
+            await phTT.openMarketPosition({
+                    quantity: toWei('6'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: fundingRateTest,
+                }
+            );
+            // after this order trader's should receive all the profit + margin
+            // = 4716 + (3400*6/10 | margin) + (22001 - 20400 | pnl) = 8357
+            // the claimable amount should be 8357
+
+            // expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq('8357')
+            console.log("before claim fund")
+            await positionHouse.connect(trader1).claimFund(fundingRateTest.address)
+            const balanceOfTrader1AfterTestcase = await bep20Mintable.balanceOf(trader1.address)
+            const exchangedQuoteAmount = BigNumber.from(balanceOfTrader1AfterTestcase).sub(BigNumber.from(balanceOfTrader1BeforeTestcase))
+            console.log("exchangedQuoteAmount", exchangedQuoteAmount.toString())
+            console.log((await insuranceFund.totalFee()).toString())
+            expect(exchangedQuoteAmount).eq(BigNumber.from("3093504800000000000000"))
+        })
+
+        it("should get profit after open position by 8 market + 10 limit and close by 9 market + 9 limit", async () => {
+            const balanceOfTrader1BeforeTestcase = await bep20Mintable.balanceOf(trader1.address)
+
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: toWei('2'),
+                _trader: trader3,
+                _positionManager: fundingRateTest
+            })
+
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 4800,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: toWei('3'),
+                _trader: trader3,
+                _positionManager: fundingRateTest
+            })
+
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 4700,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: toWei('3'),
+                _trader: trader3,
+                _positionManager: fundingRateTest
+            })
+
+            await phTT.openMarketPosition({
+                    quantity: toWei('8'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+            await positionHouse.connect(trader1).addMargin(fundingRateTest.address, toWei(2000))
+
+            await phTT.dumpPrice({
+                toPrice: 4500,
+                pumper: tradercp1,
+                pumper2: tradercp2,
+                positionManager: fundingRateTest
+            })
+
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 4600,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: toWei('10'),
+                _trader: trader1,
+                _positionManager: fundingRateTest
+            })
+
+            await phTT.openMarketPosition({
+                    quantity: toWei('10'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+            await fundingRateTest.setMockPrice(BigNumber.from("4600"), BigNumber.from("4600"))
+
+            await positionHouse.connect(trader1).removeMargin(fundingRateTest.address, toWei("1000"))
+
+            await phTT.dumpPrice({
+                toPrice: 4500,
+                pumper: tradercp1,
+                pumper2: tradercp2,
+                positionManager: fundingRateTest
+            })
+
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 4500,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: toWei('9'),
+                _trader: trader4,
+                _positionManager: fundingRateTest
+            })
+
+            await phTT.openMarketPosition({
+                    quantity: toWei('9'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 4500,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: toWei('9'),
+                _trader: trader1,
+                _positionManager: fundingRateTest
+            })
+
+            await phTT.openMarketPosition({
+                    quantity: toWei('9'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: fundingRateTest,
+                }
+            );
 
             await positionHouse.connect(trader1).claimFund(fundingRateTest.address)
             const balanceOfTrader1AfterTestcase = await bep20Mintable.balanceOf(trader1.address)
             const exchangedQuoteAmount = BigNumber.from(balanceOfTrader1AfterTestcase).sub(BigNumber.from(balanceOfTrader1BeforeTestcase))
             console.log("exchangedQuoteAmount", exchangedQuoteAmount.toString())
-            expect(exchangedQuoteAmount).eq("3100")
+            expect(exchangedQuoteAmount).eq(BigNumber.from("3287519700000000000000"))
+        })
+
+        it("should get correct claimableAmount when create position by both limit and market, reverse market with quantity > created market then increase by market again", async () => {
+            {
+                await phTT.dumpPrice({
+                    toPrice: 3700,
+                    pumper: tradercp1,
+                    pumper2: tradercp2,
+                    positionManager: fundingRateTest
+                })
+
+                console.log("step 1")
+                const balanceOfTrader1BeforeTestcase = await bep20Mintable.balanceOf(trader1.address)
+                // STEP 1
+                await phTT.openLimitPositionAndExpect({
+                    limitPrice: 3700,
+                    side: SIDE.SHORT,
+                    leverage: 10,
+                    quantity: toWei(10),
+                    _trader: trader1,
+                    _positionManager: fundingRateTest
+                })
+
+                // open market
+                await phTT.openMarketPosition({
+                        quantity: toWei(10),
+                        leverage: 10,
+                        side: SIDE.LONG,
+                        trader: trader3.address,
+                        instanceTrader: trader3,
+                        _positionManager: fundingRateTest,
+                    }
+                );
+                console.log("first time expect getClaimAmount")
+                // claimableAmount = positionMargin = price * quantity / leverage = 3700 * 10 / 10 = 3700
+                // expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq(toWei('3700'))
+
+
+                await phTT.dumpPrice({
+                    toPrice: 3600,
+                    pumper: tradercp1,
+                    pumper2: tradercp2,
+                    positionManager: fundingRateTest
+                })
+
+                await phTT.openLimitPositionAndExpect({
+                    limitPrice: 3600,
+                    side: SIDE.LONG,
+                    leverage: 10,
+                    quantity: toWei('5'),
+                    _trader: trader4,
+                    _positionManager: fundingRateTest
+                })
+
+                await phTT.openMarketPosition({
+                        quantity: toWei('5'),
+                        leverage: 10,
+                        side: SIDE.SHORT,
+                        trader: trader1.address,
+                        instanceTrader: trader1,
+                        _positionManager: fundingRateTest,
+                    }
+                );
+                console.log("second time expect getClaimAmount")
+                // claimableAmount += newOrderMargin = 3700 + (price * quantity / leverage) = 3700 + 3600 * 5 / 10 = 5500
+                // expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq(toWei('5500'))
+
+                await phTT.debugPosition(trader1, fundingRateTest)
+                // now position quantity should be -15
+                // open notional = 55000
+                // margin = 5500
+
+                console.log("step 2")
+                // STEP 2
+                // close limit 1/15 at the price of 3500
+                // should claimable (55000-3500*15)/15 = 166.6 (pnl) + 366.66 (margin of the position) + 350 (margin of limit order) = 4416.63
+                await phTT.openLimitPositionAndExpect({
+                    limitPrice: 3500,
+                    side: SIDE.LONG,
+                    leverage: 10,
+                    quantity: toWei('1'),
+                    _trader: trader1,
+                    _positionManager: fundingRateTest
+                })
+
+                await phTT.openMarketPosition({
+                        quantity: toWei('1'),
+                        leverage: 10,
+                        side: SIDE.SHORT,
+                        trader: trader4.address,
+                        instanceTrader: trader4,
+                        _positionManager: fundingRateTest,
+                    }
+                );
+
+                console.log("third time expect getClaimAmount")
+                // claimableAmount += (newOrderMargin + pnl) = 5500 + (price * quantity / leverage + pnl) = 5500 + 3500 * 1 / 10 + 166.67 = 6016.666
+                // expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq(BigNumber.from("6016666600000000000000"))
+
+                await phTT.debugPosition(trader1, fundingRateTest)
+                // after this order the trader1's position should have
+                // open notional = 51333.33
+                // margin = 5133.33
+                // quantity = -14
+                // expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq('4416')
+
+                console.log("step 3")
+                // STEP 3
+                // await positionHouse.connect(trader1).addMargin(fundingRateTest.address,toWei("2000"));
+
+                console.log("step 4")
+                // STEP 4
+                // close limit 2/14 at the price of 3500
+                // pnl = (entryPrice - closePrice) * closeQuantity = (3666.67 - 3500) * 2 = 333.34
+                await positionHouse.connect(trader1).closeLimitPosition(fundingRateTest.address, BigNumber.from("350000"), toWei("2"))
+
+                await phTT.openMarketPosition({
+                        quantity: toWei('2'),
+                        leverage: 10,
+                        side: SIDE.SHORT,
+                        trader: trader4.address,
+                        instanceTrader: trader4,
+                        _positionManager: fundingRateTest,
+                    }
+                );
+                console.log("fourth time expect getClaimAmount")
+                // claimableAmount += (newOrderMargin + pnl + manualMargin) = 6016.666 + (price * quantity / leverage + pnl + manual) =  6016.666 + 3500 * 2 / 10 + 333.34 + 2000 = 9050
+                // expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq(BigNumber.from("9050095000000000000000"))
+
+                console.log("step 5")
+                // STEP 5
+                await phTT.openLimitPositionAndExpect({
+                    limitPrice: 3500,
+                    side: SIDE.SHORT,
+                    leverage: 10,
+                    quantity: toWei('6'),
+                    _trader: trader2,
+                    _positionManager: fundingRateTest
+                })
+
+                console.log("debug margin")
+                await phTT.debugPosition(trader1, fundingRateTest)
+                console.log("position map", (await positionHouse.positionMap(fundingRateTest.address, trader1.address)).toString())
+                const balanceBeforeReverseMarket = await bep20Mintable.balanceOf(trader1.address)
+                // close market
+                // trader1's should claim able 6182
+                await phTT.openMarketPosition({
+                        quantity: toWei('6'),
+                        leverage: 10,
+                        side: SIDE.LONG,
+                        trader: trader1.address,
+                        instanceTrader: trader1,
+                        _positionManager: fundingRateTest,
+                    }
+                );
+                const balanceAfterReverseMarket = await bep20Mintable.balanceOf(trader1.address)
+                console.log("exchanged quote after reverse market", balanceAfterReverseMarket.sub(balanceBeforeReverseMarket).toString())
+                console.log("position map after close market", (await positionHouse.positionMap(fundingRateTest.address, trader1.address)).toString())
+
+                console.log("debug margin after")
+                await phTT.debugPosition(trader1, fundingRateTest)
+
+                console.log("fifth time expect getClaimAmount")
+                // claimableAmount = 9050 - pnl - claimedManualMargin -
+                // expect(await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).eq(BigNumber.from("5630"))
+
+
+
+
+                console.log("step 6")
+                // STEP 6
+                await fundingRateTest.setMockPrice(BigNumber.from("3500"), BigNumber.from("3500"))
+                // await positionHouse.connect(trader1).removeMargin(fundingRateTest.address, BigNumber.from("750"))
+
+                console.log("step 6.5")
+                await phTT.openLimitPositionAndExpect({
+                    limitPrice: 3400,
+                    side: SIDE.LONG,
+                    leverage: 10,
+                    quantity: toWei('3'),
+                    _trader: trader2,
+                    _positionManager: fundingRateTest
+                })
+
+                await phTT.openMarketPosition({
+                        quantity: toWei('3'),
+                        leverage: 10,
+                        side: SIDE.SHORT,
+                        trader: trader1.address,
+                        instanceTrader: trader1,
+                        _positionManager: fundingRateTest,
+                    }
+                );
+
+                console.log("step 7")
+                // STEP 7
+                await phTT.debugPosition(trader1, fundingRateTest)
+
+                await positionHouse.connect(trader1).closeLimitPosition(fundingRateTest.address, BigNumber.from("340000"), toWei(9))
+                await phTT.openMarketPosition({
+                        quantity: toWei('9'),
+                        leverage: 10,
+                        side: SIDE.SHORT,
+                        trader: trader2.address,
+                        instanceTrader: trader2,
+                        _positionManager: fundingRateTest,
+                    }
+                );
+
+                await positionHouse.connect(trader1).claimFund(fundingRateTest.address)
+                const balanceOfTrader1AfterTestcase = await bep20Mintable.balanceOf(trader1.address)
+                const exchangedQuoteAmount = BigNumber.from(balanceOfTrader1AfterTestcase).sub(BigNumber.from(balanceOfTrader1BeforeTestcase))
+                console.log("exchangedQuoteAmount", exchangedQuoteAmount.toString())
+                console.log((await insuranceFund.totalFee()).toString())
+                expect(exchangedQuoteAmount).eq("3091465100000000000000")
+            }
+        })
+
+        it("should claim back correct amount when create position by limit order, partial reverse by market then increase by market again", async () => {
+            await phTT.dumpPrice({
+                toPrice: 3700,
+                pumper: tradercp1,
+                pumper2: tradercp2,
+                positionManager: fundingRateTest
+            })
+            console.log("STEP 1")
+            // STEP 1
+            const balanceOfTrader1BeforeTestcase = await bep20Mintable.balanceOf(trader1.address)
+
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 3700,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: toWei(10),
+                _trader: trader1,
+                _positionManager: fundingRateTest
+            })
+
+            // open market
+            await phTT.openMarketPosition({
+                    quantity: toWei(10),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader3.address,
+                    instanceTrader: trader3,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+            await phTT.dumpPrice({
+                toPrice: 3600,
+                pumper: tradercp1,
+                pumper2: tradercp2,
+                positionManager: fundingRateTest
+            })
+
+            console.log("STEP 2")
+            // STEP 2
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 3600,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: toWei(5),
+                _trader: trader2,
+                _positionManager: fundingRateTest
+            })
+
+            // open market
+            await phTT.openMarketPosition({
+                    quantity: toWei(5),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: fundingRateTest,
+                }
+            );
+            console.log("before get claimable amount")
+            console.log((await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).toString())
+            expect((await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).toString()).eq(toWei(1850))
+
+            console.log("STEP 3")
+            // STEP 3
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 3500,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: toWei(3),
+                _trader: trader1,
+                _positionManager: fundingRateTest
+            })
+
+            // open market
+            await phTT.openMarketPosition({
+                    quantity: toWei(3),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader4.address,
+                    instanceTrader: trader4,
+                    _positionManager: fundingRateTest,
+                }
+            );
+            console.log("before get claimable amount")
+            console.log((await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).toString())
+            expect((await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).toString()).eq(toWei(3500))
+
+
+            console.log("STEP 4")
+            // STEP 4
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 3500,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: toWei(6),
+                _trader: trader3,
+                _positionManager: fundingRateTest
+            })
+
+            // open market
+            await phTT.openMarketPosition({
+                    quantity: toWei(6),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: fundingRateTest,
+                }
+            );
+            console.log("before get claimable amount")
+            console.log((await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).toString())
+            expect((await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).toString()).eq(toWei(5600))
+
+            await phTT.dumpPrice({
+                toPrice: 3400,
+                pumper: tradercp1,
+                pumper2: tradercp2,
+                positionManager: fundingRateTest
+            })
+
+
+            console.log("STEP 5")
+            // STEP 5
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 3400,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: toWei(3),
+                _trader: trader4,
+                _positionManager: fundingRateTest
+            })
+
+            // open market
+            await phTT.openMarketPosition({
+                    quantity: toWei(3),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: fundingRateTest,
+                }
+            );
+            console.log("before get claimable amount")
+            console.log((await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).toString())
+            expect((await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).toString()).eq(toWei(4535))
+
+            console.log("STEP 6")
+            // STEP 6
+            await positionHouse.connect(trader1).closeLimitPosition(fundingRateTest.address, BigNumber.from("340000"), toWei("5"))
+            await phTT.openMarketPosition({
+                    quantity: toWei(5),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader3.address,
+                    instanceTrader: trader3,
+                    _positionManager: fundingRateTest,
+                }
+            );
+            console.log("before get claimable amount")
+            console.log((await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).toString())
+            expect((await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).toString()).eq(toWei(6985))
+            await positionHouse.connect(trader1).claimFund(fundingRateTest.address)
+            const balanceOfTrader1AfterTestcase = await bep20Mintable.balanceOf(trader1.address)
+            const exchangedQuoteAmount = BigNumber.from(balanceOfTrader1AfterTestcase).sub(BigNumber.from(balanceOfTrader1BeforeTestcase))
+            console.log("exchangedQuoteAmount", exchangedQuoteAmount.toString())
+            expect(exchangedQuoteAmount).eq(BigNumber.from("2291450000000000000000"))
         })
     });
 
@@ -890,3 +1678,15 @@ describe('Test Margin Intergration', function () {
 
 
 });
+
+
+function printStruct(result){
+    const keys = Object.keys(result)
+    const data = {}
+    for(const key of keys){
+        if(isNaN(Number(key))){
+            data[key] = result[key]._isBigNumber ? result[key].toString() : result[key]
+        }
+    }
+    console.table(data)
+}
