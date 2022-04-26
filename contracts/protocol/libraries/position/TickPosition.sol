@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./LimitOrder.sol";
+
 //import "hardhat/console.sol";
 
 /*
@@ -85,7 +86,8 @@ library TickPosition {
                 index++;
             }
             if (_self.orderQueue[index].partialFilled != 0) {
-                totalSize += (_self.orderQueue[index].size - _self.orderQueue[index].partialFilled);
+                totalSize += (_self.orderQueue[index].size -
+                    _self.orderQueue[index].partialFilled);
                 index++;
             }
             while (totalSize < _amount) {
@@ -102,7 +104,11 @@ library TickPosition {
 
     function cancelLimitOrder(TickPosition.Data storage _self, uint64 _orderId)
         internal
-        returns (uint256, uint256, bool)
+        returns (
+            uint256,
+            uint256,
+            bool
+        )
     {
         (bool isBuy, uint256 size, uint256 partialFilled) = _self
             .orderQueue[_orderId]

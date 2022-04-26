@@ -71,7 +71,6 @@ abstract contract PositionHouseStorage {
     mapping(address => mapping(address => Position.LiquidatedData))
         public debtPosition;
 
-
     // update added margin type from int256 to uint256
     mapping(address => mapping(address => int256)) internal manualMargin;
     //can update with index => no need delete array when close all
@@ -85,7 +84,5 @@ abstract contract PositionHouseStorage {
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
     uint256[49] private __gap;
-    mapping(address => mapping(address => int256)) internal debtProfit;
     IPositionHouseConfigurationProxy public positionHouseConfigurationProxy;
-
 }

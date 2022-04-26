@@ -68,6 +68,7 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy_testnet": "npx hardhat --network bsc_testnet deploy --stage test",
+    "deploy_production": "yarn compile && npx hardhat --network bsc_mainnet deploy --stage production",
     "check-sizes": "npx hardhat compile && yarn hardhat size-contracts",
     "prettier": "prettier --write 'contracts/**/*.sol'"
   }

@@ -10,13 +10,13 @@ interface IPositionHouseViewer {
         address _trader,
         PositionHouseStorage.PnlCalcOption _calcOption
     )
-    external
-    view
-    returns (
-        uint256 maintenanceMargin,
-        int256 marginBalance,
-        uint256 marginRatio
-    );
+        external
+        view
+        returns (
+            uint256 maintenanceMargin,
+            int256 marginBalance,
+            uint256 marginRatio
+        );
 
     function getPositionNotionalAndUnrealizedPnl(
         IPositionManager _positionManager,

@@ -77,7 +77,9 @@ contract InsuranceFund is
         uint256 _amount,
         uint256 _fee
     ) public onlyCounterParty onlyWhitelistManager(_positionManager) {
-        address _tokenAddress = address(IPositionManager(_positionManager).getQuoteAsset());
+        address _tokenAddress = address(
+            IPositionManager(_positionManager).getQuoteAsset()
+        );
         IERC20Upgradeable _token = IERC20Upgradeable(_tokenAddress);
         totalFee += _fee;
         _token.safeTransferFrom(_trader, address(this), _amount + _fee);
@@ -89,9 +91,13 @@ contract InsuranceFund is
         address _trader,
         uint256 _amount
     ) public onlyCounterParty onlyWhitelistManager(_positionManager) {
-        address _token = address(IPositionManager(_positionManager).getQuoteAsset());
+        address _token = address(
+            IPositionManager(_positionManager).getQuoteAsset()
+        );
         // if insurance fund not enough amount for trader, should sell posi and pay for trader
-        uint256 _tokenBalance = IERC20Upgradeable(_token).balanceOf(address(this));
+        uint256 _tokenBalance = IERC20Upgradeable(_token).balanceOf(
+            address(this)
+        );
         if (_tokenBalance < _amount) {
             uint256 _gap = (_amount - _tokenBalance) * 110 / 100;
             uint256[] memory _amountIns = router.getAmountsIn(
@@ -115,10 +121,9 @@ contract InsuranceFund is
     // ONLY OWNER FUNCTIONS
     //******************************************************************************************************************
 
-
     function updateWhitelistManager(address _positionManager, bool _isWhitelist)
-    external
-    onlyOwner
+        external
+        onlyOwner
     {
         if (_isWhitelist) {
             _setWhitelistManager(_positionManager);
@@ -128,7 +133,10 @@ contract InsuranceFund is
         emit WhitelistManagerUpdated(_positionManager, _isWhitelist);
     }
 
-    function updatePosiAddress(IERC20Upgradeable _newPosiAddress) public onlyOwner {
+    function updatePosiAddress(IERC20Upgradeable _newPosiAddress)
+        public
+        onlyOwner
+    {
         posi = _newPosiAddress;
         emit PosiChanged(address(_newPosiAddress));
     }

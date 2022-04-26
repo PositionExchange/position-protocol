@@ -22,5 +22,4 @@ interface IInsuranceFund {
         address trader,
         uint256 amountFee
     ) external;
-
 }

@@ -105,5 +105,4 @@ contract PositionManagerStorage {
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
     uint256[49] private __gap;
-
 }

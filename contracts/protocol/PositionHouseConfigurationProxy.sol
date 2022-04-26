@@ -10,16 +10,21 @@ contract PositionHouseConfigurationProxy is Initializable, OwnableUpgradeable {
     uint256 public liquidationFeeRatio;
     uint256 public liquidationPenaltyRatio;
 
-    event LiquidationPenaltyRatioUpdated(uint256 oldLiquidationPenaltyRatio, uint256 newLiquidationPenaltyRatio);
-    event PartialLiquidationRatioUpdated(uint256 oldPartialLiquidationLiquid,uint256 newPartialLiquidationLiquid);
-
+    event LiquidationPenaltyRatioUpdated(
+        uint256 oldLiquidationPenaltyRatio,
+        uint256 newLiquidationPenaltyRatio
+    );
+    event PartialLiquidationRatioUpdated(
+        uint256 oldPartialLiquidationLiquid,
+        uint256 newPartialLiquidationLiquid
+    );
 
     function initialize(
         uint256 _maintenanceMarginRatio,
         uint256 _partialLiquidationRatio,
         uint256 _liquidationFeeRatio,
         uint256 _liquidationPenaltyRatio
-   ) public initializer {
+    ) public initializer {
         __Ownable_init();
         maintenanceMarginRatio = _maintenanceMarginRatio;
         partialLiquidationRatio = _partialLiquidationRatio;
@@ -31,13 +36,15 @@ contract PositionHouseConfigurationProxy is Initializable, OwnableUpgradeable {
         return (liquidationFeeRatio, liquidationPenaltyRatio);
     }
 
-
     // OWNER UPDATE VARIABLE STORAGE
     function updatePartialLiquidationRatio(uint256 _partialLiquidationRatio)
         external
         onlyOwner
     {
-        emit PartialLiquidationRatioUpdated(partialLiquidationRatio, _partialLiquidationRatio);
+        emit PartialLiquidationRatioUpdated(
+            partialLiquidationRatio,
+            _partialLiquidationRatio
+        );
         partialLiquidationRatio = _partialLiquidationRatio;
     }
 
@@ -45,7 +52,10 @@ contract PositionHouseConfigurationProxy is Initializable, OwnableUpgradeable {
         external
         onlyOwner
     {
-        emit LiquidationPenaltyRatioUpdated(liquidationPenaltyRatio, _liquidationPenaltyRatio);
+        emit LiquidationPenaltyRatioUpdated(
+            liquidationPenaltyRatio,
+            _liquidationPenaltyRatio
+        );
         liquidationPenaltyRatio = _liquidationPenaltyRatio;
     }
 }
