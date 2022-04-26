@@ -38,6 +38,8 @@ contract PositionHouse is
     using Position for Position.Data;
     using Position for Position.LiquidatedData;
     using PositionHouseFunction for PositionHouse;
+    mapping(address => mapping(address => int256)) internal debtProfit;
+
 
     event OpenMarket(
         address trader,
