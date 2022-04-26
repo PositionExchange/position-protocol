@@ -47,7 +47,6 @@ const migrations: MigrationDefinition = {
                 positionHouse: positionHouseContractAddress,
                 positionHouseConfigurationProxy: positionHouseConfigurationProxyContactAddress
             })
-
         }
     })
 }

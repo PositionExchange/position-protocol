@@ -26,8 +26,8 @@ contract FundingRateTest is PositionManager {
     }
 
     function setMockPrice(uint256 underlyingPrice, uint256 twapPrice) public {
-        mockUnderlyingPrice = underlyingPrice;
-        mockTwapPrice = twapPrice;
+        mockUnderlyingPrice = underlyingPrice * getBaseBasisPoint();
+        mockTwapPrice = twapPrice * getBaseBasisPoint();
     }
 
     function getUnderlyingTwapPrice(uint256 _intervalInSeconds)

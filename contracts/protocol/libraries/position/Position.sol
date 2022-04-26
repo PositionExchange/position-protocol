@@ -118,19 +118,20 @@ library Position {
         int256 _quantity,
         uint256 _orderMargin,
         uint256 _orderNotional
-    ) internal view returns (Position.Data memory positionData) {
+    ) internal view returns (Position.Data memory) {
         // same side
         if (_self.quantity * _quantity > 0) {
-            positionData.margin = _self.margin + _orderMargin;
-            positionData.openNotional = _self.openNotional + _orderNotional;
+            _self.margin = _self.margin + _orderMargin;
+            _self.openNotional = _self.openNotional + _orderNotional;
         } else {
-            positionData.margin = _self.margin > _orderMargin
+            _self.margin = _self.margin > _orderMargin
                 ? _self.margin - _orderMargin
                 : _orderMargin - _self.margin;
-            positionData.openNotional = _self.openNotional > _orderNotional
+            _self.openNotional = _self.openNotional > _orderNotional
                 ? _self.openNotional - _orderNotional
                 : _orderNotional - _self.openNotional;
         }
-        positionData.quantity = _self.quantity + _quantity;
+        _self.quantity = _self.quantity + _quantity;
+        return _self;
     }
 }

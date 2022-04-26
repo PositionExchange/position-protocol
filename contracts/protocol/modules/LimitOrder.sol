@@ -50,30 +50,12 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         require(_orderIdx < _orders.length, Errors.VL_INVALID_ORDER);
         // save gas
         PositionLimitOrder.Data memory _order = _orders[_orderIdx];
+        PositionLimitOrder.Data memory blankLimitOrderData;
 
         (uint256 refundQuantity, uint256 partialFilled) = _positionManager
         .cancelLimitOrder(_order.pip, _order.orderId);
         if (partialFilled == 0) {
-            delete _orders[_orderIdx];
-            if (_order.reduceLimitOrderId != 0) {
-                _blankReduceLimitOrder(
-                    _pmAddress,
-                    _trader,
-                    _order.reduceLimitOrderId - 1
-                );
-            }
-        } else if (_order.reduceQuantity != 0) {
-            if (_isReduce == 1) {
-                _orders[_orderIdx].reduceQuantity = partialFilled;
-            } else if (_order.reduceLimitOrderId != 0) {
-                PositionLimitOrder.Data[] storage _reduceOrders = _getLimitOrderPointer(
-                    _pmAddress,
-                    _trader,
-                    1
-                );
-                _reduceOrders[_order.reduceLimitOrderId - 1].reduceQuantity = partialFilled;
-                delete _orders[_orderIdx];
-            }
+            _orders[_orderIdx] = blankLimitOrderData;
         }
 
         (, uint256 _refundMargin, ) = _positionManager.getNotionalMarginAndFee(
@@ -114,7 +96,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             PositionLimitOrder.Data memory _newOrder = PositionLimitOrder.Data({
                 pip: _pip,
                 orderId: openLimitResp.orderId,
-                leverage: uint16(_leverage),
+                leverage: _leverage,
                 isBuy: _side == Position.Side.LONG ? 1 : 2,
                 entryPrice: 0,
                 reduceLimitOrderId: 0,
@@ -126,8 +108,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                     _newOrder,
                     _positionManager,
                     _trader,
-                    _quantity,
-                    openLimitResp.sizeOut
+                    _quantity
                 );
             }
             (, uint256 marginToVault, uint256 fee) = _positionManager
@@ -155,8 +136,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         PositionLimitOrder.Data memory _newOrder,
         IPositionManager _positionManager,
         address _trader,
-        int256 _quantity,
-        uint256 _sizeOut
+        int256 _quantity
     ) internal {
         address _pmAddress = address(_positionManager);
         Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
@@ -164,22 +144,11 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             oldPosition.quantity == 0 ||
             _quantity.isSameSide(oldPosition.quantity)
         ) {
+            // limit order increasing position
             _pushLimit(_pmAddress, _trader, _newOrder);
         } else {
             // limit order reducing position
             uint256 baseBasisPoint = _positionManager.getBaseBasisPoint();
-            // if new limit order is smaller than old position then just reduce old position
-            if (oldPosition.quantity.abs() > _quantity.abs()) {
-                _newOrder.reduceQuantity = _quantity.abs() - _sizeOut;
-            }
-            // else new limit order is larger than old position then close old position and open new opposite position
-            else {
-                _newOrder.reduceQuantity = oldPosition.quantity.abs();
-                _newOrder.reduceLimitOrderId =
-                    _getReduceLimitOrders(_pmAddress, _trader).length +
-                    1;
-                _pushLimit(_pmAddress, _trader, _newOrder);
-            }
             _newOrder.entryPrice = PositionHouseMath.entryPriceFromNotional(
                 oldPosition.openNotional,
                 oldPosition.quantity.abs(),
@@ -368,12 +337,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         claimableAmount = _getClaimAmount(
             _pmAddress,
             _trader,
-            _positionData,
-            _getPositionMap(_pmAddress, _trader),
-            _getLimitOrders(_pmAddress, _trader),
-            _getReduceLimitOrders(_pmAddress, _trader),
-            getClaimableAmount(_pmAddress, _trader),
-            _getManualMargin(_pmAddress, _trader)
+            _positionData
         );
         needClaim = claimableAmount != 0 && _positionData.quantity == 0;
     }
@@ -381,12 +345,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
     function _getClaimAmount(
         address _pmAddress,
         address _trader,
-        Position.Data memory _positionData,
-        Position.Data memory _positionDataWithoutLimit,
-        PositionLimitOrder.Data[] memory _limitOrders,
-        PositionLimitOrder.Data[] memory _reduceLimitOrders,
-        uint256 _canClaimAmountInMap,
-        int256 _manualMarginInMap
+        Position.Data memory _positionData
     ) internal view returns (int256) {
         address a = _pmAddress;
         address t = _trader;
@@ -394,14 +353,11 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         {
             return PositionHouseFunction.getClaimAmount(
                 a,
-                t,
-                _positionData,
+                _getManualMargin(a, t),
+                getDebtPosition(a,t),
                 _getPositionMap(a, t),
                 _getLimitOrders(a, t),
-                _getReduceLimitOrders(a, t),
-                getClaimableAmount(a, t),
-                _getManualMargin(a, t),
-                getDebtProfit(a, t)
+                _getReduceLimitOrders(a, t)
             );
 
         }
@@ -450,11 +406,11 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         virtual
         returns (int256);
 
-    function getDebtProfit(address _pmAddress, address _trader)
+    function getDebtPosition(address _pmAddress, address _trader)
         public
         view
         virtual
-        returns (int256);
+        returns (Position.LiquidatedData memory);
 
 
     /**

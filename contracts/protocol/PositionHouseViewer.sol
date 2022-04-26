@@ -24,18 +24,33 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
     view
     returns (int256 totalClaimableAmount)
     {
-        Position.Data memory positionData = positionHouse.getPosition(_pmAddress, _trader);
         return
         PositionHouseFunction.getClaimAmount(
             _pmAddress,
-            _trader,
-            positionData,
+            positionHouse.getAddedMargin(_pmAddress, _trader),
+            positionHouse.getDebtPosition(_pmAddress, _trader),
+            positionHouse.positionMap(_pmAddress, _trader),
+            positionHouse._getLimitOrders(_pmAddress, _trader),
+            positionHouse._getReduceLimitOrders(_pmAddress, _trader)
+        );
+    }
+
+    function getClaimableAmountParams(address _pmAddress, address _trader)
+    public view returns (
+        Position.Data memory,
+        Position.Data memory,
+        PositionLimitOrder.Data[] memory,
+        PositionLimitOrder.Data[] memory,
+        uint256,
+        int256
+    ) {
+        return (
+            positionHouse.getPosition(_pmAddress, _trader),
             positionHouse.positionMap(_pmAddress, _trader),
             positionHouse._getLimitOrders(_pmAddress, _trader),
             positionHouse._getReduceLimitOrders(_pmAddress, _trader),
             positionHouse.getClaimableAmount(_pmAddress, _trader),
-            positionHouse.getAddedMargin(_pmAddress, _trader),
-            positionHouse.getDebtProfit(_pmAddress, _trader)
+            positionHouse.getAddedMargin(_pmAddress, _trader)
         );
     }
 
@@ -59,6 +74,13 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
 
     function getCurrentFundingRate(IPositionManager _positionManager) external view returns (int256) {
         return _positionManager.getCurrentFundingRate();
+    }
+
+    function getAddedMargin(
+        address _pmAddress,
+        address _trader
+    ) public view returns (int256) {
+        return positionHouse.getAddedMargin(_pmAddress, _trader);
     }
 
     function getRemovableMargin(
@@ -94,30 +116,30 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
     )
     {
         address _pmAddress = address(_positionManager);
-        Position.Data memory positionData = positionHouse.getPosition(_pmAddress, _trader);
+        Position.Data memory _positionDataWithManualMargin = getPosition(_pmAddress, _trader);
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
             _positionManager,
             _trader,
             _calcOption,
-            positionData
+            _positionDataWithManualMargin
         );
         (
         uint256 remainMarginWithFundingPayment,
         ,
         ) = PositionHouseFunction.calcRemainMarginWithFundingPayment(
-            positionData,
-            positionData.margin,
+            _positionDataWithManualMargin,
+            _positionDataWithManualMargin.margin,
             positionHouse.getLatestCumulativePremiumFraction(_pmAddress)
         );
         maintenanceMargin =
-        ((remainMarginWithFundingPayment -
-        uint256(positionHouse.getAddedMargin(_pmAddress, _trader)))
-        * positionHouseConfigurationProxy.maintenanceMarginRatio()) / 100;
+            ((remainMarginWithFundingPayment -
+            uint256(positionHouse.getAddedMargin(_pmAddress, _trader)))
+            * positionHouseConfigurationProxy.maintenanceMarginRatio()) / 100;
         marginBalance = int256(remainMarginWithFundingPayment) + unrealizedPnl;
         marginRatio = marginBalance <= 0
         ? 100
         : (maintenanceMargin * 100) / uint256(marginBalance);
-        if (positionData.quantity == 0) {
+        if (_positionDataWithManualMargin.quantity == 0) {
             marginRatio = 0;
         }
     }
@@ -142,23 +164,26 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         address _trader,
         PositionHouseStorage.PnlCalcOption _pnlCalcOption
     ) public view returns (Position.Data memory position, uint256 positionNotional, int256 unrealizedPnl) {
-        position = positionHouse.getPosition(address(_positionManager), _trader);
+        position = getPosition(address(_positionManager), _trader);
         (positionNotional, unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(_positionManager, _trader, _pnlCalcOption, position);
     }
 
     function getFundingPaymentAmount(IPositionManager _positionManager, address _trader) external view returns (int256 fundingPayment) {
         address _pmAddress = address(_positionManager);
-        Position.Data memory positionData = positionHouse.getPosition(_pmAddress, _trader);
+        Position.Data memory _positionDataWithManualMargin = getPosition(_pmAddress, _trader);
         (
         ,
         ,
          fundingPayment
         ) = PositionHouseFunction.calcRemainMarginWithFundingPayment(
-            positionData,
-            positionData.margin,
+            _positionDataWithManualMargin,
+            _positionDataWithManualMargin.margin,
             positionHouse.getLatestCumulativePremiumFraction(_pmAddress)
         );
     }
 
-
+    function getPosition(address _pmAddress, address _trader) public view returns (Position.Data memory positionData) {
+        positionData = positionHouse.getPosition(_pmAddress, _trader);
+        positionData.margin += uint256(positionHouse.getAddedMargin(_pmAddress, _trader));
+    }
 }

@@ -29,6 +29,12 @@ library Quantity {
         return uint256(_quantity >= 0 ? _quantity : -_quantity);
     }
 
+    // TODO write unit test
+    /// @dev return the value of Quantity minus amount
+    function subAmount(int256 _quantity, uint256 _amount) internal pure returns(int256){
+        return _quantity < 0 ? _quantity + int256(_amount) : _quantity - int256(_amount);
+    }
+
     function abs128(int256 _quantity) internal pure returns (uint128) {
         return uint128(abs(_quantity));
     }
