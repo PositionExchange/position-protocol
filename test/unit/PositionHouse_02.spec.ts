@@ -5859,5 +5859,140 @@ describe("PositionHouse_02", () => {
             console.log(exchangedQuoteAmount.toString())
             expect(exchangedQuoteAmount.toString()).eq("992")
         })
+
+        it("should be reverted transaction when open multi order with different side", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1,
+                skipCheckBalance: true
+            })
+
+            await expect(openLimitPositionAndExpect({
+                limitPrice: 5100,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1,
+                skipCheckBalance: true
+            })).to.be.revertedWith('22')
+
+            await expect(openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            )).to.be.revertedWith("22")
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5100,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader2,
+                skipCheckBalance: true
+            })
+
+            await expect(openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader2,
+                skipCheckBalance: true
+            })).to.be.revertedWith('22')
+
+            await expect(openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                }
+            )).to.be.revertedWith("22")
+        })
+
+        it("should be reverted when open reverse order with quantity higher than current position", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 1,
+                quantity: BigNumber.from('3'),
+                _trader: trader1,
+                _positionManager: positionManager
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 1,
+                    side: SIDE.LONG,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4800,
+                side: SIDE.LONG,
+                leverage: 1,
+                quantity: BigNumber.from('2'),
+                _trader: trader1,
+                _positionManager: positionManager
+            })
+
+            await expect(openLimitPositionAndExpect({
+                limitPrice: 4800,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('2'),
+                _trader: trader1,
+                skipCheckBalance: true
+            })).to.be.revertedWith('22')
+
+            await expect(openMarketPosition({
+                    quantity: BigNumber.from('2'),
+                    leverage: 1,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            )).to.be.revertedWith('22');
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5200,
+                side: SIDE.SHORT,
+                leverage: 1,
+                quantity: BigNumber.from('2'),
+                _trader: trader2,
+                _positionManager: positionManager
+            })
+
+            await expect(openLimitPositionAndExpect({
+                limitPrice: 5200,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('2'),
+                _trader: trader2,
+                skipCheckBalance: true
+            })).to.be.revertedWith('22')
+
+            await expect(openMarketPosition({
+                    quantity: BigNumber.from('2'),
+                    leverage: 1,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                }
+            )).to.be.revertedWith('22');
+        })
     })
 })
