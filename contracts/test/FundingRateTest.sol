@@ -9,6 +9,10 @@ contract FundingRateTest is PositionManager {
     uint256 mockUnderlyingPrice;
     uint256 mockTwapPrice;
 
+    function getIndexPip() public view override returns (uint256) {
+        return getCurrentPip();
+    }
+
     function _now() internal view override returns (uint64) {
         return mockTime;
     }

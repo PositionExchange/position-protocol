@@ -80,6 +80,8 @@ interface IPositionManager {
 
     function getPrice() external view returns (uint256);
 
+    function getIndexPip() external view returns (uint256);
+
     function pipToPrice(uint128 pip) external view returns (uint256);
 
     function getQuoteAsset() external view returns (IERC20);
