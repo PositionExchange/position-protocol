@@ -12,6 +12,8 @@ import "./PipConversionMath.sol";
 import "../helpers/CommonMath.sol";
 import {Errors} from "../helpers/Errors.sol";
 
+import "hardhat/console.sol";
+
 library PositionHouseFunction {
     int256 private constant PREMIUM_FRACTION_DENOMINATOR = 10 ** 10;
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
@@ -404,6 +406,92 @@ library PositionHouseFunction {
         }
         PositionHouseStorage.LimitOrderPending[] memory blankListPendingOrders;
         return blankListPendingOrders;
+    }
+
+    // used to benefit memory pointer
+    // used only in `checkPendingOrderSideAndQuantity` memory
+    // please don't move me to other places
+    struct CheckSideAndQuantityParam{
+        PositionLimitOrder.Data[] limitOrders;
+        PositionLimitOrder.Data[] reduceLimitOrders;
+        Position.Side side;
+        uint256 orderQuantity;
+        int256 positionQuantity;
+    }
+
+    function checkPendingOrderSideAndQuantity(
+        IPositionManager _positionManager,
+        CheckSideAndQuantityParam memory _checkParam
+    ) public view returns (bool) {
+        // Get order in both increase and reduce limit order array
+        bool newOrderIsBuy = _checkParam.side == Position.Side.LONG;
+        bool positionIsBuy = _checkParam.positionQuantity > 0;
+        uint256 totalPendingQuantity;
+        bool pendingOrderIsBuy;
+        // for loop check array increase limit order
+        {
+            for (uint256 i = 0; i < _checkParam.limitOrders.length; i++) {
+                (
+                bool isFilled,
+                bool isBuy,
+                uint256 quantity,
+                uint256 partialFilled
+                ) = _positionManager.getPendingOrderDetail(
+                    _checkParam.limitOrders[i].pip,
+                    _checkParam.limitOrders[i].orderId
+                );
+                // calculate total quantity in pending order
+                if (!isFilled && quantity > partialFilled) {
+                    totalPendingQuantity += (quantity - partialFilled);
+                }
+                pendingOrderIsBuy = isBuy;
+            }
+        }
+        // if there are pending limit increase order
+        if (totalPendingQuantity != 0) {
+            // if new order is same side as pending order return true
+            if (newOrderIsBuy == pendingOrderIsBuy)
+                return true;
+            else
+                return false;
+
+        }
+        // if there are not pending limit increase order, for loop check array limit reduce
+        {
+            for (uint256 i = 0; i < _checkParam.reduceLimitOrders.length; i++) {
+                (
+                bool isFilled,
+                bool isBuy,
+                uint256 quantity,
+                uint256 partialFilled
+                ) = _positionManager.getPendingOrderDetail(
+                    _checkParam.reduceLimitOrders[i].pip,
+                    _checkParam.reduceLimitOrders[i].orderId
+                );
+                // calculate total quantity in pending order
+                if (!isFilled && quantity > partialFilled) {
+                    totalPendingQuantity += (quantity - partialFilled);
+                }
+                pendingOrderIsBuy = isBuy;
+            }
+        }
+        // if there are pending limit reduce order
+        if (totalPendingQuantity != 0) {
+            uint256 totalReverseQuantity = totalPendingQuantity + _checkParam.orderQuantity;
+            // if total quantity of reverse order is smaller than current position
+            // and new order is same side as pending order, return true
+            if (newOrderIsBuy == pendingOrderIsBuy && totalReverseQuantity <= _checkParam.positionQuantity.abs())
+                return true;
+            else
+                return false;
+        }
+        // if user don't have position, return true
+        if (_checkParam.positionQuantity == 0) return true;
+        // if user don't have pending order but new order is reverse, order quantity > position quantity, return false
+        if (newOrderIsBuy != positionIsBuy && _checkParam.orderQuantity > _checkParam.positionQuantity.abs()) {
+            return false;
+        }
+//        return true;
     }
 
     function getPositionNotionalAndUnrealizedPnl(
