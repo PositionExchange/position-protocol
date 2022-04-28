@@ -225,17 +225,21 @@ contract PositionManager is
         SingleSlot memory _singleSlot = singleSlot;
         if (_isBuy && _singleSlot.pip != 0) {
             require(
-                _pip <= _singleSlot.pip &&
-                    int128(_pip) >=
-                    (int128(_singleSlot.pip) -
-                        int128(maxFindingWordsIndex * 250)),
+                _pip <= _singleSlot.pip,
                 Errors.VL_LONG_PRICE_THAN_CURRENT_PRICE
+            );
+            require(
+                int128(_pip) >=
+                (int256(getIndexPip()) -
+                int128(maxFindingWordsIndex * 250)), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE
             );
         } else {
             require(
-                _pip >= _singleSlot.pip &&
-                    _pip <= (_singleSlot.pip + maxFindingWordsIndex * 250),
+                _pip >= _singleSlot.pip,
                 Errors.VL_SHORT_PRICE_LESS_CURRENT_PRICE
+            );
+            require(
+                _pip <= (getIndexPip() + maxFindingWordsIndex * 250), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE
             );
         }
         bool hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
