@@ -39,6 +39,7 @@ library Errors {
     string public constant VL_ONLY_PENDING_ORDER = "21"; // ''
     string public constant VL_MUST_SAME_SIDE = "22";
     string public constant VL_MUST_SMALLER_REVERSE_QUANTITY = "23";
+    string public constant VL_MUST_CLOSE_TO_INDEX_PRICE = "24";
 
     enum CollateralManagerErrors {
         NO_ERROR

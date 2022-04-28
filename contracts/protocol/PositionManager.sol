@@ -225,17 +225,21 @@ contract PositionManager is
         SingleSlot memory _singleSlot = singleSlot;
         if (_isBuy && _singleSlot.pip != 0) {
             require(
-                _pip <= _singleSlot.pip &&
-                    int128(_pip) >=
-                    (int128(_singleSlot.pip) -
-                        int128(maxFindingWordsIndex * 250)),
+                _pip <= _singleSlot.pip,
                 Errors.VL_LONG_PRICE_THAN_CURRENT_PRICE
+            );
+            require(
+                int128(_pip) >=
+                (int256(getUnderlyingPriceInPip()) -
+                int128(maxFindingWordsIndex * 250)), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE
             );
         } else {
             require(
-                _pip >= _singleSlot.pip &&
-                    _pip <= (_singleSlot.pip + maxFindingWordsIndex * 250),
+                _pip >= _singleSlot.pip,
                 Errors.VL_SHORT_PRICE_LESS_CURRENT_PRICE
+            );
+            require(
+                _pip <= (getUnderlyingPriceInPip() + maxFindingWordsIndex * 250), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE
             );
         }
         bool hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
@@ -388,6 +392,11 @@ contract PositionManager is
 
     function getPrice() public view override returns (uint256) {
         return (uint256(singleSlot.pip) * BASE_BASIC_POINT) / basisPoint;
+    }
+
+    // Converting underlying price to the pip value
+    function getUnderlyingPriceInPip() public view virtual returns (uint256) {
+        return getUnderlyingPrice() * basisPoint / BASE_BASIC_POINT;
     }
 
     function getNextFundingTime() public view override returns (uint256) {
