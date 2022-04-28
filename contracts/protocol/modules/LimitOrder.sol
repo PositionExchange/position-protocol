@@ -82,7 +82,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         int256 _quantity = _side == Position.Side.LONG
             ? int256(_uQuantity)
             : -int256(_uQuantity);
-        require(_requireSideOrder(_pmAddress, _trader, _side),Errors.VL_MUST_SAME_SIDE);
+        require(_requireOrderSideAndQuantity(_pmAddress, _trader, _side, _uQuantity, _oldPosition.quantity),Errors.VL_MUST_SAME_SIDE);
 
         (openLimitResp.orderId, openLimitResp.sizeOut) = _openLimitOrder(
             _positionManager,
@@ -168,7 +168,6 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
     ) private returns (uint64 orderId, uint256 sizeOut) {
         {
             address _pmAddress = address(_positionManager);
-            require(_requireQuantityOrder(_rawQuantity, oldPosition.quantity), Errors.VL_MUST_SMALLER_REVERSE_QUANTITY);
             require(
                 _leverage >= oldPosition.leverage &&
                     _leverage <= _positionManager.getLeverage() &&
@@ -301,32 +300,21 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         reduceLimitOrders[_pmAddress][_trader][index] = blankLimitOrderData;
     }
 
-    function _requireSideOrder(
+    function _requireOrderSideAndQuantity(
         address _pmAddress,
         address _trader,
-        Position.Side _side
+        Position.Side _side,
+        uint256 _quantity,
+        int256 _positionQuantity
     ) internal view returns (bool) {
-        PositionHouseStorage.LimitOrderPending[] memory listOrdersPending = PositionHouseFunction
-        .getListOrderPending(
-            _pmAddress,
-            _trader,
-            _getLimitOrders(_pmAddress, _trader),
-            _getReduceLimitOrders(_pmAddress, _trader)
-        );
-        if (listOrdersPending.length == 0) {
-            return true;
-        }
-
-        return _side == (listOrdersPending[0].isBuy == true ? Position.Side.LONG : Position.Side.SHORT);
-    }
-
-    function _requireQuantityOrder(
-        int256 _newOrderQuantity,
-        int256 _oldPositionQuantity
-    ) internal view returns (bool) {
-        bool noPosition = _oldPositionQuantity == 0;
-        bool smallerReverseQuantity =  _newOrderQuantity.abs() <= _oldPositionQuantity.abs() || _newOrderQuantity.isSameSide(_oldPositionQuantity);
-        return noPosition || smallerReverseQuantity;
+        PositionHouseFunction.CheckSideAndQuantityParam memory checkSideAndQuantityParam = PositionHouseFunction.CheckSideAndQuantityParam({
+            limitOrders: _getLimitOrders(_pmAddress, _trader),
+            reduceLimitOrders: _getReduceLimitOrders(_pmAddress, _trader),
+            side: _side,
+            orderQuantity: _quantity,
+            positionQuantity: _positionQuantity
+        });
+        return PositionHouseFunction.checkPendingOrderSideAndQuantity(IPositionManager(_pmAddress), checkSideAndQuantityParam);
     }
 
     function _needToClaimFund(

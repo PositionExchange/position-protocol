@@ -114,7 +114,6 @@ contract PositionHouse is
         address _pmAddress = address (_positionManager);
         address _trader = _msgSender();
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
-        require(_requireSideOrder(_pmAddress, _trader, _side),Errors.VL_MUST_SAME_SIDE);
         (bool _needClaim, int256 _claimAbleAmount) = _needToClaimFund(_pmAddress, _trader, _positionDataWithManualMargin);
         if (_needClaim) {
             _internalClaimFund(_positionManager, _positionDataWithManualMargin, _claimAbleAmount);
@@ -581,11 +580,10 @@ contract PositionHouse is
     ) internal {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
-        require(_requireSideOrder(_pmAddress, _trader, _side),Errors.VL_MUST_SAME_SIDE);
+        require(_requireOrderSideAndQuantity(_pmAddress, _trader, _side, _quantity, oldPosition.quantity),Errors.VL_MUST_SAME_SIDE);
         int256 pQuantity = _side == Position.Side.LONG
             ? int256(_quantity)
             : -int256(_quantity);
-        require(_requireQuantityOrder(pQuantity, oldPosition.quantity), Errors.VL_MUST_SMALLER_REVERSE_QUANTITY);
         if (oldPosition.quantity == 0) {
             oldPosition.leverage = 1;
         }
