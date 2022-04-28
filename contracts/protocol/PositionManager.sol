@@ -390,6 +390,11 @@ contract PositionManager is
         return (uint256(singleSlot.pip) * BASE_BASIC_POINT) / basisPoint;
     }
 
+    // Have to convert underlying price to pip, from base_basis_point to basis_point
+    function getIndexPip() public view virtual returns (uint256) {
+        return getUnderlyingPrice() * basisPoint / BASE_BASIC_POINT;
+    }
+
     function getNextFundingTime() public view override returns (uint256) {
         return nextFundingTime;
     }
