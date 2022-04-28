@@ -1,3 +1,4 @@
+{"address":"yes","key":"0x8E87Bf3827904D03eA880786B5dAEAB5acbf2476:verified","_id":"1mMnqR94Qw61Nu1q"}
 {"address":"0xa334b8fb7f033b9698895a7c8220d48ac3dc6968","key":"PositionManager:BNB_BUSD","_id":"348d90kk7TSByDMk"}
 {"address":"yes","key":"0x15311b09779B15BE16EC0DC728cA12C324a2365D:verified","_id":"5IT0oW3N2B54RmrG"}
 {"address":"yes","key":"0xba44b05e636eC3b84529ca4b9Eb87291ce9307bB:verified","_id":"A8kjkWRyMJkUV9AX"}
@@ -11,6 +12,8 @@
 {"address":"0xebf1d0c59638f8ffac0004475819af1e07fb17dc","key":"InsuranceFund","_id":"QOLaIdHwJEGlk9al"}
 {"address":"yes","key":"0x207CCb508e6E2b9fa8a58aaac56D9c3BF75C262d:verified","_id":"VBsXYUeHESRCn5ir"}
 {"address":"yes","key":"0x7eF8d93B9B6d30Ac80D9b0dbf491835bF83596aF:verified","_id":"VI0WruMf45cqgqo4"}
+{"address":"yes","key":"0xb0992F42a47caaB1b9781AE47b000820bE69FB47:verified","_id":"XYkD2DypfN3ijFLF"}
+{"address":"yes","key":"0x6408a5f9Ad036D70b210B0c95A964ca382cC6139:verified","_id":"Xma6GEVUic3jha5M"}
 {"address":"yes","key":"0xF8D65649aE558731F2A2D7b2478e89bC810f9C69:verified","_id":"ZGqzVfmQ3UklnNpL"}
 {"address":"yes","key":"0xfA995bf8E9b2abf7Ec53bD921Bd16dA8f5FED9F8:verified","_id":"ZQyEU9zbRs2IPmSS"}
 {"address":"yes","key":"0x14b47CfC08417E1F8D05411cb528AB69cb7Ab443:verified","_id":"Zkrt6T6UFhFrJKFD"}
@@ -24,5 +27,5 @@
 {"address":"0x54c80e9936d620d6c28400b51dc18349b30e9e48","key":"PositionHouseMath","_id":"wz1ZiYTJOpd2rTyy"}
 {"address":"yes","key":"0xF13D4F657cC3bb792A2D7dFe0FA0ce7E47c1d6EE:verified","_id":"xpnBVhYnReietdW5"}
 {"address":"0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56","key":"BUSD","_id":"yp6KSwtko1StXH9h"}
+{"address":"yes","key":"0xbcF95a56075F362BDf13BF18a8E0c0D2B4Ea2DB4:verified","_id":"zKaBguWzTmHrSTrS"}
 {"address":"0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56","key":"BUSD","_id":"yp6KSwtko1StXH9h"}
-{"address":"yes","key":"0x6408a5f9Ad036D70b210B0c95A964ca382cC6139:verified","_id":"Xma6GEVUic3jha5M"}
