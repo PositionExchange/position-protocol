@@ -491,7 +491,7 @@ library PositionHouseFunction {
         if (newOrderIsBuy != positionIsBuy && _checkParam.orderQuantity > _checkParam.positionQuantity.abs()) {
             return false;
         }
-//        return true;
+        return true;
     }
 
     function getPositionNotionalAndUnrealizedPnl(
