@@ -230,7 +230,7 @@ contract PositionManager is
             );
             require(
                 int128(_pip) >=
-                (int256(getIndexPip()) -
+                (int256(getUnderlyingPriceInPip()) -
                 int128(maxFindingWordsIndex * 250)), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE
             );
         } else {
@@ -239,7 +239,7 @@ contract PositionManager is
                 Errors.VL_SHORT_PRICE_LESS_CURRENT_PRICE
             );
             require(
-                _pip <= (getIndexPip() + maxFindingWordsIndex * 250), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE
+                _pip <= (getUnderlyingPriceInPip() + maxFindingWordsIndex * 250), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE
             );
         }
         bool hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
@@ -394,8 +394,8 @@ contract PositionManager is
         return (uint256(singleSlot.pip) * BASE_BASIC_POINT) / basisPoint;
     }
 
-    // Have to convert underlying price to pip, from base_basis_point to basis_point
-    function getIndexPip() public view virtual returns (uint256) {
+    // Converting underlying price to the pip value
+    function getUnderlyingPriceInPip() public view virtual returns (uint256) {
         return getUnderlyingPrice() * basisPoint / BASE_BASIC_POINT;
     }
 
