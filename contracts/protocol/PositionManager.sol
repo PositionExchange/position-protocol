@@ -758,7 +758,7 @@ contract PositionManager is
         // if that pip doesn't have liquidity after closed order, toggle pip to uninitialized
         if (_tickPosition.liquidity == 0) {
             liquidityBitmap.toggleSingleBit(_pip, false);
-            // if order pip == current pip
+            // only unset isFullBuy when cancel order pip == current pip
             if (_pip == singleSlot.pip) {
                 singleSlot.isFullBuy = 0;
             }

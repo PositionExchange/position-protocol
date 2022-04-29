@@ -5860,7 +5860,7 @@ describe("PositionHouse_02", () => {
             expect(exchangedQuoteAmount.toString()).eq("992")
         })
 
-        it("should fill order correctly when single slot is full buy is wrong", async () => {
+        it("should fill order correctly when cancel the only order of different pip from current", async () => {
             await openLimitPositionAndExpect({
                 limitPrice: 5000,
                 side: SIDE.LONG,
@@ -5881,6 +5881,7 @@ describe("PositionHouse_02", () => {
 
             await cancelLimitOrder(positionManager.address, trader2, '1', '490000')
 
+            // should be reverted cause there are not limit short order
             await expect(openMarketPosition({
                     quantity: BigNumber.from('10'),
                     leverage: 10,
