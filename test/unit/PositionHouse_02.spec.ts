@@ -5865,6 +5865,7 @@ describe("PositionHouse_02", () => {
         })
 
         it("should be reverted transaction when open multi order with different side", async () => {
+            // S1: trader1 open a limit order long
             await openLimitPositionAndExpect({
                 limitPrice: 5000,
                 side: SIDE.LONG,
@@ -5874,6 +5875,7 @@ describe("PositionHouse_02", () => {
                 skipCheckBalance: true
             })
 
+            // S2: trader1 try to create a limit order short but got revert cause new order must same side with pending order
             await expect(openLimitPositionAndExpect({
                 limitPrice: 5100,
                 side: SIDE.SHORT,
@@ -5883,6 +5885,7 @@ describe("PositionHouse_02", () => {
                 skipCheckBalance: true
             })).to.be.revertedWith('22')
 
+            // S3: trader1 try to create a market order short but got revert cause new order must same side with pending order
             await expect(openMarketPosition({
                     quantity: BigNumber.from('10'),
                     leverage: 10,
@@ -5893,6 +5896,7 @@ describe("PositionHouse_02", () => {
                 }
             )).to.be.revertedWith("22")
 
+            // S4: trader2 do the same as trader1 but first order is long
             await openLimitPositionAndExpect({
                 limitPrice: 5100,
                 side: SIDE.SHORT,
@@ -5923,6 +5927,7 @@ describe("PositionHouse_02", () => {
         })
 
         it("should be reverted when open reverse order with quantity higher than current position", async () => {
+            // S1: trader1 create a short position by limit order
             await openLimitPositionAndExpect({
                 limitPrice: 5000,
                 side: SIDE.SHORT,
@@ -5932,6 +5937,7 @@ describe("PositionHouse_02", () => {
                 _positionManager: positionManager
             })
 
+            // S2: trader2 create a long position by market order, filled limit short of trader1
             await openMarketPosition({
                     quantity: BigNumber.from('3'),
                     leverage: 1,
@@ -5942,6 +5948,7 @@ describe("PositionHouse_02", () => {
                 }
             );
 
+            // S3: trader1 open a limit reduce order, quantity = 2/3 position
             await openLimitPositionAndExpect({
                 limitPrice: 4800,
                 side: SIDE.LONG,
@@ -5951,6 +5958,8 @@ describe("PositionHouse_02", () => {
                 _positionManager: positionManager
             })
 
+            // S4: trader1 try to create a limit reduce order with quantity = 2/3 position again but got revert
+            // cause total reverse order quantity > position quantity
             await expect(openLimitPositionAndExpect({
                 limitPrice: 4800,
                 side: SIDE.LONG,
@@ -5960,6 +5969,7 @@ describe("PositionHouse_02", () => {
                 skipCheckBalance: true
             })).to.be.revertedWith('22')
 
+            // S5: trader1 try to create a market reduce order but got revert same as s4
             await expect(openMarketPosition({
                     quantity: BigNumber.from('2'),
                     leverage: 1,
@@ -5970,6 +5980,7 @@ describe("PositionHouse_02", () => {
                 }
             )).to.be.revertedWith('22');
 
+            // S6: trader2 do the same as S3, S4, S5
             await openLimitPositionAndExpect({
                 limitPrice: 5200,
                 side: SIDE.SHORT,
