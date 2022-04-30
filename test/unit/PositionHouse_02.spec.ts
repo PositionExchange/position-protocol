@@ -13,7 +13,8 @@ import {
     InsuranceFund,
     BEP20Mintable,
     PositionHouseViewer,
-    PositionHouseConfigurationProxy
+    PositionHouseConfigurationProxy,
+    FundingRateTest
 } from "../../typeChain";
 import {
     ClaimFund,
@@ -51,6 +52,7 @@ describe("PositionHouse_02", () => {
     let positionHouseViewer: PositionHouseViewer;
     let positionHouseConfigurationProxy: PositionHouseConfigurationProxy;
     let positionHouseTestingTool: PositionHouseTestingTool;
+    let fundingRateTest: FundingRateTest;
     let _;
     beforeEach(async () => {
         [trader0, trader1, trader2, trader3, trader4, trader5, tradercp, tradercp2] = await ethers.getSigners();
@@ -63,7 +65,7 @@ describe("PositionHouse_02", () => {
             bep20Mintable,
             insuranceFund,
             positionHouseViewer,
-            positionHouseConfigurationProxy
+            fundingRateTest
         ] = await deployPositionHouse() as any
 
     })
@@ -1519,7 +1521,7 @@ describe("PositionHouse_02", () => {
                     trader: trader0.address,
                     instanceTrader: trader0,
                     _positionManager: positionManager,
-            })).to.be.revertedWith("23")
+            })).to.be.revertedWith("22")
             return;
 
             let response5 = (await openLimitPositionAndExpect({
@@ -1693,7 +1695,7 @@ describe("PositionHouse_02", () => {
                     trader: trader2.address,
                     instanceTrader: trader2,
                     _positionManager: positionManager,
-            })).to.be.revertedWith("23")
+            })).to.be.revertedWith("22")
             return;
 
             let response4 = (await openLimitPositionAndExpect({
@@ -2053,7 +2055,7 @@ describe("PositionHouse_02", () => {
                     trader: trader1.address,
                     instanceTrader: trader1,
                     _positionManager: positionManager,
-            })).to.be.revertedWith("23")
+            })).to.be.revertedWith("22")
             return;
 
             let response2Trader2 = (await openLimitPositionAndExpect({
@@ -2151,14 +2153,14 @@ describe("PositionHouse_02", () => {
                 _trader: trader1
             })) as unknown as PositionLimitOrderID
 
-            let response2Trader1 = (await openLimitPositionAndExpect({
+            await expect(openLimitPositionAndExpect({
                 limitPrice: 4890,
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: 500,
                 _trader: trader1
-            })) as unknown as PositionLimitOrderID
-
+            }) as unknown as PositionLimitOrderID).to.be.revertedWith('22')
+            return;
             // S5: Trader2 open market order Short (8)
             // S6: Trader1 open market order Short (10)
             await openMarketPosition({
@@ -2291,7 +2293,7 @@ describe("PositionHouse_02", () => {
                 leverage: 10,
                 quantity: 2000,
                 _trader: trader0
-            })).to.be.revertedWith("23")
+            })).to.be.revertedWith("22")
             return;
             console.log("done S5")
 
@@ -4054,7 +4056,7 @@ describe("PositionHouse_02", () => {
                 leverage: 10,
                 quantity: 20,
                 _trader: trader0
-            })).to.be.revertedWith("23")
+            })).to.be.revertedWith("22")
             return;
             console.log("done step 3")
             await openMarketPosition({
@@ -4399,7 +4401,7 @@ describe("PositionHouse_02", () => {
             claimableAmountTrader0 = await positionHouseViewer.getClaimAmount(positionManager.address, trader0.address)
             console.log("1    ", claimableAmountTrader0.toString())
 
-            await positionHouse.connect(trader0).closeLimitPosition(positionManager.address, 510000, 10)
+            await expect(positionHouse.connect(trader0).closeLimitPosition(positionManager.address, 510000, 10)).to.be.revertedWith('22')
 
             claimableAmountTrader0 = await positionHouseViewer.getClaimAmount(positionManager.address, trader0.address)
             console.log("2    ", claimableAmountTrader0.toString())
@@ -5479,6 +5481,7 @@ describe("PositionHouse_02", () => {
             const balanceAfterCloseMarket = await bep20Mintable.balanceOf(trader1.address)
             const paybackQuantity = BigNumber.from(balanceAfterCloseMarket).sub(BigNumber.from(balanceBeforeCloseMarket))
             await expect(paybackQuantity.toString()).eq("940")
+
             await openLimitPositionAndExpect({
                 limitPrice: 3300,
                 side: SIDE.LONG,
@@ -5487,7 +5490,7 @@ describe("PositionHouse_02", () => {
                 _trader: trader1
             })
 
-            await openMarketPosition({
+            await expect(openMarketPosition({
                     quantity: BigNumber.from('7'),
                     leverage: 10,
                     side: SIDE.SHORT,
@@ -5495,7 +5498,8 @@ describe("PositionHouse_02", () => {
                     instanceTrader: trader2,
                     _positionManager: positionManager,
                 }
-            );
+            )).to.be.revertedWith('22');
+            return;
 
             await openMarketPosition({
                     quantity: BigNumber.from('9'),
@@ -5858,6 +5862,152 @@ describe("PositionHouse_02", () => {
             const exchangedQuoteAmount = balanceAfterTestCase.sub(balanceBeforeTestCase)
             console.log(exchangedQuoteAmount.toString())
             expect(exchangedQuoteAmount.toString()).eq("992")
+        })
+
+        it("should be reverted transaction when open multi order with different side", async () => {
+            // S1: trader1 open a limit order long
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1,
+                skipCheckBalance: true
+            })
+
+            // S2: trader1 try to create a limit order short but got revert cause new order must same side with pending order
+            await expect(openLimitPositionAndExpect({
+                limitPrice: 5100,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1,
+                skipCheckBalance: true
+            })).to.be.revertedWith('22')
+
+            // S3: trader1 try to create a market order short but got revert cause new order must same side with pending order
+            await expect(openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            )).to.be.revertedWith("22")
+
+            // S4: trader2 do the same as trader1 but first order is long
+            await openLimitPositionAndExpect({
+                limitPrice: 5100,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader2,
+                skipCheckBalance: true
+            })
+
+            await expect(openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader2,
+                skipCheckBalance: true
+            })).to.be.revertedWith('22')
+
+            await expect(openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                }
+            )).to.be.revertedWith("22")
+        })
+
+        it("should be reverted when open reverse order with quantity higher than current position", async () => {
+            // S1: trader1 create a short position by limit order
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 1,
+                quantity: BigNumber.from('3'),
+                _trader: trader1,
+                _positionManager: positionManager
+            })
+
+            // S2: trader2 create a long position by market order, filled limit short of trader1
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 1,
+                    side: SIDE.LONG,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                }
+            );
+
+            // S3: trader1 open a limit reduce order, quantity = 2/3 position
+            await openLimitPositionAndExpect({
+                limitPrice: 4800,
+                side: SIDE.LONG,
+                leverage: 1,
+                quantity: BigNumber.from('2'),
+                _trader: trader1,
+                _positionManager: positionManager
+            })
+
+            // S4: trader1 try to create a limit reduce order with quantity = 2/3 position again but got revert
+            // cause total reverse order quantity > position quantity
+            await expect(openLimitPositionAndExpect({
+                limitPrice: 4800,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('2'),
+                _trader: trader1,
+                skipCheckBalance: true
+            })).to.be.revertedWith('22')
+
+            // S5: trader1 try to create a market reduce order but got revert same as s4
+            await expect(openMarketPosition({
+                    quantity: BigNumber.from('2'),
+                    leverage: 1,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            )).to.be.revertedWith('22');
+
+            // S6: trader2 do the same as S3, S4, S5
+            await openLimitPositionAndExpect({
+                limitPrice: 5200,
+                side: SIDE.SHORT,
+                leverage: 1,
+                quantity: BigNumber.from('2'),
+                _trader: trader2,
+                _positionManager: positionManager
+            })
+
+            await expect(openLimitPositionAndExpect({
+                limitPrice: 5200,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('2'),
+                _trader: trader2,
+                skipCheckBalance: true
+            })).to.be.revertedWith('22')
+
+            await expect(openMarketPosition({
+                    quantity: BigNumber.from('2'),
+                    leverage: 1,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                }
+            )).to.be.revertedWith('22');
         })
     })
 })
