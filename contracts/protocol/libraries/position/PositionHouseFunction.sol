@@ -428,25 +428,8 @@ library PositionHouseFunction {
         bool positionIsBuy = _checkParam.positionQuantity > 0;
         uint256 totalPendingQuantity;
         bool pendingOrderIsBuy;
-        // for loop check array increase limit order
-        {
-            for (uint256 i = 0; i < _checkParam.limitOrders.length; i++) {
-                (
-                bool isFilled,
-                bool isBuy,
-                uint256 quantity,
-                uint256 partialFilled
-                ) = _positionManager.getPendingOrderDetail(
-                    _checkParam.limitOrders[i].pip,
-                    _checkParam.limitOrders[i].orderId
-                );
-                // calculate total quantity in pending order
-                if (!isFilled && quantity > partialFilled) {
-                    totalPendingQuantity += (quantity - partialFilled);
-                }
-                pendingOrderIsBuy = isBuy;
-            }
-        }
+        // loop to check array increase limit orders
+        (totalPendingQuantity, pendingOrderIsBuy) = _getTotalPendingQuantityFromLimitOrders(_positionManager, _checkParam.limitOrders);
         // if there are pending limit increase order
         if (totalPendingQuantity != 0) {
             // if new order is same side as pending order return true
@@ -457,24 +440,7 @@ library PositionHouseFunction {
 
         }
         // if there are not pending limit increase order, for loop check array limit reduce
-        {
-            for (uint256 i = 0; i < _checkParam.reduceLimitOrders.length; i++) {
-                (
-                bool isFilled,
-                bool isBuy,
-                uint256 quantity,
-                uint256 partialFilled
-                ) = _positionManager.getPendingOrderDetail(
-                    _checkParam.reduceLimitOrders[i].pip,
-                    _checkParam.reduceLimitOrders[i].orderId
-                );
-                // calculate total quantity in pending order
-                if (!isFilled && quantity > partialFilled) {
-                    totalPendingQuantity += (quantity - partialFilled);
-                }
-                pendingOrderIsBuy = isBuy;
-            }
-        }
+        (totalPendingQuantity, pendingOrderIsBuy) = _getTotalPendingQuantityFromLimitOrders(_positionManager, _checkParam.reduceLimitOrders);
         // if there are pending limit reduce order
         if (totalPendingQuantity != 0) {
             uint256 totalReverseQuantity = totalPendingQuantity + _checkParam.orderQuantity;
@@ -492,6 +458,31 @@ library PositionHouseFunction {
             return false;
         }
         return true;
+    }
+
+    /// @dev get total pending order quantity from pending limit orders
+    function _getTotalPendingQuantityFromLimitOrders(IPositionManager _positionManager, PositionLimitOrder.Data[] memory _limitOrders)
+        private
+        view
+        returns (uint256 totalPendingQuantity, bool _isBuy)
+    {
+        for (uint256 i = 0; i < _limitOrders.length; i++) {
+            (
+            bool isFilled,
+            bool isBuy,
+            uint256 quantity,
+            uint256 partialFilled
+            ) = _positionManager.getPendingOrderDetail(
+                _limitOrders[i].pip,
+                _limitOrders[i].orderId
+            );
+            // calculate total quantity of the pending order only (!isFilled)
+            // partialFilled == quantity means the order is filled
+            if (!isFilled && quantity > partialFilled) {
+                totalPendingQuantity += (quantity - partialFilled);
+            }
+            _isBuy = isBuy;
+        }
     }
 
     function getPositionNotionalAndUnrealizedPnl(
