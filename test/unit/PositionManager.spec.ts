@@ -15,7 +15,7 @@ describe('Position Manager', async function () {
         const bep20MintableFactory = await ethers.getContractFactory('BEP20Mintable')
         bep20Mintable = (await bep20MintableFactory.deploy('BUSD Mock', 'BUSD')) as unknown as BEP20Mintable
 
-        const factory = await ethers.getContractFactory("PositionManager")
+        const factory = await ethers.getContractFactory("PositionManagerTest")
         positionManager = (await factory.deploy()) as unknown as PositionManager
         await positionManager.initialize(BigNumber.from(200), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), deployer.address);
     })

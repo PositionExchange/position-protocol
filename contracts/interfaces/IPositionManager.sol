@@ -38,15 +38,18 @@ interface IPositionManager {
     event FundingRateUpdated(int256 fundingRate, uint256 underlyingPrice);
     event LimitOrderUpdated(uint64 orderId, uint128 pip, uint256 size);
     event LeverageUpdated(uint128 oldLeverage, uint128 newLeverage);
-    event MaxMarketMakerSlipageUpdated(uint32 oldMaxMarketMakerSlipage, uint32 newMaxMarketMakerSlipage);
-
+    event MaxMarketMakerSlipageUpdated(
+        uint32 oldMaxMarketMakerSlipage,
+        uint32 newMaxMarketMakerSlipage
+    );
 
     // FUNCTIONS
     function pause() external;
 
     function unpause() external;
 
-    function updateMaxFindingWordsIndex(uint128 _newMaxFindingWordsIndex) external;
+    function updateMaxFindingWordsIndex(uint128 _newMaxFindingWordsIndex)
+        external;
 
     function updateBasisPoint(uint64 _newBasisPoint) external;
 
@@ -56,7 +59,8 @@ interface IPositionManager {
 
     function setCounterParty(address _counterParty) external;
 
-    function updateSpotPriceTwapInterval(uint256 _spotPriceTwapInterval) external;
+    function updateSpotPriceTwapInterval(uint256 _spotPriceTwapInterval)
+        external;
 
     function getBasisPointFactors() external view returns (uint64 base, uint64 basisPoint);
 
@@ -75,6 +79,8 @@ interface IPositionManager {
     function getLiquidityInCurrentPip() external view returns (uint128);
 
     function getPrice() external view returns (uint256);
+
+    function getUnderlyingPriceInPip() external view returns (uint256);
 
     function pipToPrice(uint128 pip) external view returns (uint256);
 
@@ -136,9 +142,19 @@ interface IPositionManager {
             uint256 margin,
             uint256 fee
         );
-    function marketMakerRemove(MarketMaker.MMCancelOrder[] memory _orders) external;
-    function marketMakerSupply(MarketMaker.MMOrder[] memory _orders, uint256 leverage) external;
-    function marketMakerFill(MarketMaker.MMFill[] memory _mmFills, uint256 _leverage) external;
+
+    function marketMakerRemove(MarketMaker.MMCancelOrder[] memory _orders)
+        external;
+
+    function marketMakerSupply(
+        MarketMaker.MMOrder[] memory _orders,
+        uint256 leverage
+    ) external;
+
+    function marketMakerFill(
+        MarketMaker.MMFill[] memory _mmFills,
+        uint256 _leverage
+    ) external;
 
     function openLimitPosition(
         uint128 pip,
@@ -156,12 +172,19 @@ interface IPositionManager {
         uint128 _fromPip,
         uint256 _dataLength,
         bool _toHigher
-    ) external view returns (PositionManagerStorage.PipLiquidity[] memory, uint128);
+    )
+        external
+        view
+        returns (PositionManagerStorage.PipLiquidity[] memory, uint128);
 
     function openMarketPosition(uint256 size, bool isBuy)
         external
-        returns (uint256 sizeOut, uint256 openNotional, uint256 entryPrice, uint256 fee);
-
+        returns (
+            uint256 sizeOut,
+            uint256 openNotional,
+            uint256 entryPrice,
+            uint256 fee
+        );
 
     function calcAdjustMargin(uint256 adjustMargin)
         external
@@ -169,6 +192,7 @@ interface IPositionManager {
         returns (uint256);
 
     function calcFee(uint256 _positionNotional) external view returns (uint256);
+
     function getCurrentFundingRate() external view returns (int256 fundingRate);
 
     function cancelLimitOrder(uint128 pip, uint64 orderId)

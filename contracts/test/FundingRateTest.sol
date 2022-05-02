@@ -9,6 +9,10 @@ contract FundingRateTest is PositionManager {
     uint256 mockUnderlyingPrice;
     uint256 mockTwapPrice;
 
+    function getUnderlyingPriceInPip() public view override returns (uint256) {
+        return getCurrentPip();
+    }
+
     function _now() internal view override returns (uint64) {
         return mockTime;
     }
@@ -31,24 +35,28 @@ contract FundingRateTest is PositionManager {
     }
 
     function getUnderlyingTwapPrice(uint256 _intervalInSeconds)
-    public
-    view
-    override
-    returns (uint256)
+        public
+        view
+        override
+        returns (uint256)
     {
         return mockUnderlyingPrice;
     }
 
     function getTwapPrice(uint256 _intervalInSeconds)
         public
-        override
         view
+        override
         returns (uint256)
     {
         return mockTwapPrice;
     }
 
-    function getFundingRate() public view returns (int256 premiumFraction,int256 fr) {
+    function getFundingRate()
+        public
+        view
+        returns (int256 premiumFraction, int256 fr)
+    {
         uint256 underlyingAsset;
         (premiumFraction, underlyingAsset) = super.getPremiumFraction();
         fr = premiumFraction / int256(underlyingAsset);

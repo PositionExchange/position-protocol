@@ -97,11 +97,7 @@ library LiquidityBitmap {
                     }
                 }
                 if (i == 0 && _self[0] != 0) {
-                    next = findHasLiquidityInOneWords(
-                        _self,
-                        255,
-                        true
-                    );
+                    next = findHasLiquidityInOneWords(_self, 255, true);
                     if (next != 0) {
                         return next;
                     }

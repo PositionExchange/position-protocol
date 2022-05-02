@@ -5,30 +5,40 @@ import "../libraries/position/Position.sol";
 
 abstract contract CumulativePremiumFractions {
     // avoid calling to position manager
-    int256 private constant PREMIUM_FRACTION_DENOMINATOR = 10 ** 10;
+    int256 private constant PREMIUM_FRACTION_DENOMINATOR = 10**10;
     // Cumulative premium fraction
     mapping(address => int128[]) private cumulativePremiumFractions;
 
-    event FundingPaid(int256 premiumFraction, int256 newestCumulativePremiumFraction,address positionManager, address caller ,uint256 blockTimestamp);
-
+    event FundingPaid(
+        int256 premiumFraction,
+        int256 newestCumulativePremiumFraction,
+        address positionManager,
+        address caller,
+        uint256 blockTimestamp
+    );
 
     function payFunding(IPositionManager _positionManager) public {
-        address _pmAddress = address(_positionManager);
-        int256 premiumFraction = _positionManager.settleFunding();
-        int128 newestCumulativePremiumFraction = int128(premiumFraction) + getLatestCumulativePremiumFraction(
-            _pmAddress
-        );
-        cumulativePremiumFractions[_pmAddress].push(
-            newestCumulativePremiumFraction
-        );
-        emit FundingPaid(
-            premiumFraction,
-            newestCumulativePremiumFraction,
-            address(_positionManager),
-            msg.sender,
-            block.timestamp
-        );
+        revert("funding paused");
+        // TODO unpause when the funding is fixed
+//        address _pmAddress = address(_positionManager);
+//        int256 premiumFraction = _positionManager.settleFunding();
+//        int128 newestCumulativePremiumFraction = int128(premiumFraction) +
+//            getLatestCumulativePremiumFraction(_pmAddress);
+//        cumulativePremiumFractions[_pmAddress].push(
+//            newestCumulativePremiumFraction
+//        );
+//        emit FundingPaid(
+//            premiumFraction,
+//            newestCumulativePremiumFraction,
+//            address(_positionManager),
+//            msg.sender,
+//            block.timestamp
+//        );
+    }
 
+    // TODO remove once fix the funding for limit order issue
+    function _resetLatestCumulativePremiumFractions(address _positionManager) internal {
+        cumulativePremiumFractions[_positionManager].push(0);
     }
 
     function getLatestCumulativePremiumFraction(address _positionManager)
@@ -76,10 +86,13 @@ abstract contract CumulativePremiumFractions {
             _positionManager
         );
         if (_oldPosition.quantity != 0) {
-            fundingPayment =
-            ((latestCumulativePremiumFraction -
-                    _oldPosition.lastUpdatedCumulativePremiumFraction) *
-                _oldPosition.quantity) / PREMIUM_FRACTION_DENOMINATOR;
+            fundingPayment = 0;
+            // TODO: open when the funding rate is fixed
+//            fundingPayment =
+//                ((latestCumulativePremiumFraction -
+//                    _oldPosition.lastUpdatedCumulativePremiumFraction) *
+//                    _oldPosition.quantity) /
+//                PREMIUM_FRACTION_DENOMINATOR;
         }
 
         // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt
