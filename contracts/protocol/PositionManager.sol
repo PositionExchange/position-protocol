@@ -290,7 +290,16 @@ contract PositionManager is
             uint256 fee
         )
     {
+        uint256 underlyingPip = getUnderlyingPriceInPip();
         (sizeOut, openNotional) = _internalOpenMarketOrder(_size, _isBuy, 0);
+        uint128 _afterPip = singleSlot.pip;
+
+        bool pass = _isBuy
+        ? _afterPip <= (underlyingPip + maxFindingWordsIndex * 250)
+        : int128(_afterPip) >= (int256(underlyingPip) - int128(maxFindingWordsIndex * 250));
+        if (!pass) {
+            revert(Errors.VL_MARKET_ORDER_MUST_CLOSE_TO_INDEX_PRICE);
+        }
         fee = calcFee(openNotional);
         entryPrice = (openNotional * getBasisPoint()) / _size;
     }

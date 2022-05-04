@@ -40,6 +40,7 @@ library Errors {
     string public constant VL_MUST_SAME_SIDE = "22";
     string public constant VL_MUST_SMALLER_REVERSE_QUANTITY = "23";
     string public constant VL_MUST_CLOSE_TO_INDEX_PRICE = "24";
+    string public constant VL_MARKET_ORDER_MUST_CLOSE_TO_INDEX_PRICE = "25";
 
     enum CollateralManagerErrors {
         NO_ERROR
