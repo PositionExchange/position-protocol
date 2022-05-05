@@ -37,6 +37,11 @@ interface IPositionHouse {
     view
     returns (int128);
 
+    function getLimitOrderPremiumFraction(address _pmAddress, address _trader)
+    external
+    view
+    returns (int128);
+
     function getAddedMargin(address _positionManager, address _trader)
     external
     view

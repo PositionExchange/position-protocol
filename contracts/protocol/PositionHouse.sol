@@ -556,7 +556,9 @@ contract PositionHouse is
         }
     }
 
-
+    function getLimitOrderPremiumFraction(address _pmAddress, address _trader) public view returns (int128) {
+        return _getLimitOrderPremiumFraction(_pmAddress, _trader);
+    }
 
     function getLatestCumulativePremiumFraction(address _pmAddress)
         public
