@@ -589,7 +589,7 @@ library PositionHouseFunction {
 
         // now position should be reduced
         // should never overflow?
-        _cpIncrPosition.quantity = _cpIncrPosition.quantity.subAmount(uint256(_filledAmount));
+        _cpIncrPosition.quantity = _cpIncrPosition.quantity.subAmount(_filledAmount.abs());
         // avoid overflow due to absolute error
         if (openNotional.abs() >= _cpIncrPosition.openNotional) {
             _cpIncrPosition.openNotional = 0;
