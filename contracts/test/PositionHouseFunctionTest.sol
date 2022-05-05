@@ -8,22 +8,22 @@ import "../protocol/libraries/position/PositionHouseFunction.sol";
 contract PositionHouseFunctionTest {
     function getClaimAmount(
         address _pmAddress,
-        address _trader,
+        int256 _manualMargin,
         Position.LiquidatedData memory _positionLiquidatedData,
         Position.Data memory _positionDataWithoutLimit,
         PositionLimitOrder.Data[] memory _limitOrders,
         PositionLimitOrder.Data[] memory _reduceLimitOrders,
-        uint256 _canClaimAmountInMap,
-        int256 _manualMarginInMap,
-        int256 _latestCumulativePremiumFraction
+        int128 _positionLatestCumulativePremiumFraction,
+        int128 _latestCumulativePremiumFraction
     ) public view returns (int256 totalClaimableAmount){
         return PositionHouseFunction.getClaimAmount(
                 _pmAddress,
-                _manualMarginInMap,
+                _manualMargin,
                 _positionLiquidatedData,
                 _positionDataWithoutLimit,
                 _limitOrders,
                 _reduceLimitOrders,
+                _positionLatestCumulativePremiumFraction,
                 _latestCumulativePremiumFraction
         );
     }

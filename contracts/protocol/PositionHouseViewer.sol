@@ -32,6 +32,7 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
             positionHouse.positionMap(_pmAddress, _trader),
             positionHouse._getLimitOrders(_pmAddress, _trader),
             positionHouse._getReduceLimitOrders(_pmAddress, _trader),
+            positionHouse.getLimitOrderPremiumFraction(_pmAddress, _trader),
             positionHouse.getLatestCumulativePremiumFraction(_pmAddress)
         );
     }
