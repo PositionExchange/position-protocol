@@ -764,9 +764,13 @@ contract PositionManager is
         (remainingSize, partialFilled, isBuy) = _tickPosition.cancelLimitOrder(
             _orderId
         );
+        // if that pip doesn't have liquidity after closed order, toggle pip to uninitialized
         if (_tickPosition.liquidity == 0) {
             liquidityBitmap.toggleSingleBit(_pip, false);
-            singleSlot.isFullBuy = 0;
+            // only unset isFullBuy when cancel order pip == current pip
+            if (_pip == singleSlot.pip) {
+                singleSlot.isFullBuy = 0;
+            }
         }
         emit LimitOrderCancelled(isBuy, _orderId, _pip, remainingSize);
     }
