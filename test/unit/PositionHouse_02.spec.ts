@@ -114,8 +114,10 @@ describe("PositionHouse_02", () => {
 
     async function changePrice({
                                    limitPrice,
-                                   toHigherPrice
+                                   toHigherPrice,
+                                   _positionManager
                                }: ChangePriceParams) {
+
         if (toHigherPrice) {
             let response1 = (await openLimitPositionAndExpect({
                 limitPrice: limitPrice,
@@ -123,6 +125,7 @@ describe("PositionHouse_02", () => {
                 leverage: 10,
                 quantity: 3,
                 _trader: tradercp,
+                _positionManager: _positionManager || positionManager
             })) as unknown as PositionLimitOrderID
 
             await openMarketPosition({
@@ -131,7 +134,7 @@ describe("PositionHouse_02", () => {
                     side: SIDE.LONG,
                     trader: tradercp2.address,
                     instanceTrader: tradercp2,
-                    _positionManager: positionManager,
+                    _positionManager: _positionManager || positionManager,
                     expectedSize: BigNumber.from(0)
                 }
             );
@@ -142,6 +145,7 @@ describe("PositionHouse_02", () => {
                 leverage: 10,
                 quantity: 3,
                 _trader: tradercp,
+                _positionManager: _positionManager || positionManager
             })) as unknown as PositionLimitOrderID
 
             await openMarketPosition({
@@ -150,7 +154,7 @@ describe("PositionHouse_02", () => {
                     side: SIDE.SHORT,
                     trader: tradercp2.address,
                     instanceTrader: tradercp2,
-                    _positionManager: positionManager,
+                    _positionManager: _positionManager || positionManager,
                     expectedSize: BigNumber.from(0)
                 }
             );
@@ -6043,5 +6047,115 @@ describe("PositionHouse_02", () => {
                 }
             )).to.be.revertedWith("11")
         })
+
+
+        it("should cancel pending order success of liquidated user", async () => {
+            await fundingRateTest.setMockPrice(5500, 5500)
+
+            await changePrice({
+                limitPrice: 4000,
+                toHigherPrice: false,
+                _positionManager: fundingRateTest
+            })
+
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4100,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader1,
+                _positionManager: fundingRateTest
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4200,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('5'),
+                _trader: trader1,
+                _positionManager: fundingRateTest
+            })
+
+            await positionHouse.liquidate(fundingRateTest.address, trader1.address);
+
+            await positionHouse.connect(trader1).cancelLimitOrder(fundingRateTest.address, 0, 0)
+        })
+
+        it("pending order should be filled normally after position got liquidated", async () => {
+            await fundingRateTest.setMockPrice(5500, 5500)
+
+            await changePrice({
+                limitPrice: 4000,
+                toHigherPrice: false,
+                _positionManager: fundingRateTest
+            })
+
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4100,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader1,
+                _positionManager: fundingRateTest
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('3'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('2'),
+                _trader: trader1,
+                _positionManager: fundingRateTest
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('1'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+            await positionHouse.liquidate(fundingRateTest.address, trader1.address);
+
+            console.log("get list order pending ##################", (await positionHouseViewer.getListOrderPending(fundingRateTest.address, trader1.address)))
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('1'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: fundingRateTest,
+                }
+            );
+        })
+
     })
 })
