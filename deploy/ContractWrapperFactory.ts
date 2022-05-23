@@ -237,7 +237,23 @@ export class ContractWrapperFactory {
             await this.db.saveAddressByKey('ChainLinkPriceFeed', address);
 
         }
+    }
 
+    async createChainlinkPriceFeedQc( args: CreateChainLinkPriceFeed){
+        const ChainLinkPriceFeed = await this.hre.ethers.getContractFactory("ChainLinkPriceFeedMock");
+        const chainlinkContractAddress = await this.db.findAddressByKey(`ChainLinkPriceFeed`);
+        if (chainlinkContractAddress) {
+            const upgraded = await this.hre.upgrades.upgradeProxy(chainlinkContractAddress, ChainLinkPriceFeed);
+            await this.verifyImplContract(upgraded.deployTransaction);
+        } else {
+            const contractArgs = [];
+            const instance = await this.hre.upgrades.deployProxy(ChainLinkPriceFeed, contractArgs);
+            console.log("wait for deploy chainlink price feed");
+            await instance.deployed();
+            const address = instance.address.toString().toLowerCase();
+            console.log(`Chain link price feed address : ${address}`)
+            await this.db.saveAddressByKey('ChainLinkPriceFeed', address);
+        }
     }
 
 }

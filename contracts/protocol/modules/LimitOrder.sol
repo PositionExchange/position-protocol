@@ -83,7 +83,9 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             ? int256(_uQuantity)
             : -int256(_uQuantity);
         require(_requireOrderSideAndQuantity(_pmAddress, _trader, _side, _uQuantity, _oldPosition.quantity),Errors.VL_MUST_SAME_SIDE);
-
+        if (oldPosition.quantity == 0) {
+            oldPosition.leverage = 1;
+        }
         (openLimitResp.orderId, openLimitResp.sizeOut) = _openLimitOrder(
             _positionManager,
             _trader,
