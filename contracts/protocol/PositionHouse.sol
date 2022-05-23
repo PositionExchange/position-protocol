@@ -722,7 +722,8 @@ contract PositionHouse is
             if (subReduceLimitOrders[i].pip == 0) {
                 break;
             }
-            _pushReduceLimit(_pmAddress, _trader, subReduceLimitOrders[i]);
+            // _pushLimit cause old position was liquidated, pending order is treated as a new order
+            _pushLimit(_pmAddress, _trader, subReduceLimitOrders[i]);
         }
     }
 
