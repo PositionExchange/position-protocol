@@ -580,7 +580,7 @@ contract PositionHouse is
     ) internal {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
-        require(_requireOrderSideAndQuantity(_pmAddress, _trader, _side, _quantity, oldPosition.quantity),Errors.VL_MUST_SAME_SIDE);
+        _requireOrderSideAndQuantity(_pmAddress, _trader, _side, _quantity, oldPosition.quantity);
         int256 pQuantity = _side == Position.Side.LONG
             ? int256(_quantity)
             : -int256(_quantity);
