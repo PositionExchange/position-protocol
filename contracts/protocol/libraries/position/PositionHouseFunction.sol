@@ -320,9 +320,9 @@ library PositionHouseFunction {
         // NOTE: _entryPrice must divide _baseBasicPoint to get the "raw entry price"
         uint256 _orderNotional = _orderQuantity.abs() * (
             _entryPrice == 0 ?
-            _limitOrder.pip.toNotional(_basisPoint)
-            : _entryPrice / _baseBasicPoint
-        );
+            _limitOrder.pip.toNotional(_baseBasicPoint, _basisPoint)
+            : _entryPrice
+        ) / _baseBasicPoint;
         uint256 _orderMargin = _orderNotional / _limitOrder.leverage;
         _positionData = _positionData.accumulateLimitOrder(
             _orderQuantity,
@@ -419,10 +419,16 @@ library PositionHouseFunction {
         int256 positionQuantity;
     }
 
+    enum ReturnCheckOrderSideAndQuantity {
+        PASS,
+        MUST_SAME_SIDE,
+        MUST_SMALLER_QUANTITY
+    }
+
     function checkPendingOrderSideAndQuantity(
         IPositionManager _positionManager,
         CheckSideAndQuantityParam memory _checkParam
-    ) public view returns (bool) {
+    ) public view returns (ReturnCheckOrderSideAndQuantity) {
         // Get order in both increase and reduce limit order array
         bool newOrderIsBuy = _checkParam.side == Position.Side.LONG;
         bool positionIsBuy = _checkParam.positionQuantity > 0;
@@ -433,10 +439,12 @@ library PositionHouseFunction {
         // if there are pending limit increase order
         if (totalPendingQuantity != 0) {
             // if new order is same side as pending order return true
-            if (newOrderIsBuy == pendingOrderIsBuy)
-                return true;
-            else
-                return false;
+            if (newOrderIsBuy == pendingOrderIsBuy) {
+                return ReturnCheckOrderSideAndQuantity.PASS;
+            }
+            else {
+                return ReturnCheckOrderSideAndQuantity.MUST_SAME_SIDE;
+            }
 
         }
         // if there are not pending limit increase order, for loop check array limit reduce
@@ -446,18 +454,21 @@ library PositionHouseFunction {
             uint256 totalReverseQuantity = totalPendingQuantity + _checkParam.orderQuantity;
             // if total quantity of reverse order is smaller than current position
             // and new order is same side as pending order, return true
-            if (newOrderIsBuy == pendingOrderIsBuy && totalReverseQuantity <= _checkParam.positionQuantity.abs())
-                return true;
-            else
-                return false;
+            if (newOrderIsBuy == pendingOrderIsBuy && totalReverseQuantity <= _checkParam.positionQuantity.abs()) {
+                return ReturnCheckOrderSideAndQuantity.PASS;
+            } else if (newOrderIsBuy != pendingOrderIsBuy) {
+                return ReturnCheckOrderSideAndQuantity.MUST_SAME_SIDE;
+            } else {
+                return ReturnCheckOrderSideAndQuantity.MUST_SMALLER_QUANTITY;
+            }
         }
         // if user don't have position, return true
-        if (_checkParam.positionQuantity == 0) return true;
+        if (_checkParam.positionQuantity == 0) return ReturnCheckOrderSideAndQuantity.PASS;
         // if user don't have pending order but new order is reverse, order quantity > position quantity, return false
         if (newOrderIsBuy != positionIsBuy && _checkParam.orderQuantity > _checkParam.positionQuantity.abs()) {
-            return false;
+            return ReturnCheckOrderSideAndQuantity.MUST_SMALLER_QUANTITY;
         }
-        return true;
+        return ReturnCheckOrderSideAndQuantity.PASS;
     }
 
     /// @dev get total pending order quantity from pending limit orders
@@ -481,7 +492,9 @@ library PositionHouseFunction {
             if (!isFilled && quantity > partialFilled) {
                 totalPendingQuantity += (quantity - partialFilled);
             }
-            _isBuy = isBuy;
+            if (quantity != 0) {
+                _isBuy = isBuy;
+            }
         }
     }
 

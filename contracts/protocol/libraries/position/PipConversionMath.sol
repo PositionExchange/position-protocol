@@ -15,8 +15,8 @@ library PipConversionMath {
         return int256(uQuantity * uint256(pip) / (leverage * basisPoint));
     }
 
-    function toNotional(uint128 pip, uint64 basisPoint) internal pure returns(uint256){
-        return uint256(pip) / basisPoint;
+    function toNotional(uint128 pip, uint64 baseBasisPoint, uint64 basisPoint) internal pure returns(uint256){
+        return uint256(pip) * baseBasisPoint / basisPoint;
     }
 
 }

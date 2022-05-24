@@ -715,7 +715,7 @@ describe("PositionHouse_01", () => {
                     leverage: 10,
                     quantity: 5,
                     _trader: trader1
-                })).to.be.revertedWith("22")
+                })).to.be.revertedWith("23")
                 return;
 
                 // trader2 short at price 4990 because of trader1's order, quantity 5 BTC
