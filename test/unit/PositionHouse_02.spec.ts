@@ -1521,7 +1521,7 @@ describe("PositionHouse_02", () => {
                     trader: trader0.address,
                     instanceTrader: trader0,
                     _positionManager: positionManager,
-            })).to.be.revertedWith("22")
+            })).to.be.revertedWith("23")
             return;
 
             let response5 = (await openLimitPositionAndExpect({
@@ -1695,7 +1695,7 @@ describe("PositionHouse_02", () => {
                     trader: trader2.address,
                     instanceTrader: trader2,
                     _positionManager: positionManager,
-            })).to.be.revertedWith("22")
+            })).to.be.revertedWith("23")
             return;
 
             let response4 = (await openLimitPositionAndExpect({
@@ -2055,7 +2055,7 @@ describe("PositionHouse_02", () => {
                     trader: trader1.address,
                     instanceTrader: trader1,
                     _positionManager: positionManager,
-            })).to.be.revertedWith("22")
+            })).to.be.revertedWith("23")
             return;
 
             let response2Trader2 = (await openLimitPositionAndExpect({
@@ -2159,7 +2159,7 @@ describe("PositionHouse_02", () => {
                 leverage: 10,
                 quantity: 500,
                 _trader: trader1
-            }) as unknown as PositionLimitOrderID).to.be.revertedWith('22')
+            }) as unknown as PositionLimitOrderID).to.be.revertedWith('23')
             return;
             // S5: Trader2 open market order Short (8)
             // S6: Trader1 open market order Short (10)
@@ -2293,7 +2293,7 @@ describe("PositionHouse_02", () => {
                 leverage: 10,
                 quantity: 2000,
                 _trader: trader0
-            })).to.be.revertedWith("22")
+            })).to.be.revertedWith("23")
             return;
             console.log("done S5")
 
@@ -4056,7 +4056,7 @@ describe("PositionHouse_02", () => {
                 leverage: 10,
                 quantity: 20,
                 _trader: trader0
-            })).to.be.revertedWith("22")
+            })).to.be.revertedWith("23")
             return;
             console.log("done step 3")
             await openMarketPosition({
@@ -4401,7 +4401,7 @@ describe("PositionHouse_02", () => {
             claimableAmountTrader0 = await positionHouseViewer.getClaimAmount(positionManager.address, trader0.address)
             console.log("1    ", claimableAmountTrader0.toString())
 
-            await expect(positionHouse.connect(trader0).closeLimitPosition(positionManager.address, 510000, 10)).to.be.revertedWith('22')
+            await expect(positionHouse.connect(trader0).closeLimitPosition(positionManager.address, 510000, 10)).to.be.revertedWith('23')
 
             claimableAmountTrader0 = await positionHouseViewer.getClaimAmount(positionManager.address, trader0.address)
             console.log("2    ", claimableAmountTrader0.toString())
@@ -5498,7 +5498,7 @@ describe("PositionHouse_02", () => {
                     instanceTrader: trader2,
                     _positionManager: positionManager,
                 }
-            )).to.be.revertedWith('22');
+            )).to.be.revertedWith('23');
             return;
 
             await openMarketPosition({
@@ -5967,7 +5967,7 @@ describe("PositionHouse_02", () => {
                 quantity: BigNumber.from('2'),
                 _trader: trader1,
                 skipCheckBalance: true
-            })).to.be.revertedWith('22')
+            })).to.be.revertedWith('23')
 
             // S5: trader1 try to create a market reduce order but got revert same as s4
             await expect(openMarketPosition({
@@ -5978,7 +5978,7 @@ describe("PositionHouse_02", () => {
                     instanceTrader: trader1,
                     _positionManager: positionManager,
                 }
-            )).to.be.revertedWith('22');
+            )).to.be.revertedWith('23');
 
             // S6: trader2 do the same as S3, S4, S5
             await openLimitPositionAndExpect({
@@ -5997,7 +5997,7 @@ describe("PositionHouse_02", () => {
                 quantity: BigNumber.from('2'),
                 _trader: trader2,
                 skipCheckBalance: true
-            })).to.be.revertedWith('22')
+            })).to.be.revertedWith('23')
 
             await expect(openMarketPosition({
                     quantity: BigNumber.from('2'),
@@ -6007,7 +6007,7 @@ describe("PositionHouse_02", () => {
                     instanceTrader: trader2,
                     _positionManager: positionManager,
                 }
-            )).to.be.revertedWith('22');
+            )).to.be.revertedWith('23');
         })
     })
 })
