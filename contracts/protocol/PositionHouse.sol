@@ -288,6 +288,8 @@ contract PositionHouse is
                 emit PartiallyLiquidated(_pmAddress, _trader);
             } else {
                 // fully liquidate trader's position
+                bool _liquidateOrderIsBuy = positionDataWithManualMargin.quantity > 0 ? false : true;
+                _positionManager.openMarketPosition(positionDataWithManualMargin.quantity.abs(), _liquidateOrderIsBuy);
                 liquidationPenalty =
                     positionDataWithManualMargin.margin ;
                 clearPosition(_pmAddress, _trader);
@@ -801,9 +803,9 @@ contract PositionHouse is
     ) internal returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
         int256 _manualMargin = _getManualMargin(_pmAddress, _trader);
-        Position.Side _side = _quantity > 0 ? Position.Side.SHORT : Position.Side.LONG;
-        (positionResp.exchangedPositionSize, ,, ) = PositionHouseFunction
-            .openMarketOrder(_pmAddress, _quantity.abs(), _side);
+        // if current position is long (_quantity >0) then liquidate order is short
+        bool _liquidateOrderIsBuy = _quantity > 0 ? false : true;
+        _positionManager.openMarketPosition(_quantity.abs(), _liquidateOrderIsBuy);
         positionResp.exchangedQuoteAssetAmount = _quantity
             .getExchangedQuoteAssetAmount(
                 _oldPosition.openNotional,
