@@ -136,7 +136,8 @@ describe('Test Margin Intergration', function () {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('15')),
                 _trader: trader2,
-                _positionManager: fundingRateTest
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
             })
 
             await phTT.openMarketPosition({
@@ -210,7 +211,8 @@ describe('Test Margin Intergration', function () {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('15')),
                 _trader: trader2,
-                _positionManager: fundingRateTest
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
             })
 
             await phTT.openMarketPosition({
@@ -297,7 +299,8 @@ describe('Test Margin Intergration', function () {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('5')),
                 _trader: trader2,
-                _positionManager: fundingRateTest
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
             })
 
             // close 5/10 quantity of old positition
@@ -334,7 +337,8 @@ describe('Test Margin Intergration', function () {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('2')),
                 _trader: trader2,
-                _positionManager: fundingRateTest
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
             })
 
             // close 2/5 quantity of old position
@@ -380,7 +384,7 @@ describe('Test Margin Intergration', function () {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('10')),
                 _trader: trader2,
-                _positionManager: fundingRateTest
+                _positionManager: fundingRateTest,
             })
 
             await phTT.openMarketPosition({
@@ -417,7 +421,8 @@ describe('Test Margin Intergration', function () {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('13')),
                 _trader: trader2,
-                _positionManager: fundingRateTest
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
             })
 
             await phTT.openMarketPosition({
@@ -532,7 +537,8 @@ describe('Test Margin Intergration', function () {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('15')),
                 _trader: trader1,
-                _positionManager: fundingRateTest
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
             })
 
             await phTT.openMarketPosition({
@@ -545,9 +551,9 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = oldMargin + newOrderMargin = 9700 + 7275 = 16975
+            // claimbleAmount = oldMargin = 9700 = 9700
             const claimableFundAfterStep4 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep4.toString()).eq("16975000000000000000000")
+            expect(claimableFundAfterStep4.toString()).eq("9700000000000000000000")
 
             // Step 5
             console.log("STEP 5")
@@ -556,9 +562,9 @@ describe('Test Margin Intergration', function () {
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 3", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimableFundAfterStep4 + fundingPayment = 16975 + 4.629629628 = 16979.629629628
+            // claimbleAmount = claimableFundAfterStep4 + fundingPayment = 9700 + 4.629629628 = 9704.629629628
             const claimableFundAfterStep5 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep5.toString()).eq("16979629629628000000000")
+            expect(claimableFundAfterStep5.toString()).eq("9704629629628000000000")
 
             // Step 6
             console.log("STEP 6")
@@ -581,9 +587,9 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = oldPositionMargin + newOrderMargin + fundingPayment = 16975 + 5100 + 1.157407407 = 22076.157407407
+            // claimbleAmount = oldPositionMargin + newOrderMargin + fundingPayment = 9700 + 5100 + 1.157407407 = 14801.157407407
             const claimableFundAfterStep6 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep6.toString()).eq("22076157407407000000000")
+            expect(claimableFundAfterStep6.toString()).eq("14801157407407000000000")
 
             // Step 7
             console.log("STEP 7")
@@ -592,9 +598,9 @@ describe('Test Margin Intergration', function () {
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 4", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimableFundAfterStep6 + fundingPayment = 22076.157407407 - 34.722222222 = 22041.435185185
+            // claimbleAmount = claimableFundAfterStep6 + fundingPayment = 14801.157407407 - 34.722222222 = 14766.435185185
             const claimableFundAfterStep7 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep7.toString()).eq("22041435185185000000000")
+            expect(claimableFundAfterStep7.toString()).eq("14766435185185000000000")
 
 
             // Step 8
@@ -605,7 +611,8 @@ describe('Test Margin Intergration', function () {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('15')),
                 _trader: trader1,
-                _positionManager: fundingRateTest
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
             })
 
             await phTT.openMarketPosition({
@@ -618,9 +625,9 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = claimableFundAfterStep7 + newOrderMargin + pnl = 22041.435185185 + 5200*15/10 + 15*(5200 - 5016.67) = 32591.435185185
+            // claimbleAmount = claimableFundAfterStep7 + pnl = 14766.435185185 + 15*(5200 - 5016.67) = 17516.436185185
             const claimableFundAfterStep8 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep8.toString()).eq("32591436185185000000000")
+            expect(claimableFundAfterStep8.toString()).eq("17516436185185000000000")
 
             await positionHouse.connect(trader1).claimFund(fundingRateTest.address)
 
@@ -689,7 +696,8 @@ describe('Test Margin Intergration', function () {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('5')),
                 _trader: trader1,
-                _positionManager: fundingRateTest
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
             })
 
             await phTT.openMarketPosition({
@@ -702,9 +710,9 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = total margin + pnl = 4900 + 5000*5/10 + (5000-4900)*5 = 7900
+            // claimbleAmount = old margin + pnl = 4900 + (5000-4900)*5 = 5400
             const claimableFundAfterStep2 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep2.toString()).eq(toWei("7900"))
+            expect(claimableFundAfterStep2.toString()).eq(toWei("5400"))
 
             // Step 3
             console.log("STEP 3")
@@ -713,9 +721,9 @@ describe('Test Margin Intergration', function () {
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 2", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimableFundAfterStep2 + fundingPayment = 7900 - 8.101851851 = 7891.898148149
+            // claimbleAmount = claimableFundAfterStep2 + fundingPayment = 5400 - 8.101851851 = 5391.898148149
             const claimableFundAfterStep3 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep3.toString()).eq("7891898148149000000000")
+            expect(claimableFundAfterStep3.toString()).eq("5391898148149000000000")
 
             // Step 4
             console.log("STEP 4")
@@ -726,7 +734,8 @@ describe('Test Margin Intergration', function () {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('2')),
                 _trader: trader1,
-                _positionManager: fundingRateTest
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true,
             })
 
             await phTT.openMarketPosition({
@@ -739,9 +748,9 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = claimalbeAmountAfterStep2 + newOrderMargin + pnl = 7900 + 5100*2/10 + (5100-4900)*2 = 9320
+            // claimbleAmount = claimalbeAmountAfterStep2 + newOrderMargin + pnl = 5400 + (5100-4900)*2 = 5800
             const claimableFundAfterStep4 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep4.toString()).eq(toWei("9320"))
+            expect(claimableFundAfterStep4.toString()).eq(toWei("5800"))
 
             // Step 5
             console.log("STEP 5")
@@ -750,9 +759,9 @@ describe('Test Margin Intergration', function () {
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 3", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimalbeAmountAfterStep4 + fundingPayment = 9320 - 5.787037037 = 9314.212962963
+            // claimbleAmount = claimalbeAmountAfterStep4 + fundingPayment = 5800 - 5.787037037 = 5794.212962963
             const claimableFundAfterStep5 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep5.toString()).eq("9314212962963000000000")
+            expect(claimableFundAfterStep5.toString()).eq("5794212962963000000000")
 
             // Step 6
             console.log("STEP 6")
@@ -763,7 +772,8 @@ describe('Test Margin Intergration', function () {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('2')),
                 _trader: trader2,
-                _positionManager: fundingRateTest
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
             })
 
             await phTT.openMarketPosition({
@@ -776,9 +786,9 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = claimalbeAmountAfterStep5 + fundingPayment - claimedMargin = 9320 + 1.7361111111 - 4900*2/10 = 8341.7361111111
+            // claimbleAmount = claimalbeAmountAfterStep5 + fundingPayment - claimedMargin = 5800 + 1.7361111111 - 4900*2/10 = 4821.7361111111
             const claimableFundAfterStep6 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep6.toString()).eq("8341736111111100000000")
+            expect(claimableFundAfterStep6.toString()).eq("4821736111111100000000")
 
             // Step 7
             console.log("STEP 7")
@@ -787,9 +797,9 @@ describe('Test Margin Intergration', function () {
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 4", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimalbeAmountAfterStep6 + fundingPayment = 8341.7361111111 + 2.7777777776 = 8344.5138888887
+            // claimbleAmount = claimalbeAmountAfterStep6 + fundingPayment = 4821.7361111111 + 2.7777777776 = 4824.5138888887
             const claimableFundAfterStep7 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep7.toString()).eq("8344513888888700000000")
+            expect(claimableFundAfterStep7.toString()).eq("4824513888888700000000")
 
 
             // Step 8
@@ -801,7 +811,8 @@ describe('Test Margin Intergration', function () {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('1')),
                 _trader: trader1,
-                _positionManager: fundingRateTest
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
             })
 
             await phTT.openMarketPosition({
@@ -814,9 +825,9 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = claimalbeAmountAfterStep7 + newOrderMargin + pnl = 8344.5138888887 + 520 + 300 = 9164.5138888887
+            // claimbleAmount = claimalbeAmountAfterStep7 + pnl = 4824.5138888887 + 300 = 5124.5138888887
             const claimableFundAfterStep8 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep8.toString()).eq("9164513888888700000000")
+            expect(claimableFundAfterStep8.toString()).eq("5124513888888700000000")
 
             await positionHouse.connect(trader1).claimFund(fundingRateTest.address)
 
@@ -911,7 +922,8 @@ describe('Test Margin Intergration', function () {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('2')),
                 _trader: trader1,
-                _positionManager: fundingRateTest
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
             })
 
             await phTT.openMarketPosition({
@@ -924,9 +936,9 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = totalMargin + pnl = 4000 + 4200*2/10 - 400 = 4440
+            // claimbleAmount = totalMargin + pnl = 4000 - 400 = 3600
             const claimableFundAfterStep3 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep3.toString()).eq(toWei("4440"))
+            expect(claimableFundAfterStep3.toString()).eq(toWei("3600"))
 
             // Step 4
             console.log("STEP 4")
@@ -936,7 +948,8 @@ describe('Test Margin Intergration', function () {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('3')),
                 _trader: trader2,
-                _positionManager: fundingRateTest
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
             })
 
             await phTT.openMarketPosition({
@@ -949,9 +962,9 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = claimableFundAfterStep3 - claimedMargin = 4440 - 4000*3/10 = 3240
+            // claimbleAmount = claimableFundAfterStep3 - claimedMargin = 3600 - 4000*3/10 = 2400
             const claimableFundAfterStep4 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep4.toString()).eq(toWei("3240"))
+            expect(claimableFundAfterStep4.toString()).eq(toWei("2400"))
 
             // Step 5
             console.log("STEP 5")
@@ -960,9 +973,9 @@ describe('Test Margin Intergration', function () {
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 3", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimableFundAfterStep5 + fundingPayment = 3240 + 0.7291666662 = 3240.7291666662
+            // claimbleAmount = claimableFundAfterStep5 + fundingPayment = 2400 + 0.7291666662 = 2400.7291666662
             const claimableFundAfterStep6 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep6.toString()).eq(toWei("3240.7291666662"))
+            expect(claimableFundAfterStep6.toString()).eq(toWei("2400.7291666662"))
 
 
             // Step 6
@@ -973,7 +986,8 @@ describe('Test Margin Intergration', function () {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('5')),
                 _trader: trader2,
-                _positionManager: fundingRateTest
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
             })
 
             await phTT.openMarketPosition({
@@ -1095,7 +1109,8 @@ describe('Test Margin Intergration', function () {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('15')),
                 _trader: trader2,
-                _positionManager: fundingRateTest
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
             })
 
             await phTT.openMarketPosition({
@@ -1133,7 +1148,8 @@ describe('Test Margin Intergration', function () {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('3')),
                 _trader: trader1,
-                _positionManager: fundingRateTest
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
             })
 
             await phTT.openMarketPosition({
@@ -1146,9 +1162,9 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = claimableFundAfterStep5 + newOrderMargin + pnl = 1227.187499999967 + 4400*3/10 - 933.3333333333339 = 1613.8541666666333
+            // claimbleAmount = claimableFundAfterStep5 + pnl = 1227.187499999967 - 933.3333333333339 = 293.855399999966666667
             const claimableFundAfterStep6 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep6.toString()).eq("1613855399999966666667")
+            expect(claimableFundAfterStep6.toString()).eq("293855399999966666667")
 
 
             await positionHouse.connect(trader1).claimFund(fundingRateTest.address)

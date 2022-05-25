@@ -9,6 +9,8 @@ import "../libraries/types/PositionHouseStorage.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
 import "./ClaimableAmountManager.sol";
 
+import "hardhat/console.sol";
+
 abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStorage {
     event OpenLimit(
         uint64 orderId,
@@ -102,8 +104,11 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 reduceQuantity: 0,
                 blockNumber: uint64(block.number)
             });
+            // trader always need to deposit fund when openLimitResp.sizeOut <= _uQuantity
+            // only when new order is reduce order then trader no need to deposit fund
+            bool isIncreaseOrder = true;
             if (openLimitResp.orderId != 0){
-                _storeLimitOrder(
+                isIncreaseOrder = _storeLimitOrder(
                     _newOrder,
                     _positionManager,
                     _trader,
@@ -112,7 +117,9 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             }
             (, uint256 marginToVault, uint256 fee) = _positionManager
                 .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
-            insuranceFund.deposit(_pmAddress, _trader, marginToVault, fee);
+            if (isIncreaseOrder) {
+                insuranceFund.deposit(_pmAddress, _trader, marginToVault, fee);
+            }
             _setLimitOrderPremiumFraction(_pmAddress, _trader, getLatestCumulativePremiumFraction(_pmAddress));
             uint256 limitOrderMargin = marginToVault * (_uQuantity - openLimitResp.sizeOut) / _uQuantity;
         }
@@ -132,7 +139,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         IPositionManager _positionManager,
         address _trader,
         int256 _quantity
-    ) internal {
+    ) internal returns (bool isIncreaseOrder){
         address _pmAddress = address(_positionManager);
         Position.Data memory oldPosition = getPosition(_pmAddress, _trader);
         if (
@@ -141,6 +148,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         ) {
             // limit order increasing position
             _pushLimit(_pmAddress, _trader, _newOrder);
+            return true;
         } else {
             // limit order reducing position
             uint256 baseBasisPoint = _positionManager.getBaseBasisPoint();
@@ -150,6 +158,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 baseBasisPoint
             );
             _pushReduceLimit(_pmAddress, _trader, _newOrder);
+            return false;
         }
     }
 

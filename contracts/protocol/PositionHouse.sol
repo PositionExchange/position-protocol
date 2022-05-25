@@ -720,13 +720,6 @@ contract PositionHouse is
             _pushLimit(_pmAddress, _trader, subListLimitOrders[i]);
         }
         _emptyReduceLimitOrders(_pmAddress, _trader);
-        for (uint256 i = 0; i < subReduceLimitOrders.length; i++) {
-            if (subReduceLimitOrders[i].pip == 0) {
-                break;
-            }
-            // _pushLimit cause old position was liquidated, pending order is treated as a new order
-            _pushLimit(_pmAddress, _trader, subReduceLimitOrders[i]);
-        }
     }
 
     function openReversePosition(
