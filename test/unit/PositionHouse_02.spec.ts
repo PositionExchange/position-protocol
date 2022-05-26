@@ -5291,7 +5291,7 @@ describe("PositionHouse_02", () => {
             console.log(positionDataAfterCancel)
             await expect(positionDataBeforeCancel).eq(positionDataAfterCancel)
             console.log(BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel)).toString())
-            await expect(BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel))).eq(1350)
+            await expect(BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel))).eq(0)
         })
 
         it("should stay remain quantity when cancel a close position limit order", async () => {
@@ -5344,7 +5344,7 @@ describe("PositionHouse_02", () => {
             console.log(positionDataAfterCancel)
 
             console.log((BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel))).toString())
-            await expect(BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel))).eq(3150)
+            await expect(BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel))).eq(0)
 
         })
 
@@ -6184,6 +6184,62 @@ describe("PositionHouse_02", () => {
                     _positionManager: fundingRateTest,
                 }
             );
+        })
+
+        it("should increase claimable fund when partial filled an increase limit order", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5200,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('5'),
+                _trader: trader1,
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+            const claimableAmountAfterFirstOrder = (await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).toString()
+            // margin after first order = 5200 * 5 / 10 = 2600
+            await expect(claimableAmountAfterFirstOrder).eq(2600)
+
+            await changePrice({
+                limitPrice: 5000,
+                toHigherPrice: false,
+                _positionManager: fundingRateTest
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader1,
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('1'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+            const claimableAmountAfterSecondOrder = (await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).toString()
+            // total margin after second order = positionMargin + filledOrderMargin = 2600 + 5000*1/10 = 3100
+            await expect(claimableAmountAfterSecondOrder).eq(3100)
         })
 
     })
