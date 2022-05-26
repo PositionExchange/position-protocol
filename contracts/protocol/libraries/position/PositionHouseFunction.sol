@@ -594,7 +594,7 @@ library PositionHouseFunction {
                 _pDataIncr,
                 _limitOrders[i].entryPrice
             );
-            _removeUnfilledMargin(_positionManager, state, _limitOrders[i]);
+//            _removeUnfilledMargin(_positionManager, state, _limitOrders[i]);
         }
         state.accMargin = _pDataIncr.margin;
         if(_pDataIncr.quantity == 0){
