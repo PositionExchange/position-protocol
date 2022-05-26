@@ -6209,7 +6209,7 @@ describe("PositionHouse_02", () => {
 
             const claimableAmountAfterFirstOrder = (await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).toString()
             // margin after first order = 5200 * 5 / 10 = 2600
-            await expect(claimableAmountAfterFirstOrder).eq(2600)
+            await expect(claimableAmountAfterFirstOrder).eq('2600')
 
             await changePrice({
                 limitPrice: 5000,
@@ -6239,7 +6239,7 @@ describe("PositionHouse_02", () => {
 
             const claimableAmountAfterSecondOrder = (await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).toString()
             // total margin after second order = positionMargin + filledOrderMargin = 2600 + 5000*1/10 = 3100
-            await expect(claimableAmountAfterSecondOrder).eq(3100)
+            await expect(claimableAmountAfterSecondOrder).eq('3100')
         })
 
     })
