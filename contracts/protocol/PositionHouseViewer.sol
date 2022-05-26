@@ -145,10 +145,14 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         if (_positionDataWithManualMargin.quantity == 0) {
             marginRatio = 0;
         }
-        if (_positionDataWithManualMargin.side() == Position.Side.LONG) {
-            liquidationPrice = (maintenanceMargin + _positionDataWithManualMargin.openNotional - _positionDataWithManualMargin.margin) / _positionDataWithManualMargin.quantity.abs();
-        } else {
-            liquidationPrice = (_positionDataWithManualMargin.openNotional - maintenanceMargin + _positionDataWithManualMargin.margin) / _positionDataWithManualMargin.quantity.abs();
+        if (_positionDataWithManualMargin.quantity != 0)
+        {
+            (uint64 baseBasisPoint, uint64 basisPoint) = _positionManager.getBasisPointFactors();
+            if (_positionDataWithManualMargin.side() == Position.Side.LONG) {
+                liquidationPrice = (maintenanceMargin + _positionDataWithManualMargin.openNotional - _positionDataWithManualMargin.margin) * basisPoint / _positionDataWithManualMargin.quantity.abs();
+            } else {
+                liquidationPrice = (_positionDataWithManualMargin.openNotional - maintenanceMargin + _positionDataWithManualMargin.margin) * basisPoint / _positionDataWithManualMargin.quantity.abs();
+            }
         }
     }
 
