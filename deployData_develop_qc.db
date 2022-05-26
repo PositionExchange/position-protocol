@@ -14,6 +14,7 @@
 {"address":"yes","key":"0x526E96aC36dF8fd4F8CdAB5B877E3Cb5a8e484B2:verified","_id":"NcjIqjttie7kNbJd"}
 {"address":"yes","key":"0x7905C6598E2F0d2cb289674460031A81667723BC:verified","_id":"NuQet2XJny47Sri2"}
 {"address":"yes","key":"0x2c8f70AF730E0dEb273876f5F45442c2C3B51BEE:verified","_id":"OAHbknSvklD3RLNC"}
+{"address":"yes","key":"0xe9D353cC20b99360DF59CC94379799BE47Ca6f59:verified","_id":"P5Gd4TA9N6LvkrfK"}
 {"address":"yes","key":"0x84681927a59A8090EC5DaF16861b02DF4518aF59:verified","_id":"Q8zbU8YXoxCRL2PI"}
 {"address":"yes","key":"0xD7f0F3b078d078513C685496f1ECda13642A5B54:verified","_id":"RPjnMpxxFIwA3JPW"}
 {"address":"yes","key":"0x8aB104e7Aa550C7711BBef7350C4A0fc457cF50B:verified","_id":"SGmIFkMav3U3TJpr"}
@@ -34,10 +35,15 @@
 {"address":"0x1befd7708fa8f73dae7087d0222e091d641bd478","key":"PositionManager:BTC_BUSD","_id":"lzPxsw5jsojMnwaE"}
 {"address":"yes","key":"0xDD923Cd9efCd1E55845C071F2bA7c23021677a44:verified","_id":"n2REkZJWWUGKb7vI"}
 {"address":"yes","key":"0x19fe7A93DBc565DeB6417B7C32F7c82340cfD5aF:verified","_id":"o10Kqigo8wpZt7zQ"}
+{"address":"yes","key":"0x46f06D605Ea36d76e93c1e98d3a2741C82A28c32:verified","_id":"oh3XDDEwHaBnXN6y"}
 {"address":"0x194434483b52cb7cd950b7759970ed4c58abbc9b","key":"PositionHouseMath","_id":"pVYb0UbFpDQy7YPx"}
 {"address":"yes","key":"0x6DbB5f4c658eDa3A160005ee95F75a3F1e767d39:verified","_id":"qHLsANJFUY2Fcx1Q"}
 {"address":"yes","key":"0x48eA29133351ee7a539C9d5C07f88c6a4E01Bd86:verified","_id":"rfxmyHlgvaw3OEJG"}
 {"address":"0x64128a4cc161a06b6f7b1fc8a150ed0d0a2184fe","key":"PositionHouse","_id":"rtWtBbjI3KxKzuZb"}
 {"address":"yes","key":"0xDEFcb3e30b716D318F489265221d888a55284497:verified","_id":"tUDgzJ0p9ViK4QEx"}
 {"address":"0xe21845b6bc445e617e4db080dac2e0fcea9ee1a8","key":"PositionHouseFunction","_id":"vQmOGx3WXolmNyjR"}
-{"address":"yes","key":"0x46f06D605Ea36d76e93c1e98d3a2741C82A28c32:verified","_id":"oh3XDDEwHaBnXN6y"}
+{"address":"yes","key":"0x14233E8f4E832cc28556DEb328D20cfb92C67cdd:verified","_id":"zx6osLXIbK5kANeD"}
+{"address":"0xd8572dacc34d998acdd45a9aa4ffe8e4b3882212","key":"PositionHouseFunction","_id":"vQmOGx3WXolmNyjR"}
+{"address":"0x423a810f2de8a69ce3862a711184e681da3871b3","key":"PositionHouseMath","_id":"pVYb0UbFpDQy7YPx"}
+{"address":"yes","key":"0x3392dE93bf91B5d5914549A9b475dBaf59f1261D:verified","_id":"ZHf1ul8NsM7dpJo9"}
+{"address":"yes","key":"0xc8B0A701C5E902eDFeC33832676B7BD4efc72cFE:verified","_id":"T6jPA329zpsMMjav"}
