@@ -805,6 +805,7 @@ contract PositionHouse is
         int256 _manualMargin = _getManualMargin(_pmAddress, _trader);
         // if current position is long (_quantity >0) then liquidate order is short
         bool _liquidateOrderIsBuy = _quantity > 0 ? false : true;
+        // call directly to position manager to skip check enough liquidity
         _positionManager.openMarketPosition(_quantity.abs(), _liquidateOrderIsBuy);
         positionResp.exchangedQuoteAssetAmount = _quantity
             .getExchangedQuoteAssetAmount(
