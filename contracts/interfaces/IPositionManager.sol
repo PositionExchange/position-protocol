@@ -175,7 +175,7 @@ interface IPositionManager {
     )
         external
         view
-        returns (PositionManagerStorage.PipLiquidity[] memory, uint128);
+        returns (PositionManagerStorage.PipLiquidity[] memory, uint128, uint8);
 
     function openMarketPosition(uint256 size, bool isBuy)
         external
