@@ -240,7 +240,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                             _leverage,
                             getLatestCumulativePremiumFraction(_pmAddress)
                         );
-                            _updatePositionMap(_pmAddress, _trader, newData);
+                        _updatePositionMap(_pmAddress, _trader, newData);
                     }
                 }
             }

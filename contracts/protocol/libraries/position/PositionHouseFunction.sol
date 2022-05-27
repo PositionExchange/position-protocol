@@ -62,7 +62,8 @@ library PositionHouseFunction {
                     _latestCumulativePremiumFraction
                 ),
                 handleNotionalInOpenReverse(
-                    _newNotional,
+                    (_positionData.openNotional * _newQuantity.abs()) /
+                        _positionData.quantity.abs(),
                     _positionData,
                     _positionDataWithoutLimit
                 ),
