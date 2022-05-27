@@ -64,7 +64,6 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             _order.leverage
         );
         insuranceFund.withdraw(_pmAddress, _trader, _refundMargin);
-        ClaimableAmountManager._decrease(_pmAddress, _trader, _refundMargin);
         emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
     }
 
@@ -115,11 +114,6 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
             insuranceFund.deposit(_pmAddress, _trader, marginToVault, fee);
             uint256 limitOrderMargin = marginToVault * (_uQuantity - openLimitResp.sizeOut) / _uQuantity;
-            ClaimableAmountManager._increase(
-                _pmAddress,
-                _trader,
-                limitOrderMargin
-            );
         }
         emit OpenLimit(
             openLimitResp.orderId,
