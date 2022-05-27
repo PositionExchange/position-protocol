@@ -825,12 +825,29 @@ library PositionHouseFunction {
         return positionResp;
     }
 
+    function calcReturnWhenOpenReverse(
+        address _pmAddress,
+        address _trader,
+        uint256 _sizeOut,
+        Position.Data memory _oldPosition
+    ) public view returns (int256 totalReturn) {
+        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
+            _pmAddress,
+            _trader,
+            PositionHouseStorage.PnlCalcOption.SPOT_PRICE,
+            _oldPosition
+        );
+        uint256 reduceMarginRequirement = (_oldPosition.margin * _sizeOut) / _oldPosition.quantity.abs();
+        int256 realizedPnl = (unrealizedPnl * int256(_sizeOut)) / _oldPosition.quantity.absInt();
+        totalReturn = int256(reduceMarginRequirement) + realizedPnl;
+    }
+
     function calcRemainMarginWithFundingPayment(
         Position.Data memory _oldPosition,
         uint256 _pMargin,
         int256 _latestCumulativePremiumFraction
     )
-        internal
+        public
         view
         returns (
             uint256 remainMargin,

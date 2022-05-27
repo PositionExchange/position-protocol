@@ -289,10 +289,11 @@ contract PositionHouse is
             } else {
                 // fully liquidate trader's position
                 bool _liquidateOrderIsBuy = positionDataWithManualMargin.quantity > 0 ? false : true;
-                _positionManager.openMarketPosition(positionDataWithManualMargin.quantity.abs(), _liquidateOrderIsBuy);
                 liquidationPenalty =
                     positionDataWithManualMargin.margin ;
                 clearPosition(_pmAddress, _trader);
+                // after clear position, create an opposite market order of old position
+                _positionManager.openMarketPosition(positionDataWithManualMargin.quantity.abs(), _liquidateOrderIsBuy);
                 feeToLiquidator =
                     (liquidationPenalty * _liquidationFeeRatio) /
                     2 /
