@@ -827,6 +827,7 @@ contract PositionHouse is
     ) internal returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
         int256 _manualMargin = _getManualMargin(_pmAddress, _trader);
+        _emptyReduceLimitOrders(_pmAddress, _trader);
         // if current position is long (_quantity >0) then liquidate order is short
         bool _liquidateOrderIsBuy = _quantity > 0 ? false : true;
         // call directly to position manager to skip check enough liquidity
