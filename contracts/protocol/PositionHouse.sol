@@ -374,7 +374,15 @@ contract PositionHouse is
 //        }
 //    }
 
+    function updateConfigNotionalKey(address _pmAddress, bytes32 _key) external onlyOwner {
+        configNotionalKey[_pmAddress] = _key;
+    }
+
     // PUBLIC VIEW QUERY
+
+//    function getConfigNotionalKey(address _pmAddress) public view returns (bytes32) {
+//        return configNotionalKey[_pmAddress];
+//    }
 
     function getAddedMargin(address _positionManager, address _trader)
     external

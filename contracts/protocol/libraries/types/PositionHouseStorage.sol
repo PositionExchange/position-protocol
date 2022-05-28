@@ -4,6 +4,7 @@ pragma solidity ^0.8.8;
 import "../position/PositionLimitOrder.sol";
 import "../../../interfaces/IInsuranceFund.sol";
 import "../../../interfaces/IPositionHouseConfigurationProxy.sol";
+import "../../../interfaces/IPositionNotionalConfigProxy.sol";
 
 abstract contract PositionHouseStorage {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));
@@ -76,13 +77,14 @@ abstract contract PositionHouseStorage {
     //can update with index => no need delete array when close all
 
     IInsuranceFund public insuranceFund;
+    IPositionHouseConfigurationProxy public positionHouseConfigurationProxy;
+    IPositionNotionalConfigProxy public positionNotionalConfigProxy;
 
-    mapping(address => int256) internal pendingProfit;
+    mapping(address => bytes32) internal configNotionalKey;
     /**
      * @dev This empty reserved space is put in place to allow future versions to add new
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
     uint256[49] private __gap;
-    IPositionHouseConfigurationProxy public positionHouseConfigurationProxy;
 }
