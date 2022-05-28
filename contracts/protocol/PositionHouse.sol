@@ -49,21 +49,29 @@ contract PositionHouse is
         IPositionManager positionManager
     );
 
-//    event MarginAdded(
-//        address trader,
-//        uint256 marginAdded,
-//        IPositionManager positionManager
-//    );
-//
-//    event MarginRemoved(
-//        address trader,
-//        uint256 marginRemoved,
-//        IPositionManager positionManager
-//    );
+    event MarginAdded(
+        address trader,
+        uint256 marginAdded,
+        IPositionManager positionManager
+    );
+
+    event MarginRemoved(
+        address trader,
+        uint256 marginRemoved,
+        IPositionManager positionManager
+    );
 
     event FullyLiquidated(address pmAddress, address trader);
-//    event PartiallyLiquidated(address pmAddress, address trader);
+    event PartiallyLiquidated(address pmAddress, address trader);
 //    event WhitelistManagerUpdated(address positionManager, bool isWhitelite);
+
+    event FundClaimed(
+        address pmAddress,
+        address trader,
+        uint256 totalFund
+    );
+
+    event InstantlyClosed(address pmAddress, address trader);
 
     function initialize(
         address _insuranceFund,
@@ -171,6 +179,30 @@ contract PositionHouse is
         );
     }
 
+    function instantlyClosePosition(IPositionManager _positionManager, uint256 _quantity)
+        external
+        nonReentrant
+    {
+        address _pmAddress = address(_positionManager);
+        address _trader = _msgSender();
+        _emptyReduceLimitOrders(_pmAddress, _trader);
+        Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
+        require(
+            _quantity > 0 && _quantity <= _positionDataWithManualMargin.quantity.abs(),
+            Errors.VL_INVALID_CLOSE_QUANTITY
+        );
+        _internalOpenMarketPosition(
+            _positionManager,
+            _positionDataWithManualMargin.quantity > 0
+            ? Position.Side.SHORT
+            : Position.Side.LONG,
+            _quantity,
+            _positionDataWithManualMargin.leverage,
+            _positionDataWithManualMargin
+        );
+        emit InstantlyClosed(_pmAddress, _trader);
+    }
+
     /**
      * @notice close position with close market
      * @param _positionManager IPositionManager address
@@ -229,6 +261,7 @@ contract PositionHouse is
         clearPosition(_pmAddress, _trader);
         if (totalRealizedPnl > 0) {
             _withdraw(_pmAddress, _trader, totalRealizedPnl.abs());
+            emit FundClaimed(_pmAddress, _trader, totalRealizedPnl.abs());
         }
     }
 
@@ -278,12 +311,15 @@ contract PositionHouse is
                 liquidationPenalty = uint256(positionResp.marginToVault);
                 feeToLiquidator = liquidationPenalty / 2;
                 uint256 feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
-//                emit PartiallyLiquidated(_pmAddress, _trader);
+                emit PartiallyLiquidated(_pmAddress, _trader);
             } else {
                 // fully liquidate trader's position
+                bool _liquidateOrderIsBuy = positionDataWithManualMargin.quantity > 0 ? false : true;
                 liquidationPenalty =
                     positionDataWithManualMargin.margin ;
                 clearPosition(_pmAddress, _trader);
+                // after clear position, create an opposite market order of old position
+                _positionManager.openMarketPosition(positionDataWithManualMargin.quantity.abs(), _liquidateOrderIsBuy);
                 feeToLiquidator =
                     (liquidationPenalty * _liquidationFeeRatio) /
                     2 /
@@ -315,7 +351,7 @@ contract PositionHouse is
 
         _deposit(_pmAddress, _trader, _amount, 0);
 
-//        emit MarginAdded(_trader, _amount, _positionManager);
+        emit MarginAdded(_trader, _amount, _positionManager);
     }
 
     /**
@@ -338,7 +374,7 @@ contract PositionHouse is
 
         _withdraw(_pmAddress, _trader, _amount);
 
-//        emit MarginRemoved(_trader, _amount, _positionManager);
+        emit MarginRemoved(_trader, _amount, _positionManager);
     }
 
     // OWNER UPDATE VARIABLE STORAGE
@@ -434,6 +470,9 @@ contract PositionHouse is
             _reduceOrders,
             positionData
         );
+        if (positionData.lastUpdatedCumulativePremiumFraction == 0) {
+            positionData.lastUpdatedCumulativePremiumFraction = _getLimitOrderPremiumFraction(_pmAddress, _trader);
+        }
         Position.LiquidatedData memory _debtPosition = debtPosition[_pmAddress][
             _trader
         ];
@@ -553,7 +592,9 @@ contract PositionHouse is
         }
     }
 
-
+    function getLimitOrderPremiumFraction(address _pmAddress, address _trader) public view returns (int128) {
+        return _getLimitOrderPremiumFraction(_pmAddress, _trader);
+    }
 
     function getLatestCumulativePremiumFraction(address _pmAddress)
         public
@@ -580,7 +621,7 @@ contract PositionHouse is
     ) internal {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
-        require(_requireOrderSideAndQuantity(_pmAddress, _trader, _side, _quantity, oldPosition.quantity),Errors.VL_MUST_SAME_SIDE);
+        _requireOrderSideAndQuantity(_pmAddress, _trader, _side, _quantity, oldPosition.quantity);
         int256 pQuantity = _side == Position.Side.LONG
             ? int256(_quantity)
             : -int256(_quantity);
@@ -677,23 +718,12 @@ contract PositionHouse is
             _pnlCalcOption,
             _oldPosition
         );
-        (
-            uint256 remainMargin,
-            uint256 badDebt,
-            int256 fundingPayment,
-
-        ) = calcRemainMarginWithFundingPayment(
-                _pmAddress,
-                _oldPosition,
-                _oldPosition.margin
-            );
 
         positionResp.realizedPnl = unrealizedPnl;
-        positionResp.marginToVault = -fundingPayment
-            .add(positionResp.realizedPnl).add(_getClaimAmount(_pmAddress, _trader, _oldPosition))
+        positionResp.marginToVault = -positionResp.realizedPnl
+            .add(_getClaimAmount(_pmAddress, _trader, _oldPosition))
             .kPositive();
         positionResp.unrealizedPnl = 0;
-        ClaimableAmountManager._reset(_pmAddress, _trader);
         clearPosition(_pmAddress, _trader);
     }
 
@@ -701,8 +731,6 @@ contract PositionHouse is
         positionMap[_pmAddress][_trader].clear();
         debtPosition[_pmAddress][_trader].clearDebt();
         manualMargin[_pmAddress][_trader] = 0;
-        debtProfit[_pmAddress][_trader] = 0;
-        ClaimableAmountManager._reset(_pmAddress, _trader);
         (
             PositionLimitOrder.Data[] memory subListLimitOrders,
             PositionLimitOrder.Data[] memory subReduceLimitOrders
@@ -721,12 +749,6 @@ contract PositionHouse is
             _pushLimit(_pmAddress, _trader, subListLimitOrders[i]);
         }
         _emptyReduceLimitOrders(_pmAddress, _trader);
-        for (uint256 i = 0; i < subReduceLimitOrders.length; i++) {
-            if (subReduceLimitOrders[i].pip == 0) {
-                break;
-            }
-            _pushReduceLimit(_pmAddress, _trader, subReduceLimitOrders[i]);
-        }
     }
 
     function openReversePosition(
@@ -741,8 +763,8 @@ contract PositionHouse is
         if (_quantity.abs() < _oldPosition.quantity.abs()) {
             int256 _manualAddedMargin = _getManualMargin(_pmAddress, _trader);
             {
-                int256 debtMargin;
-                (positionResp, debtMargin) = PositionHouseFunction.openReversePosition(
+
+                positionResp = PositionHouseFunction.openReversePosition(
                     _pmAddress,
                     _side,
                     _quantity,
@@ -754,9 +776,6 @@ contract PositionHouse is
                     _manualAddedMargin
                 );
                 manualMargin[_pmAddress][_trader] = _manualAddedMargin * (_oldPosition.quantity.absInt() - _quantity.absInt()) / _oldPosition.quantity.absInt();
-//                if (_getPositionMap(_pmAddress, _trader).margin < debtMargin.abs()) {
-                    debtProfit[_pmAddress][_trader] += debtMargin;
-//                }
                 return positionResp;
             }
         }
@@ -811,9 +830,11 @@ contract PositionHouse is
     ) internal returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
         int256 _manualMargin = _getManualMargin(_pmAddress, _trader);
-        Position.Side _side = _quantity > 0 ? Position.Side.SHORT : Position.Side.LONG;
-        (positionResp.exchangedPositionSize, ,, ) = PositionHouseFunction
-            .openMarketOrder(_pmAddress, _quantity.abs(), _side);
+        _emptyReduceLimitOrders(_pmAddress, _trader);
+        // if current position is long (_quantity >0) then liquidate order is short
+        bool _liquidateOrderIsBuy = _quantity > 0 ? false : true;
+        // call directly to position manager to skip check enough liquidity
+        _positionManager.openMarketPosition(_quantity.abs(), _liquidateOrderIsBuy);
         positionResp.exchangedQuoteAssetAmount = _quantity
             .getExchangedQuoteAssetAmount(
                 _oldPosition.openNotional,

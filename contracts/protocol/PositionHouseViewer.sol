@@ -11,6 +11,8 @@ import {Int256Math} from "./libraries/helpers/Int256Math.sol";
 
 contract PositionHouseViewer is Initializable, OwnableUpgradeable {
     using Int256Math for int256;
+    using Quantity for int256;
+    using Position for Position.Data;
     IPositionHouse public positionHouse;
     IPositionHouseConfigurationProxy public positionHouseConfigurationProxy;
     function initialize(IPositionHouse _positionHouse, IPositionHouseConfigurationProxy _positionHouseConfigurationProxy) public initializer {
@@ -31,7 +33,9 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
             positionHouse.getDebtPosition(_pmAddress, _trader),
             positionHouse.positionMap(_pmAddress, _trader),
             positionHouse._getLimitOrders(_pmAddress, _trader),
-            positionHouse._getReduceLimitOrders(_pmAddress, _trader)
+            positionHouse._getReduceLimitOrders(_pmAddress, _trader),
+            positionHouse.getLimitOrderPremiumFraction(_pmAddress, _trader),
+            positionHouse.getLatestCumulativePremiumFraction(_pmAddress)
         );
     }
 
@@ -89,7 +93,7 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         (
         uint256 maintenanceMargin,
         int256 marginBalance,
-
+        ,
         ) = getMaintenanceDetail(_positionManager, _trader, PositionHouseStorage.PnlCalcOption.TWAP);
         int256 _remainingMargin = marginBalance - int256(maintenanceMargin);
         return
@@ -110,7 +114,8 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
     returns (
         uint256 maintenanceMargin,
         int256 marginBalance,
-        uint256 marginRatio
+        uint256 marginRatio,
+        uint256 liquidationPrice
     )
     {
         address _pmAddress = address(_positionManager);
@@ -139,6 +144,15 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         : (maintenanceMargin * 100) / uint256(marginBalance);
         if (_positionDataWithManualMargin.quantity == 0) {
             marginRatio = 0;
+        }
+        if (_positionDataWithManualMargin.quantity != 0)
+        {
+            (uint64 baseBasisPoint, uint64 basisPoint) = _positionManager.getBasisPointFactors();
+            if (_positionDataWithManualMargin.side() == Position.Side.LONG) {
+                liquidationPrice = (maintenanceMargin + _positionDataWithManualMargin.openNotional - _positionDataWithManualMargin.margin) * basisPoint / _positionDataWithManualMargin.quantity.abs();
+            } else {
+                liquidationPrice = (_positionDataWithManualMargin.openNotional - maintenanceMargin + _positionDataWithManualMargin.margin) * basisPoint / _positionDataWithManualMargin.quantity.abs();
+            }
         }
     }
 

@@ -715,7 +715,7 @@ describe("PositionHouse_01", () => {
                     leverage: 10,
                     quantity: 5,
                     _trader: trader1
-                })).to.be.revertedWith("22")
+                })).to.be.revertedWith("23")
                 return;
 
                 // trader2 short at price 4990 because of trader1's order, quantity 5 BTC
@@ -799,7 +799,7 @@ describe("PositionHouse_01", () => {
                     leverage: 10,
                     quantity: 200,
                     _trader: trader1
-                })).to.be.revertedWith("22");
+                })).to.be.revertedWith("23");
                 return;
 
                 await openMarketPosition({
@@ -847,7 +847,7 @@ describe("PositionHouse_01", () => {
                     leverage: 10,
                     quantity: 200,
                     _trader: trader1
-                })).to.be.revertedWith("22")
+                })).to.be.revertedWith("23")
                 return;
                 console.log('open market 2');
                 await openMarketPosition({
@@ -1312,7 +1312,7 @@ describe("PositionHouse_01", () => {
                         side: SIDE.SHORT,
                         price: 5000,
                         expectedSize: BigNumber.from('-100')
-                    })).to.be.revertedWith("22")
+                    })).to.be.revertedWith("23")
                     return;
 
                     console.log('*** start get PnL ***');
@@ -1400,7 +1400,7 @@ describe("PositionHouse_01", () => {
                         side: SIDE.LONG,
                         price: 5000,
                         expectedSize: BigNumber.from('100')
-                    })).to.be.revertedWith("22")
+                    })).to.be.revertedWith("23")
                     return;
 
 
@@ -1496,7 +1496,7 @@ describe("PositionHouse_01", () => {
                         side: SIDE.SHORT,
                         price: 5000,
                         expectedSize: BigNumber.from('-100')
-                    })).to.be.revertedWith("22")
+                    })).to.be.revertedWith("23")
                     return;
 
                     console.log('*** start get PnL ***');
@@ -1601,7 +1601,7 @@ describe("PositionHouse_01", () => {
                         side: SIDE.LONG,
                         price: 5000,
                         expectedSize: BigNumber.from('100')
-                    })).to.be.revertedWith("22")
+                    })).to.be.revertedWith("23")
                     return;
 
                     let response3 = (await openLimitPositionAndExpect({
@@ -1748,7 +1748,7 @@ describe("PositionHouse_01", () => {
                         side: SIDE.LONG,
                         price: 5005,
                         expectedSize: BigNumber.from('50')
-                    })).to.be.revertedWith("22")
+                    })).to.be.revertedWith("23")
                     return;
 
                     // const dataClaim = (await positionHouse.canClaimFund(positionManager.address, trader.address)) as unknown as ClaimFund;
@@ -1808,7 +1808,7 @@ describe("PositionHouse_01", () => {
                         side: SIDE.SHORT,
                         price: 4995,
                         expectedSize: BigNumber.from('-50')
-                    })).to.be.revertedWith("22")
+                    })).to.be.revertedWith("23")
                     return;
 
                     // const dataClaim = (await positionHouse.canClaimFund(positionManager.address, trader.address)) as unknown as ClaimFund;
@@ -1867,7 +1867,7 @@ describe("PositionHouse_01", () => {
                         side: SIDE.LONG,
                         price: 5005,
                         expectedSize: BigNumber.from('10')
-                    })).to.be.revertedWith("22")
+                    })).to.be.revertedWith("23")
                     return;
 
                     // const dataClaim = (await positionHouse.canClaimFund(positionManager.address, trader.address)) as unknown as ClaimFund;
@@ -1931,7 +1931,7 @@ describe("PositionHouse_01", () => {
                         side: SIDE.SHORT,
                         price: 4995,
                         expectedSize: BigNumber.from('-30')
-                    })).to.be.revertedWith("22")
+                    })).to.be.revertedWith("23")
                     return;
 
                     // const dataClaim = (await positionHouse.canClaimFund(positionManager.address, trader.address)) as unknown as ClaimFund;

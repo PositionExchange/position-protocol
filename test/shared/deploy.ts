@@ -36,6 +36,7 @@ export async function deployPositionHouse(){
     let positionManagerFactory = await ethers.getContractFactory("PositionManagerTest")
     let positionManager = (await positionManagerFactory.deploy()) as unknown as PositionManager;
 
+    // Deploy funding rate test contract
     let fundingRateTestFactory = await ethers.getContractFactory("FundingRateTest")
     let fundingRateTest = (await fundingRateTestFactory.deploy()) as unknown as FundingRateTest
 
