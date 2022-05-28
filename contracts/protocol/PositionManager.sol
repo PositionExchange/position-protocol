@@ -813,7 +813,7 @@ contract PositionManager is
         SingleSlot memory _initialSingleSlot = singleSlot;
         //save gas
         SwapState memory state = SwapState({
-            remainingSize: _size,
+            remainingSize: uint128(_size),
             pip: _initialSingleSlot.pip
         });
         uint128 startPip;
@@ -870,14 +870,14 @@ contract PositionManager is
                     if (liquidity > state.remainingSize) {
                         // pip position will partially filled and stop here
                         tickPosition[step.pipNext].partiallyFill(
-                            uint128(state.remainingSize)
+                            state.remainingSize
                         );
                         openNotional += ((state.remainingSize *
                             pipToPrice(step.pipNext)) / BASE_BASIC_POINT);
                         // remaining liquidity at current pip
                         remainingLiquidity =
                             liquidity -
-                            uint128(state.remainingSize);
+                            state.remainingSize;
                         state.remainingSize = 0;
                         state.pip = step.pipNext;
                         isFullBuy = uint8(
