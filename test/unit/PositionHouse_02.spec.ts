@@ -3844,7 +3844,7 @@ describe("PositionHouse_02", () => {
                 quantity: 10000,
                 _trader: trader1
             })
-
+            console.log("before first open market position")
             await openMarketPosition({
                     quantity: BigNumber.from('20000'),
                     leverage: 10,
@@ -5234,14 +5234,15 @@ describe("PositionHouse_02", () => {
 
             console.log("liquidity in pip 4800", (await positionManager.getLiquidityInPipRange(480000, 1, false)).toString())
 
-            await openLimitPositionAndExpect({
+            await expect(openLimitPositionAndExpect({
                 limitPrice: 4800,
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: BigNumber.from('20'),
                 _trader: trader2,
                 skipCheckBalance: true
-            })
+            })).to.be.revertedWith('22.1')
+            return;
         })
 
         it("should stay remain quantity when cancel a reverse limit order", async () => {
@@ -5349,6 +5350,7 @@ describe("PositionHouse_02", () => {
         })
 
         it("should partially fill limit order correctly", async () => {
+            console.log("5353")
             await openLimitPositionAndExpect({
                 limitPrice: 4900,
                 side: SIDE.LONG,
@@ -5357,6 +5359,7 @@ describe("PositionHouse_02", () => {
                 _trader: trader1
             })
 
+            console.log("5362")
             await openLimitPositionAndExpect({
                 limitPrice: 4800,
                 side: SIDE.LONG,
@@ -5365,6 +5368,7 @@ describe("PositionHouse_02", () => {
                 _trader: trader1
             })
 
+            console.log("5371")
             await openMarketPosition({
                     quantity: BigNumber.from('5'),
                     leverage: 10,
@@ -5377,6 +5381,7 @@ describe("PositionHouse_02", () => {
 
             await positionHouse.connect(trader1).cancelLimitOrder(positionManager.address, 0, 0)
 
+            console.log("5384")
             await openMarketPosition({
                     quantity: BigNumber.from('1'),
                     leverage: 10,
@@ -5387,6 +5392,7 @@ describe("PositionHouse_02", () => {
                 }
             );
 
+            console.log("5395")
             await openLimitPositionAndExpect({
                 limitPrice: 4800,
                 side: SIDE.SHORT,
@@ -5398,6 +5404,7 @@ describe("PositionHouse_02", () => {
 
             await positionHouse.connect(trader1).cancelLimitOrder(positionManager.address, 1, 0)
 
+            console.log("5407")
             await openLimitPositionAndExpect({
                 limitPrice: 4900,
                 side: SIDE.SHORT,
@@ -5406,7 +5413,8 @@ describe("PositionHouse_02", () => {
                 _trader: trader4
             })
 
-            await openMarketPosition({
+            console.log("5416")
+            await expect(openMarketPosition({
                     quantity: BigNumber.from('5'),
                     leverage: 10,
                     side: SIDE.LONG,
@@ -5414,8 +5422,9 @@ describe("PositionHouse_02", () => {
                     instanceTrader: trader3,
                     _positionManager: positionManager,
                 }
-            );
-
+            )).to.be.revertedWith('22.2')
+            return;
+            console.log("5427")
             await openLimitPositionAndExpect({
                 limitPrice: 4900,
                 side: SIDE.SHORT,
@@ -5425,6 +5434,7 @@ describe("PositionHouse_02", () => {
                 skipCheckBalance: true
             })
 
+            console.log("5437")
             await openMarketPosition({
                     quantity: BigNumber.from('1'),
                     leverage: 10,
@@ -5435,6 +5445,7 @@ describe("PositionHouse_02", () => {
                 }
             );
 
+            console.log("5448")
             await openLimitPositionAndExpect({
                 limitPrice: 4900,
                 side: SIDE.LONG,
@@ -5504,7 +5515,8 @@ describe("PositionHouse_02", () => {
                 skipCheckBalance: true
             })
             const balanceBeforeCloseMarket = await bep20Mintable.balanceOf(trader1.address)
-            await positionHouse.connect(trader1).closePosition(positionManager.address, BigNumber.from("4"))
+            await expect(positionHouse.connect(trader1).closePosition(positionManager.address, BigNumber.from("4"))).to.be.revertedWith('22.2')
+            return;
             const balanceAfterCloseMarket = await bep20Mintable.balanceOf(trader1.address)
             const paybackQuantity = BigNumber.from(balanceAfterCloseMarket).sub(BigNumber.from(balanceBeforeCloseMarket))
             await expect(paybackQuantity.toString()).eq("940")
@@ -5599,7 +5611,8 @@ describe("PositionHouse_02", () => {
                 skipCheckBalance: true
             })
             const balanceBeforeCloseMarket = await bep20Mintable.balanceOf(trader1.address)
-            await positionHouse.connect(trader1).closePosition(positionManager.address, BigNumber.from("10"))
+            await expect(positionHouse.connect(trader1).closePosition(positionManager.address, BigNumber.from("10"))).to.be.revertedWith('22.2')
+            return;
             const balanceAfterCloseMarket = await bep20Mintable.balanceOf(trader1.address)
             const paybackQuantity = BigNumber.from(balanceAfterCloseMarket).sub(BigNumber.from(balanceBeforeCloseMarket))
             await expect(paybackQuantity.toString()).eq("2350")
@@ -6240,6 +6253,63 @@ describe("PositionHouse_02", () => {
             const claimableAmountAfterSecondOrder = (await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).toString()
             // total margin after second order = positionMargin + filledOrderMargin = 2600 + 5000*1/10 = 3100
             await expect(claimableAmountAfterSecondOrder).eq('3100')
+        })
+
+        it("can create a limit long higher than current price", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5100,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('5'),
+                _trader: trader2,
+                _positionManager: positionManager,
+                skipCheckBalance: true
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5200,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('5'),
+                _trader: trader2,
+                _positionManager: positionManager,
+                skipCheckBalance: true
+            })
+
+            console.log("before open long limit order with higher price than current")
+            await openLimitPositionAndExpect({
+                limitPrice: 5300,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('17'),
+                _trader: trader1,
+                _positionManager: positionManager,
+                skipCheckBalance: true
+            })
+
+            console.log("get position and list order pending of trader1 !!!!!!!!!")
+            console.log((await positionHouseViewer.getPosition(positionManager.address, trader1.address)).toString())
+
+            console.log((await positionHouseViewer.getListOrderPending(positionManager.address, trader1.address)).toString())
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5100,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('7'),
+                _trader: trader2,
+                _positionManager: positionManager,
+                skipCheckBalance: true
+            })
+            console.log("get position and list order pending of trader1 @@@@@@@@@@")
+            console.log((await positionHouseViewer.getPosition(positionManager.address, trader1.address)).toString())
+
+            console.log((await positionHouseViewer.getListOrderPending(positionManager.address, trader1.address)).toString())
+
+            console.log("get position and list order pending of trader2 ##########")
+            console.log((await positionHouseViewer.getPosition(positionManager.address, trader2.address)).toString())
+
+            console.log((await positionHouseViewer.getListOrderPending(positionManager.address, trader2.address)).toString())
         })
 
     })
