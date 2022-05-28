@@ -908,7 +908,9 @@ contract PositionManager is
                         state.remainingSize = state.remainingSize - liquidity;
                         openNotional += ((liquidity *
                             pipToPrice(step.pipNext)) / BASE_BASIC_POINT);
-                        state.pip = step.pipNext;
+                        state.pip = state.remainingSize > 0
+                            ? (_isBuy ? step.pipNext + 1 : step.pipNext - 1)
+                            : step.pipNext;
                         passedPipCount++;
                     } else {
                         // remaining size = liquidity
