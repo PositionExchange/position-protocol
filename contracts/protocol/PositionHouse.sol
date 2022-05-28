@@ -314,9 +314,12 @@ contract PositionHouse is
                 emit PartiallyLiquidated(_pmAddress, _trader);
             } else {
                 // fully liquidate trader's position
+                bool _liquidateOrderIsBuy = positionDataWithManualMargin.quantity > 0 ? false : true;
                 liquidationPenalty =
                     positionDataWithManualMargin.margin ;
                 clearPosition(_pmAddress, _trader);
+                // after clear position, create an opposite market order of old position
+                _positionManager.openMarketPosition(positionDataWithManualMargin.quantity.abs(), _liquidateOrderIsBuy);
                 feeToLiquidator =
                     (liquidationPenalty * _liquidationFeeRatio) /
                     2 /
@@ -746,13 +749,6 @@ contract PositionHouse is
             _pushLimit(_pmAddress, _trader, subListLimitOrders[i]);
         }
         _emptyReduceLimitOrders(_pmAddress, _trader);
-        for (uint256 i = 0; i < subReduceLimitOrders.length; i++) {
-            if (subReduceLimitOrders[i].pip == 0) {
-                break;
-            }
-            // _pushLimit cause old position was liquidated, pending order is treated as a new order
-            _pushLimit(_pmAddress, _trader, subReduceLimitOrders[i]);
-        }
     }
 
     function openReversePosition(
@@ -834,9 +830,11 @@ contract PositionHouse is
     ) internal returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
         int256 _manualMargin = _getManualMargin(_pmAddress, _trader);
-        Position.Side _side = _quantity > 0 ? Position.Side.SHORT : Position.Side.LONG;
-        (positionResp.exchangedPositionSize, ,, ) = PositionHouseFunction
-            .openMarketOrder(_pmAddress, _quantity.abs(), _side);
+        _emptyReduceLimitOrders(_pmAddress, _trader);
+        // if current position is long (_quantity >0) then liquidate order is short
+        bool _liquidateOrderIsBuy = _quantity > 0 ? false : true;
+        // call directly to position manager to skip check enough liquidity
+        _positionManager.openMarketPosition(_quantity.abs(), _liquidateOrderIsBuy);
         positionResp.exchangedQuoteAssetAmount = _quantity
             .getExchangedQuoteAssetAmount(
                 _oldPosition.openNotional,
