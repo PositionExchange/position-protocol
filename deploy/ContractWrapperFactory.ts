@@ -12,6 +12,7 @@ import {DeployDataStore} from "./DataStore";
 import {verifyContract} from "../scripts/utils";
 import {TransactionResponse} from "@ethersproject/abstract-provider";
 import {HardhatRuntimeEnvironment} from "hardhat/types";
+import {cat} from "shelljs";
 
 
 export class ContractWrapperFactory {
@@ -71,6 +72,13 @@ export class ContractWrapperFactory {
             const instance = await upgrades.deployProxy(PositionManager, contractArgs);
             console.log("wait for deploy")
             await instance.deployed();
+            if(args.leverage){
+                try{
+                    await (await instance.updateLeverage(args.leverage)).wait()
+                }catch (e) {
+                    console.log(`Update leverage failed`, e)
+                }
+            }
             const address = instance.address.toString().toLowerCase();
             console.log(`${symbol} positionManager address : ${address}`)
             await this.db.saveAddressByKey(saveKey, address);

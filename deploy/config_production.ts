@@ -9,7 +9,7 @@ export const BTCBUSD : ConfigPositionManagerInput = {
     baseBasisPoint: 10000,
     // fee: 0.02%
     tollRatio: 5000,
-    maxFindingWordsIndex: 585,
+    maxFindingWordsIndex: 1200,
     fundingPeriod: 3600,
     quote: BUSD,
 }
