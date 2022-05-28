@@ -326,7 +326,11 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         });
         PositionHouseFunction.ReturnCheckOrderSideAndQuantity checkOrder = PositionHouseFunction.checkPendingOrderSideAndQuantity(IPositionManager(_pmAddress), checkSideAndQuantityParam);
         if (checkOrder == PositionHouseFunction.ReturnCheckOrderSideAndQuantity.MUST_SAME_SIDE) {
-            revert (Errors.VL_MUST_SAME_SIDE);
+            if (_side == Position.Side.LONG) {
+                revert (Errors.VL_MUST_SAME_SIDE_LONG);
+            } else {
+                revert (Errors.VL_MUST_SAME_SIDE_SHORT);
+            }
         } else if (checkOrder == PositionHouseFunction.ReturnCheckOrderSideAndQuantity.MUST_SMALLER_QUANTITY) {
             revert (Errors.VL_MUST_SMALLER_REVERSE_QUANTITY);
         }
