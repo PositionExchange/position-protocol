@@ -115,8 +115,9 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                     _quantity
                 );
             }
-            (, uint256 marginToVault, uint256 fee) = _positionManager
+            (uint256 notional, uint256 marginToVault, uint256 fee) = _positionManager
                 .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
+            require(_checkMaxNotional(notional, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
             if (_oldPosition.quantity == 0 || _oldPosition.quantity.isSameSide(_quantity)) {
                 insuranceFund.deposit(_pmAddress, _trader, marginToVault, fee);
             }
@@ -408,6 +409,12 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         address _trader,
         Position.Data memory newData
     ) internal virtual;
+
+    function _checkMaxNotional(
+        uint256 _notional,
+        bytes32 _key,
+        uint16 _leverage
+    ) internal virtual returns (bool);
 
 
     function getLatestCumulativePremiumFraction(address _pmAddress)

@@ -75,12 +75,14 @@ contract PositionHouse is
 
     function initialize(
         address _insuranceFund,
-        IPositionHouseConfigurationProxy _positionHouseConfigurationProxy
+        IPositionHouseConfigurationProxy _positionHouseConfigurationProxy,
+        IPositionNotionalConfigProxy _positionNotionalConfigProxy
     ) public initializer {
         __ReentrancyGuard_init();
         __Ownable_init();
         insuranceFund = IInsuranceFund(_insuranceFund);
         positionHouseConfigurationProxy = _positionHouseConfigurationProxy;
+        positionNotionalConfigProxy = _positionNotionalConfigProxy;
     }
 
     /**
@@ -660,7 +662,7 @@ contract PositionHouse is
         }
         // update position state
         positionMap[_pmAddress][_trader].update(pResp.position);
-
+        require(_checkMaxNotional(pResp.exchangedQuoteAssetAmount, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
         if (pResp.marginToVault > 0) {
             //transfer from trader to vault
             _deposit(_pmAddress, _trader, pResp.marginToVault.abs(), pResp.fee);
@@ -861,6 +863,10 @@ contract PositionHouse is
             positionResp.exchangedQuoteAssetAmount
         );
         return positionResp;
+    }
+
+    function _checkMaxNotional(uint256 _notional, bytes32 _key, uint16 _leverage) internal override returns (bool) {
+        return _notional <= (positionNotionalConfigProxy.getMaxNotional(_key, _leverage) * 10**18);
     }
 
     function _updatePositionMap(
