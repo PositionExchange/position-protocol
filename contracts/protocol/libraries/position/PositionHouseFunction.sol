@@ -320,9 +320,9 @@ library PositionHouseFunction {
         // NOTE: _entryPrice must divide _baseBasicPoint to get the "raw entry price"
         uint256 _orderNotional = _orderQuantity.abs() * (
             _entryPrice == 0 ?
-            _limitOrder.pip.toNotional(_basisPoint)
-            : _entryPrice / _baseBasicPoint
-        );
+            _limitOrder.pip.toNotional(_baseBasicPoint, _basisPoint)
+            : _entryPrice
+        ) / _baseBasicPoint;
         uint256 _orderMargin = _orderNotional / _limitOrder.leverage;
         _positionData = _positionData.accumulateLimitOrder(
             _orderQuantity,
