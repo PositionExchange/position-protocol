@@ -58,12 +58,15 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             _orders[_orderIdx] = blankLimitOrderData;
         }
 
-        (, uint256 _refundMargin, ) = _positionManager.getNotionalMarginAndFee(
-            refundQuantity,
-            _order.pip,
-            _order.leverage
-        );
-        insuranceFund.withdraw(_pmAddress, _trader, _refundMargin);
+        // only increase order can withdraw fund from contract
+        if (_isReduce == 0) {
+            (, uint256 _refundMargin, ) = _positionManager.getNotionalMarginAndFee(
+                refundQuantity,
+                _order.pip,
+                _order.leverage
+            );
+            insuranceFund.withdraw(_pmAddress, _trader, _refundMargin);
+        }
         emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
     }
 
