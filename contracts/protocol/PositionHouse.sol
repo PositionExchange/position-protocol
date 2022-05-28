@@ -693,7 +693,6 @@ contract PositionHouse is
             .add(positionResp.realizedPnl).add(_getClaimAmount(_pmAddress, _trader, _oldPosition))
             .kPositive();
         positionResp.unrealizedPnl = 0;
-        ClaimableAmountManager._reset(_pmAddress, _trader);
         clearPosition(_pmAddress, _trader);
     }
 
@@ -701,8 +700,6 @@ contract PositionHouse is
         positionMap[_pmAddress][_trader].clear();
         debtPosition[_pmAddress][_trader].clearDebt();
         manualMargin[_pmAddress][_trader] = 0;
-        debtProfit[_pmAddress][_trader] = 0;
-        ClaimableAmountManager._reset(_pmAddress, _trader);
         (
             PositionLimitOrder.Data[] memory subListLimitOrders,
             PositionLimitOrder.Data[] memory subReduceLimitOrders
@@ -725,7 +722,8 @@ contract PositionHouse is
             if (subReduceLimitOrders[i].pip == 0) {
                 break;
             }
-            _pushReduceLimit(_pmAddress, _trader, subReduceLimitOrders[i]);
+            // _pushLimit cause old position was liquidated, pending order is treated as a new order
+            _pushLimit(_pmAddress, _trader, subReduceLimitOrders[i]);
         }
     }
 
@@ -741,8 +739,8 @@ contract PositionHouse is
         if (_quantity.abs() < _oldPosition.quantity.abs()) {
             int256 _manualAddedMargin = _getManualMargin(_pmAddress, _trader);
             {
-                int256 debtMargin;
-                (positionResp, debtMargin) = PositionHouseFunction.openReversePosition(
+
+                positionResp = PositionHouseFunction.openReversePosition(
                     _pmAddress,
                     _side,
                     _quantity,
@@ -754,9 +752,6 @@ contract PositionHouse is
                     _manualAddedMargin
                 );
                 manualMargin[_pmAddress][_trader] = _manualAddedMargin * (_oldPosition.quantity.absInt() - _quantity.absInt()) / _oldPosition.quantity.absInt();
-//                if (_getPositionMap(_pmAddress, _trader).margin < debtMargin.abs()) {
-                    debtProfit[_pmAddress][_trader] += debtMargin;
-//                }
                 return positionResp;
             }
         }

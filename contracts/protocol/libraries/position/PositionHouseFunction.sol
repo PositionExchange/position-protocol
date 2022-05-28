@@ -752,7 +752,7 @@ library PositionHouseFunction {
         Position.Data memory _positionDataWithoutLimit,
         int128 _latestCumulativePremiumFraction,
         int256 _manualMargin
-    ) public returns (PositionHouseStorage.PositionResp memory positionResp, int256 debtProfit) {
+    ) public returns (PositionHouseStorage.PositionResp memory positionResp) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         (
             positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount, positionResp.entryPrice,
@@ -803,24 +803,7 @@ library PositionHouseFunction {
                 1
             );
         }
-        {
-            debtProfit = calculateDebtProfit(_positionDataWithoutLimit, _positionData, _manualMargin, _quantity, reduceMarginWithoutManual);
-        }
-        return (positionResp, debtProfit);
-    }
-
-    function calculateDebtProfit(
-        Position.Data memory _positionDataWithoutLimit,
-        Position.Data memory _positionData,
-        int256 _manualMargin,
-        int256 _orderQuantity,
-        uint256 _reduceMarginWithoutManual
-    ) private view returns (int256 debtProfit) {
-        if (_positionDataWithoutLimit.quantity.absInt() >= _orderQuantity.absInt()) {
-            debtProfit = 0;
-        } else {
-            debtProfit = int256((_reduceMarginWithoutManual - _positionDataWithoutLimit.margin) + (_orderQuantity.abs() - _positionDataWithoutLimit.quantity.abs()) * (_positionData.margin - _manualMargin.abs()) / _positionData.quantity.abs()) ;
-        }
+        return positionResp;
     }
 
     function calcRemainMarginWithFundingPayment(
