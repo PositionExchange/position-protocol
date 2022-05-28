@@ -18,7 +18,7 @@ import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
 import {IPositionManager} from "../interfaces/IPositionManager.sol";
 
-//import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 contract PositionManager is
     ReentrancyGuardUpgradeable,
@@ -224,38 +224,42 @@ contract PositionManager is
     {
         SingleSlot memory _singleSlot = singleSlot;
         if (_isBuy && _singleSlot.pip != 0) {
-            require(
-                _pip <= _singleSlot.pip,
-                Errors.VL_LONG_PRICE_THAN_CURRENT_PRICE
-            );
+//            require(
+//                _pip <= _singleSlot.pip,
+//                Errors.VL_LONG_PRICE_THAN_CURRENT_PRICE
+//            );
             require(
                 int128(_pip) >=
                 (int256(getUnderlyingPriceInPip()) -
                 int128(maxFindingWordsIndex * 250)), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_LONG
             );
         } else {
-            require(
-                _pip >= _singleSlot.pip,
-                Errors.VL_SHORT_PRICE_LESS_CURRENT_PRICE
-            );
+//            require(
+//                _pip >= _singleSlot.pip,
+//                Errors.VL_SHORT_PRICE_LESS_CURRENT_PRICE
+//            );
             require(
                 _pip <= (getUnderlyingPriceInPip() + maxFindingWordsIndex * 250), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_SHORT
             );
         }
         bool hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
         //save gas
-        if (
-            _pip == _singleSlot.pip &&
-            hasLiquidity &&
-            _singleSlot.isFullBuy != (_isBuy ? 1 : 2)
-        ) {
-            // open market
-            (sizeOut, openNotional) = _openMarketPositionWithMaxPip(
-                _size,
-                _isBuy,
-                _pip
-            );
-            hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
+        {
+            bool canOpenMarketWithMaxPip = (_isBuy && _pip >= _singleSlot.lowestSellPip && _singleSlot.lowestSellPip != 0)
+                                            || (!_isBuy && _pip <= _singleSlot.highestBuyPip && _singleSlot.highestBuyPip != 0);
+            console.log("canOpenMarketWithMaxPip", canOpenMarketWithMaxPip);
+            if (
+                canOpenMarketWithMaxPip
+            ) {
+                // open market
+                (sizeOut, openNotional) = _openMarketPositionWithMaxPip(
+                    _size,
+                    _isBuy,
+                    _pip
+                );
+                hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
+                console.log("after openMarketWithMaxPip", sizeOut, singleSlot.pip);
+            }
         }
         uint128 remainingSize = _size - uint128(sizeOut);
         if (_size > sizeOut) {
@@ -271,6 +275,11 @@ contract PositionManager is
                 hasLiquidity,
                 _isBuy
             );
+            if (_isBuy) {
+                singleSlot.highestBuyPip = _pip;
+            } else {
+                singleSlot.lowestSellPip = _pip;
+            }
             if (!hasLiquidity) {
                 // set the bit to mark it has liquidity
                 liquidityBitmap.toggleSingleBit(_pip, true);
@@ -814,11 +823,17 @@ contract PositionManager is
         // TODO lock
         // get current tick liquidity
         SingleSlot memory _initialSingleSlot = singleSlot;
+        if (_isBuy && _initialSingleSlot.lowestSellPip != 0 && _initialSingleSlot.lowestSellPip < _initialSingleSlot.pip) {
+            _initialSingleSlot.pip = _initialSingleSlot.lowestSellPip;
+        } else if (!_isBuy && _initialSingleSlot.highestBuyPip != 0 && _initialSingleSlot.highestBuyPip > _initialSingleSlot.pip) {
+            _initialSingleSlot.pip = _initialSingleSlot.highestBuyPip;
+        }
         //save gas
         SwapState memory state = SwapState({
-            remainingSize: _size,
+            remainingSize: uint128(_size),
             pip: _initialSingleSlot.pip
         });
+        console.log("state.pip", state.pip);
         uint128 startPip;
         uint128 remainingLiquidity;
         uint8 isFullBuy = 0;
@@ -843,18 +858,23 @@ contract PositionManager is
         while (!onlyLoopOnce && state.remainingSize != 0) {
             StepComputations memory step;
             // updated findHasLiquidityInMultipleWords, save more gas
-            if (_maxPip != 0) {
-                step.pipNext = _maxPip;
-                onlyLoopOnce = true;
-            } else {
+//            if (_maxPip != 0) {
+//                step.pipNext = _maxPip;
+//                onlyLoopOnce = true;
+//            } else {
                 (step.pipNext) = liquidityBitmap
                     .findHasLiquidityInMultipleWords(
                         state.pip,
                         maxFindingWordsIndex,
                         !_isBuy
                     );
+            console.log("step.pipNext when loop", step.pipNext);
+//            }
+            // when open market with a limit max pip
+            if (_maxPip != 0) {
+                // if order is buy and step.pipNext (pip has liquidity) > maxPip then break cause this is limited to maxPip and vice versa
+                if ((_isBuy && step.pipNext > _maxPip) || (!_isBuy && step.pipNext < _maxPip)) break;
             }
-            if (_maxPip != 0 && step.pipNext != _maxPip) break;
             if (step.pipNext == 0) {
                 // no more next pip
                 // state pip back 1 pip
@@ -871,16 +891,17 @@ contract PositionManager is
                     // get liquidity at a tick index
                     uint128 liquidity = tickPosition[step.pipNext].liquidity;
                     if (liquidity > state.remainingSize) {
+                        console.log("in first if");
                         // pip position will partially filled and stop here
                         tickPosition[step.pipNext].partiallyFill(
-                            uint128(state.remainingSize)
+                            state.remainingSize
                         );
                         openNotional += ((state.remainingSize *
                             pipToPrice(step.pipNext)) / BASE_BASIC_POINT);
                         // remaining liquidity at current pip
                         remainingLiquidity =
                             liquidity -
-                            uint128(state.remainingSize);
+                            state.remainingSize;
                         state.remainingSize = 0;
                         state.pip = step.pipNext;
                         isFullBuy = uint8(
@@ -889,6 +910,7 @@ contract PositionManager is
                                 : CurrentLiquiditySide.Sell
                         );
                     } else if (state.remainingSize > liquidity) {
+                        console.log("in second if");
                         // order in that pip will be fulfilled
                         state.remainingSize = state.remainingSize - liquidity;
                         openNotional += ((liquidity *
@@ -898,6 +920,7 @@ contract PositionManager is
                             : step.pipNext;
                         passedPipCount++;
                     } else {
+                        console.log("in last else");
                         // remaining size = liquidity
                         // only 1 pip should be toggled, so we call it directly here
                         liquidityBitmap.toggleSingleBit(step.pipNext, false);
@@ -928,6 +951,16 @@ contract PositionManager is
             }
             // TODO write a checkpoint that we shift a range of ticks
         }
+
+        // unset lowestSellPip or highestBuyPip after market order update new current price
+        if (state.pip != _initialSingleSlot.pip) {
+            if (_initialSingleSlot.lowestSellPip != 0 && _isBuy) {
+                singleSlot.lowestSellPip = 0;
+            } else if (_initialSingleSlot.highestBuyPip != 0 && !_isBuy) {
+                singleSlot.highestBuyPip = 0;
+            }
+        }
+
         singleSlot.pip = _maxPip != 0 ? _maxPip : state.pip;
         passedPipCount = _maxPip != 0 ? 0 : passedPipCount;
         singleSlot.isFullBuy = isFullBuy;
