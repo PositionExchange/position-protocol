@@ -467,40 +467,6 @@ describe('Position Manager', async function () {
                 isBuy: false
             })
         });
-        it('market short should revert transaction due to price too far from index price', async function () {
-            /**
-             * Step 1:
-             * Current pip = 200
-             * User A created limit L(2, 10)
-             *
-             * Step 2:
-             * After update MaxFindingWordsIndex to 0,
-             * User B open market S(10). Should not match with user A and revert due to out of price range
-             * */
-            await createLimitOrderAndVerify(2, 10, true)
-
-            await positionManager.updateMaxFindingWordsIndex(BigNumber.from("0"))
-
-            await expect(marketBuy(10, false)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string '25'")
-        });
-        it('market long should revert transaction due to price too far from index price', async function () {
-            /**
-             * Step 1:
-             * Current pip = 200
-             * User A created limit S(255, 10), S(500, 10)
-             *
-             * Step 2:
-             * After update MaxFindingWordsIndex to 1,
-             * User B open market L(20). Should not match with user A and revert due to out of price range
-             * */
-            const pips = [200, 255, 460]
-            const pipSizes = [10, 5, 5]
-            await createLimitOrderInPipRanges(pips, pipSizes, false)
-
-            await positionManager.updateMaxFindingWordsIndex(BigNumber.from("1"))
-
-            await expect(marketBuy(20, true)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string '25'")
-        });
     });
     describe('buy sell in multiple ranges', async function () {
         it('should cross buy market in multiple ranges limit orders', async function () {
@@ -536,6 +502,41 @@ describe('Position Manager', async function () {
                 isFilledAmounts: [true, true, true, true, true, false, false],
                 isBuy: false
             })
+        });
+
+        it('market short should revert transaction due to price too far from index price', async function () {
+            /**
+             * Step 1:
+             * Current pip = 200
+             * User A created limit L(2, 10)
+             *
+             * Step 2:
+             * After update MaxFindingWordsIndex to 0,
+             * User B open market S(10). Should not match with user A and revert due to out of price range
+             * */
+            await createLimitOrderAndVerify(2, 10, true)
+
+            await positionManager.updateMaxFindingWordsIndex(BigNumber.from("0"))
+
+            await expect(marketBuy(10, false)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string '25'")
+        });
+        it('market long should revert transaction due to price too far from index price', async function () {
+            /**
+             * Step 1:
+             * Current pip = 200
+             * User A created limit S(255, 10), S(500, 10)
+             *
+             * Step 2:
+             * After update MaxFindingWordsIndex to 1,
+             * User B open market L(20). Should not match with user A and revert due to out of price range
+             * */
+            const pips = [200, 255, 460]
+            const pipSizes = [10, 5, 5]
+            await createLimitOrderInPipRanges(pips, pipSizes, false)
+
+            await positionManager.updateMaxFindingWordsIndex(BigNumber.from("1"))
+
+            await expect(marketBuy(20, true)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string '25'")
         });
     });
 });

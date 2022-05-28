@@ -320,9 +320,9 @@ library PositionHouseFunction {
         // NOTE: _entryPrice must divide _baseBasicPoint to get the "raw entry price"
         uint256 _orderNotional = _orderQuantity.abs() * (
             _entryPrice == 0 ?
-            _limitOrder.pip.toNotional(_basisPoint)
-            : _entryPrice / _baseBasicPoint
-        );
+            _limitOrder.pip.toNotional(_baseBasicPoint, _basisPoint)
+            : _entryPrice
+        ) / _baseBasicPoint;
         uint256 _orderMargin = _orderNotional / _limitOrder.leverage;
         _positionData = _positionData.accumulateLimitOrder(
             _orderQuantity,
@@ -594,7 +594,7 @@ library PositionHouseFunction {
                 _pDataIncr,
                 _limitOrders[i].entryPrice
             );
-            _removeUnfilledMargin(_positionManager, state, _limitOrders[i]);
+//            _removeUnfilledMargin(_positionManager, state, _limitOrders[i]);
         }
         state.accMargin = _pDataIncr.margin;
         if(_pDataIncr.quantity == 0){
@@ -673,7 +673,7 @@ library PositionHouseFunction {
         // already checked if _positionData.openNotional == 0, then used _positionDataWithoutLimit before
         // openNotional can be negative same as closedNotional
         int256 openNotional = _filledAmount * int256(_entryPrice) / int64(state.baseBasicPoint);
-        state.accMargin += closedNotional.abs() / _leverage;
+//        state.accMargin += closedNotional.abs() / _leverage;
         state.amount += (openNotional - closedNotional);
         state.totalReduceOrderFilledAmount += _filledAmount.abs();
 

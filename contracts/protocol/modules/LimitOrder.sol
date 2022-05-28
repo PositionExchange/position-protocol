@@ -58,12 +58,15 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             _orders[_orderIdx] = blankLimitOrderData;
         }
 
-        (, uint256 _refundMargin, ) = _positionManager.getNotionalMarginAndFee(
-            refundQuantity,
-            _order.pip,
-            _order.leverage
-        );
-        insuranceFund.withdraw(_pmAddress, _trader, _refundMargin);
+        // only increase order can withdraw fund from contract
+        if (_isReduce == 0) {
+            (, uint256 _refundMargin, ) = _positionManager.getNotionalMarginAndFee(
+                refundQuantity,
+                _order.pip,
+                _order.leverage
+            );
+            insuranceFund.withdraw(_pmAddress, _trader, _refundMargin);
+        }
         emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
     }
 
@@ -112,7 +115,9 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             }
             (, uint256 marginToVault, uint256 fee) = _positionManager
                 .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
-            insuranceFund.deposit(_pmAddress, _trader, marginToVault, fee);
+            if (_oldPosition.quantity == 0 || _oldPosition.quantity.isSameSide(_quantity)) {
+                insuranceFund.deposit(_pmAddress, _trader, marginToVault, fee);
+            }
             _setLimitOrderPremiumFraction(_pmAddress, _trader, getLatestCumulativePremiumFraction(_pmAddress));
             uint256 limitOrderMargin = marginToVault * (_uQuantity - openLimitResp.sizeOut) / _uQuantity;
         }
@@ -203,8 +208,6 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                     _quantity -= (closePositionResp.exchangedPositionSize)
                         .abs128();
                 }
-
-
             } else {
                 (orderId, sizeOut, openNotional) = _positionManager
                     .openLimitPosition(_pip, _quantity, _rawQuantity > 0);
