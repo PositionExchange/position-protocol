@@ -594,7 +594,7 @@ library PositionHouseFunction {
                 _pDataIncr,
                 _limitOrders[i].entryPrice
             );
-            _removeUnfilledMargin(_positionManager, state, _limitOrders[i]);
+//            _removeUnfilledMargin(_positionManager, state, _limitOrders[i]);
         }
         state.accMargin = _pDataIncr.margin;
         if(_pDataIncr.quantity == 0){
@@ -673,7 +673,7 @@ library PositionHouseFunction {
         // already checked if _positionData.openNotional == 0, then used _positionDataWithoutLimit before
         // openNotional can be negative same as closedNotional
         int256 openNotional = _filledAmount * int256(_entryPrice) / int64(state.baseBasicPoint);
-        state.accMargin += closedNotional.abs() / _leverage;
+//        state.accMargin += closedNotional.abs() / _leverage;
         state.amount += (openNotional - closedNotional);
         state.totalReduceOrderFilledAmount += _filledAmount.abs();
 
