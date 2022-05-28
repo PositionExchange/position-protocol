@@ -81,7 +81,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         int256 _quantity = _side == Position.Side.LONG
             ? int256(_uQuantity)
             : -int256(_uQuantity);
-        require(_requireOrderSideAndQuantity(_pmAddress, _trader, _side, _uQuantity, _oldPosition.quantity),Errors.VL_MUST_SAME_SIDE);
+        _requireOrderSideAndQuantity(_pmAddress, _trader, _side, _uQuantity, _oldPosition.quantity);
 
         (openLimitResp.orderId, openLimitResp.sizeOut) = _openLimitOrder(
             _positionManager,
@@ -300,7 +300,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         Position.Side _side,
         uint256 _quantity,
         int256 _positionQuantity
-    ) internal view returns (bool) {
+    ) internal view {
         PositionHouseFunction.CheckSideAndQuantityParam memory checkSideAndQuantityParam = PositionHouseFunction.CheckSideAndQuantityParam({
             limitOrders: _getLimitOrders(_pmAddress, _trader),
             reduceLimitOrders: _getReduceLimitOrders(_pmAddress, _trader),
@@ -308,7 +308,12 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             orderQuantity: _quantity,
             positionQuantity: _positionQuantity
         });
-        return PositionHouseFunction.checkPendingOrderSideAndQuantity(IPositionManager(_pmAddress), checkSideAndQuantityParam);
+        PositionHouseFunction.ReturnCheckOrderSideAndQuantity checkOrder = PositionHouseFunction.checkPendingOrderSideAndQuantity(IPositionManager(_pmAddress), checkSideAndQuantityParam);
+        if (checkOrder == PositionHouseFunction.ReturnCheckOrderSideAndQuantity.MUST_SAME_SIDE) {
+            revert (Errors.VL_MUST_SAME_SIDE);
+        } else if (checkOrder == PositionHouseFunction.ReturnCheckOrderSideAndQuantity.MUST_SMALLER_QUANTITY) {
+            revert (Errors.VL_MUST_SMALLER_REVERSE_QUANTITY);
+        }
     }
 
     function _needToClaimFund(
