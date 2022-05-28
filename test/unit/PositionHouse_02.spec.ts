@@ -125,7 +125,8 @@ describe("PositionHouse_02", () => {
                 leverage: 10,
                 quantity: 3,
                 _trader: tradercp,
-                _positionManager: _positionManager || positionManager
+                _positionManager: _positionManager || positionManager,
+                skipCheckBalance: true
             })) as unknown as PositionLimitOrderID
 
             await openMarketPosition({
@@ -145,7 +146,8 @@ describe("PositionHouse_02", () => {
                 leverage: 10,
                 quantity: 3,
                 _trader: tradercp,
-                _positionManager: _positionManager || positionManager
+                _positionManager: _positionManager || positionManager,
+                skipCheckBalance: true
             })) as unknown as PositionLimitOrderID
 
             await openMarketPosition({
@@ -518,7 +520,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: 200,
-                _trader: trader3
+                _trader: trader3,
+                skipCheckBalance: true
             })) as unknown as PositionLimitOrderID
 
             await openMarketPosition({
@@ -1501,7 +1504,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: 700,
-                _trader: trader2
+                _trader: trader2,
+                skipCheckBalance: true
             })) as unknown as PositionLimitOrderID
 
             await openMarketPosition({
@@ -2154,7 +2158,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: 300,
-                _trader: trader1
+                _trader: trader1,
+                skipCheckBalance: true
             })) as unknown as PositionLimitOrderID
 
             await expect(openLimitPositionAndExpect({
@@ -3855,7 +3860,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: 10000,
-                _trader: trader0
+                _trader: trader0,
+                skipCheckBalance: true
             })
             await openMarketPosition({
                     quantity: BigNumber.from('10000'),
@@ -3867,7 +3873,7 @@ describe("PositionHouse_02", () => {
                 }
             );
             const claimableAmount = await positionHouseViewer.getClaimAmount(positionManager.address, trader0.address)
-            expect(claimableAmount).eq(9870000)
+            expect(claimableAmount).eq(4890000)
         })
 
         it('get claim amount of position created by market order and closed by limit order', async function () {
@@ -3917,7 +3923,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: 10000,
-                _trader: trader0
+                _trader: trader0,
+                skipCheckBalance: true
             })
             await openMarketPosition({
                     quantity: BigNumber.from('10000'),
@@ -3930,7 +3937,7 @@ describe("PositionHouse_02", () => {
             );
 
             const claimableAmount = await positionHouseViewer.getClaimAmount(positionManager.address, trader0.address)
-            expect(claimableAmount).eq(9870000)
+            expect(claimableAmount).eq(4890000)
         })
 
         it('get claimable amount correct with limit order and cancelled limit order', async function () {
@@ -4017,7 +4024,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: 120000,
-                _trader: trader0
+                _trader: trader0,
+                skipCheckBalance: true
             })
 
             // console.log((await positionHouse.getRemovableMargin(positionManager.address, trader0.address)).toString())
@@ -4232,7 +4240,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: 5000,
-                _trader: trader0
+                _trader: trader0,
+                skipCheckBalance: true
             })
 
             await openLimitPositionAndExpect({
@@ -4240,7 +4249,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: 5000,
-                _trader: trader1
+                _trader: trader1,
+                skipCheckBalance: true
             })
 
 
@@ -4360,7 +4370,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: 10,
-                _trader: trader1
+                _trader: trader1,
+                skipCheckBalance: true
             })
 
             const getTrader0Position = await positionHouse.getPosition(positionManager.address, trader0.address)
@@ -4399,7 +4410,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: 10,
-                _trader: trader0
+                _trader: trader0,
+                skipCheckBalance: true
             })
 
             claimableAmountTrader0 = await positionHouseViewer.getClaimAmount(positionManager.address, trader0.address)
@@ -4625,7 +4637,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: BigNumber.from('10'),
-                _trader: trader1
+                _trader: trader1,
+                skipCheckBalance: true
             })
 
             await cancelLimitOrder(positionManager.address, trader0, '1', '500000')
@@ -4853,7 +4866,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: BigNumber.from('10'),
-                _trader: trader1
+                _trader: trader1,
+                skipCheckBalance: true
             })
 
             await openMarketPosition({
@@ -4885,7 +4899,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: BigNumber.from('2'),
-                _trader: trader1
+                _trader: trader1,
+                skipCheckBalance: true
             })
 
             await openLimitPositionAndExpect({
@@ -5090,7 +5105,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: BigNumber.from('1'),
-                _trader: trader1
+                _trader: trader1,
+                skipCheckBalance: true
             })
 
             const balanceOfTrader0BeforeClose = (await bep20Mintable.balanceOf(trader0.address)).toString()
@@ -5147,7 +5163,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: BigNumber.from('3'),
-                _trader: trader2
+                _trader: trader2,
+                skipCheckBalance: true
             })
 
             await changePrice({limitPrice: 6500, toHigherPrice: false})
@@ -5222,7 +5239,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: BigNumber.from('20'),
-                _trader: trader2
+                _trader: trader2,
+                skipCheckBalance: true
             })
         })
 
@@ -5250,7 +5268,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: BigNumber.from('5'),
-                _trader: trader1
+                _trader: trader1,
+                skipCheckBalance: true
             })
 
             await openMarketPosition({
@@ -5272,7 +5291,7 @@ describe("PositionHouse_02", () => {
             console.log(positionDataAfterCancel)
             await expect(positionDataBeforeCancel).eq(positionDataAfterCancel)
             console.log(BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel)).toString())
-            await expect(BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel))).eq(1350)
+            await expect(BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel))).eq(0)
         })
 
         it("should stay remain quantity when cancel a close position limit order", async () => {
@@ -5299,7 +5318,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: BigNumber.from('10'),
-                _trader: trader1
+                _trader: trader1,
+                skipCheckBalance: true
             })
 
             await openMarketPosition({
@@ -5324,7 +5344,7 @@ describe("PositionHouse_02", () => {
             console.log(positionDataAfterCancel)
 
             console.log((BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel))).toString())
-            await expect(BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel))).eq(3150)
+            await expect(BigNumber.from(traderBalanceAfterCancel).sub(BigNumber.from(traderBalanceBeforeCancel))).eq(0)
 
         })
 
@@ -5372,7 +5392,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: BigNumber.from('5'),
-                _trader: trader3
+                _trader: trader3,
+                skipCheckBalance: true
             })
 
             await positionHouse.connect(trader1).cancelLimitOrder(positionManager.address, 1, 0)
@@ -5400,7 +5421,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: BigNumber.from('5'),
-                _trader: trader1
+                _trader: trader1,
+                skipCheckBalance: true
             })
 
             await openMarketPosition({
@@ -5478,7 +5500,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: BigNumber.from('10'),
-                _trader: trader2
+                _trader: trader2,
+                skipCheckBalance: true
             })
             const balanceBeforeCloseMarket = await bep20Mintable.balanceOf(trader1.address)
             await positionHouse.connect(trader1).closePosition(positionManager.address, BigNumber.from("4"))
@@ -5491,7 +5514,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: BigNumber.from('16'),
-                _trader: trader1
+                _trader: trader1,
+                skipCheckBalance: true
             })
 
             await expect(openMarketPosition({
@@ -5571,7 +5595,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: BigNumber.from('10'),
-                _trader: trader2
+                _trader: trader2,
+                skipCheckBalance: true
             })
             const balanceBeforeCloseMarket = await bep20Mintable.balanceOf(trader1.address)
             await positionHouse.connect(trader1).closePosition(positionManager.address, BigNumber.from("10"))
@@ -5583,7 +5608,8 @@ describe("PositionHouse_02", () => {
                 side: SIDE.LONG,
                 leverage: 10,
                 quantity: BigNumber.from('10'),
-                _trader: trader1
+                _trader: trader1,
+                skipCheckBalance: true
             })
 
             await openMarketPosition({
@@ -5614,7 +5640,7 @@ describe("PositionHouse_02", () => {
                 _trader: trader4
             })
             const trader1CanClaimAmount = (await positionHouseViewer.getClaimAmount(positionManager.address, trader1.address)).toString()
-            await expect(trader1CanClaimAmount).eq("7150")
+            await expect(trader1CanClaimAmount).eq("3850")
         })
 
         it( "should transfer when open limit in current pip", async ()=>{
@@ -5865,7 +5891,7 @@ describe("PositionHouse_02", () => {
             const balanceAfterTestCase = await bep20Mintable.balanceOf(trader1.address)
             const exchangedQuoteAmount = balanceAfterTestCase.sub(balanceBeforeTestCase)
             console.log(exchangedQuoteAmount.toString())
-            expect(exchangedQuoteAmount.toString()).eq("992")
+            expect(exchangedQuoteAmount.toString()).eq("995")
         })
 
         it("should be reverted transaction when open multi order with different side", async () => {
@@ -5959,7 +5985,8 @@ describe("PositionHouse_02", () => {
                 leverage: 1,
                 quantity: BigNumber.from('2'),
                 _trader: trader1,
-                _positionManager: positionManager
+                _positionManager: positionManager,
+                skipCheckBalance: true
             })
 
             // S4: trader1 try to create a limit reduce order with quantity = 2/3 position again but got revert
@@ -5991,7 +6018,8 @@ describe("PositionHouse_02", () => {
                 leverage: 1,
                 quantity: BigNumber.from('2'),
                 _trader: trader2,
-                _positionManager: positionManager
+                _positionManager: positionManager,
+                skipCheckBalance: true
             })
 
             await expect(openLimitPositionAndExpect({
@@ -6013,6 +6041,41 @@ describe("PositionHouse_02", () => {
                 }
             )).to.be.revertedWith('23');
         })
+
+
+        it("should fill order correctly when cancel the only order of different pip from current", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader1,
+                skipCheckBalance: true
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader2,
+                skipCheckBalance: true
+            })
+
+            await cancelLimitOrder(positionManager.address, trader2, '1', '490000')
+
+            // should be reverted cause there are not limit short order
+            await expect(openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                }
+            )).to.be.revertedWith("11")
+        })
+
 
         it("should cancel pending order success of liquidated user", async () => {
             await fundingRateTest.setMockPrice(5500, 5500)
@@ -6094,7 +6157,8 @@ describe("PositionHouse_02", () => {
                 leverage: 10,
                 quantity: BigNumber.from('2'),
                 _trader: trader1,
-                _positionManager: fundingRateTest
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
             })
 
             await openMarketPosition({
@@ -6122,37 +6186,61 @@ describe("PositionHouse_02", () => {
             );
         })
 
-        it("should fill order correctly when cancel the only order of different pip from current", async () => {
+        it("should increase claimable fund when partial filled an increase limit order", async () => {
             await openLimitPositionAndExpect({
-                limitPrice: 5000,
-                side: SIDE.LONG,
+                limitPrice: 5200,
+                side: SIDE.SHORT,
                 leverage: 10,
-                quantity: BigNumber.from('10'),
+                quantity: BigNumber.from('5'),
                 _trader: trader1,
+                _positionManager: fundingRateTest,
                 skipCheckBalance: true
             })
 
-            await openLimitPositionAndExpect({
-                limitPrice: 4900,
-                side: SIDE.LONG,
-                leverage: 10,
-                quantity: BigNumber.from('10'),
-                _trader: trader2,
-                skipCheckBalance: true
-            })
-
-            await cancelLimitOrder(positionManager.address, trader2, '1', '490000')
-
-            // should be reverted cause there are not limit short order
-            await expect(openMarketPosition({
-                    quantity: BigNumber.from('10'),
+            await openMarketPosition({
+                    quantity: BigNumber.from('5'),
                     leverage: 10,
                     side: SIDE.LONG,
                     trader: trader2.address,
                     instanceTrader: trader2,
-                    _positionManager: positionManager,
+                    _positionManager: fundingRateTest,
                 }
-            )).to.be.revertedWith("11")
+            );
+
+            const claimableAmountAfterFirstOrder = (await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).toString()
+            // margin after first order = 5200 * 5 / 10 = 2600
+            await expect(claimableAmountAfterFirstOrder).eq('2600')
+
+            await changePrice({
+                limitPrice: 5000,
+                toHigherPrice: false,
+                _positionManager: fundingRateTest
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader1,
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('1'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+            const claimableAmountAfterSecondOrder = (await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).toString()
+            // total margin after second order = positionMargin + filledOrderMargin = 2600 + 5000*1/10 = 3100
+            await expect(claimableAmountAfterSecondOrder).eq('3100')
         })
+
     })
 })

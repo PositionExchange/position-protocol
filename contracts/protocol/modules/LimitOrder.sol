@@ -208,8 +208,6 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                     _quantity -= (closePositionResp.exchangedPositionSize)
                         .abs128();
                 }
-
-
             } else {
                 (orderId, sizeOut, openNotional) = _positionManager
                     .openLimitPosition(_pip, _quantity, _rawQuantity > 0);
