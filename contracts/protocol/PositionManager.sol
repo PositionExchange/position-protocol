@@ -231,7 +231,7 @@ contract PositionManager is
             require(
                 int128(_pip) >=
                 (int256(getUnderlyingPriceInPip()) -
-                int128(maxFindingWordsIndex * 250)), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE
+                int128(maxFindingWordsIndex * 250)), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_LONG
             );
         } else {
             require(
@@ -239,7 +239,7 @@ contract PositionManager is
                 Errors.VL_SHORT_PRICE_LESS_CURRENT_PRICE
             );
             require(
-                _pip <= (getUnderlyingPriceInPip() + maxFindingWordsIndex * 250), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE
+                _pip <= (getUnderlyingPriceInPip() + maxFindingWordsIndex * 250), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_SHORT
             );
         }
         bool hasLiquidity = liquidityBitmap.hasLiquidity(_pip);

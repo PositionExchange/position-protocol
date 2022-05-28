@@ -37,9 +37,11 @@ library Errors {
     string public constant VL_NOT_WHITELIST_MANAGER = "19"; // ''
     string public constant VL_INVALID_ORDER = "20"; // ''
     string public constant VL_ONLY_PENDING_ORDER = "21"; // ''
-    string public constant VL_MUST_SAME_SIDE = "22";
+    string public constant VL_MUST_SAME_SIDE_SHORT = "22.1";
+    string public constant VL_MUST_SAME_SIDE_LONG = "22.2";
     string public constant VL_MUST_SMALLER_REVERSE_QUANTITY = "23";
-    string public constant VL_MUST_CLOSE_TO_INDEX_PRICE = "24";
+    string public constant VL_MUST_CLOSE_TO_INDEX_PRICE_SHORT = "24.1";
+    string public constant VL_MUST_CLOSE_TO_INDEX_PRICE_LONG = "24.2";
     string public constant VL_MARKET_ORDER_MUST_CLOSE_TO_INDEX_PRICE = "25";
 
     enum CollateralManagerErrors {
