@@ -859,17 +859,12 @@ contract PositionManager is
         while (!onlyLoopOnce && state.remainingSize != 0) {
             StepComputations memory step;
             // updated findHasLiquidityInMultipleWords, save more gas
-//            if (_maxPip != 0) {
-//                step.pipNext = _maxPip;
-//                onlyLoopOnce = true;
-//            } else {
-                (step.pipNext) = liquidityBitmap
-                    .findHasLiquidityInMultipleWords(
-                        state.pip,
-                        maxFindingWordsIndex,
-                        !_isBuy
-                    );
-//            }
+            (step.pipNext) = liquidityBitmap
+                .findHasLiquidityInMultipleWords(
+                    state.pip,
+                    maxFindingWordsIndex,
+                    !_isBuy
+                );
             // when open market with a limit max pip
             if (_maxPip != 0) {
                 // if order is buy and step.pipNext (pip has liquidity) > maxPip then break cause this is limited to maxPip and vice versa
@@ -913,9 +908,7 @@ contract PositionManager is
                         state.remainingSize = state.remainingSize - liquidity;
                         openNotional += ((liquidity *
                             pipToPrice(step.pipNext)) / BASE_BASIC_POINT);
-                        state.pip = state.remainingSize > 0
-                            ? (_isBuy ? step.pipNext + 1 : step.pipNext - 1)
-                            : step.pipNext;
+                        state.pip = step.pipNext;
                         passedPipCount++;
                     } else {
                         // remaining size = liquidity
@@ -959,10 +952,10 @@ contract PositionManager is
         //    }
         //}
 
-        singleSlot.pip = _maxPip != 0 && state.remainingSize != 0 ? _maxPip : state.pip;
         passedPipCount = _maxPip != 0 ? 0 : passedPipCount;
         singleSlot.isFullBuy = isFullBuy;
         sizeOut = _size - state.remainingSize;
+        singleSlot.pip = _maxPip != 0 && sizeOut != 0 && sizeOut != _size ? _maxPip : state.pip;
         _addReserveSnapshot();
         emit MarketFilled(
             _isBuy,

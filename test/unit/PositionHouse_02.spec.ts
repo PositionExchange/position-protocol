@@ -6276,7 +6276,6 @@ describe("PositionHouse_02", () => {
                 skipCheckBalance: true
             })
 
-            console.log("before open long limit order with higher price than current")
             await openLimitPositionAndExpect({
                 limitPrice: 5300,
                 side: SIDE.LONG,
@@ -6287,10 +6286,16 @@ describe("PositionHouse_02", () => {
                 skipCheckBalance: true
             })
 
-            console.log("get position and list order pending of trader1 !!!!!!!!!")
-            console.log((await positionHouseViewer.getPosition(positionManager.address, trader1.address)).toString())
+            await expect((await positionManager.getCurrentPip()).toString()).eq('520000')
 
-            console.log((await positionHouseViewer.getListOrderPending(positionManager.address, trader1.address)).toString())
+            const positionOfTrader1 = await positionHouseViewer.getPosition(positionManager.address, trader1.address)
+            await expect(positionOfTrader1.quantity.toString()).eq('10')
+            // openNotional = 5*5100 + 5*5200 = 51500
+            await expect(positionOfTrader1.openNotional.toString()).eq('51500')
+
+            const listOrderPendingOfTrader1 = await positionHouseViewer.getListOrderPending(positionManager.address, trader1.address)
+            await expect(listOrderPendingOfTrader1[0].quantity).eq('17')
+            await expect(listOrderPendingOfTrader1[0].partialFilled).eq('10')
 
             await openLimitPositionAndExpect({
                 limitPrice: 5100,
@@ -6301,16 +6306,25 @@ describe("PositionHouse_02", () => {
                 _positionManager: positionManager,
                 skipCheckBalance: true
             })
-            console.log("get position and list order pending of trader1 @@@@@@@@@@")
-            console.log((await positionHouseViewer.getPosition(positionManager.address, trader1.address)).toString())
+            await expect((await positionManager.getCurrentPip()).toString()).eq('530000')
 
-            console.log((await positionHouseViewer.getListOrderPending(positionManager.address, trader1.address)).toString())
+            const positionOfTrader1Fulfilled = await positionHouseViewer.getPosition(positionManager.address, trader1.address)
+            await expect(positionOfTrader1Fulfilled.quantity.toString()).eq('17')
+            // openNotional = 5*5100 + 5*5200 + 7*5300 = 88600
+            await expect(positionOfTrader1Fulfilled.openNotional.toString()).eq('88600')
 
-            console.log("get position and list order pending of trader2 ##########")
-            console.log((await positionHouseViewer.getPosition(positionManager.address, trader2.address)).toString())
+            const listOrderPendingOfTrader1FulFilled = await positionHouseViewer.getListOrderPending(positionManager.address, trader1.address)
+            await expect(listOrderPendingOfTrader1FulFilled[0].quantity).eq('0')
+            await expect(listOrderPendingOfTrader1FulFilled[0].partialFilled).eq('0')
 
-            console.log((await positionHouseViewer.getListOrderPending(positionManager.address, trader2.address)).toString())
+            const positionOfTrader2 = await positionHouseViewer.getPosition(positionManager.address, trader2.address)
+            await expect(positionOfTrader2.quantity.toString()).eq('17')
+            // openNotional = 5*5100 + 5*5200 + 7*5300 = 88600
+            await expect(positionOfTrader2.openNotional.toString()).eq('88600')
+
+            const listOrderPendingOfTrader2 = await positionHouseViewer.getListOrderPending(positionManager.address, trader2.address)
+            await expect(listOrderPendingOfTrader2[0].quantity).eq('0')
+            await expect(listOrderPendingOfTrader2[0].partialFilled).eq('0')
         })
-
     })
 })
