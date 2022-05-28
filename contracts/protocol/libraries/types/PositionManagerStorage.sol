@@ -41,6 +41,9 @@ contract PositionManagerStorage {
         //1: buy
         //2: sell
         uint8 isFullBuy;
+        // highest pip order buy
+        uint128 highestBuyPip;
+        uint128 lowestSellPip;
     }
 
     struct PipLiquidity {
@@ -72,7 +75,7 @@ contract PositionManagerStorage {
     }
 
     struct SwapState {
-        uint256 remainingSize;
+        uint128 remainingSize;
         // the tick associated with the current price
         uint128 pip;
     }
