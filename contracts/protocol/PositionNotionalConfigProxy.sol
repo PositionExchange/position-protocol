@@ -48,7 +48,7 @@ contract PositionNotionalConfigProxy is Initializable {
                 return 10_000;
             }
         }
-        if(key == ""){ //BNB_BUSD hash
+        if(key == BNB_BUSD){ //BNB_BUSD hash
             if (leverage == 1) {
                 return 30000000;
             } else if (leverage == 2) {
