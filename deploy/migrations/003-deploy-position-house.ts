@@ -19,6 +19,13 @@ const migrations: MigrationDefinition = {
             })
         },
 
+        'deploy position notional configuration proxy': async () => {
+            /**
+                no param
+             */
+            await context.factory.createPositionNotionConfigProxy({})
+        },
+
         'deploy position house': async () => {
             /**
              insuranceFund: string,
@@ -26,11 +33,13 @@ const migrations: MigrationDefinition = {
              */
             const insuranceFundContactAddress = await context.db.findAddressByKey('InsuranceFund');
             const positionHouseConfigurationProxyContactAddress = await context.db.findAddressByKey('PositionHouseConfigurationProxy');
+            const positionNotionalConfigProxyContractAddress = await context.db.findAddressByKey('PositionNotionalConfigProxy');
             console.log(`InsuranceFund  ${insuranceFundContactAddress}`);
             console.log(`PositionHouseConfigurationProxy  ${positionHouseConfigurationProxyContactAddress}`);
             await context.factory.createPositionHouse({
                 insuranceFund: insuranceFundContactAddress,
-                positionHouseConfigurationProxy: positionHouseConfigurationProxyContactAddress
+                positionHouseConfigurationProxy: positionHouseConfigurationProxyContactAddress,
+                positionNotionalConfigProxy: positionNotionalConfigProxyContractAddress
             })
         },
 

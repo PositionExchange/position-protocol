@@ -6,7 +6,7 @@ import {
     CreatePositionHouseFunction,
     CreateChainLinkPriceFeed,
     CreatePositionHouseConfigurationProxyInput,
-    CreatePositionHouseViewerInput
+    CreatePositionHouseViewerInput, CreatePositionNotionalConfigProxy
 } from "./types";
 import {DeployDataStore} from "./DataStore";
 import {verifyContract} from "../scripts/utils";
@@ -102,7 +102,8 @@ export class ContractWrapperFactory {
         } else {
             const contractArgs = [
                 args.insuranceFund,
-                args.positionHouseConfigurationProxy
+                args.positionHouseConfigurationProxy,
+                args.positionNotionalConfigProxy
                 // args.feePool
             ];
 
@@ -200,7 +201,15 @@ export class ContractWrapperFactory {
             await this.db.saveAddressByKey('InsuranceFund', address);
 
         }
+    }
 
+    async createPositionNotionConfigProxy(args: CreatePositionNotionalConfigProxy) {
+        const PositionNotionalConfigProxy = await this.hre.ethers.getContractFactory("PositionNotionalConfigProxy");
+
+        const deployTx = await PositionNotionalConfigProxy.deploy();
+        await deployTx.deployTransaction.wait(3)
+        console.log("wait for deploy position notional config proxy");
+        await this.db.saveAddressByKey('PositionNotionalConfigProxy', deployTx.address.toLowerCase());
     }
 
     async createPositionHouseFunctionLibrary(args: CreatePositionHouseFunction) {
