@@ -551,7 +551,7 @@ contract PositionManager is
         uint128 _fromPip,
         uint256 _dataLength,
         bool _toHigher
-    ) public view override returns (PipLiquidity[] memory, uint128) {
+    ) public view override returns (PipLiquidity[] memory, uint128, uint8) {
         uint128[] memory allInitializedPips = new uint128[](
             uint128(_dataLength)
         );
@@ -568,7 +568,7 @@ contract PositionManager is
                 liquidity: tickPosition[allInitializedPips[i]].liquidity
             });
         }
-        return (allLiquidity, allInitializedPips[_dataLength - 1]);
+        return (allLiquidity, allInitializedPips[_dataLength - 1], singleSlot.isFullBuy);
     }
 
     function getQuoteAsset() public view override returns (IERC20) {
@@ -687,7 +687,6 @@ contract PositionManager is
     //******************************************************************************************************************
 
     function updateMaxPercentMarketMarket(uint16 newMarketMakerSlipage) public onlyOwner {
-
         emit MaxMarketMakerSlipageUpdated(maxMarketMakerSlipage, newMarketMakerSlipage);
         maxMarketMakerSlipage = newMarketMakerSlipage;
 
