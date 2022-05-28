@@ -38,8 +38,6 @@ contract PositionHouse is
     using Position for Position.Data;
     using Position for Position.LiquidatedData;
     using PositionHouseFunction for PositionHouse;
-    mapping(address => mapping(address => int256)) internal debtProfit;
-
 
     event OpenMarket(
         address trader,
@@ -159,7 +157,7 @@ contract PositionHouse is
      * @param _quantity want to close
      */
     function closePosition(IPositionManager _positionManager, uint256 _quantity)
-        external
+        public
         
         nonReentrant
     {
@@ -188,20 +186,7 @@ contract PositionHouse is
         address _pmAddress = address(_positionManager);
         address _trader = _msgSender();
         _emptyReduceLimitOrders(_pmAddress, _trader);
-        Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
-        require(
-            _quantity > 0 && _quantity <= _positionDataWithManualMargin.quantity.abs(),
-            Errors.VL_INVALID_CLOSE_QUANTITY
-        );
-        _internalOpenMarketPosition(
-            _positionManager,
-            _positionDataWithManualMargin.quantity > 0
-            ? Position.Side.SHORT
-            : Position.Side.LONG,
-            _quantity,
-            _positionDataWithManualMargin.leverage,
-            _positionDataWithManualMargin
-        );
+        closePosition(_positionManager, _quantity);
         emit InstantlyClosed(_pmAddress, _trader);
     }
 
@@ -263,7 +248,7 @@ contract PositionHouse is
         clearPosition(_pmAddress, _trader);
         if (totalRealizedPnl > 0) {
             _withdraw(_pmAddress, _trader, totalRealizedPnl.abs());
-            emit FundClaimed(_pmAddress, _trader, totalRealizedPnl.abs());
+//            emit FundClaimed(_pmAddress, _trader, totalRealizedPnl.abs());
         }
     }
 
@@ -765,7 +750,6 @@ contract PositionHouse is
         if (_quantity.abs() < _oldPosition.quantity.abs()) {
             int256 _manualAddedMargin = _getManualMargin(_pmAddress, _trader);
             {
-
                 positionResp = PositionHouseFunction.openReversePosition(
                     _pmAddress,
                     _side,
@@ -791,36 +775,37 @@ contract PositionHouse is
         );
         if (_quantity - closePositionResp.exchangedPositionSize == 0) {
             positionResp = closePositionResp;
-        } else {
-            _oldPosition = getPosition(_pmAddress, _trader);
-            PositionResp memory increasePositionResp = PositionHouseFunction
-            .increasePosition(
-                address(_positionManager),
-                _side,
-                _quantity - closePositionResp.exchangedPositionSize,
-                _leverage,
-                _trader,
-                _oldPosition,
-                positionMap[_pmAddress][_trader],
-                getLatestCumulativePremiumFraction(_pmAddress)
-            );
-            positionResp = PositionResp({
-                position: increasePositionResp.position,
-                exchangedQuoteAssetAmount: closePositionResp
-                .exchangedQuoteAssetAmount +
-                    increasePositionResp.exchangedQuoteAssetAmount,
-                fundingPayment: increasePositionResp.fundingPayment,
-                exchangedPositionSize: closePositionResp.exchangedPositionSize +
-                    increasePositionResp.exchangedPositionSize,
-                realizedPnl: closePositionResp.realizedPnl +
-                    increasePositionResp.realizedPnl,
-                unrealizedPnl: 0,
-                marginToVault: closePositionResp.marginToVault +
-                    increasePositionResp.marginToVault,
-                fee: closePositionResp.fee,
-                entryPrice: closePositionResp.entryPrice
-            });
         }
+//        else {
+//            _oldPosition = getPosition(_pmAddress, _trader);
+//            PositionResp memory increasePositionResp = PositionHouseFunction
+//            .increasePosition(
+//                address(_positionManager),
+//                _side,
+//                _quantity - closePositionResp.exchangedPositionSize,
+//                _leverage,
+//                _trader,
+//                _oldPosition,
+//                positionMap[_pmAddress][_trader],
+//                getLatestCumulativePremiumFraction(_pmAddress)
+//            );
+//            positionResp = PositionResp({
+//                position: increasePositionResp.position,
+//                exchangedQuoteAssetAmount: closePositionResp
+//                .exchangedQuoteAssetAmount +
+//                    increasePositionResp.exchangedQuoteAssetAmount,
+//                fundingPayment: increasePositionResp.fundingPayment,
+//                exchangedPositionSize: closePositionResp.exchangedPositionSize +
+//                    increasePositionResp.exchangedPositionSize,
+//                realizedPnl: closePositionResp.realizedPnl +
+//                    increasePositionResp.realizedPnl,
+//                unrealizedPnl: 0,
+//                marginToVault: closePositionResp.marginToVault +
+//                    increasePositionResp.marginToVault,
+//                fee: closePositionResp.fee,
+//                entryPrice: closePositionResp.entryPrice
+//            });
+//        }
         return positionResp;
     }
 
@@ -908,7 +893,8 @@ contract PositionHouse is
         address positionManager,
         address trader,
         uint256 amount,
-        uint256 fee)
+        uint256 fee
+    )
         internal
     {
         insuranceFund.deposit(positionManager, trader, amount, fee);
