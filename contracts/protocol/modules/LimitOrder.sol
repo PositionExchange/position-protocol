@@ -5,6 +5,7 @@ import {PositionHouseMath} from "../libraries/position/PositionHouseMath.sol";
 import {PositionHouseFunction} from "../libraries/position/PositionHouseFunction.sol";
 import "../libraries/position/PositionLimitOrder.sol";
 import "../libraries/helpers/Quantity.sol";
+import "../libraries/helpers/Int256Math.sol";
 import "../libraries/types/PositionHouseStorage.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
 import "./ClaimableAmountManager.sol";
@@ -27,6 +28,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
     );
 
     using Quantity for int256;
+    using Int256Math for int256;
     // increase orders
     mapping(address => mapping(address => PositionLimitOrder.Data[]))
         private limitOrders;
@@ -212,18 +214,26 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 (orderId, sizeOut, openNotional) = _positionManager
                     .openLimitPosition(_pip, _quantity, _rawQuantity > 0);
                 if (sizeOut != 0) {
+                    {
+                        if (!_rawQuantity.isSameSide(oldPosition.quantity) && oldPosition.quantity != 0) {
+                            int256 totalReturn = PositionHouseFunction.calcReturnWhenOpenReverse(_pmAddress, _trader, sizeOut, oldPosition);
+                            insuranceFund.withdraw(_pmAddress, _trader, totalReturn.abs());
+                        }
+                    }
                     // case: open a limit order at the last price
                     // the order must be partially executed
                     // then update the current position
-                    Position.Data memory newData = PositionHouseFunction.handleMarketPart(
-                        oldPosition,
-                        _getPositionMap(_pmAddress, _trader),
-                        openNotional,
-                        _rawQuantity > 0 ? int256(sizeOut) : -int256(sizeOut),
-                        _leverage,
-                        getLatestCumulativePremiumFraction(_pmAddress)
-                    );
-                    _updatePositionMap(_pmAddress, _trader, newData);
+                    {
+                        Position.Data memory newData = PositionHouseFunction.handleMarketPart(
+                            oldPosition,
+                            _getPositionMap(_pmAddress, _trader),
+                            openNotional,
+                            _rawQuantity > 0 ? int256(sizeOut) : - int256(sizeOut),
+                            _leverage,
+                            getLatestCumulativePremiumFraction(_pmAddress)
+                        );
+                        _updatePositionMap(_pmAddress, _trader, newData);
+                    }
                 }
             }
         }
