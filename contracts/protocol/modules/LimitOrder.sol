@@ -115,7 +115,9 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             }
             (, uint256 marginToVault, uint256 fee) = _positionManager
                 .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
-            insuranceFund.deposit(_pmAddress, _trader, marginToVault, fee);
+            if (_oldPosition.quantity == 0 || _oldPosition.quantity.isSameSide(_quantity)) {
+                insuranceFund.deposit(_pmAddress, _trader, marginToVault, fee);
+            }
             _setLimitOrderPremiumFraction(_pmAddress, _trader, getLatestCumulativePremiumFraction(_pmAddress));
             uint256 limitOrderMargin = marginToVault * (_uQuantity - openLimitResp.sizeOut) / _uQuantity;
         }
