@@ -7,7 +7,8 @@ import {
     PositionHouseFunction,
     PositionHouseViewer,
     PositionManager,
-    FundingRateTest
+    FundingRateTest,
+    PositionNotionalConfigProxy
 } from "../../typeChain";
 import {BigNumber} from "ethers";
 import PositionManagerTestingTool from "./positionManagerTestingTool";
@@ -20,6 +21,8 @@ export async function deployPositionHouse(){
     const libraryIns = (await positionHouseFunction.deploy())
     const PositionHouseMath = await ethers.getContractFactory('PositionHouseMath')
     const positionHouseMath = await PositionHouseMath.deploy()
+    const PositionNotionalConfigProxyFactory = await ethers.getContractFactory('PositionNotionalConfigProxy')
+    let positionNotionalConfigProxy = (await PositionNotionalConfigProxyFactory.deploy()) as unknown as PositionNotionalConfigProxy
 
     // Deploy mock busd contract
     const bep20MintableFactory = await ethers.getContractFactory('BEP20Mintable')
@@ -68,9 +71,11 @@ export async function deployPositionHouse(){
     await positionManager.initialize(BigNumber.from(500000), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
     await fundingRateTest.initialize(BigNumber.from(500000), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
     await positionHouseConfiguration.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20))
-    await positionHouse.initialize(insuranceFund.address, positionHouseConfiguration.address)
+    await positionHouse.initialize(insuranceFund.address, positionHouseConfiguration.address, positionNotionalConfigProxy.address)
     await positionHouseViewer.initialize(positionHouse.address, positionHouseConfiguration.address)
 
+    await positionHouse.updateConfigNotionalKey(positionManager.address, ethers.utils.formatBytes32String("BTC_BUSD"))
+    await positionHouse.updateConfigNotionalKey(fundingRateTest.address, ethers.utils.formatBytes32String("BTC_BUSD"))
     await insuranceFund.updateWhitelistManager(positionManager.address, true);
     await insuranceFund.updateWhitelistManager(fundingRateTest.address, true);
 
