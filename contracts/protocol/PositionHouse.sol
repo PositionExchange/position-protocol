@@ -64,6 +64,7 @@ contract PositionHouse is
     event FullyLiquidated(address pmAddress, address trader);
 //    event PartiallyLiquidated(address pmAddress, address trader);
 //    event WhitelistManagerUpdated(address positionManager, bool isWhitelite);
+    event InstantlyClosed(address pmAddress, address trader);
 
     function initialize(
         address _insuranceFund,
@@ -169,6 +170,30 @@ contract PositionHouse is
             _positionDataWithManualMargin.leverage,
             _positionDataWithManualMargin
         );
+    }
+
+    function instantlyClosePosition(IPositionManager _positionManager, uint256 _quantity)
+        external
+        nonReentrant
+    {
+        address _pmAddress = address(_positionManager);
+        address _trader = _msgSender();
+        _emptyReduceLimitOrders(_pmAddress, _trader);
+        Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
+        require(
+            _quantity > 0 && _quantity <= _positionDataWithManualMargin.quantity.abs(),
+            Errors.VL_INVALID_CLOSE_QUANTITY
+        );
+        _internalOpenMarketPosition(
+            _positionManager,
+            _positionDataWithManualMargin.quantity > 0
+            ? Position.Side.SHORT
+            : Position.Side.LONG,
+            _quantity,
+            _positionDataWithManualMargin.leverage,
+            _positionDataWithManualMargin
+        );
+        emit InstantlyClosed(_pmAddress, _trader);
     }
 
     /**
