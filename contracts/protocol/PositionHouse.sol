@@ -49,21 +49,28 @@ contract PositionHouse is
         IPositionManager positionManager
     );
 
-//    event MarginAdded(
-//        address trader,
-//        uint256 marginAdded,
-//        IPositionManager positionManager
-//    );
-//
-//    event MarginRemoved(
-//        address trader,
-//        uint256 marginRemoved,
-//        IPositionManager positionManager
-//    );
+    event MarginAdded(
+        address trader,
+        uint256 marginAdded,
+        IPositionManager positionManager
+    );
+
+    event MarginRemoved(
+        address trader,
+        uint256 marginRemoved,
+        IPositionManager positionManager
+    );
 
     event FullyLiquidated(address pmAddress, address trader);
-//    event PartiallyLiquidated(address pmAddress, address trader);
+    event PartiallyLiquidated(address pmAddress, address trader);
 //    event WhitelistManagerUpdated(address positionManager, bool isWhitelite);
+
+    event FundClaimed(
+        address pmAddress,
+        address trader,
+        uint256 totalFund
+    );
+
     event InstantlyClosed(address pmAddress, address trader);
 
     function initialize(
@@ -254,6 +261,7 @@ contract PositionHouse is
         clearPosition(_pmAddress, _trader);
         if (totalRealizedPnl > 0) {
             _withdraw(_pmAddress, _trader, totalRealizedPnl.abs());
+            emit FundClaimed(_pmAddress, _trader, totalRealizedPnl.abs());
         }
     }
 
@@ -303,12 +311,15 @@ contract PositionHouse is
                 liquidationPenalty = uint256(positionResp.marginToVault);
                 feeToLiquidator = liquidationPenalty / 2;
                 uint256 feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
-//                emit PartiallyLiquidated(_pmAddress, _trader);
+                emit PartiallyLiquidated(_pmAddress, _trader);
             } else {
                 // fully liquidate trader's position
+                bool _liquidateOrderIsBuy = positionDataWithManualMargin.quantity > 0 ? false : true;
                 liquidationPenalty =
                     positionDataWithManualMargin.margin ;
                 clearPosition(_pmAddress, _trader);
+                // after clear position, create an opposite market order of old position
+                _positionManager.openMarketPosition(positionDataWithManualMargin.quantity.abs(), _liquidateOrderIsBuy);
                 feeToLiquidator =
                     (liquidationPenalty * _liquidationFeeRatio) /
                     2 /
@@ -340,7 +351,7 @@ contract PositionHouse is
 
         _deposit(_pmAddress, _trader, _amount, 0);
 
-//        emit MarginAdded(_trader, _amount, _positionManager);
+        emit MarginAdded(_trader, _amount, _positionManager);
     }
 
     /**
@@ -363,7 +374,7 @@ contract PositionHouse is
 
         _withdraw(_pmAddress, _trader, _amount);
 
-//        emit MarginRemoved(_trader, _amount, _positionManager);
+        emit MarginRemoved(_trader, _amount, _positionManager);
     }
 
     // OWNER UPDATE VARIABLE STORAGE
@@ -738,13 +749,6 @@ contract PositionHouse is
             _pushLimit(_pmAddress, _trader, subListLimitOrders[i]);
         }
         _emptyReduceLimitOrders(_pmAddress, _trader);
-        for (uint256 i = 0; i < subReduceLimitOrders.length; i++) {
-            if (subReduceLimitOrders[i].pip == 0) {
-                break;
-            }
-            // _pushLimit cause old position was liquidated, pending order is treated as a new order
-            _pushLimit(_pmAddress, _trader, subReduceLimitOrders[i]);
-        }
     }
 
     function openReversePosition(
@@ -826,9 +830,11 @@ contract PositionHouse is
     ) internal returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
         int256 _manualMargin = _getManualMargin(_pmAddress, _trader);
-        Position.Side _side = _quantity > 0 ? Position.Side.SHORT : Position.Side.LONG;
-        (positionResp.exchangedPositionSize, ,, ) = PositionHouseFunction
-            .openMarketOrder(_pmAddress, _quantity.abs(), _side);
+        _emptyReduceLimitOrders(_pmAddress, _trader);
+        // if current position is long (_quantity >0) then liquidate order is short
+        bool _liquidateOrderIsBuy = _quantity > 0 ? false : true;
+        // call directly to position manager to skip check enough liquidity
+        _positionManager.openMarketPosition(_quantity.abs(), _liquidateOrderIsBuy);
         positionResp.exchangedQuoteAssetAmount = _quantity
             .getExchangedQuoteAssetAmount(
                 _oldPosition.openNotional,
