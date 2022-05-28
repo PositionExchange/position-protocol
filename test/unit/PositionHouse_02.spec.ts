@@ -24,7 +24,7 @@ import {
     ChangePriceParams,
     priceToPip, SIDE,
     toWeiBN,
-    toWeiWithString, ExpectTestCaseParams, ExpectMaintenanceDetail
+    toWeiWithString, ExpectTestCaseParams, ExpectMaintenanceDetail, toWei
 } from "../shared/utilities";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import {CHAINLINK_ABI_TESTNET} from "../../constants";
@@ -6240,6 +6240,61 @@ describe("PositionHouse_02", () => {
             const claimableAmountAfterSecondOrder = (await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)).toString()
             // total margin after second order = positionMargin + filledOrderMargin = 2600 + 5000*1/10 = 3100
             await expect(claimableAmountAfterSecondOrder).eq('3100')
+        })
+
+        it("should check valid notional by leverage", async () => {
+            // will be reverted cause notional of this order is 50001 > max notional for leverage 125 = 50000
+            await expect(openLimitPositionAndExpect({
+                limitPrice: 5001,
+                side: SIDE.SHORT,
+                leverage: 125,
+                quantity: BigNumber.from(toWei(10)),
+                _trader: trader1,
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
+            })).to.be.revertedWith("26")
+
+            // will be reverted cause notional of this order is 54989 > max notional for leverage 125 = 50000
+            await expect(openLimitPositionAndExpect({
+                limitPrice: 4999,
+                side: SIDE.LONG,
+                leverage: 125,
+                quantity: BigNumber.from(toWei(11)),
+                _trader: trader1,
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
+            })).to.be.revertedWith("26")
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4999,
+                side: SIDE.LONG,
+                leverage: 125,
+                quantity: BigNumber.from(toWei(5)),
+                _trader: trader1,
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4998,
+                side: SIDE.LONG,
+                leverage: 125,
+                quantity: BigNumber.from(toWei(6)),
+                _trader: trader1,
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
+            })
+
+            // will be reverted cause notional of this order is 54983 > max notional for leverage 125 = 50000
+            await expect(openMarketPosition({
+                    quantity: BigNumber.from(toWei(11)),
+                    leverage: 125,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: fundingRateTest,
+                }
+            )).to.be.revertedWith("26")
         })
 
     })

@@ -57,6 +57,7 @@ export interface ConfigPositionManagerInput {
 export interface CreatePositionHouseInput {
     insuranceFund: string,
     positionHouseConfigurationProxy: string
+    positionNotionalConfigProxy: string
     // feePool: string
 }
 
@@ -82,6 +83,10 @@ export interface CreatePositionHouseFunction {
 }
 
 export interface CreateChainLinkPriceFeed {
+
+}
+
+export interface CreatePositionNotionalConfigProxy {
 
 }
 
