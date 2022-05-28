@@ -570,7 +570,9 @@ library PositionHouseFunction {
         Position.LiquidatedData memory _positionLiquidatedData,
         Position.Data memory _positionDataWithoutLimit,
         PositionLimitOrder.Data[] memory _limitOrders,
-        PositionLimitOrder.Data[] memory _reduceLimitOrders
+        PositionLimitOrder.Data[] memory _reduceLimitOrders,
+        int128 _positionLatestCumulativePremiumFraction,
+        int128 _latestCumulativePremiumFraction
     ) public view returns (int256 totalClaimableAmount) {
         ClaimAbleState memory state;
         IPositionManager _positionManager = IPositionManager(_pmAddress);
@@ -609,11 +611,15 @@ library PositionHouseFunction {
                 _accumulatePnLInReduceLimitOrder(state, _cpIncrPosition, _reduceLimitOrders[j].pip, _filledAmount, _reduceLimitOrders[j].entryPrice, _reduceLimitOrders[j].leverage);
             }
         }
+        if (_pDataIncr.lastUpdatedCumulativePremiumFraction == 0) {
+            _pDataIncr.lastUpdatedCumulativePremiumFraction = _positionLatestCumulativePremiumFraction;
+        }
+        (,, int256 fundingPayment) = calcRemainMarginWithFundingPayment(_pDataIncr, state.accMargin, _latestCumulativePremiumFraction);
         state.amount +=
             int256(state.accMargin) +
+            fundingPayment +
             _manualMargin -
             int256(_positionLiquidatedData.margin);
-
         return state.amount < 0 ? int256(0) : state.amount;
     }
 
@@ -673,7 +679,7 @@ library PositionHouseFunction {
 
         // now position should be reduced
         // should never overflow?
-        _cpIncrPosition.quantity = _cpIncrPosition.quantity.subAmount(uint256(_filledAmount));
+        _cpIncrPosition.quantity = _cpIncrPosition.quantity.subAmount(_filledAmount.abs());
         // avoid overflow due to absolute error
         if (openNotional.abs() >= _cpIncrPosition.openNotional) {
             _cpIncrPosition.openNotional = 0;
@@ -834,12 +840,10 @@ library PositionHouseFunction {
     {
         // calculate fundingPayment
         if (_oldPosition.quantity != 0) {
-            // TODO: open when the funding rate is fixed
-            fundingPayment = 0;
-//            fundingPayment =
-//                (_latestCumulativePremiumFraction -
-//                    _oldPosition.lastUpdatedCumulativePremiumFraction) *
-//                _oldPosition.quantity / (PREMIUM_FRACTION_DENOMINATOR);
+            fundingPayment =
+                (_latestCumulativePremiumFraction -
+                    _oldPosition.lastUpdatedCumulativePremiumFraction) *
+                _oldPosition.quantity / (PREMIUM_FRACTION_DENOMINATOR);
         }
 
         // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt
