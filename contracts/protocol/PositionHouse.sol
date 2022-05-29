@@ -163,20 +163,7 @@ contract PositionHouse is
     {
         address _pmAddress = address(_positionManager);
         address _trader = _msgSender();
-        Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
-        require(
-            _quantity > 0 && _quantity <= _positionDataWithManualMargin.quantity.abs(),
-            Errors.VL_INVALID_CLOSE_QUANTITY
-        );
-        _internalOpenMarketPosition(
-            _positionManager,
-                _positionDataWithManualMargin.quantity > 0
-                ? Position.Side.SHORT
-                : Position.Side.LONG,
-            _quantity,
-            _positionDataWithManualMargin.leverage,
-            _positionDataWithManualMargin
-        );
+        _internalClosePosition(_pmAddress, _trader, _quantity);
     }
 
     function instantlyClosePosition(IPositionManager _positionManager, uint256 _quantity)
@@ -186,8 +173,25 @@ contract PositionHouse is
         address _pmAddress = address(_positionManager);
         address _trader = _msgSender();
         _emptyReduceLimitOrders(_pmAddress, _trader);
-        closePosition(_positionManager, _quantity);
+        _internalClosePosition(_pmAddress, _trader, _quantity);
         emit InstantlyClosed(_pmAddress, _trader);
+    }
+
+    function _internalClosePosition(address _pmAddress, address _trader, uint256 _quantity) internal {
+        Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
+        require(
+            _quantity > 0 && _quantity <= _positionDataWithManualMargin.quantity.abs(),
+            Errors.VL_INVALID_CLOSE_QUANTITY
+        );
+        _internalOpenMarketPosition(
+            IPositionManager(_pmAddress),
+            _positionDataWithManualMargin.quantity > 0
+            ? Position.Side.SHORT
+            : Position.Side.LONG,
+            _quantity,
+            _positionDataWithManualMargin.leverage,
+            _positionDataWithManualMargin
+        );
     }
 
     /**
