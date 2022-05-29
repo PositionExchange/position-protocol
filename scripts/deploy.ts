@@ -38,7 +38,7 @@ task('deploy', 'deploy contracts', async (taskArgs: {stage: Stage, task: string}
         }
 
     }
-}).addParam('stage', 'Stage').addParam('task', 'Task Name')
+}).addParam('stage', 'Stage').addOptionalParam('task', 'Task Name')
 
 task('listDeployedContract', 'list all deployed contracts', async (taskArgs: {stage: Stage}) => {
     const db = new DeployDataStore( './deployData_mainnet.db')

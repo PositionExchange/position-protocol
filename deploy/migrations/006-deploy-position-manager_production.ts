@@ -40,7 +40,8 @@ const migrations: MigrationDefinition = {
                     fundingPeriod: BTCBUSD.fundingPeriod,
                     priceFeed: chainLinkPriceFeedContractAddress,
                     quote: BUSD,
-                    counterParty: positionHouseFunctionContractAddress
+                    counterParty: positionHouseFunctionContractAddress,
+                    leverage: 25
                 })
             },
 
@@ -58,7 +59,8 @@ const migrations: MigrationDefinition = {
                     fundingPeriod: BNBBUSD.fundingPeriod,
                     priceFeed: chainLinkPriceFeedContractAddress,
                     quote: BNBBUSD.quote,
-                    counterParty: positionHouseFunctionContractAddress
+                    counterParty: positionHouseFunctionContractAddress,
+                    leverage: 10
                 })
             },
 

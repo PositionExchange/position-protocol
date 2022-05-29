@@ -40,7 +40,7 @@ export interface CreatePositionManagerInput {
     priceFeed: string;
     quote: string;
     counterParty : string
-    leverage: number
+    leverage?: number
 }
 
 
