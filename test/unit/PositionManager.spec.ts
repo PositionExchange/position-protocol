@@ -20,11 +20,11 @@ describe('Position Manager', async function () {
         await positionManager.initialize(BigNumber.from(200), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), deployer.address);
     })
 
-    async function createLimitOrder(pip: number, size: number, isBuy: boolean) {
+    async function createLimitOrder(pip: number, size: number | string, isBuy: boolean) {
         return positionManager.openLimitPosition(pip, size, isBuy);
     }
 
-    async function createLimitOrderAndVerify(pip: number, size: number, isBuy: boolean) {
+    async function createLimitOrderAndVerify(pip: number, size: number | string, isBuy: boolean) {
         const {liquidity: liquidityBefore} = await positionManager.tickPosition(pip)
         const pipPositionData = await positionManager.tickPosition(pip)
         const orderId = pipPositionData.currentIndex.add(1)
@@ -33,13 +33,13 @@ describe('Position Manager', async function () {
         const hasLiquidity = await positionManager.hasLiquidity(pip)
         expect(hasLiquidity).eq(true, `Pip #${pip}`)
         const {liquidity} = await positionManager.tickPosition(pip)
-        expect(liquidity.sub(liquidityBefore).toNumber()).eq(size)
+        expect(liquidity.sub(liquidityBefore)).eq(size)
         const orderDetail = await positionManager.getPendingOrderDetail(pip, orderId.toNumber());
-        expect(orderDetail.size.toNumber(), "size not match").eq(size)
+        expect(orderDetail.size, "size not match").eq(size)
         return orderId.toNumber()
     }
 
-    async function marketBuy(size: number, isBuy: boolean = true) {
+    async function marketBuy(size: number | string, isBuy: boolean = true) {
         return positionManager.openMarketPosition(size, isBuy)
     }
 
@@ -80,7 +80,7 @@ describe('Position Manager', async function () {
         expect((await positionManager.getCurrentPip()).toNumber()).eq(pip)
     }
 
-    async function createLimitOrderInPipRanges(pipRanges: number[], size: number[], isBuy = false) {
+    async function createLimitOrderInPipRanges(pipRanges: number[], size: number[] | string[], isBuy = false) {
         const orders = []
         for (let i in pipRanges) {
             const orderId = await createLimitOrderAndVerify(pipRanges[i], size[i], isBuy)
@@ -539,5 +539,17 @@ describe('Position Manager', async function () {
             await expect(marketBuy(20, true)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string '25'")
         });
     });
+
+
+    describe("debug finding pip buy error", async () => {
+        it('should debug case 1', async  function () {
+            //2931455,17900000000000000,2931500,3711300000000000000
+            const pips = [2931455, 2931500]
+            const pipSizes = ['17900000000000000', '3711300000000000000']
+            await positionManager.updateMaxFindingWordsIndex(BigNumber.from("120000"))
+            await createLimitOrderInPipRanges(pips, pipSizes, false)
+            await marketBuy('17900000000000001', true)
+        });
+    })
 });
 
