@@ -259,7 +259,7 @@ library LiquidityBitmap {
             //                fromBitPos = toBitPos;
             //                toBitPos = n;
             //            }
-            _self[toMapIndex] &= toggleBitsFromLToR(
+            _self[toMapIndex] &= unsetBitsFromLToR(
                 MAX_UINT256,
                 fromBitPos,
                 toBitPos
@@ -288,15 +288,22 @@ library LiquidityBitmap {
         }
     }
 
-    function toggleBitsFromLToR(
+    function unsetBitsFromLToR(
         uint256 _n,
         uint8 _l,
         uint8 _r
     ) private returns (uint256) {
+        if(_l == 0){
+            // NOTE this code support unset at index 0 only
+            // avoid overflow in the next line (_l - 1)
+            _n |= 1;
+            _l++;
+        }
         // calculating a number 'num'
         // having 'r' number of bits
         // and bits in the range l
         // to r are the only set bits
+        // Important NOTE this code could toggle 0 -> 1
         uint256 num = ((1 << _r) - 1) ^ ((1 << (_l - 1)) - 1);
 
         // toggle the bits in the
