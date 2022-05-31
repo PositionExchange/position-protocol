@@ -213,11 +213,17 @@ export class ContractWrapperFactory {
 
     async createPositionNotionConfigProxy(args: CreatePositionNotionalConfigProxy) {
         const PositionNotionalConfigProxy = await this.hre.ethers.getContractFactory("PositionNotionalConfigProxy");
-
-        const deployTx = await PositionNotionalConfigProxy.deploy();
-        await deployTx.deployTransaction.wait(3)
-        console.log("wait for deploy position notional config proxy");
-        await this.db.saveAddressByKey('PositionNotionalConfigProxy', deployTx.address.toLowerCase());
+        const positionNotionalConfigProxyContractAddress = await this.db.findAddressByKey('PositionNotionalConfigProxy');
+        if(positionNotionalConfigProxyContractAddress){
+            const upgraded = await this.hre.upgrades.upgradeProxy(positionNotionalConfigProxyContractAddress, PositionNotionalConfigProxy);
+            await this.verifyImplContract(upgraded.deployTransaction);
+        }else{
+            const instance = await this.hre.upgrades.deployProxy(PositionNotionalConfigProxy, []);
+            await instance.deployed();
+            const address = instance.address.toString().toLowerCase();
+            console.log(`PositionNotionConfigProxy address : ${address}`)
+            await this.db.saveAddressByKey('PositionNotionalConfigProxy', address);
+        }
     }
 
     async createPositionHouseFunctionLibrary(args: CreatePositionHouseFunction) {
