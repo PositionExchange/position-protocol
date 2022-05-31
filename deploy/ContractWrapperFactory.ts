@@ -12,7 +12,6 @@ import {DeployDataStore} from "./DataStore";
 import {verifyContract} from "../scripts/utils";
 import {TransactionResponse} from "@ethersproject/abstract-provider";
 import {HardhatRuntimeEnvironment} from "hardhat/types";
-import {cat} from "shelljs";
 
 
 export class ContractWrapperFactory {
@@ -72,13 +71,6 @@ export class ContractWrapperFactory {
             const instance = await upgrades.deployProxy(PositionManager, contractArgs);
             console.log("wait for deploy")
             await instance.deployed();
-            if(args.leverage){
-                try{
-                    await (await instance.updateLeverage(args.leverage)).wait()
-                }catch (e) {
-                    console.log(`Update leverage failed`, e)
-                }
-            }
             const address = instance.address.toString().toLowerCase();
             console.log(`${symbol} positionManager address : ${address}`)
             await this.db.saveAddressByKey(saveKey, address);
@@ -253,6 +245,23 @@ export class ContractWrapperFactory {
             console.log(`Chain link price feed address : ${address}`)
             await this.db.saveAddressByKey('ChainLinkPriceFeed', address);
 
+        }
+    }
+
+    async createChainlinkPriceFeedQc( args: CreateChainLinkPriceFeed){
+        const ChainLinkPriceFeed = await this.hre.ethers.getContractFactory("ChainLinkPriceFeedMock");
+        const chainlinkContractAddress = await this.db.findAddressByKey(`ChainLinkPriceFeed`);
+        if (chainlinkContractAddress) {
+            const upgraded = await this.hre.upgrades.upgradeProxy(chainlinkContractAddress, ChainLinkPriceFeed);
+            await this.verifyImplContract(upgraded.deployTransaction);
+        } else {
+            const contractArgs = [];
+            const instance = await this.hre.upgrades.deployProxy(ChainLinkPriceFeed, contractArgs);
+            console.log("wait for deploy chainlink price feed");
+            await instance.deployed();
+            const address = instance.address.toString().toLowerCase();
+            console.log(`Chain link price feed address : ${address}`)
+            await this.db.saveAddressByKey('ChainLinkPriceFeed', address);
         }
 
     }

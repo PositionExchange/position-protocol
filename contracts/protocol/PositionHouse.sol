@@ -157,7 +157,7 @@ contract PositionHouse is
      * @param _quantity want to close
      */
     function closePosition(IPositionManager _positionManager, uint256 _quantity)
-        public
+        external
         
         nonReentrant
     {

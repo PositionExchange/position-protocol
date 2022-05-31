@@ -12,7 +12,7 @@ export interface MigrationDefinition {
 }
 
 export type Stage = "production" | "staging" | "test"
-export type Network = "bsc_testnet" | "bsc_mainnet"
+export type Network = "bsc_testnet" | "bsc_mainnet" | "qc"
 
 export interface MigrationContext {
     stage: Stage
