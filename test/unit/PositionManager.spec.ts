@@ -546,6 +546,7 @@ describe('Position Manager', async function () {
             //2931455,17900000000000000,2931500,3711300000000000000
             const pips = [2931455, 2931500]
             const pipSizes = ['17900000000000000', '3711300000000000000']
+            await positionManager.updateMaxWordRangeForLimitOrder(BigNumber.from("120000"))
             await positionManager.updateMaxFindingWordsIndex(BigNumber.from("120000"))
             await createLimitOrderInPipRanges(pips, pipSizes, false)
             await marketBuy('17900000000000001', true)
