@@ -229,11 +229,12 @@ contract PositionManager is
                 _pip <= _singleSlot.pip,
                 Errors.VL_LONG_PRICE_THAN_CURRENT_PRICE
             );
-            require(
-                int128(_pip) >=
-                (int256(getUnderlyingPriceInPip()) -
-                int128(maxWordRangeForLimitOrder * 250)), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_LONG
-            );
+            int256 maxPip = int256(getUnderlyingPriceInPip()) - int128(maxWordRangeForLimitOrder * 250);
+            if (maxPip > 0) {
+                require(int128(_pip) >= maxPip, Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_LONG);
+            } else {
+                require(_pip >= 1, Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_LONG);
+            }
         } else {
             require(
                 _pip >= _singleSlot.pip,
@@ -725,7 +726,7 @@ contract PositionManager is
         onlyOwner
     {
         maxWordRangeForLimitOrder = _newMaxWordRangeForLimitOrder;
-        emit UpdateMaxWordRangeForLimitOrder(_newMaxWordRangeForLimitOrder);
+        emit MaxWordRangeForLimitOrderUpdated(_newMaxWordRangeForLimitOrder);
     }
 
     function updateBasisPoint(uint64 _newBasisPoint) public override onlyOwner {

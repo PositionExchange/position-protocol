@@ -30,7 +30,7 @@ interface IPositionManager {
     );
 
     event UpdateMaxFindingWordsIndex(uint128 newMaxFindingWordsIndex);
-    event UpdateMaxWordRangeForLimitOrder(uint128 newMaxWordRangeForLimitOrder);
+    event MaxWordRangeForLimitOrderUpdated(uint128 newMaxWordRangeForLimitOrder);
     event UpdateBasisPoint(uint256 newBasicPoint);
     event UpdateBaseBasicPoint(uint256 newBaseBasisPoint);
     event UpdateTollRatio(uint256 newTollRatio);
