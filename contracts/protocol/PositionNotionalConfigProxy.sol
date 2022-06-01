@@ -50,6 +50,6 @@ contract PositionNotionalConfigProxy is Initializable {
         }
 //        return 50_000;
         // only for qc test
-        return type(uint256).max;
+        return 1_000_000_000_000_000_000_000;
     }
 }
