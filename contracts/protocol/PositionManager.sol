@@ -73,6 +73,7 @@ contract PositionManager is
         fundingPeriod = _fundingPeriod;
         fundingBufferPeriod = _fundingPeriod / 2;
         maxFindingWordsIndex = _maxFindingWordsIndex;
+        maxWordRangeForLimitOrder = _maxFindingWordsIndex;
         priceFeed = IChainLinkPriceFeed(_priceFeed);
         counterParty = _counterParty;
         leverage = 125;
@@ -231,7 +232,7 @@ contract PositionManager is
             require(
                 int128(_pip) >=
                 (int256(getUnderlyingPriceInPip()) -
-                int128(maxFindingWordsIndex * 250)), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_LONG
+                int128(maxWordRangeForLimitOrder * 250)), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_LONG
             );
         } else {
             require(
@@ -239,7 +240,7 @@ contract PositionManager is
                 Errors.VL_SHORT_PRICE_LESS_CURRENT_PRICE
             );
             require(
-                _pip <= (getUnderlyingPriceInPip() + maxFindingWordsIndex * 250), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_SHORT
+                _pip <= (getUnderlyingPriceInPip() + maxWordRangeForLimitOrder * 250), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_SHORT
             );
         }
         bool hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
@@ -716,6 +717,15 @@ contract PositionManager is
     {
         maxFindingWordsIndex = _newMaxFindingWordsIndex;
         emit UpdateMaxFindingWordsIndex(_newMaxFindingWordsIndex);
+    }
+
+    function updateMaxWordRangeForLimitOrder(uint128 _newMaxWordRangeForLimitOrder)
+        public
+        override
+        onlyOwner
+    {
+        maxWordRangeForLimitOrder = _newMaxWordRangeForLimitOrder;
+        emit UpdateMaxWordRangeForLimitOrder(_newMaxWordRangeForLimitOrder);
     }
 
     function updateBasisPoint(uint64 _newBasisPoint) public override onlyOwner {
