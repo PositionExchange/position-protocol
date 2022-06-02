@@ -73,6 +73,8 @@ contract PositionManager is
         fundingPeriod = _fundingPeriod;
         fundingBufferPeriod = _fundingPeriod / 2;
         maxFindingWordsIndex = _maxFindingWordsIndex;
+        maxWordRangeForLimitOrder = _maxFindingWordsIndex;
+        maxWordRangeForMarketOrder = _maxFindingWordsIndex;
         priceFeed = IChainLinkPriceFeed(_priceFeed);
         counterParty = _counterParty;
         leverage = 125;
@@ -224,14 +226,15 @@ contract PositionManager is
     {
         SingleSlot memory _singleSlot = singleSlot;
         if (_isBuy && _singleSlot.pip != 0) {
-            require(
-                int128(_pip) >=
-                (int256(getUnderlyingPriceInPip()) -
-                int128(maxFindingWordsIndex * 250)), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_LONG
-            );
+            int256 maxPip = int256(getUnderlyingPriceInPip()) - int128(maxWordRangeForLimitOrder * 250);
+            if (maxPip > 0) {
+                require(int128(_pip) >= maxPip, Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_LONG);
+            } else {
+                require(_pip >= 1, Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_LONG);
+            }
         } else {
             require(
-                _pip <= (getUnderlyingPriceInPip() + maxFindingWordsIndex * 250), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_SHORT
+                _pip <= (getUnderlyingPriceInPip() + maxWordRangeForLimitOrder * 250), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_SHORT
             );
         }
         bool hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
@@ -289,8 +292,8 @@ contract PositionManager is
         uint128 _afterPip = singleSlot.pip;
 
         bool pass = _isBuy
-        ? _afterPip <= (underlyingPip + maxFindingWordsIndex * 250)
-        : int128(_afterPip) >= (int256(underlyingPip) - int128(maxFindingWordsIndex * 250));
+        ? _afterPip <= (underlyingPip + maxWordRangeForMarketOrder * 250)
+        : int128(_afterPip) >= (int256(underlyingPip) - int128(maxWordRangeForMarketOrder * 250));
         if (!pass) {
             revert(Errors.VL_MARKET_ORDER_MUST_CLOSE_TO_INDEX_PRICE);
         }
@@ -712,6 +715,24 @@ contract PositionManager is
         emit UpdateMaxFindingWordsIndex(_newMaxFindingWordsIndex);
     }
 
+    function updateMaxWordRangeForLimitOrder(uint128 _newMaxWordRangeForLimitOrder)
+        public
+        override
+        onlyOwner
+    {
+        maxWordRangeForLimitOrder = _newMaxWordRangeForLimitOrder;
+        emit MaxWordRangeForLimitOrderUpdated(_newMaxWordRangeForLimitOrder);
+    }
+
+    function updateMaxWordRangeForMarketOrder(uint128 _newMaxWordRangeForMarketOrder)
+        public
+        override
+        onlyOwner
+    {
+        maxWordRangeForMarketOrder = _newMaxWordRangeForMarketOrder;
+        emit MaxWordRangeForMarketOrderUpdated(_newMaxWordRangeForMarketOrder);
+    }
+
     function updateBasisPoint(uint64 _newBasisPoint) public override onlyOwner {
         basisPoint = _newBasisPoint;
         emit UpdateBasisPoint(_newBasisPoint);
@@ -946,7 +967,7 @@ contract PositionManager is
         emit MarketFilled(
             _isBuy,
             sizeOut,
-            _maxPip != 0 ? lastMatchedPip : state.pip,
+            _maxPip != 0 ? _maxPip : state.pip,
             passedPipCount,
             remainingLiquidity
         );
