@@ -55,6 +55,20 @@ describe('Position Manager', async function () {
         expect(event.isBuy).to.equal(isBuy)
         expect(event.amount).to.equal(expectOut)
     }
+
+    const shouldOpenLimitAndVerify = async function (pip: number, size: number, expectOut: number, isBuy: boolean = true) {
+        const [caller] = await ethers.getSigners()
+        const tx = await positionManager.openLimitPosition(pip, size, isBuy)
+        const receipt = await ethers.provider.getTransactionReceipt(tx.hash)
+        const interfaceEvent = new ethers.utils.Interface(["event MarketFilled(bool isBuy, uint256 indexed amount, uint128 toPip, uint256 passedPipCount, uint128 remainingLiquidity)"]);
+
+        const data = receipt.logs[1].data
+        const topics = receipt.logs[1].topics
+        const event = interfaceEvent.decodeEventLog("MarketFilled", data, topics)
+        expect(event.isBuy).to.equal(isBuy)
+        expect(event.amount).to.equal(expectOut)
+    }
+
     const verifyLimitOrderDetail = async function (
         {
             pip,
@@ -76,6 +90,12 @@ describe('Position Manager', async function () {
     const checkLiquidityAtPip = async function (pip: number, hasLiquidity: boolean) {
         expect(await positionManager.hasLiquidity(pip)).eq(hasLiquidity, `!hasLiquidity pip: ${pip}`)
     }
+
+    const checkLiquidityAmountAtPip = async function (pip: number, liquidity: number) {
+        const liquidityAmount = await positionManager.getLiquidityInPipRange(BigNumber.from(pip), 1, true)
+        await expect(Number(liquidityAmount[0][0].liquidity)).eq(Number(liquidity))
+    }
+
     const shouldReachPip = async function (pip: number) {
         expect((await positionManager.getCurrentPip()).toNumber()).eq(pip)
     }
@@ -130,6 +150,58 @@ describe('Position Manager', async function () {
 
         await shouldReachPip(reachPip)
     }
+
+    interface CreateLimitOrderAndVerifyAfterArg {
+        pip: number;
+        size: number;
+        sizeOut: number
+        pips: number[]
+        pipsHasLiquidity: boolean[]
+        reachPip: number
+        orders?: number[][]
+        partialFilledAmounts?: number[]
+        isFilledAmounts?: boolean[],
+        isBuy?: boolean
+    }
+
+    async function createLimitOrderAndVerifyAfter(
+        {
+            pip,
+            size,
+            sizeOut,
+            pips,
+            pipsHasLiquidity,
+            reachPip,
+            orders,
+            partialFilledAmounts,
+            isFilledAmounts,
+            isBuy = true
+        }: CreateLimitOrderAndVerifyAfterArg
+    ) {
+        console.log("before open limit and verify")
+        await shouldOpenLimitAndVerify(pip, size, sizeOut, isBuy)
+        console.log("before check liquidity at pip")
+        for (let i in pipsHasLiquidity) {
+            await checkLiquidityAtPip(pips[i], pipsHasLiquidity[i])
+        }
+        console.log("before check liquidity amount at pip")
+        if (reachPip == pip) {
+            await checkLiquidityAmountAtPip(pip, size - sizeOut)
+        }
+        if (orders && partialFilledAmounts && isFilledAmounts && orders.length > 0)
+            console.log("before verify limit order detail")
+            for(let orderIndex in orders){
+                await verifyLimitOrderDetail({
+                    pip: orders[orderIndex][0],
+                    orderId: orders[orderIndex][1],
+                    partialFilled: partialFilledAmounts[orderIndex],
+                    isFilled: isFilledAmounts[orderIndex]
+                })
+            }
+        console.log("before check reach pip")
+        await shouldReachPip(reachPip)
+    }
+
     describe('single market buy limit sell', function () {
 
         it('should create limit order', async function () {
@@ -550,6 +622,227 @@ describe('Position Manager', async function () {
             await createLimitOrderInPipRanges(pips, pipSizes, false)
             await marketBuy('17900000000000001', true)
         });
+    })
+
+    describe("open limit LONG higher than current price", async () => {
+        it("should fill all pending limit order expect first LONG order then stop at the last order", async () => {
+            const pips = [201, 203, 204, 205, 216, 217, 218]
+            const pipSizes = [1, 2, 3, 4, 5, 6, 7]
+            const orders = await createLimitOrderInPipRanges(pips, pipSizes, false)
+            await createLimitOrderInPipRanges([200], [9], true)
+
+            await createLimitOrderAndVerifyAfter({
+                pip: 220,
+                size: 28,
+                sizeOut: 28,
+                pips,
+                pipsHasLiquidity: [false, false, false, false, false, false, false],
+                reachPip: 218,
+                orders,
+                partialFilledAmounts: [...pips].fill(0),
+                isFilledAmounts: [true, true, true, true, true, true, true]
+            })
+        })
+
+        it("should fill all pending limit order include first SHORT order then stop at the last order ", async () => {
+            const pips = [200, 201, 203, 204, 205, 216, 217, 218]
+            const pipSizes = [8, 1, 2, 3, 4, 5, 6, 7]
+            const orders = await createLimitOrderInPipRanges(pips, pipSizes, false)
+            console.log("before create limit order and verify")
+
+            await createLimitOrderAndVerifyAfter({
+                pip: 220,
+                size: 36,
+                sizeOut: 36,
+                pips,
+                pipsHasLiquidity: [false, false, false, false, false, false, false, false],
+                reachPip: 218,
+                orders,
+                partialFilledAmounts: [...pips].fill(0),
+                isFilledAmounts: [true, true, true, true, true, true, true, true],
+                isBuy: true
+            })
+        })
+
+        it("should fill all pending limit order than create a new pending order at the target pip", async () => {
+            const pips = [201, 203, 204, 205, 216, 217, 218]
+            const pipSizes = [1, 2, 3, 4, 5, 6, 7]
+            const orders = await createLimitOrderInPipRanges(pips, pipSizes)
+
+            await createLimitOrderAndVerifyAfter({
+                pip: 220,
+                size: 30,
+                sizeOut: 28,
+                pips,
+                pipsHasLiquidity: [false, false, false, false, false, false, false],
+                reachPip: 220,
+                orders,
+                partialFilledAmounts: [...pips].fill(0),
+                isFilledAmounts: [true, true, true, true, true, true, true],
+                isBuy: true
+            })
+        })
+
+        it("should fulfill size of limit order and partial filled last matched pip", async () => {
+            const pips = [201, 203, 204, 205, 216, 217, 218]
+            const pipSizes = [1, 2, 3, 4, 5, 6, 7]
+            const orders = await createLimitOrderInPipRanges(pips, pipSizes)
+            console.log("before create limit order and verify")
+            await createLimitOrderAndVerifyAfter({
+                pip: 220,
+                size: 12,
+                sizeOut: 12,
+                pips,
+                pipsHasLiquidity: [false, false, false, false, true, true, true],
+                reachPip: 216,
+                orders,
+                partialFilledAmounts: [0, 0, 0, 0, 2, 0, 0],
+                isFilledAmounts: [true, true, true, true, false, false, false],
+                isBuy: true
+            })
+        })
+
+        it("should fulfill limit order size and fulfilled last matched pip", async () => {
+            const pips = [201, 203, 204, 205, 216, 217, 218]
+            const pipSizes = [1, 2, 3, 4, 5, 6, 7]
+            const orders = await createLimitOrderInPipRanges(pips, pipSizes)
+            console.log("before create limit order and verify")
+            await createLimitOrderAndVerifyAfter({
+                pip: 220,
+                size: 10,
+                sizeOut: 10,
+                pips,
+                pipsHasLiquidity: [false, false, false, false, true, true, true],
+                reachPip: 205,
+                orders,
+                partialFilledAmounts: [0, 0, 0, 0, 0, 0, 0],
+                isFilledAmounts: [true, true, true, true, false, false, false],
+                isBuy: true
+            })
+        })
+
+        it("should create a new pending order and change price to target pip", async () => {
+            await createLimitOrderAndVerifyAfter({
+                pip: 230,
+                size: 30,
+                sizeOut: 0,
+                pips: [],
+                pipsHasLiquidity: [],
+                reachPip: 230,
+            })
+        })
+    })
+
+    describe("open limit SHORT lower than current price", async () => {
+        it("should fill all pending limit order expect first SHORT order then stop at the last order", async () => {
+            const pips = [199, 197, 196, 195, 184, 183, 182]
+            const pipSizes = [1, 2, 3, 4, 5, 6, 7]
+            const orders = await createLimitOrderInPipRanges(pips, pipSizes, true)
+            await createLimitOrderInPipRanges([200], [9], false)
+
+
+            await createLimitOrderAndVerifyAfter({
+                pip: 180,
+                size: 28,
+                sizeOut: 28,
+                pips,
+                pipsHasLiquidity: [false, false, false, false, false, false, false],
+                reachPip: 182,
+                orders,
+                partialFilledAmounts: [...pips].fill(0),
+                isFilledAmounts: [true, true, true, true, true, true, true],
+                isBuy: false
+            })
+        })
+
+        it("should fill all pending limit order include first LONG order then stop at the last order", async () => {
+            const pips = [200, 199, 197, 196, 195, 184, 183, 182]
+            const pipSizes = [9, 1, 2, 3, 4, 5, 6, 7]
+            const orders = await createLimitOrderInPipRanges(pips, pipSizes, true)
+            console.log("before create limit order and verify")
+
+            await createLimitOrderAndVerifyAfter({
+                pip: 180,
+                size: 37,
+                sizeOut: 37,
+                pips,
+                pipsHasLiquidity: [false, false, false, false, false, false, false, false],
+                reachPip: 182,
+                orders,
+                partialFilledAmounts: [...pips].fill(0),
+                isFilledAmounts: [true, true, true, true, true, true, true, true],
+                isBuy: false
+            })
+        })
+
+        it("should fill all pending limit order than create a new pending order at the target pip", async () => {
+            const pips = [199, 197, 196, 195, 184, 183, 182]
+            const pipSizes = [1, 2, 3, 4, 5, 6, 7]
+            const orders = await createLimitOrderInPipRanges(pips, pipSizes, true)
+
+            await createLimitOrderAndVerifyAfter({
+                pip: 180,
+                size: 30,
+                sizeOut: 28,
+                pips,
+                pipsHasLiquidity: [false, false, false, false, false, false, false],
+                reachPip: 180,
+                orders,
+                partialFilledAmounts: [...pips].fill(0),
+                isFilledAmounts: [true, true, true, true, true, true, true],
+                isBuy: false
+            })
+        })
+
+        it("should fulfill size of limit order and partial filled last matched pip", async () => {
+            const pips = [199, 197, 196, 195, 184, 183, 182]
+            const pipSizes = [1, 2, 3, 4, 5, 6, 7]
+            const orders = await createLimitOrderInPipRanges(pips, pipSizes, true)
+            console.log("before create limit order and verify")
+            await createLimitOrderAndVerifyAfter({
+                pip: 180,
+                size: 12,
+                sizeOut: 12,
+                pips,
+                pipsHasLiquidity: [false, false, false, false, true, true, true],
+                reachPip: 184,
+                orders,
+                partialFilledAmounts: [0, 0, 0, 0, 2, 0, 0],
+                isFilledAmounts: [true, true, true, true, false, false, false],
+                isBuy: false
+            })
+        })
+
+        it("should fulfill limit order size and fulfilled last matched pip", async () => {
+            const pips = [199, 197, 196, 195, 184, 183, 182]
+            const pipSizes = [1, 2, 3, 4, 5, 6, 7]
+            const orders = await createLimitOrderInPipRanges(pips, pipSizes, true)
+            console.log("before create limit order and verify")
+            await createLimitOrderAndVerifyAfter({
+                pip: 180,
+                size: 10,
+                sizeOut: 10,
+                pips,
+                pipsHasLiquidity: [false, false, false, false, true, true, true],
+                reachPip: 195,
+                orders,
+                partialFilledAmounts: [0, 0, 0, 0, 0, 0, 0],
+                isFilledAmounts: [true, true, true, true, false, false, false],
+                isBuy: false
+            })
+        })
+
+        it("should create a new pending order and change price to target pip", async () => {
+            await createLimitOrderAndVerifyAfter({
+                pip: 180,
+                size: 30,
+                sizeOut: 0,
+                pips: [],
+                pipsHasLiquidity: [],
+                reachPip: 180,
+                isBuy: false
+            })
+        })
     })
 });
 
