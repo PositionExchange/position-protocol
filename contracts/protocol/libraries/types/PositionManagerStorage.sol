@@ -109,4 +109,5 @@ contract PositionManagerStorage {
      */
     uint256[49] private __gap;
     uint128 public maxWordRangeForLimitOrder;
+    uint128 public maxWordRangeForMarketOrder;
 }
