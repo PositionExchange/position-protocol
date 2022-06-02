@@ -15,7 +15,8 @@ interface IPositionHouseViewer {
         returns (
             uint256 maintenanceMargin,
             int256 marginBalance,
-            uint256 marginRatio
+            uint256 marginRatio,
+            uint256 liquidationPrice
         );
 
     function getPositionNotionalAndUnrealizedPnl(
@@ -24,4 +25,9 @@ interface IPositionHouseViewer {
         PositionHouseStorage.PnlCalcOption _pnlCalcOption,
         Position.Data memory _oldPosition
     ) external view returns (uint256 positionNotional, int256 unrealizedPnl);
+
+    function getPosition(
+        address _pmAddress,
+        address _trader
+    ) external view returns (Position.Data memory positionData);
 }

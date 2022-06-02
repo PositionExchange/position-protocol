@@ -44,6 +44,7 @@ library Errors {
     string public constant VL_MUST_CLOSE_TO_INDEX_PRICE_LONG = "24.2";
     string public constant VL_MARKET_ORDER_MUST_CLOSE_TO_INDEX_PRICE = "25";
     string public constant VL_EXCEED_MAX_NOTIONAL = "26";
+    string public constant VL_MUST_HAVE_POSITION = "27";
 
     enum CollateralManagerErrors {
         NO_ERROR

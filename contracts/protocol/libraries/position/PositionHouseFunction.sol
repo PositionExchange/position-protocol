@@ -312,7 +312,7 @@ library PositionHouseFunction {
         PositionLimitOrder.Data memory _limitOrder,
         Position.Data memory _positionData,
         uint256 _entryPrice
-    ) private view returns (Position.Data memory) {
+    ) public view returns (Position.Data memory) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         (uint64 _baseBasicPoint, uint64 _basisPoint) = _positionManager.getBasisPointFactors();
         int256 _orderQuantity = _getLimitOrderQuantity(_positionManager, _limitOrder);
@@ -474,7 +474,7 @@ library PositionHouseFunction {
 
     /// @dev get total pending order quantity from pending limit orders
     function _getTotalPendingQuantityFromLimitOrders(IPositionManager _positionManager, PositionLimitOrder.Data[] memory _limitOrders)
-        private
+        public
         view
         returns (uint256 totalPendingQuantity, bool _isBuy)
     {
@@ -628,7 +628,7 @@ library PositionHouseFunction {
         IPositionManager _positionManager,
         uint128 _pip,
         uint64 _orderId
-    ) private view returns (int256 _filledAmount) {
+    ) public view returns (int256 _filledAmount) {
         (bool isFilled, bool isBuy, uint256 size, uint256 partialFilled) = _positionManager.getPendingOrderDetail(
             _pip,
             _orderId
@@ -641,7 +641,7 @@ library PositionHouseFunction {
         IPositionManager _positionManager,
         ClaimAbleState memory state,
         PositionLimitOrder.Data memory _limitOrder
-    ) private view {
+    ) public view {
         (
             bool isFilled,
             ,
@@ -668,7 +668,7 @@ library PositionHouseFunction {
         int256 _filledAmount,
         uint256 _entryPrice,
         uint16 _leverage
-    ) private view {
+    ) public view {
         // closedNotional can be negative to calculate pnl in both Long/Short formula
         int256 closedNotional = _filledAmount * int128(_pip) / int64(state.basisPoint);
         // already checked if _positionData.openNotional == 0, then used _positionDataWithoutLimit before
