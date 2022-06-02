@@ -1080,7 +1080,7 @@ describe("PositionHouse_01", () => {
                     quantity: 100
                 })) as unknown as PositionLimitOrderID
                 console.log("response pip", response.pip, Number(response.orderId))
-                await cancelLimitOrder(positionManager.address, trader, response.pip.toString(), response.orderId.toString());
+                await cancelLimitOrder(positionManager.address, trader, response.pip.toString(), '2');
                 const positionData = await positionHouse.getPosition(positionManager.address, trader.address)
                 // margin = quantity * price / leverage = 4990 * 100 / 10
                 // NEED UPDATE can't get margin, need leverage in limit order to calculate margin
@@ -1133,7 +1133,8 @@ describe("PositionHouse_01", () => {
                     expectedSize: BigNumber.from('-50')
                 })
                 // await positionManagerTestingTool.debugPendingOrder(response1.pip, response1.orderId)
-                const pendingOrderDetails = await positionManager.getPendingOrderDetail(response1.pip, response1.orderId)
+                console.log("before get list order pending")
+                const pendingOrderDetails = await positionManager.getPendingOrderDetail(response1.pip, BigNumber.from('2'))
                 expect(pendingOrderDetails.partialFilled.toString()).eq('50')
                 const positionData1 = await positionHouse.getPosition(positionManager.address, trader.address)
                 expect(positionData1.quantity.toNumber()).eq(150)
@@ -1146,7 +1147,7 @@ describe("PositionHouse_01", () => {
                 })) as unknown as PositionLimitOrderID
 
                 console.log("response pip", response2.pip, Number(response2.orderId))
-                await cancelLimitOrder(positionManager.address, trader, response2.pip.toString(), response2.orderId.toString());
+                await cancelLimitOrder(positionManager.address, trader, response2.pip.toString(), '3');
                 const positionData2 = await positionHouse.getPosition(positionManager.address, trader.address)
                 // margin = quantity * price / leverage = 4990 * 100 / 10
                 // NEED UPDATE can't get margin, need leverage in limit order to calculate margin
