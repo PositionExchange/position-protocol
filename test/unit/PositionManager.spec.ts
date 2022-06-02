@@ -516,7 +516,7 @@ describe('Position Manager', async function () {
              * */
             await createLimitOrderAndVerify(2, 10, true)
 
-            await positionManager.updateMaxFindingWordsIndex(BigNumber.from("0"))
+            await positionManager.updateMaxWordRangeForMarketOrder(BigNumber.from("0"))
 
             await expect(marketBuy(10, false)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string '25'")
         });
@@ -534,7 +534,7 @@ describe('Position Manager', async function () {
             const pipSizes = [10, 5, 5]
             await createLimitOrderInPipRanges(pips, pipSizes, false)
 
-            await positionManager.updateMaxFindingWordsIndex(BigNumber.from("1"))
+            await positionManager.updateMaxWordRangeForMarketOrder(BigNumber.from("1"))
 
             await expect(marketBuy(20, true)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string '25'")
         });
@@ -547,6 +547,7 @@ describe('Position Manager', async function () {
             const pips = [2931455, 2931500]
             const pipSizes = ['17900000000000000', '3711300000000000000']
             await positionManager.updateMaxWordRangeForLimitOrder(BigNumber.from("120000"))
+            await positionManager.updateMaxWordRangeForMarketOrder(BigNumber.from("120000"))
             await positionManager.updateMaxFindingWordsIndex(BigNumber.from("120000"))
             await createLimitOrderInPipRanges(pips, pipSizes, false)
             await marketBuy('17900000000000001', true)
