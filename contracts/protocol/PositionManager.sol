@@ -74,6 +74,7 @@ contract PositionManager is
         fundingBufferPeriod = _fundingPeriod / 2;
         maxFindingWordsIndex = _maxFindingWordsIndex;
         maxWordRangeForLimitOrder = _maxFindingWordsIndex;
+        maxWordRangeForMarketOrder = _maxFindingWordsIndex;
         priceFeed = IChainLinkPriceFeed(_priceFeed);
         counterParty = _counterParty;
         leverage = 125;
@@ -297,8 +298,8 @@ contract PositionManager is
         uint128 _afterPip = singleSlot.pip;
 
         bool pass = _isBuy
-        ? _afterPip <= (underlyingPip + maxFindingWordsIndex * 250)
-        : int128(_afterPip) >= (int256(underlyingPip) - int128(maxFindingWordsIndex * 250));
+        ? _afterPip <= (underlyingPip + maxWordRangeForMarketOrder * 250)
+        : int128(_afterPip) >= (int256(underlyingPip) - int128(maxWordRangeForMarketOrder * 250));
         if (!pass) {
             revert(Errors.VL_MARKET_ORDER_MUST_CLOSE_TO_INDEX_PRICE);
         }
@@ -727,6 +728,15 @@ contract PositionManager is
     {
         maxWordRangeForLimitOrder = _newMaxWordRangeForLimitOrder;
         emit MaxWordRangeForLimitOrderUpdated(_newMaxWordRangeForLimitOrder);
+    }
+
+    function updateMaxWordRangeForMarketOrder(uint128 _newMaxWordRangeForMarketOrder)
+        public
+        override
+        onlyOwner
+    {
+        maxWordRangeForMarketOrder = _newMaxWordRangeForMarketOrder;
+        emit MaxWordRangeForMarketOrderUpdated(_newMaxWordRangeForMarketOrder);
     }
 
     function updateBasisPoint(uint64 _newBasisPoint) public override onlyOwner {
