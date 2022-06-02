@@ -13,6 +13,7 @@
 {"address":"0x8f887d4b9957b82b2476864d55ecd32a1c3d8c15","key":"PositionManager:BNB_BUSD","_id":"eC7PaYmW1ssrZhNh"}
 {"address":"0x0bb004223a9eeab6348f89ddad6df96e15770337","key":"ChainLinkPriceFeed","_id":"iPRi3angEW0rTHat"}
 {"address":"yes","key":"0x806737284Bb8CB7FD5Fd381BA67BDD37De2Ed9Fb:verified","_id":"idV3QU3uBkOMSkId"}
+{"address":"yes","key":"0xbCbe97e213A7a0E464D7876A7586A6452D641CC5:verified","_id":"j4ztOs2g1EP8zLxP"}
 {"address":"0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56","key":"BUSD","_id":"nfNHtdCHqGuoDlOA"}
 {"address":"yes","key":"0x82d911C54251aB4A4c7b71c2e2205826a385F9ef:verified","_id":"oPPAyTjH9WCzT3Yq"}
 {"address":"0x7e04d97d5c4f95f93f7307890ac747685f19128d","key":"PositionHouseViewer","_id":"r9VkW2to066yP8KP"}
@@ -20,4 +21,3 @@
 {"address":"0x5924551bb4c8cc32f4fe86cba09366d8be3df5f0","key":"PositionNotionalConfigProxy","_id":"wCWoH9CL1O4iRPRR"}
 {"address":"0x25a91e02d37df8d1d47ad92cfcf2b6d1f6528a92","key":"PositionManager:BTC_BUSD","_id":"wuVoRWNxnpVdR6H8"}
 {"address":"0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56","key":"BUSD","_id":"nfNHtdCHqGuoDlOA"}
-{"address":"yes","key":"0xbCbe97e213A7a0E464D7876A7586A6452D641CC5:verified","_id":"j4ztOs2g1EP8zLxP"}
