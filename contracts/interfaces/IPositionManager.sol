@@ -30,6 +30,8 @@ interface IPositionManager {
     );
 
     event UpdateMaxFindingWordsIndex(uint128 newMaxFindingWordsIndex);
+    event MaxWordRangeForLimitOrderUpdated(uint128 newMaxWordRangeForLimitOrder);
+    event MaxWordRangeForMarketOrderUpdated(uint128 newMaxWordRangeForMarketOrder);
     event UpdateBasisPoint(uint256 newBasicPoint);
     event UpdateBaseBasicPoint(uint256 newBaseBasisPoint);
     event UpdateTollRatio(uint256 newTollRatio);
@@ -49,6 +51,12 @@ interface IPositionManager {
     function unpause() external;
 
     function updateMaxFindingWordsIndex(uint128 _newMaxFindingWordsIndex)
+        external;
+
+    function updateMaxWordRangeForLimitOrder(uint128 _newMaxWordRangeForLimitOrder)
+        external;
+
+    function updateMaxWordRangeForMarketOrder(uint128 _newMaxWordRangeForMarketOrder)
         external;
 
     function updateBasisPoint(uint64 _newBasisPoint) external;
