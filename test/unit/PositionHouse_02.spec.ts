@@ -6242,61 +6242,60 @@ describe("PositionHouse_02", () => {
             await expect(claimableAmountAfterSecondOrder).eq('3100')
         })
 
-        it("can create a limit long higher than current price", async () => {
-            await openLimitPositionAndExpect({
-                limitPrice: 5100,
+        it("should check valid notional by leverage", async () => {
+            // NOTE this transaction not reverted cause changed config notional
+            // will be reverted cause notional of this order is 50001 > max notional for leverage 125 = 50000
+            await expect(openLimitPositionAndExpect({
+                limitPrice: 5001,
                 side: SIDE.SHORT,
-                leverage: 10,
-                quantity: BigNumber.from('5'),
-                _trader: trader2,
-                _positionManager: positionManager,
-                skipCheckBalance: true
-            })
-
-            await openLimitPositionAndExpect({
-                limitPrice: 5200,
-                side: SIDE.SHORT,
-                leverage: 10,
-                quantity: BigNumber.from('5'),
-                _trader: trader2,
-                _positionManager: positionManager,
-                skipCheckBalance: true
-            })
-
-            console.log("before open long limit order with higher price than current")
-            await openLimitPositionAndExpect({
-                limitPrice: 5300,
-                side: SIDE.LONG,
-                leverage: 10,
-                quantity: BigNumber.from('17'),
+                leverage: 125,
+                quantity: BigNumber.from(toWei(10)),
                 _trader: trader1,
-                _positionManager: positionManager,
+                _positionManager: fundingRateTest,
                 skipCheckBalance: true
-            })
+            })).to.be.revertedWith("26")
 
-            console.log("get position and list order pending of trader1 !!!!!!!!!")
-            console.log((await positionHouseViewer.getPosition(positionManager.address, trader1.address)).toString())
-
-            console.log((await positionHouseViewer.getListOrderPending(positionManager.address, trader1.address)).toString())
+            // will be reverted cause notional of this order is 54989 > max notional for leverage 125 = 50000
+            await expect(openLimitPositionAndExpect({
+                limitPrice: 4999,
+                side: SIDE.LONG,
+                leverage: 125,
+                quantity: BigNumber.from(toWei(11)),
+                _trader: trader1,
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
+            })).to.be.revertedWith("26")
 
             await openLimitPositionAndExpect({
-                limitPrice: 5100,
-                side: SIDE.SHORT,
-                leverage: 10,
-                quantity: BigNumber.from('7'),
-                _trader: trader2,
-                _positionManager: positionManager,
+                limitPrice: 4999,
+                side: SIDE.LONG,
+                leverage: 125,
+                quantity: BigNumber.from(toWei(5)),
+                _trader: trader1,
+                _positionManager: fundingRateTest,
                 skipCheckBalance: true
             })
-            console.log("get position and list order pending of trader1 @@@@@@@@@@")
-            console.log((await positionHouseViewer.getPosition(positionManager.address, trader1.address)).toString())
 
-            console.log((await positionHouseViewer.getListOrderPending(positionManager.address, trader1.address)).toString())
+            await openLimitPositionAndExpect({
+                limitPrice: 4998,
+                side: SIDE.LONG,
+                leverage: 125,
+                quantity: BigNumber.from(toWei(6)),
+                _trader: trader1,
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
+            })
 
-            console.log("get position and list order pending of trader2 ##########")
-            console.log((await positionHouseViewer.getPosition(positionManager.address, trader2.address)).toString())
-
-            console.log((await positionHouseViewer.getListOrderPending(positionManager.address, trader2.address)).toString())
+            // will be reverted cause notional of this order is 54983 > max notional for leverage 125 = 50000
+            await expect(openMarketPosition({
+                    quantity: BigNumber.from(toWei(11)),
+                    leverage: 125,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: fundingRateTest,
+                }
+            )).to.be.revertedWith("26")
         })
 
     })
