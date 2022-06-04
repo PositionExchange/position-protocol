@@ -225,8 +225,8 @@ contract PositionManager is
         )
     {
         SingleSlot memory _singleSlot = singleSlot;
+        uint256 underlyingPip = getUnderlyingPriceInPip();
         {
-            uint256 underlyingPip = getUnderlyingPriceInPip();
             if (_isBuy && _singleSlot.pip != 0) {
                 int256 maxPip = int256(underlyingPip) - int128(maxWordRangeForLimitOrder * 250);
                 if (maxPip > 0) {
@@ -234,14 +234,10 @@ contract PositionManager is
                 } else {
                     require(_pip >= 1, Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_LONG);
                 }
-                // higher pip when long must lower than max word range for market order short
-                require(_pip <= underlyingPip + maxWordRangeForMarketOrder * 250, Errors.VL_MARKET_ORDER_MUST_CLOSE_TO_INDEX_PRICE);
             } else {
                 require(
                     _pip <= (underlyingPip + maxWordRangeForLimitOrder * 250), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_SHORT
                 );
-                // lower pip when short must higher than max word range for market order long
-                require(int128(_pip) >= (int256(underlyingPip) - int128(maxWordRangeForMarketOrder * 250)), Errors.VL_MARKET_ORDER_MUST_CLOSE_TO_INDEX_PRICE);
             }
         }
         bool hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
@@ -253,6 +249,13 @@ contract PositionManager is
                 canOpenMarketWithMaxPip
             ) {
                 // open market
+                if (_isBuy) {
+                    // higher pip when long must lower than max word range for market order short
+                    require(_pip <= underlyingPip + maxWordRangeForMarketOrder * 250, Errors.VL_MARKET_ORDER_MUST_CLOSE_TO_INDEX_PRICE);
+                } else {
+                    // lower pip when short must higher than max word range for market order long
+                    require(int128(_pip) >= (int256(underlyingPip) - int128(maxWordRangeForMarketOrder * 250)), Errors.VL_MARKET_ORDER_MUST_CLOSE_TO_INDEX_PRICE);
+                }
                 (sizeOut, openNotional) = _openMarketPositionWithMaxPip(
                     _size,
                     _isBuy,
