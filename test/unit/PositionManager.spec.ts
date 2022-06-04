@@ -48,12 +48,13 @@ describe('Position Manager', async function () {
         const tx = await marketBuy(size, isBuy)
         const receipt = await ethers.provider.getTransactionReceipt(tx.hash)
         const interfaceEvent = new ethers.utils.Interface(["event MarketFilled(bool isBuy, uint256 indexed amount, uint128 toPip, uint256 passedPipCount, uint128 remainingLiquidity)"]);
-
-        const data = receipt.logs[1].data
-        const topics = receipt.logs[1].topics
-        const event = interfaceEvent.decodeEventLog("MarketFilled", data, topics)
-        expect(event.isBuy).to.equal(isBuy)
-        expect(event.amount).to.equal(expectOut)
+        if (expectOut != 0) {
+            const data = receipt.logs[1].data
+            const topics = receipt.logs[1].topics
+            const event = interfaceEvent.decodeEventLog("MarketFilled", data, topics)
+            expect(event.isBuy).to.equal(isBuy)
+            expect(event.amount).to.equal(expectOut)
+        }
     }
 
     const shouldOpenLimitAndVerify = async function (pip: number, size: number, expectOut: number, isBuy: boolean = true) {
@@ -64,9 +65,11 @@ describe('Position Manager', async function () {
 
         const data = receipt.logs[1].data
         const topics = receipt.logs[1].topics
-        const event = interfaceEvent.decodeEventLog("MarketFilled", data, topics)
-        expect(event.isBuy).to.equal(isBuy)
-        expect(event.amount).to.equal(expectOut)
+        if (expectOut != 0) {
+            const event = interfaceEvent.decodeEventLog("MarketFilled", data, topics)
+            expect(event.isBuy).to.equal(isBuy)
+            expect(event.amount).to.equal(expectOut)
+        }
     }
 
     const verifyLimitOrderDetail = async function (
@@ -842,6 +845,28 @@ describe('Position Manager', async function () {
                 pips: [],
                 pipsHasLiquidity: [],
                 reachPip: 180,
+                isBuy: false
+            })
+        })
+
+        it("should create many pending orders when create and change price to highest target pip", async () => {
+            await createLimitOrderAndVerifyAfter({
+                pip: 180,
+                size: 30,
+                sizeOut: 0,
+                pips: [],
+                pipsHasLiquidity: [],
+                reachPip: 180,
+                isBuy: false
+            })
+
+            await createLimitOrderAndVerifyAfter({
+                pip: 170,
+                size: 30,
+                sizeOut: 0,
+                pips: [180],
+                pipsHasLiquidity: [true],
+                reachPip: 170,
                 isBuy: false
             })
         })
