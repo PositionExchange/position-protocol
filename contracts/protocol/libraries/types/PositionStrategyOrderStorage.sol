@@ -7,13 +7,21 @@ import "../../../interfaces/IPositionHouseViewer.sol";
 abstract contract PositionStrategyOrderStorage {
     using Position for Position.Data;
 
-    struct TakeProfitAndStopLoss {
+    struct TPSLCondition {
         uint120 higherThanPrice;
         uint120 lowerThanPrice;
         uint8 __dummy;
     }
 
-    mapping (address => mapping(address => TakeProfitAndStopLoss)) public takeProfitAndStopLoss;
+    mapping (address => bool) public validatedTriggerers;
+    mapping (address => mapping(address => TPSLCondition)) public TPSLMap;
     IPositionHouse public positionHouse;
     IPositionHouseViewer public positionHouseViewer;
+
+    /**
+     * @dev This empty reserved space is put in place to allow future versions to add new
+     * variables without shifting down storage in the inheritance chain.
+     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[49] private __gap;
 }

@@ -8,7 +8,8 @@ import {
     PositionHouseViewer,
     PositionManager,
     FundingRateTest,
-    PositionNotionalConfigProxy
+    PositionNotionalConfigProxy,
+    PositionStrategyOrder
 } from "../../typeChain";
 import {BigNumber} from "ethers";
 import PositionManagerTestingTool from "./positionManagerTestingTool";
@@ -56,6 +57,11 @@ export async function deployPositionHouse(){
             PositionHouseMath: positionHouseMath.address
         }
     })
+
+    let positionStrategyOrderFactory = await ethers.getContractFactory("PositionStrategyOrder")
+    let positionStrategyOrder = (await positionStrategyOrderFactory.deploy()) as unknown as PositionStrategyOrder
+
+
     let positionHouse = (await factory.deploy()) as unknown as PositionHouse;
     await insuranceFund.connect(trader).initialize()
     await insuranceFund.connect(trader).setCounterParty(positionHouse.address);
@@ -68,11 +74,15 @@ export async function deployPositionHouse(){
     let positionManagerTestingTool = new PositionManagerTestingTool(positionManager)
     let positionHouseTestingTool = new PositionHouseTestingTool(positionHouse, positionManager, positionHouseViewer)
 
+    await positionStrategyOrder.initialize(positionHouse.address, positionHouseViewer.address)
+
     await positionManager.initialize(BigNumber.from(500000), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
     await fundingRateTest.initialize(BigNumber.from(500000), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
     await positionHouseConfiguration.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20))
     await positionHouse.initialize(insuranceFund.address, positionHouseConfiguration.address, positionNotionalConfigProxy.address)
     await positionHouseViewer.initialize(positionHouse.address, positionHouseConfiguration.address)
+
+    await positionHouse.setPositionStrategyOrder(positionStrategyOrder.address)
 
     await positionHouse.updateConfigNotionalKey(positionManager.address, ethers.utils.formatBytes32String("BTC_BUSD"))
     await positionHouse.updateConfigNotionalKey(fundingRateTest.address, ethers.utils.formatBytes32String("BTC_BUSD"))

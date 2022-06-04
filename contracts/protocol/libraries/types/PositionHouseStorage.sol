@@ -5,6 +5,7 @@ import "../position/PositionLimitOrder.sol";
 import "../../../interfaces/IInsuranceFund.sol";
 import "../../../interfaces/IPositionHouseConfigurationProxy.sol";
 import "../../../interfaces/IPositionNotionalConfigProxy.sol";
+import "../../../interfaces/IPositionStrategyOrder.sol";
 
 abstract contract PositionHouseStorage {
     using PositionLimitOrder for mapping(address => mapping(address => PositionLimitOrder.Data[]));

@@ -179,39 +179,39 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             );
             uint256 openNotional;
             uint128 _quantity = _rawQuantity.abs128();
-            if (
-                oldPosition.quantity != 0 &&
-                !oldPosition.quantity.isSameSide(_rawQuantity) &&
-                oldPosition.quantity.abs() <= _quantity &&
-                _positionManager.needClosePositionBeforeOpeningLimitOrder(
-                    _rawQuantity.u8Side(),
-                    _pip,
-                    oldPosition.quantity.abs()
-                )
-            ) {
-                PositionHouseStorage.PositionResp
-                    memory closePositionResp = _internalClosePosition(
-                        _positionManager,
-                        _trader,
-                        PositionHouseStorage.PnlCalcOption.SPOT_PRICE,
-                        true,
-                        oldPosition
-                    );
-                if (
-                    _rawQuantity - closePositionResp.exchangedPositionSize == 0
-                ) {
-                    // TODO refactor to a flag
-                    // flag to compare if (openLimitResp.sizeOut <= _uQuantity)
-                    // in this case, sizeOut is just only used to compare to open the limit order
-                    sizeOut = _rawQuantity.abs() + 1;
-                    if (closePositionResp.marginToVault < 0) {
-                        insuranceFund.withdraw(_pmAddress, _trader, closePositionResp.marginToVault.abs());
-                    }
-                } else {
-                    _quantity -= (closePositionResp.exchangedPositionSize)
-                        .abs128();
-                }
-            } else {
+//            if (
+//                oldPosition.quantity != 0 &&
+//                !oldPosition.quantity.isSameSide(_rawQuantity) &&
+//                oldPosition.quantity.abs() <= _quantity &&
+//                _positionManager.needClosePositionBeforeOpeningLimitOrder(
+//                    _rawQuantity.u8Side(),
+//                    _pip,
+//                    oldPosition.quantity.abs()
+//                )
+//            ) {
+//                PositionHouseStorage.PositionResp
+//                    memory closePositionResp = _internalClosePosition(
+//                        _positionManager,
+//                        _trader,
+//                        PositionHouseStorage.PnlCalcOption.SPOT_PRICE,
+//                        true,
+//                        oldPosition
+//                    );
+//                if (
+//                    _rawQuantity - closePositionResp.exchangedPositionSize == 0
+//                ) {
+//                    // TODO refactor to a flag
+//                    // flag to compare if (openLimitResp.sizeOut <= _uQuantity)
+//                    // in this case, sizeOut is just only used to compare to open the limit order
+//                    sizeOut = _rawQuantity.abs() + 1;
+//                    if (closePositionResp.marginToVault < 0) {
+//                        insuranceFund.withdraw(_pmAddress, _trader, closePositionResp.marginToVault.abs());
+//                    }
+//                } else {
+//                    _quantity -= (closePositionResp.exchangedPositionSize)
+//                        .abs128();
+//                }
+//            } else {
                 (orderId, sizeOut, openNotional) = _positionManager
                     .openLimitPosition(_pip, _quantity, _rawQuantity > 0);
                 if (sizeOut != 0) {
@@ -236,7 +236,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                         _updatePositionMap(_pmAddress, _trader, newData);
                     }
                 }
-            }
+//            }
         }
     }
 

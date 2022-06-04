@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "../interfaces/IPositionHouse.sol";
 import "../interfaces/IPositionHouseViewer.sol";
+import "../interfaces/IPositionManager.sol";
 import "./libraries/types/PositionStrategyOrderStorage.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
 
@@ -18,9 +19,10 @@ contract PositionStrategyOrder is
 {
     using Position for Position.Data;
 
-    event TakeProfitAndStopLossOrderCreated(address pmAddress, address trader, uint128 higherThanPrice, uint128 lowerThanPrice);
-    event TakeProfitAndStopLossOrderCanceled(address pmAddress, address trader);
-    event TakeProfitAndStopLossOrderTriggered(address pmAddress, address trader);
+    event TPSLCreated(address pmAddress, address trader, uint128 higherThanPrice, uint128 lowerThanPrice);
+    event TPOrSlCanceled(address pmAddress, address trader, bool isHigherPrice);
+    event TPAndSLCanceled(address pmAddress, address trader);
+    event TPSLTriggered(address pmAddress, address trader);
 
     function initialize(
         IPositionHouse _positionHouse,
@@ -32,35 +34,79 @@ contract PositionStrategyOrder is
         positionHouseViewer = _positionHouseViewer;
     }
 
-    function setTakeProfitAndStopLoss(address _pmAddress, uint128 _higherThanPrice, uint128 _lowerThanPrice) external {
+    function setTPSL(address _pmAddress, uint128 _higherThanPrice, uint128 _lowerThanPrice) external {
         address _trader = msg.sender;
         Position.Data memory positionData = positionHouseViewer.getPosition(_pmAddress, _trader);
         require(positionData.quantity != 0, Errors.VL_MUST_HAVE_POSITION);
-        takeProfitAndStopLoss[_pmAddress][_trader].lowerThanPrice = uint120(_lowerThanPrice);
-        takeProfitAndStopLoss[_pmAddress][_trader].higherThanPrice = uint120(_higherThanPrice);
-        takeProfitAndStopLoss[_pmAddress][_trader].__dummy = 1;
-        emit TakeProfitAndStopLossOrderCreated(_pmAddress, _trader, _higherThanPrice, _lowerThanPrice);
+        TPSLMap[_pmAddress][_trader].lowerThanPrice = uint120(_lowerThanPrice);
+        TPSLMap[_pmAddress][_trader].higherThanPrice = uint120(_higherThanPrice);
+        TPSLMap[_pmAddress][_trader].__dummy = 1;
+        emit TPSLCreated(_pmAddress, _trader, _higherThanPrice, _lowerThanPrice);
     }
 
-    function unsetTakeProfitAndStopLoss(address _pmAddress) external {
+    function unsetTPOrSL(address _pmAddress, bool _isHigherPrice) external {
         address _trader = msg.sender;
-        _internalUnsetTpSl(_pmAddress, _trader);
-        emit TakeProfitAndStopLossOrderCanceled(_pmAddress, _trader);
+        if (_isHigherPrice) {
+            TPSLMap[_pmAddress][_trader].higherThanPrice = 0;
+        } else {
+            TPSLMap[_pmAddress][_trader].lowerThanPrice = 0;
+        }
+        emit TPOrSlCanceled(_pmAddress, _trader, _isHigherPrice);
     }
 
-    function getTakeProfitAndStopLoss(address _pmAddress, address _trader) public view returns (uint120 lowerThanPrice, uint120 higherThanPrice) {
-        TakeProfitAndStopLoss memory takeProfitAndStopLoss = takeProfitAndStopLoss[_pmAddress][_trader];
-        lowerThanPrice = takeProfitAndStopLoss.lowerThanPrice;
-        higherThanPrice = takeProfitAndStopLoss.higherThanPrice;
+    function unsetTPAndSL(address _pmAddress) external {
+        address _trader = msg.sender;
+        _internalUnsetTPAndSL(_pmAddress, _trader);
+        emit TPAndSLCanceled(_pmAddress, _trader);
     }
 
-    function triggerMarketOrder(IPositionManager _positionManager, address _trader) external {
-
+    function unsetTPAndSLWhenClosePosition(address _pmAddress, address _trader) external onlyPositionHouse {
+        _internalUnsetTPAndSL(_pmAddress, _trader);
+        emit TPAndSLCanceled(_pmAddress, _trader);
     }
 
-    function _internalUnsetTpSl(address _pmAddress, address _trader) internal {
-        takeProfitAndStopLoss[_pmAddress][_trader].lowerThanPrice = 0;
-        takeProfitAndStopLoss[_pmAddress][_trader].higherThanPrice = 0;
+    function getTPSLDetail(address _pmAddress, address _trader) public view returns (uint120 lowerThanPrice, uint120 higherThanPrice) {
+        TPSLCondition memory condition = TPSLMap[_pmAddress][_trader];
+        lowerThanPrice = condition.lowerThanPrice;
+        higherThanPrice = condition.higherThanPrice;
     }
 
+    function hasTPOrSL(address _pmAddress, address _trader) public view returns (bool) {
+        TPSLCondition memory condition = TPSLMap[_pmAddress][_trader];
+        return condition.lowerThanPrice != 0 || condition.higherThanPrice != 0;
+    }
+
+    function triggerTPSL(IPositionManager _positionManager, address _trader) external onlyValidatedTriggerer{
+        address _pmAddress = address(_positionManager);
+        uint128 currentPip = _positionManager.getCurrentPip();
+        TPSLCondition memory condition = TPSLMap[_pmAddress][_trader];
+        require(reachTPSL(condition, currentPip), Errors.VL_MUST_REACH_CONDITION);
+        positionHouse.triggerClosePosition(_positionManager, _trader);
+        emit TPSLTriggered(_pmAddress, _trader);
+    }
+
+    function _internalUnsetTPAndSL(address _pmAddress, address _trader) internal {
+        TPSLMap[_pmAddress][_trader].lowerThanPrice = 0;
+        TPSLMap[_pmAddress][_trader].higherThanPrice = 0;
+    }
+
+    function updateValidatedTriggererStatus(address _triggerer, bool _isValidated) external onlyOwner {
+        validatedTriggerers[_triggerer] = _isValidated;
+    }
+
+
+    // REQUIRE FUNCTION
+    function reachTPSL(TPSLCondition memory condition, uint128 currentPip) internal returns (bool) {
+        return currentPip <= condition.lowerThanPrice || currentPip >= condition.higherThanPrice;
+    }
+
+    modifier onlyPositionHouse() {
+        require(msg.sender == address(positionHouse), Errors.VL_ONLY_POSITION_HOUSE);
+        _;
+    }
+
+    modifier onlyValidatedTriggerer() {
+        require(validatedTriggerers[msg.sender], Errors.VL_ONLY_VALIDATED_TRIGGERS);
+        _;
+    }
 }
