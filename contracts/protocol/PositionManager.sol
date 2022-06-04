@@ -975,13 +975,15 @@ contract PositionManager is
         }
         sizeOut = _size - state.remainingSize;
         _addReserveSnapshot();
-        emit MarketFilled(
-            _isBuy,
-            sizeOut,
-            _maxPip != 0 ? _maxPip : state.pip,
-            passedPipCount,
-            remainingLiquidity
-        );
+        if (sizeOut != 0) {
+            emit MarketFilled(
+                _isBuy,
+                sizeOut,
+                _maxPip != 0 ? _maxPip : state.pip,
+                passedPipCount,
+                remainingLiquidity
+            );
+        }
     }
 
     function _getPriceWithSpecificSnapshot(TwapPriceCalcParams memory _params)
