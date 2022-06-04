@@ -259,6 +259,10 @@ contract PositionManager is
                     _pip
                 );
                 hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
+                if (sizeOut != 0) {
+                    // reassign _singleSlot after _openMarketPositionWithMaxPip
+                    _singleSlot = singleSlot;
+                }
             }
         }
         uint128 remainingSize = _size - uint128(sizeOut);
