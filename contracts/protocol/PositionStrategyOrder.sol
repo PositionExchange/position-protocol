@@ -34,18 +34,30 @@ contract PositionStrategyOrder is
         positionHouseViewer = _positionHouseViewer;
     }
 
-    function setTPSL(address _pmAddress, uint128 _higherThanPrice, uint128 _lowerThanPrice) external {
+    function setTPSL(address _pmAddress, uint128 _higherThanPrice, uint128 _lowerThanPrice, SetTPSLOption _option) external {
+        IPositionManager _positionManager = IPositionManager(_pmAddress);
+        uint128 currentPip = _positionManager.getCurrentPip();
+        require(isValidInput(currentPip, _higherThanPrice, _lowerThanPrice, _option), Errors.VL_INVALID_CONDITION);
         address _trader = msg.sender;
         Position.Data memory positionData = positionHouseViewer.getPosition(_pmAddress, _trader);
         require(positionData.quantity != 0, Errors.VL_MUST_HAVE_POSITION);
-        TPSLMap[_pmAddress][_trader].lowerThanPrice = uint120(_lowerThanPrice);
-        TPSLMap[_pmAddress][_trader].higherThanPrice = uint120(_higherThanPrice);
+
+        if (_option == SetTPSLOption.ONLY_HIGHER) {
+            TPSLMap[_pmAddress][_trader].higherThanPrice = uint120(_higherThanPrice);
+        } else if (_option == SetTPSLOption.ONLY_LOWER) {
+            TPSLMap[_pmAddress][_trader].lowerThanPrice = uint120(_lowerThanPrice);
+        } else if (_option == SetTPSLOption.BOTH) {
+            TPSLMap[_pmAddress][_trader].higherThanPrice = uint120(_higherThanPrice);
+            TPSLMap[_pmAddress][_trader].lowerThanPrice = uint120(_lowerThanPrice);
+        }
         TPSLMap[_pmAddress][_trader].__dummy = 1;
         emit TPSLCreated(_pmAddress, _trader, _higherThanPrice, _lowerThanPrice);
     }
 
     function unsetTPOrSL(address _pmAddress, bool _isHigherPrice) external {
         address _trader = msg.sender;
+        Position.Data memory positionData = positionHouseViewer.getPosition(_pmAddress, _trader);
+        require(positionData.quantity != 0, Errors.VL_MUST_HAVE_POSITION);
         if (_isHigherPrice) {
             TPSLMap[_pmAddress][_trader].higherThanPrice = 0;
         } else {
@@ -56,13 +68,13 @@ contract PositionStrategyOrder is
 
     function unsetTPAndSL(address _pmAddress) external {
         address _trader = msg.sender;
+        Position.Data memory positionData = positionHouseViewer.getPosition(_pmAddress, _trader);
+        require(positionData.quantity != 0, Errors.VL_MUST_HAVE_POSITION);
         _internalUnsetTPAndSL(_pmAddress, _trader);
-        emit TPAndSLCanceled(_pmAddress, _trader);
     }
 
     function unsetTPAndSLWhenClosePosition(address _pmAddress, address _trader) external onlyPositionHouse {
         _internalUnsetTPAndSL(_pmAddress, _trader);
-        emit TPAndSLCanceled(_pmAddress, _trader);
     }
 
     function getTPSLDetail(address _pmAddress, address _trader) public view returns (uint120 lowerThanPrice, uint120 higherThanPrice) {
@@ -76,7 +88,7 @@ contract PositionStrategyOrder is
         return condition.lowerThanPrice != 0 || condition.higherThanPrice != 0;
     }
 
-    function triggerTPSL(IPositionManager _positionManager, address _trader) external onlyValidatedTriggerer{
+    function triggerTPSL(IPositionManager _positionManager, address _trader) external {
         address _pmAddress = address(_positionManager);
         uint128 currentPip = _positionManager.getCurrentPip();
         TPSLCondition memory condition = TPSLMap[_pmAddress][_trader];
@@ -88,16 +100,26 @@ contract PositionStrategyOrder is
     function _internalUnsetTPAndSL(address _pmAddress, address _trader) internal {
         TPSLMap[_pmAddress][_trader].lowerThanPrice = 0;
         TPSLMap[_pmAddress][_trader].higherThanPrice = 0;
+        emit TPAndSLCanceled(_pmAddress, _trader);
     }
 
     function updateValidatedTriggererStatus(address _triggerer, bool _isValidated) external onlyOwner {
         validatedTriggerers[_triggerer] = _isValidated;
     }
 
-
     // REQUIRE FUNCTION
     function reachTPSL(TPSLCondition memory condition, uint128 currentPip) internal returns (bool) {
-        return currentPip <= condition.lowerThanPrice || currentPip >= condition.higherThanPrice;
+        return currentPip <= condition.lowerThanPrice || (currentPip >= condition.higherThanPrice && condition.higherThanPrice != 0);
+    }
+
+    function isValidInput(uint128 currentPrice, uint128 _higherThanPrice, uint128 _lowerThanPrice, SetTPSLOption _option) internal returns (bool){
+        if (_option == SetTPSLOption.BOTH) {
+            return _higherThanPrice != 0 && _lowerThanPrice != 0 && _higherThanPrice > currentPrice && currentPrice > _lowerThanPrice;
+        } else if (_option == SetTPSLOption.ONLY_HIGHER) {
+            return _higherThanPrice != 0 && _lowerThanPrice == 0 && _higherThanPrice > currentPrice;
+        } else if (_option == SetTPSLOption.ONLY_LOWER) {
+            return _higherThanPrice == 0 && _lowerThanPrice != 0 && currentPrice > _lowerThanPrice;
+        }
     }
 
     modifier onlyPositionHouse() {

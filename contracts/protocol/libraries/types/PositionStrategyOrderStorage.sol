@@ -7,6 +7,12 @@ import "../../../interfaces/IPositionHouseViewer.sol";
 abstract contract PositionStrategyOrderStorage {
     using Position for Position.Data;
 
+    enum SetTPSLOption {
+        BOTH,
+        ONLY_HIGHER,
+        ONLY_LOWER
+    }
+
     struct TPSLCondition {
         uint120 higherThanPrice;
         uint120 lowerThanPrice;

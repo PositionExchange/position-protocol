@@ -302,6 +302,18 @@ library PositionHouseFunction {
         positionData = _positionData;
     }
 
+    function getTotalPendingLimitOrderMargin(
+        IPositionManager _positionManager,
+        PositionLimitOrder.Data[] memory _limitOrder
+    ) internal returns (uint256 totalMargin) {
+        for (uint i = 0; i < _limitOrder.length; i++) {
+            (uint256 refundQuantity, ) = _positionManager.cancelLimitOrder(_limitOrder[i].pip, _limitOrder[i].orderId);
+            (, uint256 refundMargin, ) = _positionManager.getNotionalMarginAndFee(refundQuantity, _limitOrder[i].pip, _limitOrder[i].leverage);
+            totalMargin += refundMargin;
+        }
+        return totalMargin;
+    }
+
     /// @dev Accumulate limit order to Position Data
     /// @param _pmAddress Position Manager address
     /// @param _limitOrder can be reduce or increase limit order
@@ -595,7 +607,6 @@ library PositionHouseFunction {
                 _pDataIncr,
                 _limitOrders[i].entryPrice
             );
-//            _removeUnfilledMargin(_positionManager, state, _limitOrders[i]);
         }
         state.accMargin = _pDataIncr.margin;
         if(_pDataIncr.quantity == 0){
@@ -635,30 +646,6 @@ library PositionHouseFunction {
         );
         _filledAmount = int256(!isFilled && partialFilled < size ? partialFilled : size);
         _filledAmount = isBuy ? _filledAmount : (-_filledAmount);
-    }
-
-    function _removeUnfilledMargin(
-        IPositionManager _positionManager,
-        ClaimAbleState memory state,
-        PositionLimitOrder.Data memory _limitOrder
-    ) public view {
-        (
-            bool isFilled,
-            ,
-            uint256 quantity,
-            uint256 partialFilled
-        ) = _positionManager.getPendingOrderDetail(
-            _limitOrder.pip,
-            _limitOrder.orderId
-        );
-        if (!isFilled && partialFilled != 0) {
-            // remove unfilled margin
-            state.amount -= _limitOrder.pip.calMargin(
-                quantity - partialFilled,
-                _limitOrder.leverage,
-                state.basisPoint
-            );
-        }
     }
 
     function _accumulatePnLInReduceLimitOrder(

@@ -98,7 +98,8 @@ export async function deployPositionHouse(){
         bep20Mintable,
         insuranceFund,
         positionHouseViewer,
-        fundingRateTest
+        fundingRateTest,
+        positionStrategyOrder
     ]
 
 }

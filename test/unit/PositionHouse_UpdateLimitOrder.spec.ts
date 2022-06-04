@@ -406,6 +406,7 @@ describe("PositionHouse_UpdateLimitOrder", () => {
             await expect(balanceAfterClose.sub(balanceBeforeClose).toString()).eq('3100')
             // expect pnl: lose 2000 + 5 (fee)
             await expect(balanceAfterClose.sub(balanceBeforeStart).toString()).eq('-2005')
+            console.log((await positionHouseViewer.getPosition(positionManager.address, trader1.address)).toString());
         })
 
         // S1: trader1 has position short (5100, 10)

@@ -99,9 +99,9 @@ contract PositionHouse is
         address _pmAddress = address (_positionManager);
         address _trader = _msgSender();
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
-        (bool _needClaim, int256 _claimAbleAmount) = _needToClaimFund(_pmAddress, _trader, _positionDataWithManualMargin);
+        (bool _needClaim, int256 _claimableAmount) = _needToClaimFund(_pmAddress, _trader, _positionDataWithManualMargin);
         if (_needClaim) {
-            _internalClaimFund(_positionManager, _positionDataWithManualMargin, _claimAbleAmount);
+            _internalClaimFund(_positionManager, _positionDataWithManualMargin, _claimableAmount);
         }
         _internalOpenMarketPosition(
             _positionManager,
@@ -123,9 +123,9 @@ contract PositionHouse is
         address _pmAddress = address (_positionManager);
         address _trader = _msgSender();
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
-        (bool _needClaim, int256 _claimAbleAmount) = _needToClaimFund(_pmAddress, _trader, _positionDataWithManualMargin);
+        (bool _needClaim, int256 _claimableAmount) = _needToClaimFund(_pmAddress, _trader, _positionDataWithManualMargin);
         if (_needClaim) {
-            _internalClaimFund(_positionManager, _positionDataWithManualMargin, _claimAbleAmount);
+            _internalClaimFund(_positionManager, _positionDataWithManualMargin, _claimableAmount);
         }
         _internalOpenLimitOrder(
             _positionManager,
@@ -133,7 +133,8 @@ contract PositionHouse is
             _uQuantity,
             _pip,
             _leverage,
-            _positionDataWithManualMargin
+            _positionDataWithManualMargin,
+            _trader
         );
     }
 
@@ -162,9 +163,9 @@ contract PositionHouse is
         
         nonReentrant
     {
-        require(
-            _quantity > 0, Errors.VL_INVALID_CLOSE_QUANTITY
-        );
+//        require(
+//            _quantity > 0, Errors.VL_INVALID_CLOSE_QUANTITY
+//        );
         address _pmAddress = address(_positionManager);
         address _trader = _msgSender();
         _internalCloseMarketPosition(_pmAddress, _trader, _quantity);
@@ -174,9 +175,9 @@ contract PositionHouse is
         external
         nonReentrant
     {
-        require(
-            _quantity > 0, Errors.VL_INVALID_CLOSE_QUANTITY
-        );
+//        require(
+//            _quantity > 0, Errors.VL_INVALID_CLOSE_QUANTITY
+//        );
         address _pmAddress = address(_positionManager);
         address _trader = _msgSender();
         _emptyReduceLimitOrders(_pmAddress, _trader);
@@ -189,15 +190,16 @@ contract PositionHouse is
         nonReentrant
         onlyPositionStrategyOrder
     {
+        _internalCancelAllPendingOrder(_positionManager, _trader);
         _internalCloseMarketPosition(address(_positionManager), _trader, 0);
     }
 
     function _internalCloseMarketPosition(address _pmAddress, address _trader, uint256 _quantity) internal {
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
-        require(
-            _quantity <= _positionDataWithManualMargin.quantity.abs(),
-            Errors.VL_INVALID_CLOSE_QUANTITY
-        );
+//        require(
+//            _quantity <= _positionDataWithManualMargin.quantity.abs(),
+//            Errors.VL_INVALID_CLOSE_QUANTITY
+//        );
         _internalOpenMarketPosition(
             IPositionManager(_pmAddress),
             _positionDataWithManualMargin.quantity > 0
@@ -224,10 +226,10 @@ contract PositionHouse is
         address _pmAddress = address(_positionManager);
         address _trader = _msgSender();
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
-        require(
-            _quantity > 0 && _quantity <= _positionDataWithManualMargin.quantity.abs(),
-            Errors.VL_INVALID_CLOSE_QUANTITY
-        );
+//        require(
+//            _quantity > 0 && _quantity <= _positionDataWithManualMargin.quantity.abs(),
+//            Errors.VL_INVALID_CLOSE_QUANTITY
+//        );
         _internalOpenLimitOrder(
             _positionManager,
             _positionDataWithManualMargin.quantity > 0
@@ -236,7 +238,8 @@ contract PositionHouse is
             _quantity,
             _pip,
             _positionDataWithManualMargin.leverage,
-            _positionDataWithManualMargin
+            _positionDataWithManualMargin,
+            _trader
         );
     }
 
@@ -350,10 +353,10 @@ contract PositionHouse is
     {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
-        require(
-            getPosition(_pmAddress, _trader).quantity != 0,
-            Errors.VL_NO_POSITION_TO_ADD
-        );
+//        require(
+//            getPosition(_pmAddress, _trader).quantity != 0,
+//            Errors.VL_NO_POSITION_TO_ADD
+//        );
         manualMargin[_pmAddress][_trader] += int256(_amount);
 
         _deposit(_pmAddress, _trader, _amount, 0);
@@ -375,7 +378,7 @@ contract PositionHouse is
         address _trader = _msgSender();
 
         uint256 removableMargin = getRemovableMargin(_positionManager, _trader);
-        require(_amount <= removableMargin, Errors.VL_INVALID_REMOVE_MARGIN);
+//        require(_amount <= removableMargin, Errors.VL_INVALID_REMOVE_MARGIN);
 
         manualMargin[_pmAddress][_trader] -= int256(_amount);
 
@@ -680,7 +683,7 @@ contract PositionHouse is
         }
         // update position state
         positionMap[_pmAddress][_trader].update(pResp.position);
-        require(_checkMaxNotional(pResp.exchangedQuoteAssetAmount, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
+//        require(_checkMaxNotional(pResp.exchangedQuoteAssetAmount, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
         if (pResp.marginToVault > 0) {
             //transfer from trader to vault
             _deposit(_pmAddress, _trader, pResp.marginToVault.abs(), pResp.fee);
@@ -706,10 +709,10 @@ contract PositionHouse is
     ) internal override returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
         uint256 openMarketQuantity = _oldPosition.quantity.abs();
-        require(
-            openMarketQuantity != 0,
-            Errors.VL_INVALID_QUANTITY_INTERNAL_CLOSE
-        );
+//        require(
+//            openMarketQuantity != 0,
+//            Errors.VL_INVALID_QUANTITY_INTERNAL_CLOSE
+//        );
         if (_isInOpenLimit) {
             uint256 liquidityInCurrentPip = uint256(
                 _positionManager.getLiquidityInCurrentPip()
@@ -747,7 +750,10 @@ contract PositionHouse is
         clearPosition(_pmAddress, _trader);
     }
 
-    function clearPosition(address _pmAddress, address _trader) internal {
+    function clearPosition(address _pmAddress, address _trader) internal override {
+        if (positionStrategyOrder.hasTPOrSL(_pmAddress, _trader)) {
+            positionStrategyOrder.unsetTPAndSLWhenClosePosition(_pmAddress, _trader);
+        }
         positionMap[_pmAddress][_trader].clear();
         debtPosition[_pmAddress][_trader].clearDebt();
         manualMargin[_pmAddress][_trader] = 0;
@@ -759,9 +765,6 @@ contract PositionHouse is
                 _getLimitOrders(_pmAddress, _trader),
                 _getReduceLimitOrders(_pmAddress, _trader)
             );
-        if (positionStrategyOrder.hasTPOrSL(_pmAddress, _trader)) {
-            positionStrategyOrder.unsetTPAndSL(_pmAddress);
-        }
 
         _emptyLimitOrders(_pmAddress, _trader);
         for (uint256 i = 0; i < subListLimitOrders.length; i++) {
