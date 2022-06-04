@@ -977,7 +977,7 @@ contract PositionManager is
             emit MarketFilled(
                 _isBuy,
                 sizeOut,
-                _maxPip != 0 ? _maxPip : state.pip,
+                _maxPip != 0 ? lastMatchedPip : state.pip,
                 passedPipCount,
                 remainingLiquidity
             );
