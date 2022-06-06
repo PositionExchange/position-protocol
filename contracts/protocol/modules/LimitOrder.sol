@@ -132,7 +132,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             }
             (uint256 notional, uint256 marginToVault, uint256 fee) = _positionManager
                 .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
-//            require(_checkMaxNotional(notional, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
+            require(_checkMaxNotional(notional, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
             if (_oldPosition.quantity == 0 || _oldPosition.quantity.isSameSide(_quantity)) {
                 insuranceFund.deposit(_pmAddress, _trader, marginToVault, fee);
             }

@@ -47,17 +47,17 @@ contract PositionHouse is
         IPositionManager positionManager
     );
 
-//    event MarginAdded(
-//        address trader,
-//        uint256 marginAdded,
-//        IPositionManager positionManager
-//    );
+    event MarginAdded(
+        address trader,
+        uint256 marginAdded,
+        IPositionManager positionManager
+    );
 
-//    event MarginRemoved(
-//        address trader,
-//        uint256 marginRemoved,
-//        IPositionManager positionManager
-//    );
+    event MarginRemoved(
+        address trader,
+        uint256 marginRemoved,
+        IPositionManager positionManager
+    );
 
     event FullyLiquidated(address pmAddress, address trader);
     event PartiallyLiquidated(address pmAddress, address trader);
@@ -163,9 +163,9 @@ contract PositionHouse is
         
         nonReentrant
     {
-//        require(
-//            _quantity > 0, Errors.VL_INVALID_CLOSE_QUANTITY
-//        );
+        require(
+            _quantity > 0, Errors.VL_INVALID_CLOSE_QUANTITY
+        );
         address _pmAddress = address(_positionManager);
         address _trader = _msgSender();
         _internalCloseMarketPosition(_pmAddress, _trader, _quantity);
@@ -175,9 +175,9 @@ contract PositionHouse is
         external
         nonReentrant
     {
-//        require(
-//            _quantity > 0, Errors.VL_INVALID_CLOSE_QUANTITY
-//        );
+        require(
+            _quantity > 0, Errors.VL_INVALID_CLOSE_QUANTITY
+        );
         address _pmAddress = address(_positionManager);
         address _trader = _msgSender();
         _emptyReduceLimitOrders(_pmAddress, _trader);
@@ -196,15 +196,16 @@ contract PositionHouse is
 
     function _internalCloseMarketPosition(address _pmAddress, address _trader, uint256 _quantity) internal {
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
-//        require(
-//            _quantity <= _positionDataWithManualMargin.quantity.abs(),
-//            Errors.VL_INVALID_CLOSE_QUANTITY
-//        );
+        require(
+            _quantity <= _positionDataWithManualMargin.quantity.abs(),
+            Errors.VL_INVALID_CLOSE_QUANTITY
+        );
         _internalOpenMarketPosition(
             IPositionManager(_pmAddress),
             _positionDataWithManualMargin.quantity > 0
             ? Position.Side.SHORT
             : Position.Side.LONG,
+            // quantity == 0 only when triggerClosePosition, it will close 100% position quantity
             _quantity != 0 ? _quantity : _positionDataWithManualMargin.quantity.abs(),
             _positionDataWithManualMargin.leverage,
             _positionDataWithManualMargin,
@@ -226,10 +227,10 @@ contract PositionHouse is
         address _pmAddress = address(_positionManager);
         address _trader = _msgSender();
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
-//        require(
-//            _quantity > 0 && _quantity <= _positionDataWithManualMargin.quantity.abs(),
-//            Errors.VL_INVALID_CLOSE_QUANTITY
-//        );
+        require(
+            _quantity > 0 && _quantity <= _positionDataWithManualMargin.quantity.abs(),
+            Errors.VL_INVALID_CLOSE_QUANTITY
+        );
         _internalOpenLimitOrder(
             _positionManager,
             _positionDataWithManualMargin.quantity > 0
@@ -351,15 +352,15 @@ contract PositionHouse is
     {
         address _trader = _msgSender();
         address _pmAddress = address(_positionManager);
-//        require(
-//            getPosition(_pmAddress, _trader).quantity != 0,
-//            Errors.VL_NO_POSITION_TO_ADD
-//        );
+        require(
+            getPosition(_pmAddress, _trader).quantity != 0,
+            Errors.VL_NO_POSITION_TO_ADD
+        );
         manualMargin[_pmAddress][_trader] += int256(_amount);
 
         _deposit(_pmAddress, _trader, _amount, 0);
 
-//        emit MarginAdded(_trader, _amount, _positionManager);
+        emit MarginAdded(_trader, _amount, _positionManager);
     }
 
     /**
@@ -376,13 +377,13 @@ contract PositionHouse is
         address _trader = _msgSender();
 
         uint256 removableMargin = getRemovableMargin(_positionManager, _trader);
-//        require(_amount <= removableMargin, Errors.VL_INVALID_REMOVE_MARGIN);
+        require(_amount <= removableMargin, Errors.VL_INVALID_REMOVE_MARGIN);
 
         manualMargin[_pmAddress][_trader] -= int256(_amount);
 
         _withdraw(_pmAddress, _trader, _amount);
 
-//        emit MarginRemoved(_trader, _amount, _positionManager);
+        emit MarginRemoved(_trader, _amount, _positionManager);
     }
 
     // OWNER UPDATE VARIABLE STORAGE
@@ -608,7 +609,7 @@ contract PositionHouse is
         }
         // update position state
         positionMap[_pmAddress][_trader].update(pResp.position);
-//        require(_checkMaxNotional(pResp.exchangedQuoteAssetAmount, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
+        require(_checkMaxNotional(pResp.exchangedQuoteAssetAmount, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
         if (pResp.marginToVault > 0) {
             //transfer from trader to vault
             _deposit(_pmAddress, _trader, pResp.marginToVault.abs(), pResp.fee);
