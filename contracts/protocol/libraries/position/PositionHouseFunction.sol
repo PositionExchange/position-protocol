@@ -306,9 +306,19 @@ library PositionHouseFunction {
         PositionLimitOrder.Data[] memory _limitOrder
     ) internal returns (uint256 totalMargin) {
         for (uint i = 0; i < _limitOrder.length; i++) {
-            (uint256 refundQuantity, ) = _positionManager.cancelLimitOrder(_limitOrder[i].pip, _limitOrder[i].orderId);
-            (, uint256 refundMargin, ) = _positionManager.getNotionalMarginAndFee(refundQuantity, _limitOrder[i].pip, _limitOrder[i].leverage);
-            totalMargin += refundMargin;
+            (
+            bool isFilled,
+            ,
+            ,
+            ) = _positionManager.getPendingOrderDetail(
+                _limitOrder[i].pip,
+                _limitOrder[i].orderId
+            );
+            if (!isFilled) {
+                (uint256 refundQuantity, ) = _positionManager.cancelLimitOrder(_limitOrder[i].pip, _limitOrder[i].orderId);
+                (, uint256 refundMargin, ) = _positionManager.getNotionalMarginAndFee(refundQuantity, _limitOrder[i].pip, _limitOrder[i].leverage);
+                totalMargin += refundMargin;
+            }
         }
         return totalMargin;
     }
