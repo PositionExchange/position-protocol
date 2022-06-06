@@ -6,13 +6,14 @@ import {
     CreatePositionHouseFunction,
     CreateChainLinkPriceFeed,
     CreatePositionHouseConfigurationProxyInput,
-    CreatePositionHouseViewerInput, CreatePositionNotionalConfigProxy
+    CreatePositionHouseViewerInput,
+    CreatePositionNotionalConfigProxy,
+    CreatePositionStrategyOrderInput
 } from "./types";
 import {DeployDataStore} from "./DataStore";
 import {verifyContract} from "../scripts/utils";
 import {TransactionResponse} from "@ethersproject/abstract-provider";
 import {HardhatRuntimeEnvironment} from "hardhat/types";
-import {cat} from "shelljs";
 
 
 export class ContractWrapperFactory {
@@ -72,13 +73,6 @@ export class ContractWrapperFactory {
             const instance = await upgrades.deployProxy(PositionManager, contractArgs);
             console.log("wait for deploy")
             await instance.deployed();
-            if(args.leverage){
-                try{
-                    await (await instance.updateLeverage(args.leverage)).wait()
-                }catch (e) {
-                    console.log(`Update leverage failed`, e)
-                }
-            }
             const address = instance.address.toString().toLowerCase();
             console.log(`${symbol} positionManager address : ${address}`)
             await this.db.saveAddressByKey(saveKey, address);
@@ -190,6 +184,36 @@ export class ContractWrapperFactory {
             const address = instance.address.toString().toLowerCase();
             console.log(`PositionHouseViewer address : ${address}`)
             await this.db.saveAddressByKey('PositionHouseViewer', address);
+        }
+    }
+
+    async createPositionStrategyOrder(args: CreatePositionStrategyOrderInput) {
+        console.log(`into create PositionStrategyOrder`);
+
+
+        const PositionStrategyOrder = await this.hre.ethers.getContractFactory("PositionStrategyOrder")
+        const positionStrategyOrderAddress = await this.db.findAddressByKey(`PositionStrategyOrder`);
+
+        if (positionStrategyOrderAddress) {
+            console.log('Start upgrade position strategy order')
+            const upgraded = await this.hre.upgrades.upgradeProxy(positionStrategyOrderAddress, PositionStrategyOrder, {unsafeAllowLinkedLibraries: true});
+            console.log('Starting verify upgrade PositionStrategyOrder');
+            await this.verifyImplContract(upgraded.deployTransaction);
+
+        } else {
+            const contractArgs = [
+                args.positionHouse,
+                args.positionHouseViewer,
+            ];
+
+            //@ts-ignore
+            const instance = await upgrades.deployProxy(PositionStrategyOrder, contractArgs, {unsafeAllowLinkedLibraries: true});
+            console.log("wait for deploy")
+            await instance.deployed();
+
+            const address = instance.address.toString().toLowerCase();
+            console.log(`PositionStrategyOrder address : ${address}`)
+            await this.db.saveAddressByKey('PositionStrategyOrder', address);
         }
     }
 

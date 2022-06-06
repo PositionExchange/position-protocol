@@ -56,6 +56,21 @@ const migrations: MigrationDefinition = {
                 positionHouse: positionHouseContractAddress,
                 positionHouseConfigurationProxy: positionHouseConfigurationProxyContactAddress
             })
+        },
+
+        'deploy position house strategy order': async () => {
+            /**
+             positionHouse: string,
+             positionHouseViewer: string
+             */
+            const positionHouseContractAddress = await context.db.findAddressByKey('PositionHouse');
+            const positionHouseViewerContactAddress = await context.db.findAddressByKey('PositionHouseViewer');
+            console.log(`PositionHouse  ${positionHouseContractAddress}`);
+            console.log(`PositionHouseViewer  ${positionHouseViewerContactAddress}`);
+            await context.factory.createPositionStrategyOrder({
+                positionHouse: positionHouseContractAddress,
+                positionHouseViewer: positionHouseViewerContactAddress
+            })
         }
     })
 }
