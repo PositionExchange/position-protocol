@@ -72,6 +72,21 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
     }
 
+    function _internalCancelAllPendingOrder(
+        IPositionManager _positionManager,
+        address _trader
+    ) internal {
+        address _pmAddress = address(_positionManager);
+        PositionLimitOrder.Data[] memory _increaseOrders = limitOrders[_pmAddress][_trader];
+        uint256 totalRefundMargin;
+        if (_increaseOrders.length != 0) {
+            totalRefundMargin = PositionHouseFunction.getTotalPendingLimitOrderMargin(_positionManager, _increaseOrders);
+        }
+        _emptyLimitOrders(_pmAddress, _trader);
+        _emptyReduceLimitOrders(_pmAddress, _trader);
+        insuranceFund.withdraw(_pmAddress, _trader, totalRefundMargin);
+    }
+
     function _internalOpenLimitOrder(
         IPositionManager _positionManager,
         Position.Side _side,

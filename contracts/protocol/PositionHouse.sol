@@ -177,7 +177,16 @@ contract PositionHouse is
         emit InstantlyClosed(_pmAddress, _trader);
     }
 
-    function _internalClosePosition(address _pmAddress, address _trader, uint256 _quantity) internal {
+    function triggerClosePosition(IPositionManager _positionManager, address _trader)
+        external
+        nonReentrant
+        onlyPositionStrategyOrder
+    {
+        _internalCancelAllPendingOrder(_positionManager, _trader);
+        _internalCloseMarketPosition(address(_positionManager), _trader, 0);
+    }
+
+    function _internalCloseMarketPosition(address _pmAddress, address _trader, uint256 _quantity) internal {
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
         require(
             _quantity > 0 && _quantity <= _positionDataWithManualMargin.quantity.abs(),
