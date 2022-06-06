@@ -9,13 +9,13 @@ abstract contract CumulativePremiumFractions {
     // Cumulative premium fraction
     mapping(address => int128[]) private cumulativePremiumFractions;
 
-    event FundingPaid(
-        int256 premiumFraction,
-        int256 newestCumulativePremiumFraction,
-        address positionManager,
-        address caller,
-        uint256 blockTimestamp
-    );
+//    event FundingPaid(
+//        int256 premiumFraction,
+//        int256 newestCumulativePremiumFraction,
+//        address positionManager,
+//        address caller,
+//        uint256 blockTimestamp
+//    );
 
     function payFunding(IPositionManager _positionManager) public {
         address _pmAddress = address(_positionManager);
@@ -25,19 +25,19 @@ abstract contract CumulativePremiumFractions {
         cumulativePremiumFractions[_pmAddress].push(
             newestCumulativePremiumFraction
         );
-        emit FundingPaid(
-            premiumFraction,
-            newestCumulativePremiumFraction,
-            address(_positionManager),
-            msg.sender,
-            block.timestamp
-        );
+//        emit FundingPaid(
+//            premiumFraction,
+//            newestCumulativePremiumFraction,
+//            address(_positionManager),
+//            msg.sender,
+//            block.timestamp
+//        );
     }
 
     // TODO remove once fix the funding for limit order issue
-    function _resetLatestCumulativePremiumFractions(address _positionManager) internal {
-        cumulativePremiumFractions[_positionManager].push(0);
-    }
+//    function _resetLatestCumulativePremiumFractions(address _positionManager) internal {
+//        cumulativePremiumFractions[_positionManager].push(0);
+//    }
 
     function getLatestCumulativePremiumFraction(address _positionManager)
         public
@@ -56,14 +56,14 @@ abstract contract CumulativePremiumFractions {
         return 0;
     }
 
-    function getCumulativePremiumFractions(address _pmAddress)
-        public
-        view
-        virtual
-        returns (int128[] memory)
-    {
-        return cumulativePremiumFractions[_pmAddress];
-    }
+//    function getCumulativePremiumFractions(address _pmAddress)
+//        public
+//        view
+//        virtual
+//        returns (int128[] memory)
+//    {
+//        return cumulativePremiumFractions[_pmAddress];
+//    }
 
     function calcRemainMarginWithFundingPayment(
         address _positionManager,

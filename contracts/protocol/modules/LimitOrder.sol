@@ -93,9 +93,9 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         uint256 _uQuantity,
         uint128 _pip,
         uint16 _leverage,
-        Position.Data memory _oldPosition
+        Position.Data memory _oldPosition,
+        address _trader
     ) internal {
-        address _trader = msg.sender;
         PositionHouseStorage.OpenLimitResp memory openLimitResp;
         address _pmAddress = address(_positionManager);
         int256 _quantity = _side == Position.Side.LONG
@@ -137,7 +137,6 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 insuranceFund.deposit(_pmAddress, _trader, marginToVault, fee);
             }
             _setLimitOrderPremiumFraction(_pmAddress, _trader, getLatestCumulativePremiumFraction(_pmAddress));
-            uint256 limitOrderMargin = marginToVault * (_uQuantity - openLimitResp.sizeOut) / _uQuantity;
         }
         emit OpenLimit(
             openLimitResp.orderId,
@@ -194,62 +193,34 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             );
             uint256 openNotional;
             uint128 _quantity = _rawQuantity.abs128();
-            if (
-                oldPosition.quantity != 0 &&
-                !oldPosition.quantity.isSameSide(_rawQuantity) &&
-                oldPosition.quantity.abs() <= _quantity &&
-                _positionManager.needClosePositionBeforeOpeningLimitOrder(
-                    _rawQuantity.u8Side(),
-                    _pip,
-                    oldPosition.quantity.abs()
-                )
-            ) {
-                PositionHouseStorage.PositionResp
-                    memory closePositionResp = _internalClosePosition(
-                        _positionManager,
-                        _trader,
-                        PositionHouseStorage.PnlCalcOption.SPOT_PRICE,
-                        true,
-                        oldPosition
-                    );
-                if (
-                    _rawQuantity - closePositionResp.exchangedPositionSize == 0
-                ) {
-                    // TODO refactor to a flag
-                    // flag to compare if (openLimitResp.sizeOut <= _uQuantity)
-                    // in this case, sizeOut is just only used to compare to open the limit order
-                    sizeOut = _rawQuantity.abs() + 1;
-                    if (closePositionResp.marginToVault < 0) {
-                        insuranceFund.withdraw(_pmAddress, _trader, closePositionResp.marginToVault.abs());
-                    }
-                } else {
-                    _quantity -= (closePositionResp.exchangedPositionSize)
-                        .abs128();
-                }
-            } else {
-                (orderId, sizeOut, openNotional) = _positionManager
-                    .openLimitPosition(_pip, _quantity, _rawQuantity > 0);
-                if (sizeOut != 0) {
-                    {
-                        if (!_rawQuantity.isSameSide(oldPosition.quantity) && oldPosition.quantity != 0) {
-                            int256 totalReturn = PositionHouseFunction.calcReturnWhenOpenReverse(_pmAddress, _trader, sizeOut, oldPosition);
-                            insuranceFund.withdraw(_pmAddress, _trader, totalReturn.abs());
+            (orderId, sizeOut, openNotional) = _positionManager
+                .openLimitPosition(_pip, _quantity, _rawQuantity > 0);
+            if (sizeOut != 0) {
+                {
+                    if (!_rawQuantity.isSameSide(oldPosition.quantity) && oldPosition.quantity != 0) {
+                        int256 totalReturn = PositionHouseFunction.calcReturnWhenOpenReverse(_pmAddress, _trader, sizeOut, oldPosition);
+                        insuranceFund.withdraw(_pmAddress, _trader, totalReturn.abs());
+                        // if new limit order is not same side with old position, sizeOut == oldPosition.quantity
+                        // => close all position and clear position, return sizeOut + 1 mean closed position
+                        if (sizeOut == oldPosition.quantity.abs()) {
+                            clearPosition(_pmAddress, _trader);
+                            return (orderId, sizeOut + 1);
                         }
                     }
-                    // case: open a limit order at the last price
-                    // the order must be partially executed
-                    // then update the current position
-                    {
-                        Position.Data memory newData = PositionHouseFunction.handleMarketPart(
-                            oldPosition,
-                            _getPositionMap(_pmAddress, _trader),
-                            openNotional,
-                            _rawQuantity > 0 ? int256(sizeOut) : - int256(sizeOut),
-                            _leverage,
-                            getLatestCumulativePremiumFraction(_pmAddress)
-                        );
-                        _updatePositionMap(_pmAddress, _trader, newData);
-                    }
+                }
+                // case: open a limit order at the last price
+                // the order must be partially executed
+                // then update the current position
+                {
+                    Position.Data memory newData = PositionHouseFunction.handleMarketPart(
+                        oldPosition,
+                        _getPositionMap(_pmAddress, _trader),
+                        openNotional,
+                        _rawQuantity > 0 ? int256(sizeOut) : - int256(sizeOut),
+                        _leverage,
+                        getLatestCumulativePremiumFraction(_pmAddress)
+                    );
+                    _updatePositionMap(_pmAddress, _trader, newData);
                 }
             }
         }
@@ -408,21 +379,26 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         virtual
         returns (Position.Data memory);
 
-    function _internalClosePosition(
-        IPositionManager _positionManager,
-        address _trader,
-        PositionHouseStorage.PnlCalcOption _pnlCalcOption,
-        bool _isInOpenLimit,
-        Position.Data memory _oldPosition
-    )
-        internal
-        virtual
-        returns (PositionHouseStorage.PositionResp memory positionResp);
+//    function _internalClosePosition(
+//        IPositionManager _positionManager,
+//        address _trader,
+//        PositionHouseStorage.PnlCalcOption _pnlCalcOption,
+//        bool _isInOpenLimit,
+//        Position.Data memory _oldPosition
+//    )
+//        internal
+//        virtual
+//        returns (PositionHouseStorage.PositionResp memory positionResp);
 
     function _updatePositionMap(
         address _pmAddress,
         address _trader,
         Position.Data memory newData
+    ) internal virtual;
+
+    function clearPosition(
+        address _pmAddress,
+        address _trader
     ) internal virtual;
 
     function _checkMaxNotional(
