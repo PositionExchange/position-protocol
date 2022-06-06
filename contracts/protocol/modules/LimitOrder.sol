@@ -379,16 +379,16 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         virtual
         returns (Position.Data memory);
 
-    function _internalClosePosition(
-        IPositionManager _positionManager,
-        address _trader,
-        PositionHouseStorage.PnlCalcOption _pnlCalcOption,
-        bool _isInOpenLimit,
-        Position.Data memory _oldPosition
-    )
-        internal
-        virtual
-        returns (PositionHouseStorage.PositionResp memory positionResp);
+//    function _internalClosePosition(
+//        IPositionManager _positionManager,
+//        address _trader,
+//        PositionHouseStorage.PnlCalcOption _pnlCalcOption,
+//        bool _isInOpenLimit,
+//        Position.Data memory _oldPosition
+//    )
+//        internal
+//        virtual
+//        returns (PositionHouseStorage.PositionResp memory positionResp);
 
     function _updatePositionMap(
         address _pmAddress,
