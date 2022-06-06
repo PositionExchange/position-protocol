@@ -52,7 +52,7 @@ describe("PositionStrategy", () => {
     let positionHouseConfigurationProxy: PositionHouseConfigurationProxy;
     let positionHouseTestingTool: PositionHouseTestingTool;
     let fundingRateTest: FundingRateTest;
-    let positionStrategyOrder : PositionStrategyOrder
+    let positionStrategyOrder: PositionStrategyOrder
     let _;
     beforeEach(async () => {
         [trader0, trader1, trader2, trader3, trader4, trader5, tradercp, tradercp2] = await ethers.getSigners();
@@ -223,7 +223,7 @@ describe("PositionStrategy", () => {
     }
 
     describe("should set TP/SL success", async () => {
-        it ("it should set TP/SL success", async () => {
+        it("it should set TP/SL success", async () => {
             await openLimitPositionAndExpect({
                 limitPrice: 5000,
                 side: SIDE.LONG,
@@ -699,13 +699,5 @@ describe("PositionStrategy", () => {
 
             await positionStrategyOrder.connect(trader2).triggerTPSL(positionManager.address, trader1.address)
         })
-
-        it("should trigger TP/SL twice with different type of pending limit order success", async () => {
-            await openLimitPositionAndExpect({
-                limitPrice: 5000,
-                side: SIDE.LONG,
-                leverage: 10,
-                quantity: BigNumber.from('24'),
-                _trader: trader2,
-                skipCheckBalance: true
-            })
+    })
+})
