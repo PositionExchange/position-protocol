@@ -472,6 +472,7 @@ contract PositionHouse is
         if (positionData.quantity == 0) {
             positionData.margin = 0;
             positionData.openNotional = 0;
+            positionData.leverage = 1;
         }
     }
 
