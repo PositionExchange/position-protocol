@@ -157,7 +157,7 @@ describe('Market Maker', function () {
             }
         });
         it('should not remove filled order', async function () {
-            await positionHouse.openMarketPosition(positionManager.address, POSITION_SIDE.LONG, toWeiBN('100'), 10)
+            await positionHouse.openMarketPosition(positionManager.address, POSITION_SIDE.LONG, toWeiBN('100'), 1)
             const positionInfo = await positionHouse.getPosition(positionManager.address, deployer.address) as unknown as PositionData;
             await expectHasLiquidity(500010, false)
             expect(positionInfo.quantity).eq(toWeiBN('100'))
