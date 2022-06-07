@@ -598,6 +598,7 @@ contract PositionHouse is
                 positionMap[_pmAddress][_trader],
                 getLatestCumulativePremiumFraction(_pmAddress)
             );
+            require(_checkMaxNotional(pResp.exchangedQuoteAssetAmount, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
         } else {
             pResp = openReversePosition(
                 _positionManager,
@@ -610,7 +611,6 @@ contract PositionHouse is
         }
         // update position state
         positionMap[_pmAddress][_trader].update(pResp.position);
-        require(_checkMaxNotional(pResp.exchangedQuoteAssetAmount, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
         if (pResp.marginToVault > 0) {
             //transfer from trader to vault
             _deposit(_pmAddress, _trader, pResp.marginToVault.abs(), pResp.fee);
