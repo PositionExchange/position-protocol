@@ -190,8 +190,20 @@ contract PositionHouse is
         nonReentrant
         onlyPositionStrategyOrder
     {
+        address _pmAddress = address(_positionManager);
+        Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
         _internalCancelAllPendingOrder(_positionManager, _trader);
-        _internalCloseMarketPosition(address(_positionManager), _trader, 0);
+        // must reuse this code instead of use function _internalCloseMarketPosition
+        _internalOpenMarketPosition(
+            _positionManager,
+            _positionDataWithManualMargin.quantity > 0
+            ? Position.Side.SHORT
+            : Position.Side.LONG,
+            _positionDataWithManualMargin.quantity.abs(),
+            _positionDataWithManualMargin.leverage,
+            _positionDataWithManualMargin,
+            _trader
+        );
     }
 
     function _internalCloseMarketPosition(address _pmAddress, address _trader, uint256 _quantity) internal {
@@ -205,8 +217,7 @@ contract PositionHouse is
             _positionDataWithManualMargin.quantity > 0
             ? Position.Side.SHORT
             : Position.Side.LONG,
-            // quantity == 0 only when triggerClosePosition, it will close 100% position quantity
-            _quantity != 0 ? _quantity : _positionDataWithManualMargin.quantity.abs(),
+            _quantity,
             _positionDataWithManualMargin.leverage,
             _positionDataWithManualMargin,
             _trader

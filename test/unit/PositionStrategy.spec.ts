@@ -52,7 +52,7 @@ describe("PositionStrategy", () => {
     let positionHouseConfigurationProxy: PositionHouseConfigurationProxy;
     let positionHouseTestingTool: PositionHouseTestingTool;
     let fundingRateTest: FundingRateTest;
-    let positionStrategyOrder: PositionStrategyOrder
+    let positionStrategyOrder : PositionStrategyOrder
     let _;
     beforeEach(async () => {
         [trader0, trader1, trader2, trader3, trader4, trader5, tradercp, tradercp2] = await ethers.getSigners();
@@ -223,7 +223,7 @@ describe("PositionStrategy", () => {
     }
 
     describe("should set TP/SL success", async () => {
-        it("it should set TP/SL success", async () => {
+        it ("it should set TP/SL success", async () => {
             await openLimitPositionAndExpect({
                 limitPrice: 5000,
                 side: SIDE.LONG,
@@ -586,7 +586,7 @@ describe("PositionStrategy", () => {
         })
     })
 
-    describe("should be trigger TP/SL twice", async () => {
+    describe("should trigger TP/SL in different condition", async () => {
         it("should trigger TP/SL twice after cancel limit order success", async () => {
             await openLimitPositionAndExpect({
                 limitPrice: 5000,
@@ -692,12 +692,133 @@ describe("PositionStrategy", () => {
                 limitPrice: 4000,
                 side: SIDE.SHORT,
                 leverage: 10,
-                quantity: BigNumber.from('10'),
+                quantity: BigNumber.from('20'),
                 _trader: trader2,
                 skipCheckBalance: true
             })
 
             await positionStrategyOrder.connect(trader2).triggerTPSL(positionManager.address, trader1.address)
         })
+
+        it("should trigger TP/SL success to close a position created by a partial filled limit order", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5100,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('15'),
+                _trader: trader1,
+                skipCheckBalance: true
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('10'),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5500,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('5'),
+                _trader: trader1,
+                skipCheckBalance: true
+            })
+
+            await changePrice({
+                limitPrice: 4500,
+                toHigherPrice: false
+            })
+
+            await positionStrategyOrder.connect(trader1).setTPSL(positionManager.address, 480000, 440000, 0)
+
+            await changePrice({
+                limitPrice: 4800,
+                toHigherPrice: true
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('10'),
+                _trader: trader3,
+                skipCheckBalance: true
+            })
+
+            await positionStrategyOrder.connect(trader2).triggerTPSL(positionManager.address, trader1.address)
+        })
+
+        it("should trigger TP/SL success when partial closed position by a limit order", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('4'),
+                _trader: trader3,
+                skipCheckBalance: true
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('4'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('1'),
+                _trader: trader1,
+                skipCheckBalance: true
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('1'),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await positionStrategyOrder.connect(trader1).setTPSL(positionManager.address, 550000, 450000, 0)
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from('2'),
+                _trader: trader1,
+                skipCheckBalance: true
+            })
+
+            await changePrice({
+                limitPrice: 5600,
+                toHigherPrice: true
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5600,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from('3'),
+                _trader: trader3,
+                skipCheckBalance: true
+            })
+
+            await positionStrategyOrder.connect(trader3).triggerTPSL(positionManager.address, trader1.address)
+        })
     })
+
 })
