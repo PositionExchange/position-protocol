@@ -34,7 +34,7 @@ contract PositionStrategyOrder is
         positionHouseViewer = _positionHouseViewer;
     }
 
-    function setTPSL(address _pmAddress, uint128 _higherThanPrice, uint128 _lowerThanPrice, SetTPSLOption _option) external {
+    function setTPSL(address _pmAddress, uint128 _higherThanPrice, uint128 _lowerThanPrice, SetTPSLOption _option) external nonReentrant {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         uint128 currentPip = _positionManager.getCurrentPip();
         require(isValidInput(currentPip, _higherThanPrice, _lowerThanPrice, _option), Errors.VL_INVALID_CONDITION);
@@ -54,7 +54,7 @@ contract PositionStrategyOrder is
         emit TPSLCreated(_pmAddress, _trader, _higherThanPrice, _lowerThanPrice);
     }
 
-    function unsetTPOrSL(address _pmAddress, bool _isHigherPrice) external {
+    function unsetTPOrSL(address _pmAddress, bool _isHigherPrice) external nonReentrant {
         address _trader = msg.sender;
         Position.Data memory positionData = positionHouseViewer.getPosition(_pmAddress, _trader);
         require(positionData.quantity != 0, Errors.VL_MUST_HAVE_POSITION);
@@ -66,14 +66,14 @@ contract PositionStrategyOrder is
         emit TPOrSlCanceled(_pmAddress, _trader, _isHigherPrice);
     }
 
-    function unsetTPAndSL(address _pmAddress) external {
+    function unsetTPAndSL(address _pmAddress) external nonReentrant {
         address _trader = msg.sender;
         Position.Data memory positionData = positionHouseViewer.getPosition(_pmAddress, _trader);
         require(positionData.quantity != 0, Errors.VL_MUST_HAVE_POSITION);
         _internalUnsetTPAndSL(_pmAddress, _trader);
     }
 
-    function unsetTPAndSLWhenClosePosition(address _pmAddress, address _trader) external onlyPositionHouse {
+    function unsetTPAndSLWhenClosePosition(address _pmAddress, address _trader) external onlyPositionHouse nonReentrant {
         _internalUnsetTPAndSL(_pmAddress, _trader);
     }
 
@@ -88,7 +88,7 @@ contract PositionStrategyOrder is
         return condition.lowerThanPrice != 0 || condition.higherThanPrice != 0;
     }
 
-    function triggerTPSL(IPositionManager _positionManager, address _trader) external {
+    function triggerTPSL(IPositionManager _positionManager, address _trader) external nonReentrant{
         address _pmAddress = address(_positionManager);
         uint128 currentPip = _positionManager.getCurrentPip();
         TPSLCondition memory condition = TPSLMap[_pmAddress][_trader];
