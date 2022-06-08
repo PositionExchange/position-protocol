@@ -187,7 +187,7 @@ contract PositionHouse is
         address _pmAddress = address(_positionManager);
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
         _internalCancelAllPendingOrder(_positionManager, _trader);
-        // must reuse this code instead of use function _internalCloseMarketPosition
+        // must reuse this code instead of using function _internalCloseMarketPosition
         _internalOpenMarketPosition(
             _positionManager,
             _positionDataWithManualMargin.quantity > 0

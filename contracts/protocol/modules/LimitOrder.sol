@@ -84,7 +84,9 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         }
         _emptyLimitOrders(_pmAddress, _trader);
         _emptyReduceLimitOrders(_pmAddress, _trader);
-        insuranceFund.withdraw(_pmAddress, _trader, totalRefundMargin);
+        if (totalRefundMargin != 0) {
+            insuranceFund.withdraw(_pmAddress, _trader, totalRefundMargin);
+        }
     }
 
     function _internalOpenLimitOrder(
