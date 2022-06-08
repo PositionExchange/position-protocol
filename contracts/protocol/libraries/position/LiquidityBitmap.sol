@@ -148,6 +148,7 @@ library LiquidityBitmap {
                     if (next != 0) {
                         allPip[index] = next;
                         index++;
+                        if (index >= _dataLength) break;
                     }
                     while (true) {
                         next = findHasLiquidityInOneWords(
@@ -158,6 +159,7 @@ library LiquidityBitmap {
                         if (next != 0 && index <= _dataLength) {
                             allPip[index] = next;
                             index++;
+                            if (index >= _dataLength) break;
                         } else {
                             break;
                         }
@@ -177,6 +179,7 @@ library LiquidityBitmap {
                     if (next != 0) {
                         allPip[index] = next;
                         index++;
+                        if (index >= _dataLength) break;
                     }
                     while (true) {
                         next = findHasLiquidityInOneWords(
@@ -187,6 +190,7 @@ library LiquidityBitmap {
                         if (next != 0 && index <= _dataLength) {
                             allPip[index] = next;
                             index++;
+                            if (index >= _dataLength) break;
                         } else {
                             break;
                         }

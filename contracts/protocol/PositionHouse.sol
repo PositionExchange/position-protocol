@@ -726,7 +726,7 @@ contract PositionHouse is
         clearPosition(_pmAddress, _trader);
     }
 
-    function clearPosition(address _pmAddress, address _trader) internal {
+    function clearPosition(address _pmAddress, address _trader) internal override {
         positionMap[_pmAddress][_trader].clear();
         debtPosition[_pmAddress][_trader].clearDebt();
         manualMargin[_pmAddress][_trader] = 0;
