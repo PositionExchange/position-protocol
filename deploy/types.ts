@@ -74,6 +74,10 @@ export interface CreatePositionHouseViewerInput {
     positionHouseConfigurationProxy: string
 }
 
+export interface CreatePositionStrategyOrderInput {
+    positionHouse: string,
+    positionHouseViewer: string
+}
 
 export interface CreateInsuranceFund {
 

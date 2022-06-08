@@ -6243,6 +6243,7 @@ describe("PositionHouse_02", () => {
         })
 
         it("should check valid notional by leverage", async () => {
+            // NOTE this transaction not reverted cause changed config notional
             // will be reverted cause notional of this order is 50001 > max notional for leverage 125 = 50000
             await expect(openLimitPositionAndExpect({
                 limitPrice: 5001,

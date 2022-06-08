@@ -225,40 +225,46 @@ contract PositionManager is
         )
     {
         SingleSlot memory _singleSlot = singleSlot;
-        if (_isBuy && _singleSlot.pip != 0) {
-            require(
-                _pip <= _singleSlot.pip,
-                Errors.VL_LONG_PRICE_THAN_CURRENT_PRICE
-            );
-            int256 maxPip = int256(getUnderlyingPriceInPip()) - int128(maxWordRangeForLimitOrder * 250);
-            if (maxPip > 0) {
-                require(int128(_pip) >= maxPip, Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_LONG);
+        uint256 underlyingPip = getUnderlyingPriceInPip();
+        {
+            if (_isBuy && _singleSlot.pip != 0) {
+                int256 maxPip = int256(underlyingPip) - int128(maxWordRangeForLimitOrder * 250);
+                if (maxPip > 0) {
+                    require(int128(_pip) >= maxPip, Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_LONG);
+                } else {
+                    require(_pip >= 1, Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_LONG);
+                }
             } else {
-                require(_pip >= 1, Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_LONG);
+                require(
+                    _pip <= (underlyingPip + maxWordRangeForLimitOrder * 250), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_SHORT
+                );
             }
-        } else {
-            require(
-                _pip >= _singleSlot.pip,
-                Errors.VL_SHORT_PRICE_LESS_CURRENT_PRICE
-            );
-            require(
-                _pip <= (getUnderlyingPriceInPip() + maxWordRangeForLimitOrder * 250), Errors.VL_MUST_CLOSE_TO_INDEX_PRICE_SHORT
-            );
         }
         bool hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
         //save gas
-        if (
-            _pip == _singleSlot.pip &&
-            hasLiquidity &&
-            _singleSlot.isFullBuy != (_isBuy ? 1 : 2)
-        ) {
-            // open market
-            (sizeOut, openNotional) = _openMarketPositionWithMaxPip(
-                _size,
-                _isBuy,
-                _pip
-            );
-            hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
+        {
+            bool canOpenMarketWithMaxPip = (_isBuy && _pip >= _singleSlot.pip)
+                                                || (!_isBuy && _pip <= _singleSlot.pip);
+            if (
+                canOpenMarketWithMaxPip
+            ) {
+                // open market
+                if (_isBuy) {
+                    // higher pip when long must lower than max word range for market order short
+                    require(_pip <= underlyingPip + maxWordRangeForMarketOrder * 250, Errors.VL_MARKET_ORDER_MUST_CLOSE_TO_INDEX_PRICE);
+                } else {
+                    // lower pip when short must higher than max word range for market order long
+                    require(int128(_pip) >= (int256(underlyingPip) - int128(maxWordRangeForMarketOrder * 250)), Errors.VL_MARKET_ORDER_MUST_CLOSE_TO_INDEX_PRICE);
+                }
+                (sizeOut, openNotional) = _openMarketPositionWithMaxPip(
+                    _size,
+                    _isBuy,
+                    _pip
+                );
+                hasLiquidity = liquidityBitmap.hasLiquidity(_pip);
+                // reassign _singleSlot after _openMarketPositionWithMaxPip
+                _singleSlot = singleSlot;
+            }
         }
         uint128 remainingSize = _size - uint128(sizeOut);
         if (_size > sizeOut) {
@@ -857,22 +863,23 @@ contract PositionManager is
                         currentLiquiditySide == CurrentLiquiditySide.Sell;
             }
         }
-        bool onlyLoopOnce;
-        while (!onlyLoopOnce && state.remainingSize != 0) {
+        uint128 lastMatchedPip = state.pip;
+        while (state.remainingSize != 0) {
             StepComputations memory step;
-            // updated findHasLiquidityInMultipleWords, save more gas
+            (step.pipNext) = liquidityBitmap
+                .findHasLiquidityInMultipleWords(
+                    state.pip,
+                    maxFindingWordsIndex,
+                    !_isBuy
+                );
+
+            // when open market with a limit max pip
             if (_maxPip != 0) {
-                step.pipNext = _maxPip;
-                onlyLoopOnce = true;
-            } else {
-                (step.pipNext) = liquidityBitmap
-                    .findHasLiquidityInMultipleWords(
-                        state.pip,
-                        maxFindingWordsIndex,
-                        !_isBuy
-                    );
+                // if order is buy and step.pipNext (pip has liquidity) > maxPip then break cause this is limited to maxPip and vice versa
+                if ((_isBuy && step.pipNext > _maxPip) || (!_isBuy && step.pipNext < _maxPip)) {
+                    break;
+                }
             }
-            if (_maxPip != 0 && step.pipNext != _maxPip) break;
             if (step.pipNext == 0) {
                 // no more next pip
                 // state pip back 1 pip
@@ -888,6 +895,9 @@ contract PositionManager is
 
                     // get liquidity at a tick index
                     uint128 liquidity = tickPosition[step.pipNext].liquidity;
+                    if (_maxPip != 0) {
+                        lastMatchedPip = step.pipNext;
+                    }
                     if (liquidity > state.remainingSize) {
                         // pip position will partially filled and stop here
                         tickPosition[step.pipNext].partiallyFill(
@@ -931,11 +941,11 @@ contract PositionManager is
                 }
             }
         }
-        if (_initialSingleSlot.pip != state.pip) {
+        if (_initialSingleSlot.pip != state.pip && state.remainingSize != _size) {
             // all ticks in shifted range must be marked as filled
             if (!(remainingLiquidity > 0 && startPip == state.pip)) {
                 if (_maxPip != 0) {
-                    state.pip = _maxPip;
+                    state.pip = lastMatchedPip;
                 }
                 liquidityBitmap.unsetBitsRange(
                     startPip,
@@ -944,20 +954,37 @@ contract PositionManager is
                         : state.pip
                 );
             }
-            // TODO write a checkpoint that we shift a range of ticks
+        } else if (_maxPip != 0 && _initialSingleSlot.pip == state.pip && state.remainingSize < _size && state.remainingSize != 0) {
+            // if limit order with max pip filled current pip, toggle current pip to initialized
+            // after that when create new limit order will initialize pip again in `OpenLimitPosition`
+            liquidityBitmap.toggleSingleBit(state.pip, false);
         }
-        singleSlot.pip = _maxPip != 0 ? _maxPip : state.pip;
-        passedPipCount = _maxPip != 0 ? 0 : passedPipCount;
-        singleSlot.isFullBuy = isFullBuy;
+
+        if (state.remainingSize != _size) {
+            // if limit order with max pip filled other order, update isFullBuy
+            singleSlot.isFullBuy = isFullBuy;
+        }
+        if (_maxPip != 0) {
+            // if limit order still have remainingSize, change current price to limit price
+            // else change current price to last matched pip
+            singleSlot.pip = state.remainingSize != 0 ? _maxPip : lastMatchedPip;
+        } else {
+            singleSlot.pip = state.pip;
+        }
+        if (_maxPip != 0 && state.remainingSize != 0) {
+            passedPipCount = passedPipCount > 0 ? passedPipCount - 1 : 0;
+        }
         sizeOut = _size - state.remainingSize;
         _addReserveSnapshot();
-        emit MarketFilled(
-            _isBuy,
-            sizeOut,
-            _maxPip != 0 ? _maxPip : state.pip,
-            passedPipCount,
-            remainingLiquidity
-        );
+        if (sizeOut != 0) {
+            emit MarketFilled(
+                _isBuy,
+                sizeOut,
+                _maxPip != 0 ? lastMatchedPip : state.pip,
+                passedPipCount,
+                remainingLiquidity
+            );
+        }
     }
 
     function _getPriceWithSpecificSnapshot(TwapPriceCalcParams memory _params)
