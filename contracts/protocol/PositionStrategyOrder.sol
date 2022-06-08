@@ -34,6 +34,15 @@ contract PositionStrategyOrder is
         positionHouseViewer = _positionHouseViewer;
     }
 
+    function triggerTPSL(IPositionManager _positionManager, address _trader) external nonReentrant {
+        address _pmAddress = address(_positionManager);
+        uint128 currentPip = _positionManager.getCurrentPip();
+        TPSLCondition memory condition = TPSLMap[_pmAddress][_trader];
+        require(reachTPSL(condition, currentPip), Errors.VL_MUST_REACH_CONDITION);
+        positionHouse.triggerClosePosition(_positionManager, _trader);
+        emit TPSLTriggered(_pmAddress, _trader);
+    }
+
     function setTPSL(address _pmAddress, uint128 _higherPip, uint128 _lowerPip, SetTPSLOption _option) external nonReentrant {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         uint128 currentPip = _positionManager.getCurrentPip();
@@ -77,6 +86,10 @@ contract PositionStrategyOrder is
         _internalUnsetTPAndSL(_pmAddress, _trader);
     }
 
+    function updateValidatedTriggererStatus(address _triggerer, bool _isValidated) external onlyOwner {
+        validatedTriggerers[_triggerer] = _isValidated;
+    }
+
     function getTPSLDetail(address _pmAddress, address _trader) public view returns (uint120 lowerPip, uint120 higherPip) {
         TPSLCondition memory condition = TPSLMap[_pmAddress][_trader];
         lowerPip = condition.lowerPip;
@@ -88,23 +101,10 @@ contract PositionStrategyOrder is
         return condition.lowerPip != 0 || condition.higherPip != 0;
     }
 
-    function triggerTPSL(IPositionManager _positionManager, address _trader) external nonReentrant{
-        address _pmAddress = address(_positionManager);
-        uint128 currentPip = _positionManager.getCurrentPip();
-        TPSLCondition memory condition = TPSLMap[_pmAddress][_trader];
-        require(reachTPSL(condition, currentPip), Errors.VL_MUST_REACH_CONDITION);
-        positionHouse.triggerClosePosition(_positionManager, _trader);
-        emit TPSLTriggered(_pmAddress, _trader);
-    }
-
     function _internalUnsetTPAndSL(address _pmAddress, address _trader) internal {
         TPSLMap[_pmAddress][_trader].lowerPip = 0;
         TPSLMap[_pmAddress][_trader].higherPip = 0;
         emit TPAndSLCanceled(_pmAddress, _trader);
-    }
-
-    function updateValidatedTriggererStatus(address _triggerer, bool _isValidated) external onlyOwner {
-        validatedTriggerers[_triggerer] = _isValidated;
     }
 
     // REQUIRE FUNCTION
