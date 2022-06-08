@@ -109,7 +109,7 @@ contract PositionStrategyOrder is
 
     // REQUIRE FUNCTION
     function reachTPSL(TPSLCondition memory condition, uint128 currentPip) internal returns (bool) {
-        return currentPip <= condition.lowerPip || (currentPip >= condition.higherPip && condition.higherPip != 0);
+        return (condition.lowerPip != 0 && currentPip <= condition.lowerPip) || (currentPip >= condition.higherPip && condition.higherPip != 0);
     }
 
     function isValidInput(uint128 currentPrice, uint128 _higherPip, uint128 _lowerPip, SetTPSLOption _option) internal returns (bool){
