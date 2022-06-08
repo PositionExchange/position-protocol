@@ -51,4 +51,7 @@ interface IPositionHouse {
     external
     view
     returns (Position.LiquidatedData memory);
+
+    function triggerClosePosition(IPositionManager _positionManager, address _trader)
+    external;
 }

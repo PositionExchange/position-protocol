@@ -219,12 +219,10 @@ library PositionHouseFunction {
 
     function clearAllFilledOrder(
         IPositionManager _positionManager,
-        PositionLimitOrder.Data[] memory _limitOrders,
-        PositionLimitOrder.Data[] memory _reduceLimitOrders
+        PositionLimitOrder.Data[] memory _limitOrders
     )
         internal
         returns (
-            PositionLimitOrder.Data[] memory,
             PositionLimitOrder.Data[] memory
         )
     {
@@ -232,10 +230,10 @@ library PositionHouseFunction {
             memory subLimitOrders = new PositionLimitOrder.Data[](
                 _limitOrders.length
             );
-        PositionLimitOrder.Data[]
-            memory subReduceLimitOrders = new PositionLimitOrder.Data[](
-                _reduceLimitOrders.length
-            );
+//        PositionLimitOrder.Data[]
+//            memory subReduceLimitOrders = new PositionLimitOrder.Data[](
+//                _reduceLimitOrders.length
+//            );
         if (_limitOrders.length > 0) {
             uint256 index = 0;
             for (uint256 i = 0; i < _limitOrders.length; i++) {
@@ -253,24 +251,25 @@ library PositionHouseFunction {
                 }
             }
         }
-        if (_reduceLimitOrders.length > 0) {
-            uint256 index = 0;
-            for (uint256 i = 0; i < _reduceLimitOrders.length; i++) {
-                (bool isFilled, , , ) = _positionManager.getPendingOrderDetail(
-                    _reduceLimitOrders[i].pip,
-                    _reduceLimitOrders[i].orderId
-                );
-                if (isFilled != true) {
-                    subReduceLimitOrders[index] = _reduceLimitOrders[i];
-                    _positionManager.updatePartialFilledOrder(
-                        _reduceLimitOrders[i].pip,
-                        _reduceLimitOrders[i].orderId
-                    );
-                    index++;
-                }
-            }
-        }
-        return (subLimitOrders, subReduceLimitOrders);
+//        if (_reduceLimitOrders.length > 0) {
+//            uint256 index = 0;
+//            for (uint256 i = 0; i < _reduceLimitOrders.length; i++) {
+//                (bool isFilled, , , ) = _positionManager.getPendingOrderDetail(
+//                    _reduceLimitOrders[i].pip,
+//                    _reduceLimitOrders[i].orderId
+//                );
+//                if (isFilled != true) {
+//                    subReduceLimitOrders[index] = _reduceLimitOrders[i];
+//                    _positionManager.updatePartialFilledOrder(
+//                        _reduceLimitOrders[i].pip,
+//                        _reduceLimitOrders[i].orderId
+//                    );
+//                    index++;
+//                }
+//            }
+//        }
+//        return (subLimitOrders, subReduceLimitOrders);
+        return subLimitOrders;
     }
 
     function calculateLimitOrder(
@@ -302,6 +301,28 @@ library PositionHouseFunction {
         positionData = _positionData;
     }
 
+    function getTotalPendingLimitOrderMargin(
+        IPositionManager _positionManager,
+        PositionLimitOrder.Data[] memory _limitOrder
+    ) internal returns (uint256 totalMargin) {
+        for (uint i = 0; i < _limitOrder.length; i++) {
+            (
+            bool isFilled,
+            ,
+            ,
+            ) = _positionManager.getPendingOrderDetail(
+                _limitOrder[i].pip,
+                _limitOrder[i].orderId
+            );
+            if (!isFilled) {
+                (uint256 refundQuantity, ) = _positionManager.cancelLimitOrder(_limitOrder[i].pip, _limitOrder[i].orderId);
+                (, uint256 refundMargin, ) = _positionManager.getNotionalMarginAndFee(refundQuantity, _limitOrder[i].pip, _limitOrder[i].leverage);
+                totalMargin += refundMargin;
+            }
+        }
+        return totalMargin;
+    }
+
     /// @dev Accumulate limit order to Position Data
     /// @param _pmAddress Position Manager address
     /// @param _limitOrder can be reduce or increase limit order
@@ -312,7 +333,7 @@ library PositionHouseFunction {
         PositionLimitOrder.Data memory _limitOrder,
         Position.Data memory _positionData,
         uint256 _entryPrice
-    ) private view returns (Position.Data memory) {
+    ) public view returns (Position.Data memory) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         (uint64 _baseBasicPoint, uint64 _basisPoint) = _positionManager.getBasisPointFactors();
         int256 _orderQuantity = _getLimitOrderQuantity(_positionManager, _limitOrder);
@@ -474,7 +495,7 @@ library PositionHouseFunction {
 
     /// @dev get total pending order quantity from pending limit orders
     function _getTotalPendingQuantityFromLimitOrders(IPositionManager _positionManager, PositionLimitOrder.Data[] memory _limitOrders)
-        private
+        public
         view
         returns (uint256 totalPendingQuantity, bool _isBuy)
     {
@@ -595,7 +616,6 @@ library PositionHouseFunction {
                 _pDataIncr,
                 _limitOrders[i].entryPrice
             );
-//            _removeUnfilledMargin(_positionManager, state, _limitOrders[i]);
         }
         state.accMargin = _pDataIncr.margin;
         if(_pDataIncr.quantity == 0){
@@ -628,37 +648,13 @@ library PositionHouseFunction {
         IPositionManager _positionManager,
         uint128 _pip,
         uint64 _orderId
-    ) private view returns (int256 _filledAmount) {
+    ) public view returns (int256 _filledAmount) {
         (bool isFilled, bool isBuy, uint256 size, uint256 partialFilled) = _positionManager.getPendingOrderDetail(
             _pip,
             _orderId
         );
         _filledAmount = int256(!isFilled && partialFilled < size ? partialFilled : size);
         _filledAmount = isBuy ? _filledAmount : (-_filledAmount);
-    }
-
-    function _removeUnfilledMargin(
-        IPositionManager _positionManager,
-        ClaimAbleState memory state,
-        PositionLimitOrder.Data memory _limitOrder
-    ) private view {
-        (
-            bool isFilled,
-            ,
-            uint256 quantity,
-            uint256 partialFilled
-        ) = _positionManager.getPendingOrderDetail(
-            _limitOrder.pip,
-            _limitOrder.orderId
-        );
-        if (!isFilled && partialFilled != 0) {
-            // remove unfilled margin
-            state.amount -= _limitOrder.pip.calMargin(
-                quantity - partialFilled,
-                _limitOrder.leverage,
-                state.basisPoint
-            );
-        }
     }
 
     function _accumulatePnLInReduceLimitOrder(
@@ -668,7 +664,7 @@ library PositionHouseFunction {
         int256 _filledAmount,
         uint256 _entryPrice,
         uint16 _leverage
-    ) private view {
+    ) public view {
         // closedNotional can be negative to calculate pnl in both Long/Short formula
         int256 closedNotional = _filledAmount * int128(_pip) / int64(state.basisPoint);
         // already checked if _positionData.openNotional == 0, then used _positionDataWithoutLimit before

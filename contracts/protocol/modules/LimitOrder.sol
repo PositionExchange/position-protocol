@@ -72,15 +72,30 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
     }
 
+    function _internalCancelAllPendingOrder(
+        IPositionManager _positionManager,
+        address _trader
+    ) internal {
+        address _pmAddress = address(_positionManager);
+        PositionLimitOrder.Data[] memory _increaseOrders = limitOrders[_pmAddress][_trader];
+        uint256 totalRefundMargin;
+        if (_increaseOrders.length != 0) {
+            totalRefundMargin = PositionHouseFunction.getTotalPendingLimitOrderMargin(_positionManager, _increaseOrders);
+        }
+        _emptyLimitOrders(_pmAddress, _trader);
+        _emptyReduceLimitOrders(_pmAddress, _trader);
+        insuranceFund.withdraw(_pmAddress, _trader, totalRefundMargin);
+    }
+
     function _internalOpenLimitOrder(
         IPositionManager _positionManager,
         Position.Side _side,
         uint256 _uQuantity,
         uint128 _pip,
         uint16 _leverage,
-        Position.Data memory _oldPosition
+        Position.Data memory _oldPosition,
+        address _trader
     ) internal {
-        address _trader = msg.sender;
         PositionHouseStorage.OpenLimitResp memory openLimitResp;
         address _pmAddress = address(_positionManager);
         int256 _quantity = _side == Position.Side.LONG
@@ -117,12 +132,11 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             }
             (uint256 notional, uint256 marginToVault, uint256 fee) = _positionManager
                 .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
-            require(_checkMaxNotional(notional, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
             if (_oldPosition.quantity == 0 || _oldPosition.quantity.isSameSide(_quantity)) {
+                require(_checkMaxNotional(notional, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
                 insuranceFund.deposit(_pmAddress, _trader, marginToVault, fee);
             }
             _setLimitOrderPremiumFraction(_pmAddress, _trader, getLatestCumulativePremiumFraction(_pmAddress));
-            uint256 limitOrderMargin = marginToVault * (_uQuantity - openLimitResp.sizeOut) / _uQuantity;
         }
         emit OpenLimit(
             openLimitResp.orderId,
@@ -368,16 +382,16 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         virtual
         returns (Position.Data memory);
 
-    function _internalClosePosition(
-        IPositionManager _positionManager,
-        address _trader,
-        PositionHouseStorage.PnlCalcOption _pnlCalcOption,
-        bool _isInOpenLimit,
-        Position.Data memory _oldPosition
-    )
-        internal
-        virtual
-        returns (PositionHouseStorage.PositionResp memory positionResp);
+//    function _internalClosePosition(
+//        IPositionManager _positionManager,
+//        address _trader,
+//        PositionHouseStorage.PnlCalcOption _pnlCalcOption,
+//        bool _isInOpenLimit,
+//        Position.Data memory _oldPosition
+//    )
+//        internal
+//        virtual
+//        returns (PositionHouseStorage.PositionResp memory positionResp);
 
     function _updatePositionMap(
         address _pmAddress,
