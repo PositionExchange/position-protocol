@@ -19,7 +19,7 @@ contract PositionStrategyOrder is
 {
     using Position for Position.Data;
 
-    event TPSLCreated(address pmAddress, address trader, uint128 higherThanPrice, uint128 lowerThanPrice);
+    event TPSLCreated(address pmAddress, address trader, uint128 higherPip, uint128 lowerPip);
     event TPOrSlCanceled(address pmAddress, address trader, bool isHigherPrice);
     event TPAndSLCanceled(address pmAddress, address trader);
     event TPSLTriggered(address pmAddress, address trader);
@@ -34,24 +34,24 @@ contract PositionStrategyOrder is
         positionHouseViewer = _positionHouseViewer;
     }
 
-    function setTPSL(address _pmAddress, uint128 _higherThanPrice, uint128 _lowerThanPrice, SetTPSLOption _option) external nonReentrant {
+    function setTPSL(address _pmAddress, uint128 _higherPip, uint128 _lowerPip, SetTPSLOption _option) external nonReentrant {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         uint128 currentPip = _positionManager.getCurrentPip();
-        require(isValidInput(currentPip, _higherThanPrice, _lowerThanPrice, _option), Errors.VL_INVALID_CONDITION);
+        require(isValidInput(currentPip, _higherPip, _lowerPip, _option), Errors.VL_INVALID_CONDITION);
         address _trader = msg.sender;
         Position.Data memory positionData = positionHouseViewer.getPosition(_pmAddress, _trader);
         require(positionData.quantity != 0, Errors.VL_MUST_HAVE_POSITION);
 
         if (_option == SetTPSLOption.ONLY_HIGHER) {
-            TPSLMap[_pmAddress][_trader].higherThanPrice = uint120(_higherThanPrice);
+            TPSLMap[_pmAddress][_trader].higherPip = uint120(_higherPip);
         } else if (_option == SetTPSLOption.ONLY_LOWER) {
-            TPSLMap[_pmAddress][_trader].lowerThanPrice = uint120(_lowerThanPrice);
+            TPSLMap[_pmAddress][_trader].lowerPip = uint120(_lowerPip);
         } else if (_option == SetTPSLOption.BOTH) {
-            TPSLMap[_pmAddress][_trader].higherThanPrice = uint120(_higherThanPrice);
-            TPSLMap[_pmAddress][_trader].lowerThanPrice = uint120(_lowerThanPrice);
+            TPSLMap[_pmAddress][_trader].higherPip = uint120(_higherPip);
+            TPSLMap[_pmAddress][_trader].lowerPip = uint120(_lowerPip);
         }
         TPSLMap[_pmAddress][_trader].__dummy = 1;
-        emit TPSLCreated(_pmAddress, _trader, _higherThanPrice, _lowerThanPrice);
+        emit TPSLCreated(_pmAddress, _trader, _higherPip, _lowerPip);
     }
 
     function unsetTPOrSL(address _pmAddress, bool _isHigherPrice) external nonReentrant {
@@ -59,9 +59,9 @@ contract PositionStrategyOrder is
         Position.Data memory positionData = positionHouseViewer.getPosition(_pmAddress, _trader);
         require(positionData.quantity != 0, Errors.VL_MUST_HAVE_POSITION);
         if (_isHigherPrice) {
-            TPSLMap[_pmAddress][_trader].higherThanPrice = 0;
+            TPSLMap[_pmAddress][_trader].higherPip = 0;
         } else {
-            TPSLMap[_pmAddress][_trader].lowerThanPrice = 0;
+            TPSLMap[_pmAddress][_trader].lowerPip = 0;
         }
         emit TPOrSlCanceled(_pmAddress, _trader, _isHigherPrice);
     }
@@ -73,19 +73,19 @@ contract PositionStrategyOrder is
         _internalUnsetTPAndSL(_pmAddress, _trader);
     }
 
-    function unsetTPAndSLWhenClosePosition(address _pmAddress, address _trader) external onlyPositionHouse nonReentrant {
+    function unsetTPAndSLWhenClosePosition(address _pmAddress, address _trader) external onlyPositionHouse {
         _internalUnsetTPAndSL(_pmAddress, _trader);
     }
 
-    function getTPSLDetail(address _pmAddress, address _trader) public view returns (uint120 lowerThanPrice, uint120 higherThanPrice) {
+    function getTPSLDetail(address _pmAddress, address _trader) public view returns (uint120 lowerPip, uint120 higherPip) {
         TPSLCondition memory condition = TPSLMap[_pmAddress][_trader];
-        lowerThanPrice = condition.lowerThanPrice;
-        higherThanPrice = condition.higherThanPrice;
+        lowerPip = condition.lowerPip;
+        higherPip = condition.higherPip;
     }
 
     function hasTPOrSL(address _pmAddress, address _trader) public view returns (bool) {
         TPSLCondition memory condition = TPSLMap[_pmAddress][_trader];
-        return condition.lowerThanPrice != 0 || condition.higherThanPrice != 0;
+        return condition.lowerPip != 0 || condition.higherPip != 0;
     }
 
     function triggerTPSL(IPositionManager _positionManager, address _trader) external nonReentrant{
@@ -98,8 +98,8 @@ contract PositionStrategyOrder is
     }
 
     function _internalUnsetTPAndSL(address _pmAddress, address _trader) internal {
-        TPSLMap[_pmAddress][_trader].lowerThanPrice = 0;
-        TPSLMap[_pmAddress][_trader].higherThanPrice = 0;
+        TPSLMap[_pmAddress][_trader].lowerPip = 0;
+        TPSLMap[_pmAddress][_trader].higherPip = 0;
         emit TPAndSLCanceled(_pmAddress, _trader);
     }
 
@@ -109,16 +109,16 @@ contract PositionStrategyOrder is
 
     // REQUIRE FUNCTION
     function reachTPSL(TPSLCondition memory condition, uint128 currentPip) internal returns (bool) {
-        return currentPip <= condition.lowerThanPrice || (currentPip >= condition.higherThanPrice && condition.higherThanPrice != 0);
+        return currentPip <= condition.lowerPip || (currentPip >= condition.higherPip && condition.higherPip != 0);
     }
 
-    function isValidInput(uint128 currentPrice, uint128 _higherThanPrice, uint128 _lowerThanPrice, SetTPSLOption _option) internal returns (bool){
+    function isValidInput(uint128 currentPrice, uint128 _higherPip, uint128 _lowerPip, SetTPSLOption _option) internal returns (bool){
         if (_option == SetTPSLOption.BOTH) {
-            return _higherThanPrice != 0 && _lowerThanPrice != 0 && _higherThanPrice > currentPrice && currentPrice > _lowerThanPrice;
+            return _higherPip != 0 && _lowerPip != 0 && _higherPip > currentPrice && currentPrice > _lowerPip;
         } else if (_option == SetTPSLOption.ONLY_HIGHER) {
-            return _higherThanPrice != 0 && _lowerThanPrice == 0 && _higherThanPrice > currentPrice;
+            return _higherPip != 0 && _lowerPip == 0 && _higherPip > currentPrice;
         } else if (_option == SetTPSLOption.ONLY_LOWER) {
-            return _higherThanPrice == 0 && _lowerThanPrice != 0 && currentPrice > _lowerThanPrice;
+            return _higherPip == 0 && _lowerPip != 0 && currentPrice > _lowerPip;
         }
     }
 

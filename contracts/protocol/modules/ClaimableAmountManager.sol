@@ -2,6 +2,8 @@
 pragma solidity ^0.8.0;
 
 abstract contract ClaimableAmountManager {
+    // @deprecated
+    // no longer using this variable for getClaimAmount when close position by limit order
     mapping(address => mapping(address => uint256)) private _claimAbleAmount;
 
 //    function getClaimableAmount(address _pmAddress, address _trader)

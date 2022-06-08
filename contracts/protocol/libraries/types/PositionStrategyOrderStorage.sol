@@ -14,8 +14,8 @@ abstract contract PositionStrategyOrderStorage {
     }
 
     struct TPSLCondition {
-        uint120 higherThanPrice;
-        uint120 lowerThanPrice;
+        uint120 higherPip;
+        uint120 lowerPip;
         uint8 __dummy;
     }
 
