@@ -204,6 +204,9 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                         // => close all position and clear position, return sizeOut + 1 mean closed position
                         if (sizeOut == oldPosition.quantity.abs()) {
                             clearPosition(_pmAddress, _trader);
+                            // TODO refactor to a flag
+                            // flag to compare if (openLimitResp.sizeOut <= _uQuantity)
+                            // in this case, sizeOut is just only used to compare to open the limit order
                             return (orderId, sizeOut + 1);
                         }
                     }
