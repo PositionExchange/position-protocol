@@ -24,6 +24,7 @@ abstract contract PositionHouseStorage {
     struct PositionResp {
         Position.Data position;
         int256 marginToVault;
+        // COIN-M: can remove realizedPnl and unrealizedPnl
         int256 realizedPnl;
         int256 unrealizedPnl;
         int256 exchangedPositionSize;

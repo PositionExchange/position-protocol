@@ -7,6 +7,7 @@ library PositionHouseMath {
         uint256 _quantity,
         uint256 _baseBasicPoint
     ) public pure returns (uint256) {
+        // COIN-M: update entryPrice formula
         return (_notional * _baseBasicPoint) / _quantity;
     }
 

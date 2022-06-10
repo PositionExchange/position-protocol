@@ -17,6 +17,7 @@ library PositionLimitOrder {
         //        OrderType typeLimitOrder;
         uint8 isBuy;
         uint256 entryPrice;
+        // COIN-M: can remove reduceLimitOrderId and reduceQuantity
         uint256 reduceLimitOrderId;
         uint256 reduceQuantity;
         uint64 blockNumber;

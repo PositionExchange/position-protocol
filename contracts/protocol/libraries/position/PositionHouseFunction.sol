@@ -340,6 +340,7 @@ library PositionHouseFunction {
         // if _entryPrice != 0, must calculate notional by _entryPrice (for reduce limit order)
         // if _entryPrice == 0, calculate notional by order pip (current price)
         // NOTE: _entryPrice must divide _baseBasicPoint to get the "raw entry price"
+        // COIN-M: update _orderNotional formula to _orderQuantity / price
         uint256 _orderNotional = _orderQuantity.abs() * (
             _entryPrice == 0 ?
             _limitOrder.pip.toNotional(_baseBasicPoint, _basisPoint)
@@ -527,7 +528,7 @@ library PositionHouseFunction {
         Position.Data memory _position
     ) public view returns (uint256 positionNotional, int256 unrealizedPnl) {
         IPositionManager positionManager = IPositionManager(_pmAddress);
-
+        // COIN-M: notional calculated by quantity / price
         uint256 oldPositionNotional = _position.openNotional;
         if (_pnlCalcOption == PositionHouseStorage.PnlCalcOption.SPOT_PRICE) {
             positionNotional =
@@ -541,6 +542,9 @@ library PositionHouseFunction {
             positionNotional = (positionManager.getUnderlyingPrice() * _position.quantity.abs()) / positionManager.getBaseBasisPoint();
         }
 
+        // COIN-M: change pnl formula
+        // when open long: openNotional - closeNotional
+        // when open short: closeNotional - openNotional
         if (_position.side() == Position.Side.LONG) {
             unrealizedPnl =
                 int256(positionNotional) -
@@ -669,8 +673,10 @@ library PositionHouseFunction {
         int256 closedNotional = _filledAmount * int128(_pip) / int64(state.basisPoint);
         // already checked if _positionData.openNotional == 0, then used _positionDataWithoutLimit before
         // openNotional can be negative same as closedNotional
+        // COIN-M: update openNotional formula
         int256 openNotional = _filledAmount * int256(_entryPrice) / int64(state.baseBasicPoint);
 //        state.accMargin += closedNotional.abs() / _leverage;
+        // COIN-M: update pnl formula (state.amount)
         state.amount += (openNotional - closedNotional);
         state.totalReduceOrderFilledAmount += _filledAmount.abs();
 
@@ -725,7 +731,7 @@ library PositionHouseFunction {
             uint256 increaseMarginRequirement = positionResp
                 .exchangedQuoteAssetAmount / _leverage;
             // TODO update function latestCumulativePremiumFraction
-
+            // unused unrealizedPnl
             (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
                 _pmAddress,
                 _trader,
@@ -789,6 +795,7 @@ library PositionHouseFunction {
             positionResp.realizedPnl =
                 (unrealizedPnl * positionResp.exchangedPositionSize.absInt()) /
                 _positionData.quantity.absInt();
+            // COIN-M: update exchangedQuoteAssetAmount formula
             positionResp.exchangedQuoteAssetAmount =
                 (_quantity.abs() * _positionData.getEntryPrice(_pmAddress)) /
                 _positionManager.getBaseBasisPoint();
@@ -854,6 +861,7 @@ library PositionHouseFunction {
     {
         // calculate fundingPayment
         if (_oldPosition.quantity != 0) {
+            // COIN-M: update fundingPayment formula (can not multi quantity anymore)
             fundingPayment =
                 (_latestCumulativePremiumFraction -
                     _oldPosition.lastUpdatedCumulativePremiumFraction) *

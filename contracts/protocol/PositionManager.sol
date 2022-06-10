@@ -498,6 +498,7 @@ contract PositionManager is
             uint256 fee
         )
     {
+        // COIN-M: update notional formula
         notional = (_pQuantity * pipToPrice(_pip)) / getBaseBasisPoint();
         margin = notional / _leverage;
         fee = calcFee(notional);
@@ -834,6 +835,7 @@ contract PositionManager is
         bool _isBuy,
         uint128 _maxPip
     ) internal returns (uint256 sizeOut, uint256 openNotional) {
+        // COIN-M: update notional formula to size / price
         require(_size != 0, Errors.VL_INVALID_SIZE);
         // TODO lock
         // get current tick liquidity

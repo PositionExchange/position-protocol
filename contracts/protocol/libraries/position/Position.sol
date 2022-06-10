@@ -12,8 +12,11 @@ library Position {
         SHORT
     }
     struct Data {
+        // COIN-M: quantity will be number of contract (always % wei == 0) or USD, define as Base token
         int256 quantity;
+        // COIN-M: will be number of quote token (BTC, BNB), calculated by openNotional / leverage (not confirmed cause margin change time by time)
         uint256 margin;
+        // COIN-M: will be number of quote token (BTC, BNB), calculated by quantity / entryPrice
         uint256 openNotional;
         // Packed slot
         int128 lastUpdatedCumulativePremiumFraction;
@@ -108,6 +111,7 @@ library Position {
         IPositionManager _positionManager = IPositionManager(
             _addressPositionManager
         );
+        // COIN-M: update entryPrice formula = quantity / notional
         return
             (_self.openNotional * _positionManager.getBaseBasisPoint()) /
             _self.quantity.abs();
