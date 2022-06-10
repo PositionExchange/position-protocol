@@ -777,18 +777,14 @@ library PositionHouseFunction {
             _quantity.abs(),
             _side
         );
-        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
-            _pmAddress,
-            _trader,
-            PositionHouseStorage.PnlCalcOption.SPOT_PRICE,
-            _positionData
-        );
         {
             uint256 reduceMarginRequirement = (_positionData.margin *
             _quantity.abs()) / _positionData.quantity.abs();
-            positionResp.realizedPnl =
-                (unrealizedPnl * positionResp.exchangedPositionSize.absInt()) /
-                _positionData.quantity.absInt();
+            if (_quantity > 0) {
+                positionResp.realizedPnl = int256(_positionData.openNotional * positionResp.exchangedPositionSize.abs() / _positionData.quantity.abs()) - int256(positionResp.exchangedQuoteAssetAmount);
+            } else {
+                positionResp.realizedPnl = int256(positionResp.exchangedQuoteAssetAmount) - int256(_positionData.openNotional * positionResp.exchangedPositionSize.abs() / _positionData.quantity.abs());
+            }
             positionResp.exchangedQuoteAssetAmount =
                 (_quantity.abs() * _positionData.getEntryPrice(_pmAddress)) /
                 _positionManager.getBaseBasisPoint();
@@ -826,16 +822,18 @@ library PositionHouseFunction {
         address _pmAddress,
         address _trader,
         uint256 _sizeOut,
+        uint256 _openNotional,
         Position.Data memory _oldPosition
     ) public view returns (int256 totalReturn) {
-        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
-            _pmAddress,
-            _trader,
-            PositionHouseStorage.PnlCalcOption.SPOT_PRICE,
-            _oldPosition
-        );
+        int256 realizedPnl;
+        console.log("in calcReturn", _openNotional, _oldPosition.openNotional);
+        if (_oldPosition.quantity > 0) {
+            realizedPnl = int256(_openNotional) - int256(_oldPosition.openNotional * _sizeOut / _oldPosition.quantity.abs());
+        } else {
+            realizedPnl = int256(_oldPosition.openNotional * _sizeOut / _oldPosition.quantity.abs()) - int256(_openNotional);
+        }
         uint256 reduceMarginRequirement = (_oldPosition.margin * _sizeOut) / _oldPosition.quantity.abs();
-        int256 realizedPnl = (unrealizedPnl * int256(_sizeOut)) / _oldPosition.quantity.absInt();
+//        int256 realizedPnl = (unrealizedPnl * int256(_sizeOut)) / _oldPosition.quantity.absInt();
         totalReturn = int256(reduceMarginRequirement) + realizedPnl;
     }
 

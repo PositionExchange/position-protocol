@@ -200,7 +200,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             if (sizeOut != 0) {
                 {
                     if (!_rawQuantity.isSameSide(oldPosition.quantity) && oldPosition.quantity != 0) {
-                        int256 totalReturn = PositionHouseFunction.calcReturnWhenOpenReverse(_pmAddress, _trader, sizeOut, oldPosition);
+                        int256 totalReturn = PositionHouseFunction.calcReturnWhenOpenReverse(_pmAddress, _trader, sizeOut, openNotional, oldPosition);
                         insuranceFund.withdraw(_pmAddress, _trader, totalReturn.abs());
                         // if new limit order is not same side with old position, sizeOut == oldPosition.quantity
                         // => close all position and clear position, return sizeOut + 1 mean closed position
