@@ -780,11 +780,7 @@ library PositionHouseFunction {
         {
             uint256 reduceMarginRequirement = (_positionData.margin *
             _quantity.abs()) / _positionData.quantity.abs();
-            if (_quantity > 0) {
-                positionResp.realizedPnl = int256(_positionData.openNotional * positionResp.exchangedPositionSize.abs() / _positionData.quantity.abs()) - int256(positionResp.exchangedQuoteAssetAmount);
-            } else {
-                positionResp.realizedPnl = int256(positionResp.exchangedQuoteAssetAmount) - int256(_positionData.openNotional * positionResp.exchangedPositionSize.abs() / _positionData.quantity.abs());
-            }
+            positionResp.realizedPnl = calculatePnlWhenClose(_positionData.quantity, positionResp.exchangedPositionSize, _positionData.openNotional, positionResp.exchangedQuoteAssetAmount);
             positionResp.exchangedQuoteAssetAmount =
                 (_quantity.abs() * _positionData.getEntryPrice(_pmAddress)) /
                 _positionManager.getBaseBasisPoint();
@@ -792,8 +788,6 @@ library PositionHouseFunction {
             positionResp.marginToVault = -(int256(reduceMarginRequirement) +
                 positionResp.realizedPnl);
         }
-        // NOTICE calc unrealizedPnl after open reverse
-//        positionResp.unrealizedPnl = unrealizedPnl - positionResp.realizedPnl;
         uint256 reduceMarginWithoutManual = ((_positionData.margin - _manualMargin.abs()) * _quantity.abs()) / _positionData.quantity.abs();
         {
             positionResp.position = Position.Data(
@@ -825,15 +819,8 @@ library PositionHouseFunction {
         uint256 _openNotional,
         Position.Data memory _oldPosition
     ) public view returns (int256 totalReturn) {
-        int256 realizedPnl;
-        console.log("in calcReturn", _openNotional, _oldPosition.openNotional);
-        if (_oldPosition.quantity > 0) {
-            realizedPnl = int256(_openNotional) - int256(_oldPosition.openNotional * _sizeOut / _oldPosition.quantity.abs());
-        } else {
-            realizedPnl = int256(_oldPosition.openNotional * _sizeOut / _oldPosition.quantity.abs()) - int256(_openNotional);
-        }
+        int256 realizedPnl = calculatePnlWhenClose(_oldPosition.quantity, int256(_sizeOut), _oldPosition.openNotional, _openNotional);
         uint256 reduceMarginRequirement = (_oldPosition.margin * _sizeOut) / _oldPosition.quantity.abs();
-//        int256 realizedPnl = (unrealizedPnl * int256(_sizeOut)) / _oldPosition.quantity.absInt();
         totalReturn = int256(reduceMarginRequirement) + realizedPnl;
     }
 
@@ -890,6 +877,19 @@ library PositionHouseFunction {
         } else if (!isFilled && partialFilled != 0) {
             // partial filled
             _orderQuantity = isBuy ? int256(partialFilled) : -int256(partialFilled);
+        }
+    }
+
+    function calculatePnlWhenClose(
+        int256 _positionQuantity,
+        int256 _closeQuantity,
+        uint256 _positionNotional,
+        uint256 _closeNotional
+    ) internal pure returns (int256 pnl) {
+        if (_positionQuantity > 0) {
+            pnl = int256(_closeNotional) - int256(_positionNotional * _closeQuantity.abs() / _positionQuantity.abs());
+        } else {
+            pnl = int256(_positionNotional * _closeQuantity.abs() / _positionQuantity.abs()) - int256(_closeNotional);
         }
     }
 }
