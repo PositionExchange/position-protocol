@@ -22,7 +22,6 @@ import {LimitOrderManager} from "./modules/LimitOrder.sol";
 import {ClaimableAmountManager} from "./modules/ClaimableAmountManager.sol";
 import {MarketMakerLogic} from "./modules/MarketMaker.sol";
 
-
 contract PositionHouse is
     ReentrancyGuardUpgradeable,
     CumulativePremiumFractions,
@@ -654,14 +653,7 @@ contract PositionHouse is
                 ? Position.Side.SHORT
                 : Position.Side.LONG
         );
-        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
-            _positionManager,
-            _trader,
-            _pnlCalcOption,
-            _oldPosition
-        );
-
-        positionResp.realizedPnl = unrealizedPnl;
+        positionResp.realizedPnl = PositionHouseFunction.calculatePnlWhenClose(_oldPosition.quantity, positionResp.exchangedPositionSize, _oldPosition.openNotional, positionResp.exchangedQuoteAssetAmount);
         positionResp.marginToVault = -positionResp.realizedPnl
             .add(_getClaimAmount(_pmAddress, _trader, _oldPosition))
             .kPositive();
