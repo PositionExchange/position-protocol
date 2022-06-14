@@ -132,12 +132,6 @@ interface IPositionManager {
             uint256 partialFilled
         );
 
-    function needClosePositionBeforeOpeningLimitOrder(
-        uint8 _side,
-        uint256 _pip,
-        uint256 _pQuantity
-    ) external view returns (bool);
-
     function getNotionalMarginAndFee(
         uint256 _pQuantity,
         uint128 _pip,
@@ -193,11 +187,6 @@ interface IPositionManager {
             uint256 entryPrice,
             uint256 fee
         );
-
-    function calcAdjustMargin(uint256 adjustMargin)
-        external
-        view
-        returns (uint256);
 
     function calcFee(uint256 _positionNotional) external view returns (uint256);
 

@@ -17,7 +17,7 @@ import {IChainLinkPriceFeed} from "../interfaces/IChainLinkPriceFeed.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
 import {IPositionManager} from "../interfaces/IPositionManager.sol";
-
+import {PositionMath} from "./libraries/position/PositionMath.sol";
 //import "hardhat/console.sol";
 
 contract PositionManager is
@@ -383,7 +383,7 @@ contract PositionManager is
         premiumFraction = (premium * int256(fundingPeriod)) / int256(1 days);
     }
 
-    function getLeverage() public view returns (uint128) {
+    function getLeverage() external view returns (uint128) {
         return leverage;
     }
 
@@ -400,7 +400,7 @@ contract PositionManager is
     }
 
     function getCurrentSingleSlot()
-        public
+        external
         view
         override
         returns (uint128, uint8)
@@ -436,15 +436,6 @@ contract PositionManager is
                 : 0;
     }
 
-    function calcAdjustMargin(uint256 _adjustMargin)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        return _adjustMargin;
-    }
-
     function hasLiquidity(uint128 _pip) public view override returns (bool) {
         return liquidityBitmap.hasLiquidity(_pip);
     }
@@ -469,19 +460,6 @@ contract PositionManager is
         if (size != 0 && size == partialFilled) {
             isFilled = true;
         }
-    }
-
-    function needClosePositionBeforeOpeningLimitOrder(
-        uint8 _side,
-        uint256 _pip,
-        uint256 _pQuantity
-    ) public view override returns (bool) {
-        //save gas
-        SingleSlot memory _singleSlot = singleSlot;
-        return
-            _pip == _singleSlot.pip &&
-            _singleSlot.isFullBuy != _side &&
-            _pQuantity <= getLiquidityInCurrentPip();
     }
 
     function getNotionalMarginAndFee(
@@ -518,42 +496,6 @@ contract PositionManager is
             return _positionNotional / tollRatio;
         }
         return 0;
-    }
-
-    function getOrderbook(uint128 limit) external view returns (Orderbook memory ob){
-        SingleSlot memory _singleSlot = singleSlot;
-        uint128 _currentPip = _singleSlot.pip;
-        uint128[] memory _askPips = liquidityBitmap.findAllLiquidityInMultipleWords(_currentPip, uint256(limit), true);
-        uint128[] memory _bidPips = liquidityBitmap.findAllLiquidityInMultipleWords(_currentPip, uint256(limit), false);
-        ob.asks = new uint128[][](_askPips.length);
-        ob.bids = new uint128[][](_bidPips.length);
-        bool shiftAsk;
-        for(uint256 i=0; i<_askPips.length; i++){
-            uint128[] memory _liquidity = new uint128[](2);
-            if(_askPips[i] != 0){
-                if(!(i == 0 && _currentPip == _askPips[0] && _singleSlot.isFullBuy == 1)){
-                    _liquidity[0] = _askPips[i];
-                    _liquidity[1] = tickPosition[_askPips[i]].liquidity;
-                    ob.asks[shiftAsk ? i - 1 : i] = _liquidity;
-                }else{
-                    shiftAsk = true;
-                }
-            }
-        }
-        bool shiftBid;
-        for(uint256 i=0; i<_bidPips.length; i++){
-            uint128[] memory _liquidity = new uint128[](2);
-            if(_bidPips[i] != 0){
-                if(!(i == 0 && _currentPip == _askPips[0] && _singleSlot.isFullBuy == 2)){
-                    _liquidity[0] = _bidPips[i];
-                    _liquidity[1] = tickPosition[_bidPips[i]].liquidity;
-                    ob.bids[shiftBid ? i - 1 : i] = _liquidity;
-                }else{
-                    shiftBid = true;
-                }
-            }
-        }
-
     }
 
     function getLiquidityInPipRange(
