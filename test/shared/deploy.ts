@@ -18,10 +18,24 @@ import PositionHouseTestingTool from "./positionHouseTestingTool";
 export async function deployPositionHouse(){
     const [trader] = await ethers.getSigners();
     // Deploy position house function contract
-    const positionHouseFunction = await ethers.getContractFactory('PositionHouseFunction')
-    const libraryIns = (await positionHouseFunction.deploy())
-    const PositionHouseMath = await ethers.getContractFactory('PositionHouseMath')
-    const positionHouseMath = await PositionHouseMath.deploy()
+
+    const USDMarginFactory = await ethers.getContractFactory('USDMargin')
+    const USDMargin = await USDMarginFactory.deploy();
+
+    const PositionMath = await ethers.getContractFactory('PositionMath', {
+        libraries: {
+            USDMargin: USDMargin.address
+        }
+    })
+    const positionMath = await PositionMath.deploy()
+
+    const PositionHouseFunction = await ethers.getContractFactory('PositionHouseFunction', {
+        libraries: {
+            PositionMath: positionMath.address
+        }
+    })
+    const positionHouseFunction = (await PositionHouseFunction.deploy())
+
     const PositionNotionalConfigProxyFactory = await ethers.getContractFactory('PositionNotionalConfigProxy')
     let positionNotionalConfigProxy = (await PositionNotionalConfigProxyFactory.deploy()) as unknown as PositionNotionalConfigProxy
 
@@ -37,24 +51,32 @@ export async function deployPositionHouse(){
     let positionHouseConfiguration = (await positionHouseConfigurationProxyFactory.deploy()) as unknown as PositionHouseConfigurationProxy
 
     // Deploy position manager contract
-    let positionManagerFactory = await ethers.getContractFactory("PositionManagerTest")
+    let positionManagerFactory = await ethers.getContractFactory("PositionManagerTest", {
+        libraries: {
+            PositionMath: positionMath.address
+        }
+    })
     let positionManager = (await positionManagerFactory.deploy()) as unknown as PositionManager;
 
     // Deploy funding rate test contract
-    let fundingRateTestFactory = await ethers.getContractFactory("FundingRateTest")
+    let fundingRateTestFactory = await ethers.getContractFactory("FundingRateTest", {
+        libraries: {
+            PositionMath: positionMath.address
+        }
+    })
     let fundingRateTest = (await fundingRateTestFactory.deploy()) as unknown as FundingRateTest
 
     let positionHouseViewer = await ((await ethers.getContractFactory('PositionHouseViewer', {
         libraries: {
-            PositionHouseFunction: libraryIns.address
+            PositionHouseFunction: positionHouseFunction.address
         }
     })).deploy()) as unknown as PositionHouseViewer
 
     // Deploy position house contract
     const factory = await ethers.getContractFactory("PositionHouse", {
         libraries: {
-            PositionHouseFunction: libraryIns.address,
-            PositionHouseMath: positionHouseMath.address
+            PositionHouseFunction: positionHouseFunction.address,
+            PositionMath: positionMath.address
         }
     })
 
