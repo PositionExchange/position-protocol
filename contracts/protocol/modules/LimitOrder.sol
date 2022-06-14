@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import {PositionHouseMath} from "../libraries/position/PositionHouseMath.sol";
 import {PositionHouseFunction} from "../libraries/position/PositionHouseFunction.sol";
+import {PositionMath} from "../libraries/position/PositionMath.sol";
 import "../libraries/position/PositionLimitOrder.sol";
 import "../libraries/helpers/Quantity.sol";
 import "../libraries/helpers/Int256Math.sol";
@@ -84,7 +84,9 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         }
         _emptyLimitOrders(_pmAddress, _trader);
         _emptyReduceLimitOrders(_pmAddress, _trader);
-        insuranceFund.withdraw(_pmAddress, _trader, totalRefundMargin);
+        if (totalRefundMargin != 0) {
+            insuranceFund.withdraw(_pmAddress, _trader, totalRefundMargin);
+        }
     }
 
     function _internalOpenLimitOrder(
@@ -166,7 +168,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         } else {
             // limit order reducing position
             uint256 baseBasisPoint = _positionManager.getBaseBasisPoint();
-            _newOrder.entryPrice = PositionHouseMath.entryPriceFromNotional(
+            _newOrder.entryPrice = PositionMath.calculateEntryPrice(
                 oldPosition.openNotional,
                 oldPosition.quantity.abs(),
                 baseBasisPoint
@@ -198,12 +200,15 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             if (sizeOut != 0) {
                 {
                     if (!_rawQuantity.isSameSide(oldPosition.quantity) && oldPosition.quantity != 0) {
-                        int256 totalReturn = PositionHouseFunction.calcReturnWhenOpenReverse(_pmAddress, _trader, sizeOut, oldPosition);
+                        int256 totalReturn = PositionHouseFunction.calcReturnWhenOpenReverse(_pmAddress, _trader, sizeOut, openNotional, oldPosition);
                         insuranceFund.withdraw(_pmAddress, _trader, totalReturn.abs());
                         // if new limit order is not same side with old position, sizeOut == oldPosition.quantity
                         // => close all position and clear position, return sizeOut + 1 mean closed position
                         if (sizeOut == oldPosition.quantity.abs()) {
                             clearPosition(_pmAddress, _trader);
+                            // TODO refactor to a flag
+                            // flag to compare if (openLimitResp.sizeOut <= _uQuantity)
+                            // in this case, sizeOut is just only used to compare to open the limit order
                             return (orderId, sizeOut + 1);
                         }
                     }

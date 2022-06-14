@@ -1,5 +1,6 @@
 import {MigrationContext, MigrationDefinition} from "../types";
 import {ContractWrapperFactory} from "../ContractWrapperFactory";
+import {PositionHouse} from "../../typeChain";
 
 
 const migrations: MigrationDefinition = {
@@ -71,6 +72,15 @@ const migrations: MigrationDefinition = {
                 positionHouse: positionHouseContractAddress,
                 positionHouseViewer: positionHouseViewerContactAddress
             })
+            const positionStrategyOrderAddress = await context.db.findAddressByKey('PositionStrategyOrder')
+            const positionHouse = await context.hre.ethers.getContractAt('PositionHouse', positionHouseContractAddress) as PositionHouse
+            const currentStrategyOrderAddress = await positionHouse.positionStrategyOrder()
+            if(currentStrategyOrderAddress === context.hre.ethers.constants.AddressZero){
+                console.log("Set Position Strategy Order to PositionHouse")
+                const tx = await positionHouse.setPositionStrategyOrder(positionStrategyOrderAddress)
+                await tx.wait(1)
+                console.log("Set Position Strategy Order to PositionHouse Done.")
+            }
         }
     })
 }

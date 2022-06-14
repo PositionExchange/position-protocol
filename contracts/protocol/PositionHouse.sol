@@ -14,14 +14,12 @@ import "./libraries/position/PositionLimitOrder.sol";
 import "../interfaces/IInsuranceFund.sol";
 import "./libraries/types/PositionHouseStorage.sol";
 import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.sol";
-import {PositionHouseMath} from "./libraries/position/PositionHouseMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
 import {Int256Math} from "./libraries/helpers/Int256Math.sol";
 import {CumulativePremiumFractions} from "./modules/CumulativePremiumFractions.sol";
 import {LimitOrderManager} from "./modules/LimitOrder.sol";
 import {ClaimableAmountManager} from "./modules/ClaimableAmountManager.sol";
 import {MarketMakerLogic} from "./modules/MarketMaker.sol";
-
 
 contract PositionHouse is
     ReentrancyGuardUpgradeable,
@@ -163,9 +161,6 @@ contract PositionHouse is
         
         nonReentrant
     {
-        require(
-            _quantity > 0, Errors.VL_INVALID_CLOSE_QUANTITY
-        );
         address _pmAddress = address(_positionManager);
         address _trader = _msgSender();
         _internalCloseMarketPosition(_pmAddress, _trader, _quantity);
@@ -175,9 +170,6 @@ contract PositionHouse is
         external
         nonReentrant
     {
-        require(
-            _quantity > 0, Errors.VL_INVALID_CLOSE_QUANTITY
-        );
         address _pmAddress = address(_positionManager);
         address _trader = _msgSender();
         _emptyReduceLimitOrders(_pmAddress, _trader);
@@ -193,7 +185,7 @@ contract PositionHouse is
         address _pmAddress = address(_positionManager);
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
         _internalCancelAllPendingOrder(_positionManager, _trader);
-        // must reuse this code instead of use function _internalCloseMarketPosition
+        // must reuse this code instead of using function _internalCloseMarketPosition
         _internalOpenMarketPosition(
             _positionManager,
             _positionDataWithManualMargin.quantity > 0
@@ -209,7 +201,7 @@ contract PositionHouse is
     function _internalCloseMarketPosition(address _pmAddress, address _trader, uint256 _quantity) internal {
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
         require(
-            _quantity <= _positionDataWithManualMargin.quantity.abs(),
+            _quantity > 0 && _quantity <= _positionDataWithManualMargin.quantity.abs(),
             Errors.VL_INVALID_CLOSE_QUANTITY
         );
         _internalOpenMarketPosition(
@@ -647,19 +639,6 @@ contract PositionHouse is
     ) internal returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
         uint256 openMarketQuantity = _oldPosition.quantity.abs();
-//        require(
-//            openMarketQuantity != 0,
-//            Errors.VL_INVALID_QUANTITY_INTERNAL_CLOSE
-//        );
-//        if (_isInOpenLimit) {
-//            uint256 liquidityInCurrentPip = uint256(
-//                _positionManager.getLiquidityInCurrentPip()
-//            );
-//            openMarketQuantity = liquidityInCurrentPip >
-//                _oldPosition.quantity.abs()
-//                ? _oldPosition.quantity.abs()
-//                : liquidityInCurrentPip;
-//        }
 
         (
             positionResp.exchangedPositionSize,
@@ -673,14 +652,7 @@ contract PositionHouse is
                 ? Position.Side.SHORT
                 : Position.Side.LONG
         );
-        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
-            _positionManager,
-            _trader,
-            _pnlCalcOption,
-            _oldPosition
-        );
-
-        positionResp.realizedPnl = unrealizedPnl;
+        positionResp.realizedPnl = PositionHouseFunction.calculatePnlWhenClose(_oldPosition.quantity, positionResp.exchangedPositionSize, _oldPosition.openNotional, positionResp.exchangedQuoteAssetAmount);
         positionResp.marginToVault = -positionResp.realizedPnl
             .add(_getClaimAmount(_pmAddress, _trader, _oldPosition))
             .kPositive();
@@ -745,12 +717,9 @@ contract PositionHouse is
             _positionManager,
             _trader,
             PnlCalcOption.SPOT_PRICE,
-//            false,
             _oldPosition
         );
-//        if (_quantity - closePositionResp.exchangedPositionSize == 0) {
             positionResp = closePositionResp;
-//        }
         return positionResp;
     }
 
@@ -779,7 +748,7 @@ contract PositionHouse is
             _oldPosition
         );
         // TODO need to calculate remain margin with funding payment
-        (uint256 _liquidatedPositionMargin, uint256 _liquidatedManualMargin) = PositionHouseMath.calculatePartialLiquidateMargin(
+        (uint256 _liquidatedPositionMargin, uint256 _liquidatedManualMargin) = PositionHouseFunction.calculatePartialLiquidateMargin(
             _oldPosition.margin - _manualMargin.abs(),
             _manualMargin.abs(),
             positionHouseConfigurationProxy.liquidationFeeRatio()

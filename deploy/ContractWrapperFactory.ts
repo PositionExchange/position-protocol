@@ -6,7 +6,9 @@ import {
     CreatePositionHouseFunction,
     CreateChainLinkPriceFeed,
     CreatePositionHouseConfigurationProxyInput,
-    CreatePositionHouseViewerInput, CreatePositionNotionalConfigProxy, CreatePositionStrategyOrderInput
+    CreatePositionHouseViewerInput,
+    CreatePositionNotionalConfigProxy,
+    CreatePositionStrategyOrderInput
 } from "./types";
 import {DeployDataStore} from "./DataStore";
 import {verifyContract} from "../scripts/utils";

@@ -10,12 +10,25 @@ describe('Position Manager', async function () {
     let bep20Mintable: BEP20Mintable
     beforeEach(async () => {
         [deployer] = await ethers.getSigners()
+        const USDMarginFactory = await ethers.getContractFactory('USDMargin')
+        const USDMargin = await USDMarginFactory.deploy();
+
+        const PositionMath = await ethers.getContractFactory('PositionMath', {
+            libraries: {
+                USDMargin: USDMargin.address
+            }
+        })
+        const positionMath = await PositionMath.deploy()
 
         // Deploy mock busd contract
         const bep20MintableFactory = await ethers.getContractFactory('BEP20Mintable')
         bep20Mintable = (await bep20MintableFactory.deploy('BUSD Mock', 'BUSD')) as unknown as BEP20Mintable
 
-        const factory = await ethers.getContractFactory("PositionManagerTest")
+        const factory = await ethers.getContractFactory("PositionManagerTest", {
+            libraries: {
+                PositionMath: positionMath.address
+            }
+        })
         positionManager = (await factory.deploy()) as unknown as PositionManager
         await positionManager.initialize(BigNumber.from(200), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), deployer.address);
     })

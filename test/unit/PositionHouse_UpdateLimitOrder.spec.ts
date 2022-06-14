@@ -403,10 +403,9 @@ describe("PositionHouse_UpdateLimitOrder", () => {
             })
             const balanceAfterClose = await bep20Mintable.balanceOf(trader1.address)
             // expect received
-            await expect(balanceAfterClose.sub(balanceBeforeClose).toString()).eq('3100')
-            // expect pnl: lose 2000 + 5 (fee)
-            await expect(balanceAfterClose.sub(balanceBeforeStart).toString()).eq('-2005')
-            console.log((await positionHouseViewer.getPosition(positionManager.address, trader1.address)).toString());
+            await expect(balanceAfterClose.sub(balanceBeforeClose).toString()).eq('4400')
+            // expect pnl: lose 700 + 5 (fee)
+            await expect(balanceAfterClose.sub(balanceBeforeStart).toString()).eq('-705')
         })
 
         // S1: trader1 has position short (5100, 10)
@@ -486,7 +485,7 @@ describe("PositionHouse_UpdateLimitOrder", () => {
             })
             const balanceAfterClose = await bep20Mintable.balanceOf(trader1.address)
             // expect received
-            await expect(balanceAfterClose.sub(balanceBeforeClose).toString()).eq('1550')
+            await expect(balanceAfterClose.sub(balanceBeforeClose).toString()).eq('1950')
             await expectPositionQuantityAndMargin(positionManager, trader1, -5, 2550)
 
             await openMarketPosition({
