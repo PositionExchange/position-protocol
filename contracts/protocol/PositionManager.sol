@@ -498,7 +498,7 @@ contract PositionManager is
             uint256 fee
         )
     {
-        notional = (_pQuantity * pipToPrice(_pip)) / getBaseBasisPoint();
+        notional = PositionMath.calculateNotional(pipToPrice(_pip), _pQuantity, getBaseBasisPoint());
         margin = notional / _leverage;
         fee = calcFee(notional);
     }
@@ -903,8 +903,7 @@ contract PositionManager is
                         tickPosition[step.pipNext].partiallyFill(
                             state.remainingSize
                         );
-                        openNotional += ((state.remainingSize *
-                            pipToPrice(step.pipNext)) / BASE_BASIC_POINT);
+                        openNotional += PositionMath.calculateNotional(pipToPrice(step.pipNext), state.remainingSize, BASE_BASIC_POINT);
                         // remaining liquidity at current pip
                         remainingLiquidity =
                             liquidity -
@@ -919,8 +918,7 @@ contract PositionManager is
                     } else if (state.remainingSize > liquidity) {
                         // order in that pip will be fulfilled
                         state.remainingSize = state.remainingSize - liquidity;
-                        openNotional += ((liquidity *
-                            pipToPrice(step.pipNext)) / BASE_BASIC_POINT);
+                        openNotional += PositionMath.calculateNotional(pipToPrice(step.pipNext), liquidity, BASE_BASIC_POINT);
                         state.pip = state.remainingSize > 0
                             ? (_isBuy ? step.pipNext + 1 : step.pipNext - 1)
                             : step.pipNext;
@@ -929,8 +927,7 @@ contract PositionManager is
                         // remaining size = liquidity
                         // only 1 pip should be toggled, so we call it directly here
                         liquidityBitmap.toggleSingleBit(step.pipNext, false);
-                        openNotional += ((state.remainingSize *
-                            pipToPrice(step.pipNext)) / BASE_BASIC_POINT);
+                        openNotional += PositionMath.calculateNotional(pipToPrice(step.pipNext), state.remainingSize, BASE_BASIC_POINT);
                         state.remainingSize = 0;
                         state.pip = step.pipNext;
                         isFullBuy = 0;

@@ -14,7 +14,6 @@ import "./libraries/position/PositionLimitOrder.sol";
 import "../interfaces/IInsuranceFund.sol";
 import "./libraries/types/PositionHouseStorage.sol";
 import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.sol";
-import {PositionHouseMath} from "./libraries/position/PositionHouseMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
 import {Int256Math} from "./libraries/helpers/Int256Math.sol";
 import {CumulativePremiumFractions} from "./modules/CumulativePremiumFractions.sol";
@@ -749,7 +748,7 @@ contract PositionHouse is
             _oldPosition
         );
         // TODO need to calculate remain margin with funding payment
-        (uint256 _liquidatedPositionMargin, uint256 _liquidatedManualMargin) = PositionHouseMath.calculatePartialLiquidateMargin(
+        (uint256 _liquidatedPositionMargin, uint256 _liquidatedManualMargin) = PositionHouseFunction.calculatePartialLiquidateMargin(
             _oldPosition.margin - _manualMargin.abs(),
             _manualMargin.abs(),
             positionHouseConfigurationProxy.liquidationFeeRatio()

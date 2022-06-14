@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import {PositionHouseMath} from "../libraries/position/PositionHouseMath.sol";
 import {PositionHouseFunction} from "../libraries/position/PositionHouseFunction.sol";
+import {PositionMath} from "../libraries/position/PositionMath.sol";
 import "../libraries/position/PositionLimitOrder.sol";
 import "../libraries/helpers/Quantity.sol";
 import "../libraries/helpers/Int256Math.sol";
@@ -168,7 +168,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         } else {
             // limit order reducing position
             uint256 baseBasisPoint = _positionManager.getBaseBasisPoint();
-            _newOrder.entryPrice = PositionHouseMath.entryPriceFromNotional(
+            _newOrder.entryPrice = PositionMath.calculateEntryPrice(
                 oldPosition.openNotional,
                 oldPosition.quantity.abs(),
                 baseBasisPoint

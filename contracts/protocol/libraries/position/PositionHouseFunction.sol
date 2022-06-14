@@ -11,6 +11,7 @@ import "../types/PositionHouseStorage.sol";
 import "./PipConversionMath.sol";
 import "../helpers/CommonMath.sol";
 import {Errors} from "../helpers/Errors.sol";
+import {PositionMath} from "./PositionMath.sol";
 
 import "hardhat/console.sol";
 
@@ -340,11 +341,8 @@ library PositionHouseFunction {
         // if _entryPrice != 0, must calculate notional by _entryPrice (for reduce limit order)
         // if _entryPrice == 0, calculate notional by order pip (current price)
         // NOTE: _entryPrice must divide _baseBasicPoint to get the "raw entry price"
-        uint256 _orderNotional = _orderQuantity.abs() * (
-            _entryPrice == 0 ?
-            _limitOrder.pip.toNotional(_baseBasicPoint, _basisPoint)
-            : _entryPrice
-        ) / _baseBasicPoint;
+        uint256 _orderEntryPrice = _entryPrice == 0 ? _limitOrder.pip.toNotional(_baseBasicPoint, _basisPoint) : _entryPrice;
+        uint256 _orderNotional = PositionMath.calculateNotional(_orderEntryPrice, _orderQuantity.abs(), _baseBasicPoint);
         uint256 _orderMargin = _orderNotional / _limitOrder.leverage;
         _positionData = _positionData.accumulateLimitOrder(
             _orderQuantity,
@@ -527,29 +525,20 @@ library PositionHouseFunction {
         Position.Data memory _position
     ) public view returns (uint256 positionNotional, int256 unrealizedPnl) {
         IPositionManager positionManager = IPositionManager(_pmAddress);
-
-        uint256 oldPositionNotional = _position.openNotional;
+        uint256 openNotional = _position.openNotional;
+        uint256 baseBasisPoint = positionManager.getBaseBasisPoint();
         if (_pnlCalcOption == PositionHouseStorage.PnlCalcOption.SPOT_PRICE) {
             positionNotional =
                 (positionManager.getPrice() * _position.quantity.abs()) /
-                positionManager.getBaseBasisPoint();
+                baseBasisPoint;
         } else if (_pnlCalcOption == PositionHouseStorage.PnlCalcOption.TWAP) {
             // TODO recheck this interval time
             uint256 _intervalTime = 90;
-            positionNotional = (positionManager.getTwapPrice(_intervalTime) * _position.quantity.abs()) / positionManager.getBaseBasisPoint();
+            positionNotional = (positionManager.getTwapPrice(_intervalTime) * _position.quantity.abs()) / baseBasisPoint;
         } else {
-            positionNotional = (positionManager.getUnderlyingPrice() * _position.quantity.abs()) / positionManager.getBaseBasisPoint();
+            positionNotional = (positionManager.getUnderlyingPrice() * _position.quantity.abs()) / baseBasisPoint;
         }
-
-        if (_position.side() == Position.Side.LONG) {
-            unrealizedPnl =
-                int256(positionNotional) -
-                int256(oldPositionNotional);
-        } else {
-            unrealizedPnl =
-                int256(oldPositionNotional) -
-                int256(positionNotional);
-        }
+        unrealizedPnl = PositionMath.calculatePnl(_position.quantity, _position.openNotional, positionNotional);
     }
 
     function calcMaintenanceDetail(
@@ -666,22 +655,20 @@ library PositionHouseFunction {
         uint16 _leverage
     ) public view {
         // closedNotional can be negative to calculate pnl in both Long/Short formula
-        int256 closedNotional = _filledAmount * int128(_pip) / int64(state.basisPoint);
+        uint256 closedNotional = PositionMath.calculateNotional(_pip.toNotional(state.baseBasicPoint, state.basisPoint), _filledAmount.abs(), state.baseBasicPoint);
         // already checked if _positionData.openNotional == 0, then used _positionDataWithoutLimit before
-        // openNotional can be negative same as closedNotional
-        int256 openNotional = _filledAmount * int256(_entryPrice) / int64(state.baseBasicPoint);
-//        state.accMargin += closedNotional.abs() / _leverage;
-        state.amount += (openNotional - closedNotional);
+        uint256 openNotional = PositionMath.calculateNotional(_entryPrice, _filledAmount.abs(), state.baseBasicPoint);
+        state.amount += PositionMath.calculatePnl(_cpIncrPosition.quantity, openNotional, closedNotional);
         state.totalReduceOrderFilledAmount += _filledAmount.abs();
 
         // now position should be reduced
         // should never overflow?
         _cpIncrPosition.quantity = _cpIncrPosition.quantity.subAmount(_filledAmount.abs());
         // avoid overflow due to absolute error
-        if (openNotional.abs() >= _cpIncrPosition.openNotional) {
+        if (openNotional >= _cpIncrPosition.openNotional) {
             _cpIncrPosition.openNotional = 0;
         } else {
-            _cpIncrPosition.openNotional -= openNotional.abs();
+            _cpIncrPosition.openNotional -= openNotional;
         }
     }
 
@@ -781,9 +768,9 @@ library PositionHouseFunction {
             uint256 reduceMarginRequirement = (_positionData.margin *
             _quantity.abs()) / _positionData.quantity.abs();
             positionResp.realizedPnl = calculatePnlWhenClose(_positionData.quantity, positionResp.exchangedPositionSize, _positionData.openNotional, positionResp.exchangedQuoteAssetAmount);
-            positionResp.exchangedQuoteAssetAmount =
-                (_quantity.abs() * _positionData.getEntryPrice(_pmAddress)) /
-                _positionManager.getBaseBasisPoint();
+            uint256 _baseBasisPoint = _positionManager.getBaseBasisPoint();
+            uint256 _entryPrice = PositionMath.calculateEntryPrice(_positionData.openNotional, _positionData.quantity.abs(), _baseBasisPoint);
+            positionResp.exchangedQuoteAssetAmount = PositionMath.calculateNotional(_entryPrice, _quantity.abs(), _baseBasisPoint);
             // NOTICE margin to vault can be negative
             positionResp.marginToVault = -(int256(reduceMarginRequirement) +
                 positionResp.realizedPnl);
@@ -839,10 +826,8 @@ library PositionHouseFunction {
     {
         // calculate fundingPayment
         if (_oldPosition.quantity != 0) {
-            fundingPayment =
-                (_latestCumulativePremiumFraction -
-                    _oldPosition.lastUpdatedCumulativePremiumFraction) *
-                _oldPosition.quantity / (PREMIUM_FRACTION_DENOMINATOR);
+            int256 deltaPremiumFraction = _latestCumulativePremiumFraction - _oldPosition.lastUpdatedCumulativePremiumFraction;
+            fundingPayment = PositionMath.calculateFundingPayment(deltaPremiumFraction, _oldPosition.quantity, PREMIUM_FRACTION_DENOMINATOR);
         }
 
         // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt
@@ -891,5 +876,16 @@ library PositionHouseFunction {
         } else {
             pnl = int256(_positionNotional * _closeQuantity.abs() / _positionQuantity.abs()) - int256(_closeNotional);
         }
+    }
+
+    function calculatePartialLiquidateMargin(
+        uint256 _oldMargin,
+        uint256 _manualMargin,
+        uint256 _liquidationFeeRatio
+    ) public pure returns (uint256 liquidatedPositionMargin, uint256 liquidatedManualMargin) {
+        liquidatedPositionMargin = (_oldMargin * _liquidationFeeRatio) /
+        100;
+        liquidatedManualMargin = (_manualMargin * _liquidationFeeRatio) /
+        100;
     }
 }
