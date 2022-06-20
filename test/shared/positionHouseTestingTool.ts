@@ -74,6 +74,7 @@ export default class PositionHouseTestingTool {
                                  expectedMargin,
                                  expectedNotional,
                                  expectedSize,
+                                 expectDeposit,
                                  price = 5000,
                                  _positionManager = this.positionManager
                              }: OpenMarketPositionParams) {

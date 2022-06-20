@@ -22,8 +22,8 @@ const migrations: MigrationDefinition = {
                 const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouse');
                 const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
                 await context.factory.createPositionManager({
-                    quoteAsset: await context.db.getMockContract(`BUSD`),
-                    initialPrice: 3000000,
+                    quoteAsset: await context.db.getMockContract(`BTC`),
+                    initialPrice: 2120000,
                     priceFeedKey: 'BTC',
                     basisPoint: 100,
                     baseBasisPoint: 10000,
@@ -79,8 +79,8 @@ const migrations: MigrationDefinition = {
                 const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouse');
                 const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
                 await context.factory.createPositionManager({
-                    quoteAsset: await context.db.getMockContract(`BUSD`),
-                    initialPrice: 32500,
+                    quoteAsset: await context.db.getMockContract(`BNB`),
+                    initialPrice: 21000,
                     priceFeedKey: 'BNB',
                     basisPoint: 100,
                     baseBasisPoint: 10000,

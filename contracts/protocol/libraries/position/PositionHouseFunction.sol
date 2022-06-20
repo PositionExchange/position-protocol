@@ -528,15 +528,13 @@ library PositionHouseFunction {
         uint256 openNotional = _position.openNotional;
         uint256 baseBasisPoint = positionManager.getBaseBasisPoint();
         if (_pnlCalcOption == PositionHouseStorage.PnlCalcOption.SPOT_PRICE) {
-            positionNotional =
-                (positionManager.getPrice() * _position.quantity.abs()) /
-                baseBasisPoint;
+            positionNotional = PositionMath.calculateNotional(positionManager.getPrice(), _position.quantity.abs(), baseBasisPoint);
         } else if (_pnlCalcOption == PositionHouseStorage.PnlCalcOption.TWAP) {
             // TODO recheck this interval time
             uint256 _intervalTime = 90;
-            positionNotional = (positionManager.getTwapPrice(_intervalTime) * _position.quantity.abs()) / baseBasisPoint;
+            positionNotional = PositionMath.calculateNotional(positionManager.getTwapPrice(_intervalTime), _position.quantity.abs(), baseBasisPoint);
         } else {
-            positionNotional = (positionManager.getUnderlyingPrice() * _position.quantity.abs()) / baseBasisPoint;
+            positionNotional = PositionMath.calculateNotional(positionManager.getUnderlyingPrice(), _position.quantity.abs(), baseBasisPoint);
         }
         unrealizedPnl = PositionMath.calculatePnl(_position.quantity, _position.openNotional, positionNotional);
     }
@@ -827,7 +825,9 @@ library PositionHouseFunction {
         // calculate fundingPayment
         if (_oldPosition.quantity != 0) {
             int256 deltaPremiumFraction = _latestCumulativePremiumFraction - _oldPosition.lastUpdatedCumulativePremiumFraction;
-            fundingPayment = PositionMath.calculateFundingPayment(deltaPremiumFraction, _oldPosition.quantity, PREMIUM_FRACTION_DENOMINATOR);
+            if (deltaPremiumFraction != 0) {
+                fundingPayment = PositionMath.calculateFundingPayment(deltaPremiumFraction, _oldPosition.quantity, PREMIUM_FRACTION_DENOMINATOR);
+            }
         }
 
         // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt

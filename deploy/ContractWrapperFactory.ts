@@ -43,15 +43,19 @@ export class ContractWrapperFactory {
     }
 
     async createPositionManager(args: CreatePositionManagerInput) {
-
+        const PositionMathAddress = await this.db.findAddressByKey('PositionMath');
         const symbol = `${args.priceFeedKey}_${args.quote}`;
         const saveKey = `PositionManager:${symbol}`
 
-        const PositionManager = await this.hre.ethers.getContractFactory("PositionManager")
+        const PositionManager = await this.hre.ethers.getContractFactory("PositionManager", {
+            libraries: {
+                PositionMath: PositionMathAddress
+            }
+        })
         const contractAddress = await this.db.findAddressByKey(saveKey);
         console.log("contractAddress", contractAddress)
         if (contractAddress) {
-            const upgraded = await this.hre.upgrades.upgradeProxy(contractAddress, PositionManager);
+            const upgraded = await this.hre.upgrades.upgradeProxy(contractAddress, PositionManager, {unsafeAllowLinkedLibraries: true});
             console.log(`Starting verify upgrade Position Manager ${symbol}`)
             await this.verifyImplContract(upgraded.deployTransaction)
             console.log(`Upgrade Position Manager ${symbol}`)
@@ -70,7 +74,7 @@ export class ContractWrapperFactory {
             ];
 
             //@ts-ignore
-            const instance = await upgrades.deployProxy(PositionManager, contractArgs);
+            const instance = await upgrades.deployProxy(PositionManager, contractArgs, {unsafeAllowLinkedLibraries: true});
             console.log("wait for deploy")
             await instance.deployed();
             const address = instance.address.toString().toLowerCase();
@@ -84,13 +88,13 @@ export class ContractWrapperFactory {
         const positionHouseFunctionContractAddress = await this.db.findAddressByKey(`PositionHouseFunction`);
         console.log(`positionHouseFunctionContractAddress ${positionHouseFunctionContractAddress}`);
 
-        const positionHouseMathContractAddress = await this.db.findAddressByKey(`PositionHouseMath`);
-        console.log(`positionHouseMathContractAddress ${positionHouseMathContractAddress}`);
+        const positionMathContractAddress = await this.db.findAddressByKey(`PositionMath`);
+        console.log(`positionHouseMathContractAddress ${positionMathContractAddress}`);
 
-        const PositionHouse = await this.hre.ethers.getContractFactory("PositionHouse", {
+        const PositionHouse = await this.hre.ethers.getContractFactory("PositionHouseCoinMargin", {
             libraries: {
                 PositionHouseFunction: positionHouseFunctionContractAddress,
-                PositionHouseMath: positionHouseMathContractAddress
+                PositionMath: positionMathContractAddress
             }
         })
         const positionHouseContractAddress = await this.db.findAddressByKey(`PositionHouse`);
@@ -250,8 +254,31 @@ export class ContractWrapperFactory {
         }
     }
 
+    async createUSDMarginLibrary(args: CreatePositionHouseFunction) {
+        const USDMargin = await this.hre.ethers.getContractFactory("USDMargin");
+
+        const deployTx = await USDMargin.deploy();
+        await deployTx.deployTransaction.wait(3)
+        console.log("wait for deploy USDMargin library");
+        await this.db.saveAddressByKey('USDMargin', deployTx.address.toLowerCase());
+    }
+
+    async createCoinMarginLibrary(args: CreatePositionHouseFunction) {
+        const CoinMargin = await this.hre.ethers.getContractFactory("CoinMargin");
+
+        const deployTx = await CoinMargin.deploy();
+        await deployTx.deployTransaction.wait(3)
+        console.log("wait for deploy CoinMargin library");
+        await this.db.saveAddressByKey('CoinMargin', deployTx.address.toLowerCase());
+    }
+
     async createPositionHouseFunctionLibrary(args: CreatePositionHouseFunction) {
-        const PositionHouseFunction = await this.hre.ethers.getContractFactory("PositionHouseFunction");
+        const PositionMathAddress = await this.db.findAddressByKey('PositionMath');
+        const PositionHouseFunction = await this.hre.ethers.getContractFactory("PositionHouseFunction", {
+            libraries: {
+                PositionMath: PositionMathAddress
+            }
+        });
 
         const deployTx = await PositionHouseFunction.deploy();
         await deployTx.deployTransaction.wait(3)
@@ -259,13 +286,17 @@ export class ContractWrapperFactory {
         await this.db.saveAddressByKey('PositionHouseFunction', deployTx.address.toLowerCase());
     }
 
-    async createPositionHouseMathLibrary(args: CreatePositionHouseFunction) {
-        const PositionHouseMath = await this.hre.ethers.getContractFactory("PositionHouseMath");
-
+    async createPositionMathLibrary(args: CreatePositionHouseFunction) {
+        const coinMarginAddress = await this.db.findAddressByKey('CoinMargin');
+        const PositionHouseMath = await this.hre.ethers.getContractFactory("PositionMath", {
+            libraries: {
+                USDMargin: coinMarginAddress
+            }
+        });
         const deployTx = await PositionHouseMath.deploy();
         await deployTx.deployTransaction.wait(3)
         console.log("wait for deploy position house math fund");
-        await this.db.saveAddressByKey('PositionHouseMath', deployTx.address.toLowerCase());
+        await this.db.saveAddressByKey('PositionMath', deployTx.address.toLowerCase());
     }
 
     async createChainlinkPriceFeed( args: CreateChainLinkPriceFeed){

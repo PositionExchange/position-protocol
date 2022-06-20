@@ -6725,5 +6725,7 @@ describe("PositionHouse_02", () => {
             const balanceAfterClose = await bep20Mintable.balanceOf(trader1.address)
             await expect(balanceAfterClose.sub(balanceBeforeClose)).eq('6300')
         })
+
+        it("should ")
     })
 })

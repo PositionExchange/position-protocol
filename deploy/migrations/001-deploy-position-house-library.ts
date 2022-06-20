@@ -8,13 +8,17 @@ const migrations: MigrationDefinition = {
             /**
              no param
              */
+            const coinMarginAddress = await context.db.findAddressByKey('CoinMargin');
+            console.log(`CoinMargin  ${coinMarginAddress}`);
+            await context.factory.createCoinMarginLibrary({})
+
+            const positionHouseMathContractAddress = await context.db.findAddressByKey('PositionMath');
+            console.log(`PositionMath  ${positionHouseMathContractAddress}`);
+            await context.factory.createPositionMathLibrary({})
+
             const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouseFunction');
             console.log(`PositionHouseFunction  ${positionHouseFunctionContractAddress}`);
             await context.factory.createPositionHouseFunctionLibrary({})
-
-            const positionHouseMathContractAddress = await context.db.findAddressByKey('PositionHouseMath');
-            console.log(`PositionHouseMath  ${positionHouseMathContractAddress}`);
-            await context.factory.createPositionHouseMathLibrary({})
 
         }
     })

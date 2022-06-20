@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "../libraries/position/Position.sol";
+import {PositionMath} from "../libraries/position/PositionMath.sol";
 
 abstract contract CumulativePremiumFractions {
     // avoid calling to position manager
@@ -84,11 +85,10 @@ abstract contract CumulativePremiumFractions {
             _positionManager
         );
         if (_oldPosition.quantity != 0) {
-            fundingPayment =
-                ((latestCumulativePremiumFraction -
-                    _oldPosition.lastUpdatedCumulativePremiumFraction) *
-                    _oldPosition.quantity) /
-                PREMIUM_FRACTION_DENOMINATOR;
+            int256 deltaPremiumFraction = latestCumulativePremiumFraction - _oldPosition.lastUpdatedCumulativePremiumFraction;
+            if (deltaPremiumFraction != 0) {
+                fundingPayment = PositionMath.calculateFundingPayment(deltaPremiumFraction, _oldPosition.quantity, PREMIUM_FRACTION_DENOMINATOR);
+            }
         }
 
         // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt

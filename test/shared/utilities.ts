@@ -144,6 +144,7 @@ export interface OpenMarketPositionParams {
     expectedMargin?: BigNumber,
     expectedNotional?: BigNumber | string,
     expectedSize?: BigNumber,
+    expectDeposit?: BigNumber | string,
     price?: number,
     _positionManager?: any
 }
@@ -211,10 +212,13 @@ export interface ChangePriceParams {
 export interface ExpectTestCaseParams {
     positionManagerAddress: string,
     traderAddress: string,
-    expectedOpenNotional: number,
-    expectedMargin: number,
-    expectedPnl: number | undefined
-    expectedQuantity?: number
+    expectedOpenNotional?: BigNumber | string,
+    expectedMargin?: BigNumber | string,
+    expectedPnl?: BigNumber | string
+    expectedQuantity?: BigNumber | string
+    expectedMaintenanceMargin?: BigNumber | string
+    expectedMarginBalance?: BigNumber | string
+    expectedMarginRatio?: BigNumber | string
 }
 
 export interface ExpectMaintenanceDetail {

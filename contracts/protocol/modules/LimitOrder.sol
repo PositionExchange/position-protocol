@@ -10,22 +10,24 @@ import "../libraries/types/PositionHouseStorage.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
 import "./ClaimableAmountManager.sol";
 
-abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStorage {
-    event OpenLimit(
-        uint64 orderId,
-        address trader,
-        int256 quantity,
-        uint256 leverage,
-        uint128 pip,
-        IPositionManager positionManager
-    );
+import "hardhat/console.sol";
 
-    event CancelLimitOrder(
-        address trader,
-        address _positionManager,
-        uint128 pip,
-        uint64 orderId
-    );
+abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStorage {
+//    event OpenLimit(
+//        uint64 orderId,
+//        address trader,
+//        int256 quantity,
+//        uint256 leverage,
+//        uint128 pip,
+//        IPositionManager positionManager
+//    );
+
+//    event CancelLimitOrder(
+//        address trader,
+//        address _positionManager,
+//        uint128 pip,
+//        uint64 orderId
+//    );
 
     using Quantity for int256;
     using Int256Math for int256;
@@ -69,7 +71,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             );
             insuranceFund.withdraw(_pmAddress, _trader, _refundMargin);
         }
-        emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
+//        emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
     }
 
     function _internalCancelAllPendingOrder(
@@ -140,14 +142,14 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             }
             _setLimitOrderPremiumFraction(_pmAddress, _trader, getLatestCumulativePremiumFraction(_pmAddress));
         }
-        emit OpenLimit(
-            openLimitResp.orderId,
-            _trader,
-            _quantity,
-            _leverage,
-            _pip,
-            _positionManager
-        );
+//        emit OpenLimit(
+//            openLimitResp.orderId,
+//            _trader,
+//            _quantity,
+//            _leverage,
+//            _pip,
+//            _positionManager
+//        );
     }
 
     // check the new limit order is fully reduce, increase or both reduce and increase
