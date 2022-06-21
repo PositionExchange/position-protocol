@@ -10,3 +10,5 @@ const migrations: MigrationDefinition = {
         }
     }
 }
+
+export default migrations
