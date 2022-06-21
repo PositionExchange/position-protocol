@@ -291,7 +291,10 @@ export class ContractWrapperFactory {
     async createInsuranceReserveFund(): Promise<PositionInsuranceReserveFunds>{
         const Contract = await this.hre.ethers.getContractFactory('PositionInsuranceReserveFunds')
         const deployTx = await Contract.deploy()
-        return await deployTx.deployed() as unknown as PositionInsuranceReserveFunds
+        const contract = await deployTx.deployed() as unknown as PositionInsuranceReserveFunds
+        console.log(`Deployed PositionInsuranceReserveFunds: ${contract.address}`)
+        await verifyContract(this.hre, contract.address)
+        return contract
     }
 
 }
