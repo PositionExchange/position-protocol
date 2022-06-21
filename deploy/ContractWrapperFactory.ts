@@ -1,19 +1,20 @@
 import {
-    CreatePositionManagerInput,
-    PositionManager,
-    CreatePositionHouseInput,
-    CreateInsuranceFund,
-    CreatePositionHouseFunction,
     CreateChainLinkPriceFeed,
+    CreateInsuranceFund,
     CreatePositionHouseConfigurationProxyInput,
+    CreatePositionHouseFunction,
+    CreatePositionHouseInput,
     CreatePositionHouseViewerInput,
+    CreatePositionManagerInput,
     CreatePositionNotionalConfigProxy,
-    CreatePositionStrategyOrderInput
+    CreatePositionStrategyOrderInput,
+    PositionManager
 } from "./types";
 import {DeployDataStore} from "./DataStore";
 import {verifyContract} from "../scripts/utils";
 import {TransactionResponse} from "@ethersproject/abstract-provider";
 import {HardhatRuntimeEnvironment} from "hardhat/types";
+import {PositionInsuranceReserveFunds} from "../typeChain";
 
 
 export class ContractWrapperFactory {
@@ -285,6 +286,12 @@ export class ContractWrapperFactory {
 
         }
 
+    }
+
+    async createInsuranceReserveFund(): Promise<PositionInsuranceReserveFunds>{
+        const Contract = await this.hre.ethers.getContractFactory('PositionInsuranceReserveFunds')
+        const deployTx = await Contract.deploy()
+        return await deployTx.deployed() as unknown as PositionInsuranceReserveFunds
     }
 
 }
