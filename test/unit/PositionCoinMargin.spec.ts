@@ -22,9 +22,17 @@ import {
     PositionData,
     PositionLimitOrderID,
     ChangePriceParams,
-    priceToPip, SIDE,
+    priceToPip,
+    SIDE,
     toWeiBN,
-    toWeiWithString, ExpectTestCaseParams, ExpectMaintenanceDetail, toWei, multiNumberToWei, fromWei
+    toWeiWithString,
+    ExpectTestCaseParams,
+    ExpectMaintenanceDetail,
+    toWei,
+    multiNumberToWei,
+    fromWei,
+    OrderData,
+    CancelLimitOrderParams
 } from "../shared/utilities";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import {CHAINLINK_ABI_TESTNET} from "../../constants";
@@ -232,6 +240,10 @@ describe("PositionCoinMargin", () => {
         expect(passed, `Wrong ${message}, actual is ${actual}, your expected is ${expected}`).eq(true)
     }
 
+    async function expectOrderbook(orderbook: OrderData[]) {
+        await positionHouseTestingTool.expectOrderbook(orderbook)
+    }
+
     const closePosition = async ({
                                      trader,
                                      instanceTrader,
@@ -251,12 +263,14 @@ describe("PositionCoinMargin", () => {
         expect(positionData.quantity).eq(0);
     }
 
-    async function cancelLimitOrder(positionManagerAddress: string, trader: SignerWithAddress, orderId : string, pip : string) {
-        const listPendingOrder = await positionHouseViewer.connect(trader).getListOrderPending(positionManagerAddress, trader.address)
-        const obj = listPendingOrder.find(x => () => {
-            (x.orderId.toString() == orderId && x.pip.toString() == pip)
-        });
-        await positionHouse.connect(trader).cancelLimitOrder(positionManagerAddress, obj.orderIdx, obj.isReduce);
+    async function cancelLimitOrderAndExpect(input: CancelLimitOrderParams) {
+        const balanceBeforeCancelLimitOrder = await bep20Mintable.balanceOf(input.trader.address)
+        await positionHouseTestingTool.cancelLimitOrder(input)
+        const balanceAfterCancelLimitOrder = await bep20Mintable.balanceOf(input.trader.address)
+        const refundAmount = balanceAfterCancelLimitOrder.sub(balanceBeforeCancelLimitOrder)
+        if (input.refundAmount != undefined) {
+            await expect(refundAmount).eq(toWei(input.refundAmount))
+        }
     }
 
     describe("should open order success", async () => {
