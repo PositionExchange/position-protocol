@@ -11,7 +11,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract PositionInsuranceReserveFunds is AccessControl {
     bytes32 public constant MULTI_SIGN_OPERATOR = keccak256("MULTI_SIGN_OPERATOR");
-    bytes32 public constant SUPER_ADMIN = keccak256("SUPER_ADMIN");
 
     // cannot modify the insuranceFund address
     address public insuranceFund = 0x547dc7a6f196A06ACC4C883Cf17EaB047de0275a;
@@ -19,8 +18,8 @@ contract PositionInsuranceReserveFunds is AccessControl {
     event InsuranceFundChanged(address indexed old, address indexed _new);
 
     constructor(){
-        _setRoleAdmin(DEFAULT_ADMIN_ROLE, SUPER_ADMIN);
-        _setupRole(SUPER_ADMIN, msg.sender);
+        _setRoleAdmin(MULTI_SIGN_OPERATOR, DEFAULT_ADMIN_ROLE);
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     function secureFund(IERC20 token, uint256 amount) public onlyRole(MULTI_SIGN_OPERATOR){

@@ -124,7 +124,7 @@ contract InsuranceFund is
     // Approve for the reserved funds
     // due to security issue, the reserved funds contract address is hardcode
     function approveReserveFund() external onlyOwner {
-        busd.approve(0x37Bc3672897B6706Bf72f019eF9FB8324A79CCdd,type(uint256).max);
+        busd.approve(0xF323C72fc1c1711CBE33D492bbE39Ff6fD90f15a,type(uint256).max);
     }
 
     function updateWhitelistManager(address _positionManager, bool _isWhitelist)
