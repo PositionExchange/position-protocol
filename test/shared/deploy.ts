@@ -99,7 +99,7 @@ export async function deployPositionHouse(isCoinMargin? : boolean){
 
     let positionHouse = (await factory.deploy()) as unknown as PositionHouseCoinMargin;
     if (isCoinMargin) {
-        await positionHouse.connect(trader).setContractSize(positionManager.address, 100);
+        await positionHouse.connect(trader).setContractPrice(positionManager.address, 100);
     }
     await insuranceFund.connect(trader).initialize()
     await insuranceFund.connect(trader).setCounterParty(positionHouse.address);

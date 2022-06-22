@@ -80,6 +80,18 @@ export function toWei(n: number | string): any {
     return BigNumber.from(web3Utils.toWei(n.toString()))
 }
 
+export function multiNumberToWei(n: (number | string | BigNumber)[]): any {
+    let convertedArray = []
+    for (let i = 0; i < n.length; i++) {
+        if (n[i] != undefined) {
+            convertedArray.push(toWei(n[i].toString()))
+        } else {
+            convertedArray.push(undefined)
+        }
+    }
+    return convertedArray
+}
+
 export function fromWei(n: number): any {
     return web3Utils.fromWei(n.toString())
 }
@@ -212,13 +224,13 @@ export interface ChangePriceParams {
 export interface ExpectTestCaseParams {
     positionManagerAddress: string,
     traderAddress: string,
-    expectedOpenNotional?: BigNumber | string,
-    expectedMargin?: BigNumber | string,
-    expectedPnl?: BigNumber | string
-    expectedQuantity?: BigNumber | string
-    expectedMaintenanceMargin?: BigNumber | string
-    expectedMarginBalance?: BigNumber | string
-    expectedMarginRatio?: BigNumber | string
+    expectedOpenNotional?: BigNumber | string | number,
+    expectedMargin?: BigNumber | string | number,
+    expectedPnl?: BigNumber | string | number
+    expectedQuantity?: BigNumber | string | number
+    expectedMaintenanceMargin?: BigNumber | string | number
+    expectedMarginBalance?: BigNumber | string | number
+    expectedMarginRatio?: BigNumber | string | number
 }
 
 export interface ExpectMaintenanceDetail {

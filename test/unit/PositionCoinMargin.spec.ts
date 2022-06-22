@@ -24,7 +24,7 @@ import {
     ChangePriceParams,
     priceToPip, SIDE,
     toWeiBN,
-    toWeiWithString, ExpectTestCaseParams, ExpectMaintenanceDetail, toWei
+    toWeiWithString, ExpectTestCaseParams, ExpectMaintenanceDetail, toWei, multiNumberToWei
 } from "../shared/utilities";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import {CHAINLINK_ABI_TESTNET} from "../../constants";
@@ -70,7 +70,14 @@ describe("PositionCoinMargin", () => {
     })
 
     const openMarketPosition = async (input) => {
-        return positionHouseTestingTool.openMarketPosition(input)
+        const balanceBeforeOpenMarket = await bep20Mintable.balanceOf(input.trader)
+        const openMarketReturn = positionHouseTestingTool.openMarketPosition(input)
+        const balanceAfterOpenMarket = await bep20Mintable.balanceOf(input.trader)
+        const depositedQuoteAmount = balanceBeforeOpenMarket.sub(balanceAfterOpenMarket)
+        if (input.cost != undefined) {
+            await expect(depositedQuoteAmount).eq(toWei(input.cost))
+        }
+        return openMarketReturn
     }
 
     interface OpenLimitPositionAndExpectParams {
@@ -89,7 +96,14 @@ describe("PositionCoinMargin", () => {
     }
 
     async function openLimitPositionAndExpect(input): Promise<LimitOrderReturns> {
-        return positionHouseTestingTool.openLimitPositionAndExpect(input)
+        const balanceBeforeOpenLimit = await bep20Mintable.balanceOf(input._trader.address)
+        const openLimitReturn = positionHouseTestingTool.openLimitPositionAndExpect(input)
+        const balanceAfterOpenLimit = await bep20Mintable.balanceOf(input._trader.address)
+        const depositedQuoteAmount = balanceBeforeOpenLimit.sub(balanceAfterOpenLimit)
+        if (input.cost != undefined) {
+            await expect(depositedQuoteAmount).eq(toWei(input.cost))
+        }
+        return openLimitReturn
     }
 
     async function liquidate(_positionManagerAddress, _traderAddress) {
@@ -173,39 +187,48 @@ describe("PositionCoinMargin", () => {
                                             expectedMarginBalance = undefined,
                                             expectedMarginRatio = undefined
                                         }: ExpectTestCaseParams) {
-        const oldPosition = await positionHouseViewer.getPosition(positionManagerAddress, traderAddress)
+        [expectedOpenNotional, expectedMargin, expectedPnl, expectedQuantity, expectedMaintenanceMargin, expectedMarginBalance] = multiNumberToWei([expectedOpenNotional, expectedMargin, expectedPnl, expectedQuantity, expectedMaintenanceMargin, expectedMarginBalance])
+        const positionTrader = (await positionHouseViewer.getPosition(positionManagerAddress, traderAddress)) as unknown as PositionData
         const positionNotionalAndPnLTrader = await positionHouseViewer.getPositionNotionalAndUnrealizedPnl(
             positionManagerAddress,
             traderAddress,
             1,
-            oldPosition
+            positionTrader
         )
-        const positionTrader = (await positionHouseViewer.getPosition(positionManagerAddress, traderAddress)) as unknown as PositionData
-        console.log("expect all: quantity, openNotional, positionNotional, margin, unrealizedPnl", Number(positionTrader.quantity), Number(positionTrader.openNotional), Number(positionNotionalAndPnLTrader.positionNotional), Number(positionTrader.margin), Number(positionNotionalAndPnLTrader.unrealizedPnl))
         if (expectedQuantity != undefined) {
-            expect(positionTrader.quantity).eq(expectedQuantity);
+            await expectInRange(expectedQuantity, positionTrader.quantity, "quantity");
         }
-        console.log("expect pnl")
-        if (expectedPnl != undefined) expect(positionNotionalAndPnLTrader.unrealizedPnl).eq(expectedPnl)
+        if (expectedPnl != undefined) {
+            await expectInRange(expectedPnl, positionNotionalAndPnLTrader.unrealizedPnl, "pnl");
+        }
         if (expectedOpenNotional != undefined) {
-            expect(positionTrader.openNotional).eq(expectedOpenNotional);
+            await expectInRange(expectedOpenNotional, positionTrader.openNotional, "openNotional");
         }
         if (expectedMargin != undefined) {
-
-            expect(positionTrader.margin).eq(expectedMargin);
+            await expectInRange(expectedMargin, positionTrader.margin, "margin");
         }
 
-        const positionMaintenanceDetail = await positionHouseViewer.getMaintenanceDetail(positionManagerAddress, traderAddress, 0)
+        const positionMaintenanceDetail = await positionHouseViewer.getMaintenanceDetail(positionManagerAddress, traderAddress, 1)
         if (expectedMaintenanceMargin != undefined) {
-            expect(positionMaintenanceDetail.maintenanceMargin).eq(expectedMaintenanceMargin);
+            await expectInRange(expectedMaintenanceMargin, positionMaintenanceDetail.maintenanceMargin, "maintenanceMargin");
         }
         if (expectedMarginBalance != undefined) {
-            expect(positionMaintenanceDetail.marginBalance).eq(expectedMarginBalance);
+            await expectInRange(expectedMarginBalance, positionMaintenanceDetail.marginBalance, "marginBalance");
         }
         if (expectedMarginRatio != undefined) {
-            expect(positionMaintenanceDetail.marginRatio).eq(expectedMarginRatio);
+            await expect(expectedMarginRatio).eq(positionMaintenanceDetail.marginRatio);
         }
         return true;
+    }
+
+    async function expectInRange(expected, actual, message) {
+        let passed
+        if (expected >= 0) {
+            passed = expected.lte(actual.mul(BigNumber.from('101')).div(BigNumber.from('100'))) && expected.gte(actual.mul(BigNumber.from('99')).div(BigNumber.from('100')))
+        } else {
+            passed = expected.gte(actual.mul(BigNumber.from('101')).div(BigNumber.from('100'))) && expected.lte(actual.mul(BigNumber.from('99')).div(BigNumber.from('100')))
+        }
+        expect(passed, `Wrong ${message}, actual is ${actual}, your expected is ${expected}`).eq(true)
     }
 
     const closePosition = async ({
@@ -233,11 +256,6 @@ describe("PositionCoinMargin", () => {
             (x.orderId.toString() == orderId && x.pip.toString() == pip)
         });
         await positionHouse.connect(trader).cancelLimitOrder(positionManagerAddress, obj.orderIdx, obj.isReduce);
-    }
-
-    async function expectPositionMargin(positionManager, trader, amount){
-        const {margin} = await positionHouseViewer.getPosition(positionManager.address, trader.address)
-        await expect(margin.toString()).eq(amount.toString())
     }
 
     describe("should open order success", async () => {
@@ -276,7 +294,7 @@ describe("PositionCoinMargin", () => {
         })
     })
 
-    describe("should get correct pnl", async () => {
+    describe("should get correct position information", async () => {
         it("increase position by limit > currentPrice", async () => {
             await openLimitPositionAndExpect({
                 limitPrice: 5100,
@@ -370,6 +388,90 @@ describe("PositionCoinMargin", () => {
                 traderAddress: trader1.address,
                 expectedMargin: BigNumber.from('31451205102703436'),
                 expectedPnl: BigNumber.from('17891533180101435')
+            })
+        })
+
+        it("should increase by limit order but filled as a market order", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from(toWei('10')),
+                _trader: trader1,
+                _positionManager: positionManager,
+                skipCheckBalance: true
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from(toWei('5')),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader3.address,
+                    instanceTrader: trader3,
+                    _positionManager: positionManager,
+                }
+            );
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from(toWei('5')),
+                _trader: trader2,
+                _positionManager: positionManager,
+                skipCheckBalance: true
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5100,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from(toWei('5')),
+                _trader: trader2,
+                _positionManager: positionManager,
+                skipCheckBalance: true
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5200,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from(toWei('10')),
+                _trader: trader1,
+                _positionManager: positionManager,
+                skipCheckBalance: true
+            })
+
+            await expectMarginPnlAndOP({
+                positionManagerAddress: positionManager.address,
+                traderAddress: trader1.address,
+                expectedQuantity: ('1500'),
+                expectedMargin: ('0.030008003201280511'),
+                expectedPnl: ('0.005962384953981592'),
+                expectedMaintenanceMargin: ('0.000900240096038415'),
+                expectedMarginBalance: ('0.035970388155262103'),
+                expectedMarginRatio: ('2')
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4800,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from(toWei('5')),
+                _trader: trader2,
+                _positionManager: positionManager,
+                skipCheckBalance: true,
+            })
+
+            await expectMarginPnlAndOP({
+                positionManagerAddress: positionManager.address,
+                traderAddress: trader1.address,
+                expectedQuantity: ('2000'),
+                expectedMargin: ('0.040212084833933572'),
+                expectedPnl: ('-0.006042416966786715'),
+                expectedMaintenanceMargin: ('0.001206362545018007'),
+                expectedMarginBalance: ('0.034169667867146857'),
+                expectedMarginRatio: ('3')
             })
         })
     })

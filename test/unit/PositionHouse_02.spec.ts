@@ -169,7 +169,7 @@ describe("PositionHouse_02", () => {
                                             expectedOpenNotional,
                                             expectedMargin,
                                             expectedPnl = undefined,
-                                            expectedQuantity = 0
+                                            expectedQuantity = undefined
                                         }: ExpectTestCaseParams) {
         const oldPosition = await positionHouse.getPosition(positionManagerAddress, traderAddress)
         const positionNotionalAndPnLTrader = await positionHouseViewer.getPositionNotionalAndUnrealizedPnl(
@@ -180,7 +180,7 @@ describe("PositionHouse_02", () => {
         )
         const positionTrader = (await positionHouse.getPosition(positionManagerAddress, traderAddress)) as unknown as PositionData
         console.log("expect all: quantity, openNotional, positionNotional, margin, unrealizedPnl", Number(positionTrader.quantity), Number(positionTrader.openNotional), Number(positionNotionalAndPnLTrader.positionNotional), Number(positionTrader.margin), Number(positionNotionalAndPnLTrader.unrealizedPnl))
-        if (expectedQuantity != 0) {
+        if (expectedQuantity != undefined) {
             expect(positionTrader.quantity).eq(expectedQuantity);
         }
         if (expectedOpenNotional != undefined) expect(positionNotionalAndPnLTrader.unrealizedPnl).eq(expectedPnl)
@@ -6726,6 +6726,36 @@ describe("PositionHouse_02", () => {
             await expect(balanceAfterClose.sub(balanceBeforeClose)).eq('6300')
         })
 
-        it("should ")
+        it("should fill order success", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 5200,
+                side: SIDE.SHORT,
+                leverage: 125,
+                quantity: BigNumber.from(3),
+                _trader: trader3,
+                _positionManager: positionManager,
+                skipCheckBalance: true
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 5119,
+                side: SIDE.SHORT,
+                leverage: 125,
+                quantity: BigNumber.from(3),
+                _trader: trader3,
+                _positionManager: positionManager,
+                skipCheckBalance: true
+            })
+
+            await openMarketPosition({
+                    quantity: BigNumber.from('2'),
+                    leverage: 125,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: positionManager,
+                }
+            );
+        })
     })
 })
