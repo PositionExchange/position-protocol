@@ -294,3 +294,9 @@ export interface CancelLimitOrderParams {
     refundAmount?: number | string
 }
 
+export interface ExpectClaimFund {
+    trader?: SignerWithAddress,
+    positionManager?: PositionManager,
+    claimableAmount: number | string
+}
+
