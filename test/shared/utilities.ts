@@ -92,7 +92,7 @@ export function multiNumberToWei(n: (number | string | BigNumber)[]): any {
     return convertedArray
 }
 
-export function fromWei(n: number): any {
+export function fromWei(n: number | string): any {
     return web3Utils.fromWei(n.toString())
 }
 
@@ -279,5 +279,18 @@ export interface OpenMarketInHouseParams {
 
 export const subDecimal = (a: number, b: number): number => {
     return new Decimal(a).minus(new Decimal(b)).toNumber()
+}
+
+export interface OrderData {
+    pip: number,
+    quantity: number
+}
+
+export interface CancelLimitOrderParams {
+    trader?: SignerWithAddress
+    positionManager?: PositionManager
+    orderIdx: number | string,
+    isReduce: number | string,
+    refundAmount?: number | string
 }
 

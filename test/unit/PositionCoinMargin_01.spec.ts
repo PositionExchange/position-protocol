@@ -272,203 +272,10 @@ describe("PositionCoinMargin", () => {
         }
     }
 
-    describe("should open order success", async () => {
-        it("should open order success", async () => {
-            await openLimitPositionAndExpect({
-                limitPrice: 4900,
-                side: SIDE.LONG,
-                leverage: 10,
-                quantity: BigNumber.from(toWei('5')),
-                _trader: trader1,
-                _positionManager: positionManager,
-                skipCheckBalance: true
-            })
-
-            await openMarketPosition({
-                    quantity: BigNumber.from(toWei('5')),
-                    leverage: 10,
-                    side: SIDE.SHORT,
-                    trader: trader3.address,
-                    instanceTrader: trader3,
-                    _positionManager: positionManager,
-                }
-            );
-
-            await expectMarginPnlAndOP({
-                positionManagerAddress: positionManager.address,
-                traderAddress: trader1.address,
-                expectedOpenNotional: (fromWei(102040816326530612)),
-                expectedMargin: (fromWei(10204081632653061)),
-                expectedQuantity: (5*100),
-            })
-
-            await positionHouse.connect(trader1).closeLimitPosition(positionManager.address, 510000, BigNumber.from(toWei('5')))
-
-            await positionHouse.connect(trader3).closePosition(positionManager.address, BigNumber.from(toWei('5')))
-        })
-    })
-
-    describe("should get correct position information", async () => {
-        it("increase position by limit > currentPrice", async () => {
+    describe("should expect order book", async () => {
+        it('should expect order', async () => {
             await openLimitPositionAndExpect({
                 limitPrice: 5100,
-                side: SIDE.SHORT,
-                leverage: 10,
-                quantity: BigNumber.from(toWei('5')),
-                _trader: trader2,
-                _positionManager: positionManager,
-                skipCheckBalance: true
-            })
-
-            await openLimitPositionAndExpect({
-                limitPrice: 5200,
-                side: SIDE.SHORT,
-                leverage: 10,
-                quantity: BigNumber.from(toWei('3')),
-                _trader: trader2,
-                _positionManager: positionManager,
-                skipCheckBalance: true
-            })
-
-            await openLimitPositionAndExpect({
-                limitPrice: 5300,
-                side: SIDE.SHORT,
-                leverage: 10,
-                quantity: BigNumber.from(toWei('2')),
-                _trader: trader2,
-                _positionManager: positionManager,
-                skipCheckBalance: true
-            })
-
-            await openMarketPosition({
-                    quantity: BigNumber.from(toWei('10')),
-                    leverage: 10,
-                    side: SIDE.LONG,
-                    trader: trader1.address,
-                    instanceTrader: trader1,
-                    _positionManager: positionManager,
-                }
-            );
-
-            await openLimitPositionAndExpect({
-                limitPrice: 5300,
-                side: SIDE.SHORT,
-                leverage: 10,
-                quantity: BigNumber.from(toWei('2')),
-                _trader: trader2,
-                _positionManager: positionManager,
-                skipCheckBalance: true
-            })
-
-            await openLimitPositionAndExpect({
-                limitPrice: 5500,
-                side: SIDE.SHORT,
-                leverage: 10,
-                quantity: BigNumber.from(toWei('3')),
-                _trader: trader2,
-                _positionManager: positionManager,
-                skipCheckBalance: true
-            })
-
-            await openLimitPositionAndExpect({
-                limitPrice: 5600,
-                side: SIDE.LONG,
-                leverage: 15,
-                quantity: BigNumber.from(toWei('10')),
-                _trader: trader1,
-                _positionManager: positionManager,
-                skipCheckBalance: true
-            })
-
-            await expectMarginPnlAndOP({
-                positionManagerAddress: positionManager.address,
-                traderAddress: trader1.address,
-                expectedMargin: (fromWei(25498824150322484)),
-                expectedPnl: (fromWei(17891533180101435))
-            })
-
-            await openLimitPositionAndExpect({
-                limitPrice: 5600,
-                side: SIDE.SHORT,
-                leverage: 10,
-                quantity: BigNumber.from(toWei('5')),
-                _trader: trader2,
-                _positionManager: positionManager,
-                skipCheckBalance: true
-            })
-
-            await expectMarginPnlAndOP({
-                positionManagerAddress: positionManager.address,
-                traderAddress: trader1.address,
-                expectedMargin: (fromWei(31451205102703436)),
-                expectedPnl: (fromWei(17891533180101435))
-            })
-        })
-
-        it("should increase by limit order but filled as a market order", async () => {
-            await openLimitPositionAndExpect({
-                limitPrice: 4900,
-                side: SIDE.LONG,
-                leverage: 10,
-                quantity: BigNumber.from(toWei('10')),
-                _trader: trader1,
-                _positionManager: positionManager,
-                skipCheckBalance: true
-            })
-
-            await openMarketPosition({
-                    quantity: BigNumber.from(toWei('5')),
-                    leverage: 10,
-                    side: SIDE.SHORT,
-                    trader: trader3.address,
-                    instanceTrader: trader3,
-                    _positionManager: positionManager,
-                }
-            );
-
-            await openLimitPositionAndExpect({
-                limitPrice: 5000,
-                side: SIDE.SHORT,
-                leverage: 10,
-                quantity: BigNumber.from(toWei('5')),
-                _trader: trader2,
-                _positionManager: positionManager,
-                skipCheckBalance: true
-            })
-
-            await openLimitPositionAndExpect({
-                limitPrice: 5100,
-                side: SIDE.SHORT,
-                leverage: 10,
-                quantity: BigNumber.from(toWei('5')),
-                _trader: trader2,
-                _positionManager: positionManager,
-                skipCheckBalance: true
-            })
-
-            await openLimitPositionAndExpect({
-                limitPrice: 5200,
-                side: SIDE.LONG,
-                leverage: 10,
-                quantity: BigNumber.from(toWei('10')),
-                _trader: trader1,
-                _positionManager: positionManager,
-                skipCheckBalance: true
-            })
-
-            await expectMarginPnlAndOP({
-                positionManagerAddress: positionManager.address,
-                traderAddress: trader1.address,
-                expectedQuantity: ('1500'),
-                expectedMargin: ('0.030008003201280511'),
-                expectedPnl: ('0.005962384953981592'),
-                expectedMaintenanceMargin: ('0.000900240096038415'),
-                expectedMarginBalance: ('0.035970388155262103'),
-                expectedMarginRatio: ('2')
-            })
-
-            await openLimitPositionAndExpect({
-                limitPrice: 4800,
                 side: SIDE.SHORT,
                 leverage: 10,
                 quantity: BigNumber.from(toWei('5')),
@@ -477,16 +284,49 @@ describe("PositionCoinMargin", () => {
                 skipCheckBalance: true,
             })
 
-            await expectMarginPnlAndOP({
-                positionManagerAddress: positionManager.address,
-                traderAddress: trader1.address,
-                expectedQuantity: ('2000'),
-                expectedMargin: ('0.040212084833933572'),
-                expectedPnl: ('-0.006042416966786715'),
-                expectedMaintenanceMargin: ('0.001206362545018007'),
-                expectedMarginBalance: ('0.034169667867146857'),
-                expectedMarginRatio: ('3')
+            await openLimitPositionAndExpect({
+                limitPrice: 4800,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from(toWei('5')),
+                _trader: trader1,
+                _positionManager: positionManager,
+                skipCheckBalance: true,
+            })
+
+            await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from(toWei('5')),
+                _trader: trader1,
+                _positionManager: positionManager,
+                skipCheckBalance: true,
+            })
+
+            await expectOrderbook([
+                {
+                    pip: 510000,
+                    quantity: 500
+                },
+                {
+                    pip: 490000,
+                    quantity: 500
+                },
+                {
+                    pip: 480000,
+                    quantity: 500
+                }
+            ])
+
+            await cancelLimitOrderAndExpect({
+                trader: trader2,
+                positionManager: positionManager,
+                orderIdx: 0,
+                isReduce: 0,
+                refundAmount: (500 / 5100 / 10)
             })
         })
     })
+
 })
