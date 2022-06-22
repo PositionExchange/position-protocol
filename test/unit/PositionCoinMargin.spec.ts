@@ -24,7 +24,7 @@ import {
     ChangePriceParams,
     priceToPip, SIDE,
     toWeiBN,
-    toWeiWithString, ExpectTestCaseParams, ExpectMaintenanceDetail, toWei, multiNumberToWei
+    toWeiWithString, ExpectTestCaseParams, ExpectMaintenanceDetail, toWei, multiNumberToWei, fromWei
 } from "../shared/utilities";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import {CHAINLINK_ABI_TESTNET} from "../../constants";
@@ -283,9 +283,9 @@ describe("PositionCoinMargin", () => {
             await expectMarginPnlAndOP({
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader1.address,
-                expectedOpenNotional: BigNumber.from('102040816326530612'),
-                expectedMargin: BigNumber.from('10204081632653061'),
-                expectedQuantity: BigNumber.from(toWei(5*100)),
+                expectedOpenNotional: (fromWei(102040816326530612)),
+                expectedMargin: (fromWei(10204081632653061)),
+                expectedQuantity: (5*100),
             })
 
             await positionHouse.connect(trader1).closeLimitPosition(positionManager.address, 510000, BigNumber.from(toWei('5')))
@@ -369,8 +369,8 @@ describe("PositionCoinMargin", () => {
             await expectMarginPnlAndOP({
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader1.address,
-                expectedMargin: BigNumber.from('25498824150322484'),
-                expectedPnl: BigNumber.from('17891533180101435')
+                expectedMargin: (fromWei(25498824150322484)),
+                expectedPnl: (fromWei(17891533180101435))
             })
 
             await openLimitPositionAndExpect({
@@ -386,8 +386,8 @@ describe("PositionCoinMargin", () => {
             await expectMarginPnlAndOP({
                 positionManagerAddress: positionManager.address,
                 traderAddress: trader1.address,
-                expectedMargin: BigNumber.from('31451205102703436'),
-                expectedPnl: BigNumber.from('17891533180101435')
+                expectedMargin: (fromWei(31451205102703436)),
+                expectedPnl: (fromWei(17891533180101435))
             })
         })
 
