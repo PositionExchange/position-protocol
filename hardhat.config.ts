@@ -4,6 +4,7 @@ import '@positionlab/hardhat-etherscan';
 import "@typechain/hardhat";
 import "@openzeppelin/hardhat-upgrades"
 import "hardhat-contract-sizer"
+import "@openzeppelin/hardhat-defender"
 import {task} from "hardhat/config";
 import {
     BSC_MAINNET_URL,
@@ -104,6 +105,10 @@ module.exports = {
     },
     etherscan: {
         apiKey: 'UXFZRYWHB141CX97CPECWH9V7E9QSPHUF6',
+    },
+    defender: {
+        apiKey: process.env.DEFENDER_TEAM_API_KEY,
+        apiSecret: process.env.DEFENDER_TEAM_API_SECRET_KEY,
     },
     typechain: {
         outDir: "typeChain",
