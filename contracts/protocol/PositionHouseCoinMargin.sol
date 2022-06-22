@@ -14,6 +14,7 @@ import {Errors} from "./libraries/helpers/Errors.sol";
 
 contract PositionHouseCoinMargin is PositionHouseBase
 {
+    // map pair manager address to price of contract
     mapping (address => uint256) public contractSize;
 
     function openMarketPosition(
@@ -89,7 +90,7 @@ contract PositionHouseCoinMargin is PositionHouseBase
         _contractQuantity = _quantity * contractSize[_pmAddress];
     }
 
-    function setContractSize(address _pmAddress, uint256 _contractSize) external {
-        contractSize[_pmAddress] = _contractSize;
+    function setContractPrice(address _pmAddress, uint256 _contractPrice) external {
+        contractSize[_pmAddress] = _contractPrice;
     }
 }

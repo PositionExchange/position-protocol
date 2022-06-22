@@ -39,37 +39,36 @@ contract PositionHouseBase is
     using Position for Position.LiquidatedData;
     using PositionHouseFunction for PositionHouseBase;
 
-//    event OpenMarket(
+    event OpenMarket(
+        address trader,
+        int256 quantity,
+        uint16 leverage,
+        uint256 entryPrice,
+        IPositionManager positionManager
+    );
+
+    event MarginAdded(
+        address trader,
+        uint256 marginAdded,
+        IPositionManager positionManager
+    );
+
+    event MarginRemoved(
+        address trader,
+        uint256 marginRemoved,
+        IPositionManager positionManager
+    );
+
+    event FullyLiquidated(address pmAddress, address trader);
+    event PartiallyLiquidated(address pmAddress, address trader);
+
+//    event FundClaimed(
+//        address pmAddress,
 //        address trader,
-//        int256 quantity,
-//        uint16 leverage,
-//        uint256 entryPrice,
-//        IPositionManager positionManager
-//    );
-//
-//    event MarginAdded(
-//        address trader,
-//        uint256 marginAdded,
-//        IPositionManager positionManager
-//    );
-//
-//    event MarginRemoved(
-//        address trader,
-//        uint256 marginRemoved,
-//        IPositionManager positionManager
+//        uint256 totalFund
 //    );
 
-//    event FullyLiquidated(address pmAddress, address trader);
-//    event PartiallyLiquidated(address pmAddress, address trader);
-    //    event WhitelistManagerUpdated(address positionManager, bool isWhitelite);
-
-    //    event FundClaimed(
-    //        address pmAddress,
-    //        address trader,
-    //        uint256 totalFund
-    //    );
-
-//    event InstantlyClosed(address pmAddress, address trader);
+    event InstantlyClosed(address pmAddress, address trader);
 
     function initialize(
         address _insuranceFund,
@@ -175,19 +174,19 @@ contract PositionHouseBase is
         address _trader = _msgSender();
         _emptyReduceLimitOrders(_pmAddress, _trader);
         _internalCloseMarketPosition(_pmAddress, _trader, _quantity);
-//        emit InstantlyClosed(_pmAddress, _trader);
+        emit InstantlyClosed(_pmAddress, _trader);
     }
 
     function triggerClosePosition(IPositionManager _positionManager, address _trader)
     external
     virtual
     nonReentrant
-    onlyPositionStrategyOrder
+//    onlyPositionStrategyOrder
     {
         address _pmAddress = address(_positionManager);
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
         _internalCancelAllPendingOrder(_positionManager, _trader);
-        // must reuse this code instead of using function _internalCloseMarketPosition
+//         must reuse this code instead of using function _internalCloseMarketPosition
         _internalOpenMarketPosition(
             _positionManager,
             _positionDataWithManualMargin.quantity > 0
@@ -275,7 +274,7 @@ contract PositionHouseBase is
         clearPosition(_pmAddress, _trader);
         if (totalRealizedPnl > 0) {
             _withdraw(_pmAddress, _trader, totalRealizedPnl.abs());
-            //            emit FundClaimed(_pmAddress, _trader, totalRealizedPnl.abs());
+//            emit FundClaimed(_pmAddress, _trader, totalRealizedPnl.abs());
         }
     }
 
@@ -326,7 +325,7 @@ contract PositionHouseBase is
                 liquidationPenalty = uint256(positionResp.marginToVault);
                 feeToLiquidator = liquidationPenalty / 2;
                 uint256 feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
-//                emit PartiallyLiquidated(_pmAddress, _trader);
+                emit PartiallyLiquidated(_pmAddress, _trader);
             } else {
                 // fully liquidate trader's position
                 bool _liquidateOrderIsBuy = positionDataWithManualMargin.quantity > 0 ? false : true;
@@ -339,7 +338,7 @@ contract PositionHouseBase is
                 (liquidationPenalty * _liquidationFeeRatio) /
                 2 /
                 100;
-//                emit FullyLiquidated(_pmAddress, _trader);
+                emit FullyLiquidated(_pmAddress, _trader);
             }
             _withdraw(_pmAddress, _caller, feeToLiquidator);
             // count as bad debt, transfer money to insurance fund and liquidator
@@ -366,7 +365,7 @@ contract PositionHouseBase is
 
         _deposit(_pmAddress, _trader, _amount, 0);
 
-//        emit MarginAdded(_trader, _amount, _positionManager);
+        emit MarginAdded(_trader, _amount, _positionManager);
     }
 
     /**
@@ -389,7 +388,7 @@ contract PositionHouseBase is
 
         _withdraw(_pmAddress, _trader, _amount);
 
-//        emit MarginRemoved(_trader, _amount, _positionManager);
+        emit MarginRemoved(_trader, _amount, _positionManager);
     }
 
     // OWNER UPDATE VARIABLE STORAGE
@@ -604,7 +603,7 @@ contract PositionHouseBase is
                 positionMap[_pmAddress][_trader],
                 getLatestCumulativePremiumFraction(_pmAddress)
             );
-            require(_checkMaxNotional(pResp.exchangedQuoteAssetAmount, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
+//            require(_checkMaxNotional(pResp.exchangedQuoteAssetAmount, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
         } else {
             pResp = openReversePosition(
                 _positionManager,
@@ -624,13 +623,13 @@ contract PositionHouseBase is
             // withdraw from vault to user
             _withdraw(_pmAddress, _trader, pResp.marginToVault.abs());
         }
-//        emit OpenMarket(
-//            _trader,
-//            pQuantity,
-//            _leverage,
-//            pResp.entryPrice,
-//            _positionManager
-//        );
+        emit OpenMarket(
+            _trader,
+            pQuantity,
+            _leverage,
+            pResp.entryPrice,
+            _positionManager
+        );
     }
 
     function _internalClosePosition(
@@ -767,9 +766,9 @@ contract PositionHouseBase is
         return positionResp;
     }
 
-    function _checkMaxNotional(uint256 _notional, bytes32 _key, uint16 _leverage) internal override returns (bool) {
-        return _notional <= (positionNotionalConfigProxy.getMaxNotional(_key, _leverage) * 10**18);
-    }
+//    function _checkMaxNotional(uint256 _notional, bytes32 _key, uint16 _leverage) internal override returns (bool) {
+//        return _notional <= (positionNotionalConfigProxy.getMaxNotional(_key, _leverage) * 10**18);
+//    }
 
     function _updatePositionMap(
         address _pmAddress,
@@ -826,10 +825,10 @@ contract PositionHouseBase is
         insuranceFund.withdraw(positionManager, trader, amount);
     }
 
-    modifier onlyPositionStrategyOrder() {
-        require(msg.sender == address(positionStrategyOrder), Errors.VL_ONLY_POSITION_STRATEGY_ORDER);
-        _;
-    }
+//    modifier onlyPositionStrategyOrder() {
+//        require(msg.sender == address(positionStrategyOrder), Errors.VL_ONLY_POSITION_STRATEGY_ORDER);
+//        _;
+//    }
 
 
     IPositionStrategyOrder public positionStrategyOrder;

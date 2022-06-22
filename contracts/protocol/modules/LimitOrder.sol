@@ -13,21 +13,21 @@ import "./ClaimableAmountManager.sol";
 import "hardhat/console.sol";
 
 abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStorage {
-//    event OpenLimit(
-//        uint64 orderId,
-//        address trader,
-//        int256 quantity,
-//        uint256 leverage,
-//        uint128 pip,
-//        IPositionManager positionManager
-//    );
+    event OpenLimit(
+        uint64 orderId,
+        address trader,
+        int256 quantity,
+        uint256 leverage,
+        uint128 pip,
+        IPositionManager positionManager
+    );
 
-//    event CancelLimitOrder(
-//        address trader,
-//        address _positionManager,
-//        uint128 pip,
-//        uint64 orderId
-//    );
+    event CancelLimitOrder(
+        address trader,
+        address _positionManager,
+        uint128 pip,
+        uint64 orderId
+    );
 
     using Quantity for int256;
     using Int256Math for int256;
@@ -71,24 +71,24 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             );
             insuranceFund.withdraw(_pmAddress, _trader, _refundMargin);
         }
-//        emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
+        emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
     }
 
     function _internalCancelAllPendingOrder(
         IPositionManager _positionManager,
         address _trader
     ) internal {
-        address _pmAddress = address(_positionManager);
-        PositionLimitOrder.Data[] memory _increaseOrders = limitOrders[_pmAddress][_trader];
-        uint256 totalRefundMargin;
-        if (_increaseOrders.length != 0) {
-            totalRefundMargin = PositionHouseFunction.getTotalPendingLimitOrderMargin(_positionManager, _increaseOrders);
-        }
-        _emptyLimitOrders(_pmAddress, _trader);
-        _emptyReduceLimitOrders(_pmAddress, _trader);
-        if (totalRefundMargin != 0) {
-            insuranceFund.withdraw(_pmAddress, _trader, totalRefundMargin);
-        }
+//        address _pmAddress = address(_positionManager);
+//        PositionLimitOrder.Data[] memory _increaseOrders = limitOrders[_pmAddress][_trader];
+//        uint256 totalRefundMargin;
+//        if (_increaseOrders.length != 0) {
+//            totalRefundMargin = PositionHouseFunction.getTotalPendingLimitOrderMargin(_positionManager, _increaseOrders);
+//        }
+//        _emptyLimitOrders(_pmAddress, _trader);
+//        _emptyReduceLimitOrders(_pmAddress, _trader);
+//        if (totalRefundMargin != 0) {
+//            insuranceFund.withdraw(_pmAddress, _trader, totalRefundMargin);
+//        }
     }
 
     function _internalOpenLimitOrder(
@@ -137,19 +137,19 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             (uint256 notional, uint256 marginToVault, uint256 fee) = _positionManager
                 .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
             if (_oldPosition.quantity == 0 || _oldPosition.quantity.isSameSide(_quantity)) {
-                require(_checkMaxNotional(notional, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
+//                require(_checkMaxNotional(notional, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
                 insuranceFund.deposit(_pmAddress, _trader, marginToVault, fee);
             }
             _setLimitOrderPremiumFraction(_pmAddress, _trader, getLatestCumulativePremiumFraction(_pmAddress));
         }
-//        emit OpenLimit(
-//            openLimitResp.orderId,
-//            _trader,
-//            _quantity,
-//            _leverage,
-//            _pip,
-//            _positionManager
-//        );
+        emit OpenLimit(
+            openLimitResp.orderId,
+            _trader,
+            _quantity,
+            _leverage,
+            _pip,
+            _positionManager
+        );
     }
 
     // check the new limit order is fully reduce, increase or both reduce and increase
@@ -408,11 +408,11 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         address _trader
     ) internal virtual;
 
-    function _checkMaxNotional(
-        uint256 _notional,
-        bytes32 _key,
-        uint16 _leverage
-    ) internal virtual returns (bool);
+//    function _checkMaxNotional(
+//        uint256 _notional,
+//        bytes32 _key,
+//        uint16 _leverage
+//    ) internal virtual returns (bool);
 
 
     function getLatestCumulativePremiumFraction(address _pmAddress)
