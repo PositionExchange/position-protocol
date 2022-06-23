@@ -871,11 +871,8 @@ library PositionHouseFunction {
         uint256 _positionNotional,
         uint256 _closeNotional
     ) internal pure returns (int256 pnl) {
-        if (_positionQuantity > 0) {
-            pnl = int256(_closeNotional) - int256(_positionNotional * _closeQuantity.abs() / _positionQuantity.abs());
-        } else {
-            pnl = int256(_positionNotional * _closeQuantity.abs() / _positionQuantity.abs()) - int256(_closeNotional);
-        }
+        uint256 percentageNotional = _positionNotional * _closeQuantity.abs() / _positionQuantity.abs();
+        pnl = PositionMath.calculatePnl(_positionQuantity, percentageNotional, _closeNotional);
     }
 
     function calculatePartialLiquidateMargin(
