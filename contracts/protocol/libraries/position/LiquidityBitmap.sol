@@ -137,7 +137,7 @@ library LiquidityBitmap {
         uint128 index = 0;
         uint128[] memory allPip = new uint128[](uint128(_dataLength));
         if (!_toHigher) {
-            for (uint128 i = startWord; i >= startWord - 1000; i--) {
+            for (uint128 i = startWord; i >= (startWord > 1000 ? startWord - 1000 : 1); i--) {
                 if (_self[i] != 0) {
                     uint128 next;
                     next = findHasLiquidityInOneWords(
