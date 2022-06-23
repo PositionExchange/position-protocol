@@ -181,7 +181,7 @@ contract PositionHouseBase is
     external
     virtual
     nonReentrant
-//    onlyPositionStrategyOrder
+    onlyPositionStrategyOrder
     {
         address _pmAddress = address(_positionManager);
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
@@ -603,7 +603,7 @@ contract PositionHouseBase is
                 positionMap[_pmAddress][_trader],
                 getLatestCumulativePremiumFraction(_pmAddress)
             );
-//            require(_checkMaxNotional(pResp.exchangedQuoteAssetAmount, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
+            require(_checkMaxNotional(pResp.exchangedQuoteAssetAmount, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
         } else {
             pResp = openReversePosition(
                 _positionManager,
@@ -757,7 +757,7 @@ contract PositionHouseBase is
         );
         manualMargin[_pmAddress][_trader] -= int256(_liquidatedManualMargin);
         positionResp.marginToVault = int256(_liquidatedPositionMargin + _liquidatedManualMargin);
-        positionResp.unrealizedPnl = unrealizedPnl;
+//        positionResp.unrealizedPnl = unrealizedPnl;
         debtPosition[_pmAddress][_trader].updateDebt(
             _quantity,
             _liquidatedPositionMargin,
@@ -766,9 +766,9 @@ contract PositionHouseBase is
         return positionResp;
     }
 
-//    function _checkMaxNotional(uint256 _notional, bytes32 _key, uint16 _leverage) internal override returns (bool) {
-//        return _notional <= (positionNotionalConfigProxy.getMaxNotional(_key, _leverage) * 10**18);
-//    }
+    function _checkMaxNotional(uint256 _notional, bytes32 _key, uint16 _leverage) internal override returns (bool) {
+        return _notional <= (positionNotionalConfigProxy.getMaxNotional(_key, _leverage) * 10**18);
+    }
 
     function _updatePositionMap(
         address _pmAddress,
@@ -811,7 +811,7 @@ contract PositionHouseBase is
         uint256 amount,
         uint256 fee
     )
-    internal
+    internal override virtual
     {
         insuranceFund.deposit(positionManager, trader, amount, fee);
     }
@@ -820,15 +820,15 @@ contract PositionHouseBase is
         address positionManager,
         address trader,
         uint256 amount
-    ) internal
+    ) internal override virtual
     {
         insuranceFund.withdraw(positionManager, trader, amount);
     }
 
-//    modifier onlyPositionStrategyOrder() {
-//        require(msg.sender == address(positionStrategyOrder), Errors.VL_ONLY_POSITION_STRATEGY_ORDER);
-//        _;
-//    }
+    modifier onlyPositionStrategyOrder() {
+        require(msg.sender == address(positionStrategyOrder), Errors.VL_ONLY_POSITION_STRATEGY_ORDER);
+        _;
+    }
 
 
     IPositionStrategyOrder public positionStrategyOrder;
