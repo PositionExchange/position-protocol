@@ -306,4 +306,11 @@ export class ContractWrapperFactory {
         await verifyContract(this.hre, contract.address)
     }
 
+    async createPriceAggregator() {
+        const Contract = await this.hre.ethers.getContractFactory('PriceAggregator')
+        const deployTx = await Contract.deploy()
+        const contract = await deployTx.deployed()
+        console.log(`Deployed PriceAggregator: ${contract.address}`)
+        await verifyContract(this.hre, contract.address)
+    }
 }
