@@ -310,7 +310,8 @@ contract PositionManager is
             revert(Errors.VL_MARKET_ORDER_MUST_CLOSE_TO_INDEX_PRICE);
         }
         fee = calcFee(openNotional);
-        entryPrice = (openNotional * getBasisPoint()) / _size;
+        // need to calculate entryPrice in pip
+        entryPrice = PositionMath.calculateEntryPrice(openNotional, _size, getBasisPoint());
     }
 
     /**

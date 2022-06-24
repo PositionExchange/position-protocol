@@ -465,7 +465,6 @@ library PositionHouseFunction {
             else {
                 return ReturnCheckOrderSideAndQuantity.MUST_SAME_SIDE;
             }
-
         }
         // if there are not pending limit increase order, for loop check array limit reduce
         (totalPendingQuantity, pendingOrderIsBuy) = _getTotalPendingQuantityFromLimitOrders(_positionManager, _checkParam.reduceLimitOrders);
@@ -528,41 +527,15 @@ library PositionHouseFunction {
         uint256 openNotional = _position.openNotional;
         uint256 baseBasisPoint = positionManager.getBaseBasisPoint();
         if (_pnlCalcOption == PositionHouseStorage.PnlCalcOption.SPOT_PRICE) {
-            positionNotional =
-                (positionManager.getPrice() * _position.quantity.abs()) /
-                baseBasisPoint;
+            positionNotional = PositionMath.calculateNotional(positionManager.getPrice(), _position.quantity.abs(), baseBasisPoint);
         } else if (_pnlCalcOption == PositionHouseStorage.PnlCalcOption.TWAP) {
             // TODO recheck this interval time
             uint256 _intervalTime = 90;
-            positionNotional = (positionManager.getTwapPrice(_intervalTime) * _position.quantity.abs()) / baseBasisPoint;
+            positionNotional = PositionMath.calculateNotional(positionManager.getTwapPrice(_intervalTime), _position.quantity.abs(), baseBasisPoint);
         } else {
-            positionNotional = (positionManager.getUnderlyingPrice() * _position.quantity.abs()) / baseBasisPoint;
+            positionNotional = PositionMath.calculateNotional(positionManager.getUnderlyingPrice(), _position.quantity.abs(), baseBasisPoint);
         }
         unrealizedPnl = PositionMath.calculatePnl(_position.quantity, _position.openNotional, positionNotional);
-    }
-
-    function calcMaintenanceDetail(
-        Position.Data memory _positionData,
-        uint256 _maintenanceMarginRatio,
-        int256 _unrealizedPnl
-    )
-        public
-        view
-        returns (
-            uint256 maintenanceMargin,
-            int256 marginBalance,
-            uint256 marginRatio
-        )
-    {
-        maintenanceMargin =
-            (_positionData.margin * _maintenanceMarginRatio) /
-            100;
-        marginBalance = int256(_positionData.margin) + _unrealizedPnl;
-        if (marginBalance <= 0) {
-            marginRatio = 100;
-        } else {
-            marginRatio = (maintenanceMargin * 100) / uint256(marginBalance);
-        }
     }
 
     // used to benefit memory pointer
@@ -827,7 +800,9 @@ library PositionHouseFunction {
         // calculate fundingPayment
         if (_oldPosition.quantity != 0) {
             int256 deltaPremiumFraction = _latestCumulativePremiumFraction - _oldPosition.lastUpdatedCumulativePremiumFraction;
-            fundingPayment = PositionMath.calculateFundingPayment(deltaPremiumFraction, _oldPosition.quantity, PREMIUM_FRACTION_DENOMINATOR);
+            if (deltaPremiumFraction != 0) {
+                fundingPayment = PositionMath.calculateFundingPayment(deltaPremiumFraction, _oldPosition.quantity, PREMIUM_FRACTION_DENOMINATOR);
+            }
         }
 
         // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt
@@ -871,11 +846,8 @@ library PositionHouseFunction {
         uint256 _positionNotional,
         uint256 _closeNotional
     ) internal pure returns (int256 pnl) {
-        if (_positionQuantity > 0) {
-            pnl = int256(_closeNotional) - int256(_positionNotional * _closeQuantity.abs() / _positionQuantity.abs());
-        } else {
-            pnl = int256(_positionNotional * _closeQuantity.abs() / _positionQuantity.abs()) - int256(_closeNotional);
-        }
+        uint256 percentageNotional = _positionNotional * _closeQuantity.abs() / _positionQuantity.abs();
+        pnl = PositionMath.calculatePnl(_positionQuantity, percentageNotional, _closeNotional);
     }
 
     function calculatePartialLiquidateMargin(
