@@ -209,6 +209,29 @@ contract PositionManager is
         }
     }
 
+    function updateIsRFIToken(bool _isRFI) external onlyOwner {
+        isRFIToken = _isRFI;
+    }
+
+    function deposit(
+        address _trader,
+        uint256 _amount,
+        uint256 _fee
+    ) external onlyCounterParty {
+        if (isRFIToken == true) {
+            _amount = _amount * 100 / 99;
+        }
+        insuranceFund.deposit(address(this), _trader, _amount, _fee);
+    }
+
+    function withdraw(
+        address _trader,
+        uint256 _amount,
+        int256 _pnl
+    ) external onlyCounterParty {
+        insuranceFund.withdraw(address(this), _trader, _amount);
+    }
+
     function openLimitPosition(
         uint128 _pip,
         uint128 _size,
