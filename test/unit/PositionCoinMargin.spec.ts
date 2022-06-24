@@ -40,7 +40,6 @@ import PositionManagerTestingTool from "../shared/positionManagerTestingTool";
 
 import PositionHouseTestingTool from "../shared/positionHouseTestingTool";
 import {deployPositionHouse} from "../shared/deploy";
-import {describe} from "mocha";
 
 describe("PositionCoinMargin", () => {
     let positionHouse: PositionHouse;
