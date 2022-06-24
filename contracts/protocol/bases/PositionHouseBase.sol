@@ -202,7 +202,7 @@ contract PositionHouseBase is
     function _internalCloseMarketPosition(address _pmAddress, address _trader, uint256 _quantity) internal {
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
         require(
-            _quantity > 0 && _quantity <= _positionDataWithManualMargin.quantity.abs(),
+            _quantity <= _positionDataWithManualMargin.quantity.abs(),
             Errors.VL_INVALID_CLOSE_QUANTITY
         );
         _internalOpenMarketPosition(
@@ -232,7 +232,7 @@ contract PositionHouseBase is
         address _trader = _msgSender();
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
         require(
-            _quantity > 0 && _quantity <= _positionDataWithManualMargin.quantity.abs(),
+            _quantity <= _positionDataWithManualMargin.quantity.abs(),
             Errors.VL_INVALID_CLOSE_QUANTITY
         );
         _internalOpenLimitOrder(
@@ -329,8 +329,7 @@ contract PositionHouseBase is
             } else {
                 // fully liquidate trader's position
                 bool _liquidateOrderIsBuy = positionDataWithManualMargin.quantity > 0 ? false : true;
-                liquidationPenalty =
-                positionDataWithManualMargin.margin ;
+                liquidationPenalty = positionDataWithManualMargin.margin ;
                 clearPosition(_pmAddress, _trader);
                 // after clear position, create an opposite market order of old position
                 _positionManager.openMarketPosition(positionDataWithManualMargin.quantity.abs(), _liquidateOrderIsBuy);
@@ -658,7 +657,7 @@ contract PositionHouseBase is
         positionResp.marginToVault = -positionResp.realizedPnl
         .add(_getClaimAmount(_pmAddress, _trader, _oldPosition))
         .kPositive();
-        positionResp.unrealizedPnl = 0;
+//        positionResp.unrealizedPnl = 0;
         clearPosition(_pmAddress, _trader);
     }
 

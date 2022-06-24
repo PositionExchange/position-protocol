@@ -305,7 +305,7 @@ library PositionHouseFunction {
     function getTotalPendingLimitOrderMargin(
         IPositionManager _positionManager,
         PositionLimitOrder.Data[] memory _limitOrder
-    ) internal returns (uint256 totalMargin) {
+    ) external returns (uint256 totalMargin) {
         for (uint i = 0; i < _limitOrder.length; i++) {
             (
             bool isFilled,
@@ -448,7 +448,7 @@ library PositionHouseFunction {
     function checkPendingOrderSideAndQuantity(
         IPositionManager _positionManager,
         CheckSideAndQuantityParam memory _checkParam
-    ) public view returns (ReturnCheckOrderSideAndQuantity) {
+    ) external view returns (ReturnCheckOrderSideAndQuantity) {
         // Get order in both increase and reduce limit order array
         bool newOrderIsBuy = _checkParam.side == Position.Side.LONG;
         bool positionIsBuy = _checkParam.positionQuantity > 0;
@@ -465,7 +465,6 @@ library PositionHouseFunction {
             else {
                 return ReturnCheckOrderSideAndQuantity.MUST_SAME_SIDE;
             }
-
         }
         // if there are not pending limit increase order, for loop check array limit reduce
         (totalPendingQuantity, pendingOrderIsBuy) = _getTotalPendingQuantityFromLimitOrders(_positionManager, _checkParam.reduceLimitOrders);
@@ -539,30 +538,6 @@ library PositionHouseFunction {
         unrealizedPnl = PositionMath.calculatePnl(_position.quantity, _position.openNotional, positionNotional);
     }
 
-    function calcMaintenanceDetail(
-        Position.Data memory _positionData,
-        uint256 _maintenanceMarginRatio,
-        int256 _unrealizedPnl
-    )
-        public
-        view
-        returns (
-            uint256 maintenanceMargin,
-            int256 marginBalance,
-            uint256 marginRatio
-        )
-    {
-        maintenanceMargin =
-            (_positionData.margin * _maintenanceMarginRatio) /
-            100;
-        marginBalance = int256(_positionData.margin) + _unrealizedPnl;
-        if (marginBalance <= 0) {
-            marginRatio = 100;
-        } else {
-            marginRatio = (maintenanceMargin * 100) / uint256(marginBalance);
-        }
-    }
-
     // used to benefit memory pointer
     // used only in `getClaimAmount` memory
     // please don't move me to other places
@@ -582,7 +557,7 @@ library PositionHouseFunction {
         PositionLimitOrder.Data[] memory _reduceLimitOrders,
         int128 _positionLatestCumulativePremiumFraction,
         int128 _latestCumulativePremiumFraction
-    ) public view returns (int256 totalClaimableAmount) {
+    ) external view returns (int256 totalClaimableAmount) {
         ClaimAbleState memory state;
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         // avoid multiple calls
@@ -697,7 +672,7 @@ library PositionHouseFunction {
         Position.Data memory _positionData,
         Position.Data memory _positionDataWithoutLimit,
         int128 _latestCumulativePremiumFraction
-    ) public returns (PositionHouseStorage.PositionResp memory positionResp) {
+    ) external returns (PositionHouseStorage.PositionResp memory positionResp) {
         (
             positionResp.exchangedPositionSize,
             positionResp.exchangedQuoteAssetAmount,
@@ -753,7 +728,7 @@ library PositionHouseFunction {
         Position.Data memory _positionDataWithoutLimit,
         int128 _latestCumulativePremiumFraction,
         int256 _manualMargin
-    ) public returns (PositionHouseStorage.PositionResp memory positionResp) {
+    ) external returns (PositionHouseStorage.PositionResp memory positionResp) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         (
             positionResp.exchangedPositionSize, positionResp.exchangedQuoteAssetAmount, positionResp.entryPrice,
@@ -803,7 +778,7 @@ library PositionHouseFunction {
         uint256 _sizeOut,
         uint256 _openNotional,
         Position.Data memory _oldPosition
-    ) public view returns (int256 totalReturn) {
+    ) external view returns (int256 totalReturn) {
         int256 realizedPnl = calculatePnlWhenClose(_oldPosition.quantity, int256(_sizeOut), _oldPosition.openNotional, _openNotional);
         uint256 reduceMarginRequirement = (_oldPosition.margin * _sizeOut) / _oldPosition.quantity.abs();
         totalReturn = int256(reduceMarginRequirement) + realizedPnl;
