@@ -247,6 +247,7 @@ contract PositionManager is
             uint256 openNotional
         )
     {
+        require(_size != 0, Errors.VL_INVALID_SIZE);
         SingleSlot memory _singleSlot = singleSlot;
         uint256 underlyingPip = getUnderlyingPriceInPip();
         {
