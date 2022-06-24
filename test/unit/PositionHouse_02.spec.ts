@@ -169,7 +169,7 @@ describe("PositionHouse_02", () => {
                                             expectedOpenNotional,
                                             expectedMargin,
                                             expectedPnl = undefined,
-                                            expectedQuantity = 0
+                                            expectedQuantity = undefined
                                         }: ExpectTestCaseParams) {
         const oldPosition = await positionHouse.getPosition(positionManagerAddress, traderAddress)
         const positionNotionalAndPnLTrader = await positionHouseViewer.getPositionNotionalAndUnrealizedPnl(
@@ -180,7 +180,7 @@ describe("PositionHouse_02", () => {
         )
         const positionTrader = (await positionHouse.getPosition(positionManagerAddress, traderAddress)) as unknown as PositionData
         console.log("expect all: quantity, openNotional, positionNotional, margin, unrealizedPnl", Number(positionTrader.quantity), Number(positionTrader.openNotional), Number(positionNotionalAndPnLTrader.positionNotional), Number(positionTrader.margin), Number(positionNotionalAndPnLTrader.unrealizedPnl))
-        if (expectedQuantity != 0) {
+        if (expectedQuantity != undefined) {
             expect(positionTrader.quantity).eq(expectedQuantity);
         }
         if (expectedOpenNotional != undefined) expect(positionNotionalAndPnLTrader.unrealizedPnl).eq(expectedPnl)

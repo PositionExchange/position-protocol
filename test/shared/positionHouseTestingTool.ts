@@ -1,10 +1,11 @@
 import {BEP20Mintable, PositionHouse, PositionHouseViewer, PositionManager} from "../../typeChain";
 import {BigNumber} from "ethers";
 import {
-    ClaimFund,
+    CancelLimitOrderParams,
+    ClaimFund, fromWei,
     LimitOrderReturns, MaintenanceDetail,
     OpenLimitPositionAndExpectParams,
-    OpenMarketPositionParams, PendingOrder,
+    OpenMarketPositionParams, OrderData, PendingOrder,
     PositionData,
     priceToPip
 } from "./utilities";
@@ -74,6 +75,7 @@ export default class PositionHouseTestingTool {
                                  expectedMargin,
                                  expectedNotional,
                                  expectedSize,
+                                 expectDeposit,
                                  price = 5000,
                                  _positionManager = this.positionManager
                              }: OpenMarketPositionParams) {
@@ -193,6 +195,10 @@ export default class PositionHouseTestingTool {
         } as LimitOrderReturns
     }
 
+    async cancelLimitOrder({trader, positionManager, orderIdx, isReduce, refundAmount}: CancelLimitOrderParams) {
+        await this.positionHouse.connect(trader).cancelLimitOrder(positionManager.address, orderIdx, isReduce)
+    }
+
     async closeMarketPosition({trader, _percentQuantity}: CloseMarketPositionParams) {
         const positionData1 = (await this.positionHouseViewer.connect(trader).getPosition(this.positionManager.address, trader.address)) as unknown as PositionData;
         await this.positionHouse.connect(trader).closePosition(this.positionManager.address, _percentQuantity);
@@ -261,11 +267,13 @@ export default class PositionHouseTestingTool {
 
     }
 
-    // async getPendingOrder({pip, orderId}: PendingOrderParam): Promise<PendingOrder> {
-    //
-    //     return (await this.positionHouse.getPendingOrder(this.positionManager.address, pip.toString(), orderId.toString())) as unknown as PendingOrder;
-    //
-    // }
+    async expectOrderbook(orderbook: OrderData[]) {
+        const listOrderFromHighestSell = await this.positionManager.getLiquidityInPipRange(orderbook[0].pip, 10, false)
+        for (let i = 0; i < orderbook.length; i++) {
+            const checkOrderDetail = orderbook[i].pip == listOrderFromHighestSell[0][i].pip.toNumber() && orderbook[i].quantity == fromWei(listOrderFromHighestSell[0][i].liquidity.toString())
+            await expect(checkOrderDetail, `expect order wrong in pip ${orderbook[i].pip}`).eq(true)
+        }
+    }
 
 
     /*

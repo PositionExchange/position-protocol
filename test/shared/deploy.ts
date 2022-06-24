@@ -9,18 +9,21 @@ import {
     PositionManager,
     FundingRateTest,
     PositionNotionalConfigProxy,
-    PositionStrategyOrder
+    PositionStrategyOrder, PositionHouseCoinMargin
 } from "../../typeChain";
 import {BigNumber} from "ethers";
 import PositionManagerTestingTool from "./positionManagerTestingTool";
 import PositionHouseTestingTool from "./positionHouseTestingTool";
 
-export async function deployPositionHouse(){
+export async function deployPositionHouse(isCoinMargin? : boolean){
     const [trader] = await ethers.getSigners();
     // Deploy position house function contract
 
-    const USDMarginFactory = await ethers.getContractFactory('USDMargin')
-    const USDMargin = await USDMarginFactory.deploy();
+    let USDMarginFactory = await ethers.getContractFactory('USDMargin')
+    if (isCoinMargin) {
+        USDMarginFactory = await ethers.getContractFactory('CoinMargin')
+    }
+    let USDMargin = await USDMarginFactory.deploy();
 
     const PositionMath = await ethers.getContractFactory('PositionMath', {
         libraries: {
@@ -73,18 +76,31 @@ export async function deployPositionHouse(){
     })).deploy()) as unknown as PositionHouseViewer
 
     // Deploy position house contract
-    const factory = await ethers.getContractFactory("PositionHouse", {
+
+    let factory = await ethers.getContractFactory("PositionHouse", {
         libraries: {
             PositionHouseFunction: positionHouseFunction.address,
             PositionMath: positionMath.address
         }
     })
 
+    if (isCoinMargin) {
+        factory = await ethers.getContractFactory("PositionHouseCoinMargin", {
+            libraries: {
+                PositionHouseFunction: positionHouseFunction.address,
+                PositionMath: positionMath.address
+            }
+        })
+    }
+
     let positionStrategyOrderFactory = await ethers.getContractFactory("PositionStrategyOrder")
     let positionStrategyOrder = (await positionStrategyOrderFactory.deploy()) as unknown as PositionStrategyOrder
 
 
-    let positionHouse = (await factory.deploy()) as unknown as PositionHouse;
+    let positionHouse = (await factory.deploy()) as unknown as PositionHouseCoinMargin;
+    if (isCoinMargin) {
+        await positionHouse.connect(trader).setContractPrice(positionManager.address, 100);
+    }
     await insuranceFund.connect(trader).initialize()
     await insuranceFund.connect(trader).setCounterParty(positionHouse.address);
     await bep20Mintable.mint(insuranceFund.address, BigNumber.from('10000000000000000000000000000000'));
