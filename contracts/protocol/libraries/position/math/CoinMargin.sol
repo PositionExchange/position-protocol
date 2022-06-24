@@ -7,7 +7,10 @@ library CoinMargin {
         uint256 _quantity,
         uint256 _baseBasisPoint
     ) public pure returns (uint256) {
-        return _quantity * _baseBasisPoint / _price;
+        if (_price != 0) {
+            return _quantity * _baseBasisPoint / _price;
+        }
+        return 0;
     }
 
     function calculateEntryPrice(
@@ -15,7 +18,10 @@ library CoinMargin {
         uint256 _quantity,
         uint256 _baseBasisPoint
     ) public pure returns (uint256) {
-        return _quantity * _baseBasisPoint / _notional;
+        if (_notional != 0) {
+            return _quantity * _baseBasisPoint / _notional;
+        }
+        return 0;
     }
 
     function calculatePnl(
