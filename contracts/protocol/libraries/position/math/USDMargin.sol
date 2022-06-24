@@ -15,7 +15,10 @@ library USDMargin {
         uint256 _quantity,
         uint256 _baseBasisPoint
     ) public pure returns (uint256) {
-        return _notional * _baseBasisPoint / _quantity;
+        if (_quantity != 0) {
+            return _notional * _baseBasisPoint / _quantity;
+        }
+        return 0;
     }
 
     function calculatePnl(
