@@ -14,7 +14,6 @@ import {DeployDataStore} from "./DataStore";
 import {verifyContract} from "../scripts/utils";
 import {TransactionResponse} from "@ethersproject/abstract-provider";
 import {HardhatRuntimeEnvironment} from "hardhat/types";
-import {PositionInsuranceReserveFunds} from "../typeChain";
 import {HardhatDefenderUpgrades} from "@openzeppelin/hardhat-defender";
 
 
@@ -299,13 +298,12 @@ export class ContractWrapperFactory {
 
     }
 
-    async createInsuranceReserveFund(): Promise<PositionInsuranceReserveFunds>{
+    async createInsuranceReserveFund() {
         const Contract = await this.hre.ethers.getContractFactory('PositionInsuranceReserveFunds')
         const deployTx = await Contract.deploy()
-        const contract = await deployTx.deployed() as unknown as PositionInsuranceReserveFunds
+        const contract = await deployTx.deployed()
         console.log(`Deployed PositionInsuranceReserveFunds: ${contract.address}`)
         await verifyContract(this.hre, contract.address)
-        return contract
     }
 
 }
