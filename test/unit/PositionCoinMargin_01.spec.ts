@@ -41,7 +41,7 @@ import PositionManagerTestingTool from "../shared/positionManagerTestingTool";
 import PositionHouseTestingTool from "../shared/positionHouseTestingTool";
 import {deployPositionHouse} from "../shared/deploy";
 
-describe("PositionCoinMargin", () => {
+describe("PositionCoinMargin_01", () => {
     let positionHouse: PositionHouse;
     let trader0: any;
     let trader1: any;
@@ -131,3 +131,4 @@ describe("PositionCoinMargin", () => {
         expect(maintenanceData.maintenanceMargin).eq(expectedMaintenanceMargin);
         expect(maintenanceData.marginBalance).eq(expectedMarginBalance);
     }
+})
