@@ -15,7 +15,7 @@ import {Errors} from "./libraries/helpers/Errors.sol";
 contract PositionHouseCoinMargin is PositionHouseBase
 {
     // map pair manager address to price of contract
-    mapping (address => uint256) public contractSize;
+    mapping (address => uint256) public contractPrice;
 
     function openMarketPosition(
         IPositionManager _positionManager,
@@ -86,11 +86,12 @@ contract PositionHouseCoinMargin is PositionHouseBase
 
     function calculateContractQuantity(address _pmAddress, uint256 _quantity) internal returns (uint256 _contractQuantity){
         uint256 WEI = 10**18;
+        // input quantity is cont, must be integer
         require(_quantity % WEI == 0, Errors.VL_MUST_BE_INTEGER);
-        _contractQuantity = _quantity * contractSize[_pmAddress];
+        _contractQuantity = _quantity * contractPrice[_pmAddress];
     }
 
     function setContractPrice(address _pmAddress, uint256 _contractPrice) external {
-        contractSize[_pmAddress] = _contractPrice;
+        contractPrice[_pmAddress] = _contractPrice;
     }
 }
