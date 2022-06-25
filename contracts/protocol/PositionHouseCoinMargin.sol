@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "../interfaces/IPositionManager.sol";
 import "./libraries/position/Position.sol";
 import "./bases/PositionHouseBase.sol";
+import "./modules/LimitOrder.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
 
 contract PositionHouseCoinMargin is PositionHouseBase
@@ -93,5 +94,25 @@ contract PositionHouseCoinMargin is PositionHouseBase
 
     function setContractPrice(address _pmAddress, uint256 _contractPrice) external {
         contractPrice[_pmAddress] = _contractPrice;
+    }
+
+    function _deposit(
+        address positionManager,
+        address trader,
+        uint256 amount,
+        uint256 fee
+    )
+    internal override
+    {
+        IPositionManager(positionManager).deposit(trader, amount, fee);
+    }
+
+    function _withdraw(
+        address positionManager,
+        address trader,
+        uint256 amount
+    ) internal override
+    {
+        IPositionManager(positionManager).withdraw(trader, amount);
     }
 }

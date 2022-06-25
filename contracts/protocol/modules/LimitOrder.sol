@@ -136,7 +136,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 .getNotionalMarginAndFee(_uQuantity, _pip, _leverage);
             if (_oldPosition.quantity == 0 || _oldPosition.quantity.isSameSide(_quantity)) {
                 require(_checkMaxNotional(notional, configNotionalKey[_pmAddress], _leverage), Errors.VL_EXCEED_MAX_NOTIONAL);
-                insuranceFund.deposit(_pmAddress, _trader, marginToVault, fee);
+                _deposit(_pmAddress, _trader, marginToVault, fee);
             }
             _setLimitOrderPremiumFraction(_pmAddress, _trader, getLatestCumulativePremiumFraction(_pmAddress));
         }
@@ -201,7 +201,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 {
                     if (!_rawQuantity.isSameSide(oldPosition.quantity) && oldPosition.quantity != 0) {
                         int256 totalReturn = PositionHouseFunction.calcReturnWhenOpenReverse(_pmAddress, _trader, sizeOut, openNotional, oldPosition);
-                        insuranceFund.withdraw(_pmAddress, _trader, totalReturn.abs());
+                        _withdraw(_pmAddress, _trader, totalReturn.abs());
                         // if new limit order is not same side with old position, sizeOut == oldPosition.quantity
                         // => close all position and clear position, return sizeOut + 1 mean closed position
                         if (sizeOut == oldPosition.quantity.abs()) {
