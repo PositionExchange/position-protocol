@@ -272,6 +272,26 @@ describe("PositionCoinMargin", () => {
         }
     }
 
+    async function addMargin(input) {
+        const balanceBeforeAddMargin = await bep20Mintable.balanceOf(input.trader.address)
+        await positionHouse.addMargin(input.positionManager.address, toWei(input.amount))
+        const balanceAfterAddMargin = await bep20Mintable.balanceOf(input.trader.address)
+        const depositedMargin = balanceBeforeAddMargin.sub(balanceAfterAddMargin)
+        if (input.amount != undefined) {
+            await expect(depositedMargin).eq(toWei(input.amount))
+        }
+    }
+
+    async function removeMargin(input) {
+        const balanceBeforeRemoveMargin = await bep20Mintable.balanceOf(input.trader.address)
+        await positionHouse.addMargin(input.positionManager.address, toWei(input.amount))
+        const balanceAfterRemoveMargin = await bep20Mintable.balanceOf(input.trader.address)
+        const depositedMargin = balanceBeforeRemoveMargin.sub(balanceAfterRemoveMargin)
+        if (input.amount != undefined) {
+            await expect(depositedMargin).eq(toWei(-input.amount))
+        }
+    }
+
     describe("should expect order book", async () => {
         it('should expect order', async () => {
             await openLimitPositionAndExpect({
@@ -318,14 +338,6 @@ describe("PositionCoinMargin", () => {
                     quantity: 500
                 }
             ])
-
-            await cancelLimitOrderAndExpect({
-                trader: trader2,
-                positionManager: positionManager,
-                orderIdx: 0,
-                isReduce: 0,
-                refundAmount: (500 / 5100 / 10)
-            })
         })
     })
 
