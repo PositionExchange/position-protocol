@@ -85,6 +85,18 @@ contract PositionHouseCoinMargin is PositionHouseBase
         );
     }
 
+    function liquidate(
+        IPositionManager _positionManager,
+        address _trader,
+        uint256 _contractPrice
+    ) public override nonReentrant {
+        PositionHouseBase.liquidate(
+            _positionManager,
+            _trader,
+            _contractPrice
+        );
+    }
+
     function calculateContractQuantity(address _pmAddress, uint256 _quantity) internal returns (uint256 _contractQuantity){
         uint256 WEI = 10**18;
         // input quantity is cont, must be integer

@@ -51,4 +51,24 @@ library PositionMath {
             _basisPoint
         );
     }
+
+    function calculatePartialLiquidateQuantity(
+        int256 _quantity,
+        uint256 _liquidationPenaltyRatio,
+        uint256 _contractPrice
+    ) public pure returns (int256) {
+        int256 partialLiquidateQuantity = _quantity * int256(_liquidationPenaltyRatio) / 100;
+        if (_contractPrice != 0) {
+            return floorQuantity(partialLiquidateQuantity, _contractPrice);
+        }
+        return partialLiquidateQuantity;
+    }
+
+    function floorQuantity(
+        int256 _quantity,
+        uint256 _contractPrice
+    ) public pure returns (int256) {
+        int256 minimumContractSize = int256(10**18 * _contractPrice);
+        return _quantity / minimumContractSize * minimumContractSize;
+    }
 }

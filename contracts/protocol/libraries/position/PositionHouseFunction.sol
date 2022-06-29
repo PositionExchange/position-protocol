@@ -844,6 +844,14 @@ library PositionHouseFunction {
         }
     }
 
+    function getPartialLiquidateQuantity(
+        int256 _quantity,
+        uint256 _liquidationPenaltyRatio,
+        uint256 _contractPrice
+    ) external pure returns (int256) {
+        return PositionMath.calculatePartialLiquidateQuantity(_quantity, _liquidationPenaltyRatio, _contractPrice);
+    }
+
     function calculatePnlWhenClose(
         int256 _positionQuantity,
         int256 _closeQuantity,

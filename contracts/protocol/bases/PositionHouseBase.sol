@@ -284,10 +284,13 @@ contract PositionHouseBase is
      * @param _positionManager positionManager address
      * @param _trader trader address
      */
-    function liquidate(IPositionManager _positionManager, address _trader)
-    external
-    virtual
-    nonReentrant
+    function liquidate(
+        IPositionManager _positionManager,
+        address _trader,
+        uint256 _contractPrice
+    )
+        public
+        virtual
     {
         address _caller = _msgSender();
         (, , uint256 marginRatio) = getMaintenanceDetail(
@@ -310,16 +313,16 @@ contract PositionHouseBase is
             // partially liquidate position
             if (marginRatio >= _partialLiquidationRatio && marginRatio < 100) {
                 // calculate amount quantity of position to reduce
-                int256 partiallyLiquidateQuantity = positionDataWithManualMargin
-                .quantity
-                .getPartiallyLiquidate(_liquidationPenaltyRatio);
+                int256 partiallyLiquidateQuantity = PositionHouseFunction.getPartialLiquidateQuantity(positionDataWithManualMargin.quantity, _liquidationPenaltyRatio, _contractPrice);
                 // partially liquidate position by reduce position's quantity
-                positionResp = partialLiquidate(
-                    _positionManager,
-                    partiallyLiquidateQuantity,
-                    positionDataWithManualMargin,
-                    _trader
-                );
+                {
+                    positionResp = partialLiquidate(
+                        _positionManager,
+                        partiallyLiquidateQuantity,
+                        positionDataWithManualMargin,
+                        _trader
+                    );
+                }
 
                 // half of the liquidationFee goes to liquidator & another half goes to insurance fund
                 liquidationPenalty = uint256(positionResp.marginToVault);
