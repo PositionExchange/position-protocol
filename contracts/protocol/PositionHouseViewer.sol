@@ -115,7 +115,7 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         uint256 maintenanceMargin,
         int256 marginBalance,
         uint256 marginRatio,
-        uint256 liquidationPrice
+        uint256 liquidationPip
     )
     {
         address _pmAddress = address(_positionManager);
@@ -149,9 +149,9 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         {
             (uint64 baseBasisPoint, uint64 basisPoint) = _positionManager.getBasisPointFactors();
             if (_positionDataWithManualMargin.side() == Position.Side.LONG) {
-                liquidationPrice = (maintenanceMargin + _positionDataWithManualMargin.openNotional - _positionDataWithManualMargin.margin) * basisPoint / _positionDataWithManualMargin.quantity.abs();
+                liquidationPip = (maintenanceMargin + _positionDataWithManualMargin.openNotional - _positionDataWithManualMargin.margin) * basisPoint / _positionDataWithManualMargin.quantity.abs();
             } else {
-                liquidationPrice = (_positionDataWithManualMargin.openNotional - maintenanceMargin + _positionDataWithManualMargin.margin) * basisPoint / _positionDataWithManualMargin.quantity.abs();
+                liquidationPip = (_positionDataWithManualMargin.openNotional - maintenanceMargin + _positionDataWithManualMargin.margin) * basisPoint / _positionDataWithManualMargin.quantity.abs();
             }
         }
     }
