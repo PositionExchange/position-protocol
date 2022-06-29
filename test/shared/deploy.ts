@@ -71,7 +71,8 @@ export async function deployPositionHouse(isCoinMargin? : boolean){
 
     let positionHouseViewer = await ((await ethers.getContractFactory('PositionHouseViewer', {
         libraries: {
-            PositionHouseFunction: positionHouseFunction.address
+            PositionHouseFunction: positionHouseFunction.address,
+            PositionMath: positionMath.address
         }
     })).deploy()) as unknown as PositionHouseViewer
 
