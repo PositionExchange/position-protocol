@@ -339,6 +339,7 @@ contract PositionHouseBase is
                 (liquidationPenalty * _liquidationFeeRatio) /
                 2 /
                 100;
+                _reduceBonus(_pmAddress, _trader, 0);
                 emit FullyLiquidated(_pmAddress, _trader);
             }
             address _caller = _msgSender();
@@ -786,13 +787,15 @@ contract PositionHouseBase is
             positionHouseConfigurationProxy.liquidationFeeRatio()
         );
         manualMargin[_pmAddress][_trader] -= int256(_liquidatedManualMargin);
-        positionResp.marginToVault = int256(_liquidatedPositionMargin + _liquidatedManualMargin);
+        uint256 _liquidatedMargin = _liquidatedPositionMargin + _liquidatedManualMargin;
+        positionResp.marginToVault = int256(_liquidatedMargin);
 //        positionResp.unrealizedPnl = unrealizedPnl;
         debtPosition[_pmAddress][_trader].updateDebt(
             _quantity,
             _liquidatedPositionMargin,
             positionResp.exchangedQuoteAssetAmount
         );
+        _reduceBonus(_pmAddress, _trader, _liquidatedMargin);
         return positionResp;
     }
 
@@ -853,6 +856,15 @@ contract PositionHouseBase is
     ) internal override virtual
     {
         insuranceFund.withdraw(positionManager, trader, amount);
+    }
+
+    function _reduceBonus(
+        address positionManager,
+        address trader,
+        uint256 amount
+    ) internal virtual
+    {
+        insuranceFund.reduceBonus(positionManager, trader, amount);
     }
 
     modifier onlyPositionStrategyOrder() {
