@@ -48,7 +48,8 @@ contract InsuranceFund is
     event Withdraw(
         address indexed _token,
         address indexed _trader,
-        uint256 _amount
+        uint256 _amount,
+        int256 _pnl
     );
     event CounterPartyTransferred(address _old, address _new);
     event PosiChanged(address _new);
@@ -67,6 +68,7 @@ contract InsuranceFund is
 
         posi = IERC20Upgradeable(0x5CA42204cDaa70d5c773946e69dE942b85CA6706);
         busd = IERC20Upgradeable(0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56);
+        posiCredit = IERC20Upgradeable(0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56); // TODO: Change later
         router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
         factory = IUniswapV2Factory(0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73);
     }
@@ -77,12 +79,30 @@ contract InsuranceFund is
         uint256 _amount,
         uint256 _fee
     ) public onlyCounterParty onlyWhitelistManager(_positionManager) {
+
+        uint256 depositAmount = _amount + _fee;
+        uint256 creditAmount = posiCredit.balanceOf(_trader);
+
+        if (creditAmount > 0) {
+            if (depositAmount >= creditAmount) {
+                posiCredit.safeTransferFrom(_trader, address(this), creditAmount);
+                depositAmount -= creditAmount;
+            } else {
+                posiCredit.safeTransferFrom(_trader, address(this), depositAmount);
+                depositAmount = 0;
+            }
+        }
+        if (depositAmount <= 0) {
+            emit Deposit(address(posiCredit), _trader, _amount + _fee);
+            return;
+        }
+
         address _tokenAddress = address(
             IPositionManager(_positionManager).getQuoteAsset()
         );
         IERC20Upgradeable _token = IERC20Upgradeable(_tokenAddress);
         totalFee += _fee;
-        _token.safeTransferFrom(_trader, address(this), _amount + _fee);
+        _token.safeTransferFrom(_trader, address(this), depositAmount);
         emit Deposit(address(_token), _trader, _amount + _fee);
     }
 
@@ -90,9 +110,18 @@ contract InsuranceFund is
         address _positionManager,
         address _trader,
         uint256 _amount,
-        uint256 _margin,
         int256 _pnl
     ) public onlyCounterParty onlyWhitelistManager(_positionManager) {
+
+        uint256 creditAmount = 0;
+        if (_pnl < 0) {
+            creditAmount = posiCredit.balanceOf(_trader);
+            if (creditAmount > 0) {
+                posiCredit.safeTransferFrom(_trader, address(this), creditAmount);
+                _amount -= creditAmount;
+            }
+        }
+
         address _token = address(
             IPositionManager(_positionManager).getQuoteAsset()
         );
@@ -116,7 +145,7 @@ contract InsuranceFund is
             emit SoldPosiForFund(_amountIns[0], _gap);
         }
         IERC20Upgradeable(_token).safeTransfer(_trader, _amount);
-        emit Withdraw(_token, _trader, _amount);
+        emit Withdraw(_token, _trader, _amount + creditAmount, _pnl);
     }
 
     //******************************************************************************************************************
@@ -224,4 +253,5 @@ contract InsuranceFund is
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
     uint256[49] private __gap;
+    IERC20Upgradeable public posiCredit;
 }
