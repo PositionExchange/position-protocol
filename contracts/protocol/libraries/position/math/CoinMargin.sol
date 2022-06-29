@@ -41,17 +41,6 @@ library CoinMargin {
         return int256(_closeNotional) - int256(_openNotional);
     }
 
-    function calculateFundingPayment(
-        int256 _deltaPremiumFraction,
-        int256 _quantity,
-        int256 PREMIUM_FRACTION_DENOMINATOR
-    ) public pure returns (int256) {
-        if (_deltaPremiumFraction != 0) {
-            return _quantity * PREMIUM_FRACTION_DENOMINATOR / _deltaPremiumFraction;
-        }
-        return 0;
-    }
-
     function calculateLiquidationPip(
         int256 _quantity,
         uint256 _margin,

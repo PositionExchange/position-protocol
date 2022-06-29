@@ -30,10 +30,10 @@ library PositionMath {
 
     function calculateFundingPayment(
         int256 _deltaPremiumFraction,
-        int256 _quantity,
-        int256 PREMIUM_FRACTION_DENOMINATOR
+        int256 _margin,
+        int256 _PREMIUM_FRACTION_DENOMINATOR
     ) public pure returns (int256) {
-        return USDMargin.calculateFundingPayment(_deltaPremiumFraction, _quantity, PREMIUM_FRACTION_DENOMINATOR);
+        return _margin * _deltaPremiumFraction / _PREMIUM_FRACTION_DENOMINATOR;
     }
 
     function calculateLiquidationPip(
