@@ -209,10 +209,6 @@ contract PositionManager is
         }
     }
 
-    function updateIsRFIToken(bool _isRFI) external onlyOwner {
-        isRFIToken = _isRFI;
-    }
-
     function deposit(
         address _trader,
         uint256 _amount,
@@ -226,8 +222,7 @@ contract PositionManager is
 
     function withdraw(
         address _trader,
-        uint256 _amount,
-        int256 _pnl
+        uint256 _amount
     ) external onlyCounterParty {
         insuranceFund.withdraw(address(this), _trader, _amount);
     }
@@ -668,7 +663,13 @@ contract PositionManager is
 
     }
 
+    function updateIsRFIToken(bool _isRFI) public onlyOwner {
+        isRFIToken = _isRFI;
+    }
 
+    function updateInsuranceFundAddress(address _insuranceFundAddress) public onlyOwner {
+        insuranceFund = IInsuranceFund(_insuranceFundAddress);
+    }
 
     function updateLeverage(uint128 _newLeverage) public onlyOwner {
         require(0 < _newLeverage, Errors.VL_INVALID_LEVERAGE);

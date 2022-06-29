@@ -93,4 +93,24 @@ contract PositionHouseCoinMargin is PositionHouseBase
     function setContractPrice(address _pmAddress, uint256 _contractPrice) external {
         contractSize[_pmAddress] = _contractPrice;
     }
+
+    function _deposit(
+        address positionManager,
+        address trader,
+        uint256 amount,
+        uint256 fee
+    )
+    internal override
+    {
+        IPositionManager(positionManager).deposit(trader, amount, fee);
+    }
+
+    function _withdraw(
+        address positionManager,
+        address trader,
+        uint256 amount
+    ) internal override
+    {
+        IPositionManager(positionManager).withdraw(trader, amount);
+    }
 }

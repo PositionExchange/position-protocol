@@ -199,4 +199,15 @@ interface IPositionManager {
     function settleFunding() external returns (int256 premiumFraction);
 
     function updateLeverage(uint128 _newLeverage) external;
+
+    function deposit(
+        address _trader,
+        uint256 _amount,
+        uint256 _fee
+    ) external;
+
+    function withdraw(
+        address _trader,
+        uint256 _amount
+    ) external;
 }
