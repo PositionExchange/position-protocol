@@ -159,11 +159,13 @@ export class ContractWrapperFactory {
         console.log(`into create PositionHouseViewer`);
         const positionHouseFunctionContractAddress = await this.db.findAddressByKey(`PositionHouseFunction`);
         console.log(`positionHouseFunctionContractAddress ${positionHouseFunctionContractAddress}`);
+        const PositionMathAddress = await this.db.findAddressByKey('PositionMath');
 
 
         const PositionHouseViewer = await this.hre.ethers.getContractFactory("PositionHouseViewer", {
             libraries: {
                 PositionHouseFunction: positionHouseFunctionContractAddress,
+                PositionMath: PositionMathAddress
             }
         })
         const positionHouseViewerContractAddress = await this.db.findAddressByKey(`PositionHouseViewer`);

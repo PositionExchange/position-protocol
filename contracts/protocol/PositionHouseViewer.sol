@@ -8,6 +8,7 @@ import "./libraries/types/PositionHouseStorage.sol";
 import {PositionHouseFunction} from "./libraries/position/PositionHouseFunction.sol";
 import "../interfaces/IPositionHouseConfigurationProxy.sol";
 import {Int256Math} from "./libraries/helpers/Int256Math.sol";
+import {PositionMath} from "./libraries/position/PositionMath.sol";
 
 contract PositionHouseViewer is Initializable, OwnableUpgradeable {
     using Int256Math for int256;
@@ -148,11 +149,7 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         if (_positionDataWithManualMargin.quantity != 0)
         {
             (uint64 baseBasisPoint, uint64 basisPoint) = _positionManager.getBasisPointFactors();
-            if (_positionDataWithManualMargin.side() == Position.Side.LONG) {
-                liquidationPip = (maintenanceMargin + _positionDataWithManualMargin.openNotional - _positionDataWithManualMargin.margin) * basisPoint / _positionDataWithManualMargin.quantity.abs();
-            } else {
-                liquidationPip = (_positionDataWithManualMargin.openNotional - maintenanceMargin + _positionDataWithManualMargin.margin) * basisPoint / _positionDataWithManualMargin.quantity.abs();
-            }
+            liquidationPip = PositionMath.calculateLiquidationPip(_positionDataWithManualMargin.quantity, _positionDataWithManualMargin.margin, _positionDataWithManualMargin.openNotional, maintenanceMargin, basisPoint);
         }
     }
 
