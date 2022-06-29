@@ -4402,66 +4402,65 @@ describe("PositionCoinMargin", () => {
                 skipCheckBalance: true
             })
 
+        })
+
+        describe('example', async () => {
+
+        })
+
+        it('example', async () => {
+            await changePrice({
+                limitPrice: 5000,
+                toHigherPrice: true
+            })
+
+            await expectClaimFund({
+                trader: trader1,
+                positionManager: positionManager,
+                claimableAmount: 0.02163265306
+            })
+
+            await expectMarginPnlAndOP({
+                positionManagerAddress: positionManager.address,
+                traderAddress: trader1.address,
+                expectedQuantity: ('-600'),
+                expectedMargin: ('0.012'),
+                expectedPnl: ('0.005'),
+
+            })
+
+            await expectMarginPnlAndOP({
+                positionManagerAddress: positionManager.address,
+                traderAddress: trader1.address,
+                expectedQuantity: ('-1500'),
+                expectedMargin: ('0.03171013549'),
+                expectedPnl: ('-0.004601354881'),
+                expectedMaintenanceMargin: ('0.0009513040646'),
+                expectedMarginBalance: ('0.027108780618'),
+                expectedMarginRatio: ('3')
+            })
+
+
+            await cancelLimitOrderAndExpect({
+                trader: trader2,
+                positionManager: positionManager,
+                orderIdx: 1,
+                isReduce: 1,
+                refundAmount: 100
+            })
+
+            await addMargin({
+                trader: trader1,
+                positionManager: positionManager,
+                amount: 100
+            })
+
+            await removeMargin({
+                trader: trader1,
+                positionManager: positionManager,
+                amount: 100
+            })
+
+        })
     })
-
-    describe('example', async () => {
-
-    })
-
-    it('example', async () => {
-        await changePrice({
-            limitPrice: 5000,
-            toHigherPrice: true
-        })
-
-        await expectClaimFund({
-            trader: trader1,
-            positionManager: positionManager,
-            claimableAmount: 0.02163265306
-        })
-
-        await expectMarginPnlAndOP({
-            positionManagerAddress: positionManager.address,
-            traderAddress: trader1.address,
-            expectedQuantity: ('-600'),
-            expectedMargin: ('0.012'),
-            expectedPnl: ('0.005'),
-
-        })
-
-        await expectMarginPnlAndOP({
-            positionManagerAddress: positionManager.address,
-            traderAddress: trader1.address,
-            expectedQuantity: ('-1500'),
-            expectedMargin: ('0.03171013549'),
-            expectedPnl: ('-0.004601354881'),
-            expectedMaintenanceMargin: ('0.0009513040646'),
-            expectedMarginBalance: ('0.027108780618'),
-            expectedMarginRatio: ('3')
-        })
-
-
-
-        await cancelLimitOrderAndExpect({
-            trader: trader2,
-            positionManager: positionManager,
-            orderIdx: 1,
-            isReduce: 1,
-            refundAmount: 100
-        })
-
-        await addMargin({
-            trader: trader1,
-            positionManager: positionManager,
-            amount: 100
-        })
-
-        await removeMargin({
-            trader: trader1,
-            positionManager: positionManager,
-            amount: 100
-        })
-
-    })
-
 })

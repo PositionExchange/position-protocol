@@ -60,7 +60,7 @@ describe('Test Margin Intergration', function () {
         // S6: Increase market Short (4850,10)
         // S7: Call payFunding with underlyingPrice = 4900, twapPrice = 4850
         // S8: Close 100% position by market Long (4900,15)
-        it("EGE_TC_63: should calculate correct funding payment of position created by market order", async () => {
+        it("EGE_TC_62: should calculate correct funding payment of position created by market order", async () => {
             const balanceOfTrader1BeforeTest = await bep20Mintable.balanceOf(trader1.address)
             const balanceOfTrader2BeforeTest = await bep20Mintable.balanceOf(trader2.address)
 
@@ -249,7 +249,7 @@ describe('Test Margin Intergration', function () {
         // S6: Increase market Short (4700,10)
         // S7: Call payFunding with underlyingPrice = 4690, twapPrice = 4700
         // S8: Close 100% position by market Long (4800,13)
-        it("EGE_TC_64: should calculate correct funding payment of position created by market order 2", async () => {
+        it("EGE_TC_63: should calculate correct funding payment of position created by market order 2", async () => {
             const balanceOfTrader1BeforeTest = await bep20Mintable.balanceOf(trader1.address)
             const balanceOfTrader2BeforeTest = await bep20Mintable.balanceOf(trader2.address)
 
@@ -457,7 +457,7 @@ describe('Test Margin Intergration', function () {
         // S6: Increase market Long (5100,10)
         // S7: Call payFunding with underlyingPrice = 4950, twapPrice = 4850
         // S8: Close 100% position by limit Short (5200,15)
-        it("EGE_TC_65: should calculate correct funding payment of position created by limit order", async () => {
+        it("EGE_TC_64: should calculate correct funding payment of position created by limit order", async () => {
             const balanceOfTrader1BeforeTest = await bep20Mintable.balanceOf(trader1.address)
             const balanceOfTrader2BeforeTest = await bep20Mintable.balanceOf(trader2.address)
 
@@ -651,7 +651,7 @@ describe('Test Margin Intergration', function () {
         // S6: User1 close market Short at (4700,2)
         // S7: Call payFunding with underlyingPrice = 5020, twapPrice = 5050
         // S8: User1 close limit Short (5200,1)
-        it("EGE_TC_66", async () => {
+        it("EGE_TC_65", async () => {
             const balanceOfTrader1BeforeTest = await bep20Mintable.balanceOf(trader1.address)
             const balanceOfTrader2BeforeTest = await bep20Mintable.balanceOf(trader2.address)
 
@@ -851,7 +851,7 @@ describe('Test Margin Intergration', function () {
         // S4: User1 open market Long (4300,3)
         // S5: Call payFunding with underlyingPrice = 4396, twapPrice = 4387
         // S6: User1 close market L (4400,5)
-        it("EGE_TC_71", async () => {
+        it("EGE_TC_70", async () => {
             await phTT.dumpPrice({
                 toPrice: 3900,
                 pumper1: tradercp1,
@@ -1019,7 +1019,7 @@ describe('Test Margin Intergration', function () {
         // S4: User1 open market Long at (4400,15)
         // S5: Call payFunding with underlyingPrice = 4414, twapPrice = 4399
         // S6: User1 close limit Long at (4400,3)
-        it("EGE_TC_72", async () => {
+        it("EGE_TC_71", async () => {
             await phTT.dumpPrice({
                 toPrice: 4000,
                 pumper: tradercp1,

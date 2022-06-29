@@ -98,11 +98,13 @@ export async function deployPositionHouse(isCoinMargin? : boolean){
 
 
     let positionHouse = (await factory.deploy()) as unknown as PositionHouseCoinMargin;
-    if (isCoinMargin) {
-        await positionHouse.connect(trader).setContractPrice(positionManager.address, 100);
-    }
     await insuranceFund.connect(trader).initialize()
     await insuranceFund.connect(trader).setCounterParty(positionHouse.address);
+    if (isCoinMargin) {
+        await positionHouse.connect(trader).setContractPrice(positionManager.address, 100);
+        await insuranceFund.connect(trader).setCounterParty(positionManager.address);
+    }
+
     await bep20Mintable.mint(insuranceFund.address, BigNumber.from('10000000000000000000000000000000'));
 
     (await ethers.getSigners()).forEach(element => {
@@ -119,6 +121,9 @@ export async function deployPositionHouse(isCoinMargin? : boolean){
     await positionHouseConfiguration.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20))
     await positionHouse.initialize(insuranceFund.address, positionHouseConfiguration.address, positionNotionalConfigProxy.address)
     await positionHouseViewer.initialize(positionHouse.address, positionHouseConfiguration.address)
+
+    await positionManager.updateInsuranceFundAddress(insuranceFund.address)
+    await fundingRateTest.updateInsuranceFundAddress(insuranceFund.address)
 
     await positionHouse.setPositionStrategyOrder(positionStrategyOrder.address)
 
