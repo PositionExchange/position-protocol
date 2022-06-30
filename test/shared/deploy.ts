@@ -100,6 +100,7 @@ export async function deployPositionHouse(isCoinMargin? : boolean){
     let positionHouse = (await factory.deploy()) as unknown as PositionHouseCoinMargin;
     if (isCoinMargin) {
         await positionHouse.connect(trader).setContractPrice(positionManager.address, 100);
+        await positionHouse.connect(trader).setContractPrice(fundingRateTest.address, 100);
     }
     await insuranceFund.connect(trader).initialize()
     await insuranceFund.connect(trader).setCounterParty(positionHouse.address);
@@ -126,6 +127,7 @@ export async function deployPositionHouse(isCoinMargin? : boolean){
     await positionHouse.updateConfigNotionalKey(fundingRateTest.address, ethers.utils.formatBytes32String("BTC_BUSD"))
     await insuranceFund.updateWhitelistManager(positionManager.address, true);
     await insuranceFund.updateWhitelistManager(fundingRateTest.address, true);
+
 
     return [
         positionHouse,
