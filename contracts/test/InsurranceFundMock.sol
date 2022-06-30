@@ -5,7 +5,11 @@ import "../protocol/InsuranceFund.sol";
 
 contract InsuranceFundTest is InsuranceFund {
 
-    function setCreditAddress(address _address) public {
-        posiCredit = IERC20Upgradeable(_address);
+    function setBonusAddress(address _address) public {
+        busdBonus = IERC20Upgradeable(_address);
+    }
+
+    function setBonusBalance(address _pm, address _trader, uint256 _amount) public {
+        busdBonusBalances[_trader][_pm] = _amount;
     }
 }
