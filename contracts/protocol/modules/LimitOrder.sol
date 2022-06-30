@@ -10,8 +10,6 @@ import "../libraries/types/PositionHouseStorage.sol";
 import {Errors} from "../libraries/helpers/Errors.sol";
 import "./ClaimableAmountManager.sol";
 
-import "hardhat/console.sol";
-
 abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStorage {
     event OpenLimit(
         uint64 orderId,
