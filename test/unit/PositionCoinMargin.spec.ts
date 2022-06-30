@@ -4770,6 +4770,10 @@ describe("PositionCoinMargin", () => {
     })
 
     describe('Check liquidate', async () => {
+        beforeEach(async () => {
+            await insuranceFund.connect(trader0).setCounterParty(fundingRateTest.address)
+        })
+
         it('TC-208', async () => {
             await openLimitPositionAndExpect({
                 limitPrice: 5100,
@@ -4777,7 +4781,7 @@ describe("PositionCoinMargin", () => {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('5')),
                 _trader: trader2,
-                _positionManager: positionManager,
+                _positionManager: fundingRateTest,
                 skipCheckBalance: true
             })
 
@@ -4787,7 +4791,7 @@ describe("PositionCoinMargin", () => {
                 leverage: 10,
                 quantity: BigNumber.from(toWei('5')),
                 _trader: trader2,
-                _positionManager: positionManager,
+                _positionManager: fundingRateTest,
                 skipCheckBalance: true
             })
 
@@ -4797,24 +4801,26 @@ describe("PositionCoinMargin", () => {
                     side: SIDE.LONG,
                     trader: trader1.address,
                     instanceTrader: trader1,
-                    _positionManager: positionManager,
+                    _positionManager: fundingRateTest,
                 }
             );
 
             await changePrice({
                 limitPrice: 5000,
-                toHigherPrice: false
+                toHigherPrice: false,
+                _positionManager: fundingRateTest
             })
 
             await changePrice({
                 limitPrice: 4500,
-                toHigherPrice: false
+                toHigherPrice: false,
+                _positionManager: fundingRateTest
             })
 
             console.log('MarginRatio')
 
             await expectMarginPnlAndOP({
-                positionManagerAddress: positionManager.address,
+                positionManagerAddress: fundingRateTest.address,
                 traderAddress: trader1.address,
                 expectedQuantity: ('1000'),
                 expectedMargin: ('0.0194193061840'),
@@ -4824,7 +4830,8 @@ describe("PositionCoinMargin", () => {
                 expectedMarginRatio: ('100')
             })
 
-            await positionHouse.liquidate(positionManager.address, trader1.address)
+            await fundingRateTest.setMockPrice(4500, 4500)
+            await positionHouse.liquidate(fundingRateTest.address, trader1.address)
         })
 
     })
@@ -4946,6 +4953,9 @@ describe("PositionCoinMargin", () => {
     })
 
     describe('liquidate', async () => {
+        beforeEach(async () => {
+            await insuranceFund.connect(trader0).setCounterParty(fundingRateTest.address)
+        })
         it('TC-208', async () => {
             await openLimitPositionAndExpect({
                 limitPrice: 5100,
@@ -5214,6 +5224,7 @@ describe("PositionCoinMargin", () => {
         })
 
         it('TC-204', async () => {
+            console.log("step 1")
             await openLimitPositionAndExpect({
                 limitPrice: 5000,
                 side: SIDE.LONG,
@@ -5224,6 +5235,7 @@ describe("PositionCoinMargin", () => {
                 skipCheckBalance: true
             })
 
+            console.log("step 2")
             await openMarketPosition({
                     quantity: BigNumber.from(toWei('4')),
                     leverage: 10,
@@ -5262,6 +5274,7 @@ describe("PositionCoinMargin", () => {
                 expectedMarginRatio: ('1')
             })
 
+            console.log("step 3")
             await openLimitPositionAndExpect({
                 limitPrice: 4900,
                 side: SIDE.SHORT,
@@ -5272,6 +5285,7 @@ describe("PositionCoinMargin", () => {
                 skipCheckBalance: true
             })
 
+            console.log("step 4")
             await openMarketPosition({
                     quantity: BigNumber.from(toWei('5')),
                     leverage: 10,
@@ -5282,12 +5296,14 @@ describe("PositionCoinMargin", () => {
                 }
             );
 
+            console.log("step 5")
             await changePrice({
                 limitPrice: 4512,
                 toHigherPrice: false,
                 _positionManager: fundingRateTest
             })
 
+            console.log("step 6")
             await changePrice({
                 limitPrice: 4319,
                 toHigherPrice: false,
@@ -5306,7 +5322,7 @@ describe("PositionCoinMargin", () => {
             })
 
             await fundingRateTest.setMockPrice(4319, 4319)
-
+            console.log("before liquidate")
             await positionHouse.liquidate(fundingRateTest.address, trader1.address)
 
             await expectMarginPnlAndOP({
@@ -5344,7 +5360,6 @@ describe("PositionCoinMargin", () => {
         beforeEach(async () => {
             await insuranceFund.connect(trader0).setCounterParty(fundingRateTest.address)
         })
-        await positionHouse.liquidate(positionManager.address, trader2.address)
     })
 
     it('example', async () => {
