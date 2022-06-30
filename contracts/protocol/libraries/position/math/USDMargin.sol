@@ -38,14 +38,6 @@ library USDMargin {
         return (int256(_openNotional) - int256(_closeNotional));
     }
 
-    function calculateFundingPayment(
-        int256 _deltaPremiumFraction,
-        int256 _quantity,
-        int256 PREMIUM_FRACTION_DENOMINATOR
-    ) public pure returns (int256) {
-        return _quantity * _deltaPremiumFraction / PREMIUM_FRACTION_DENOMINATOR;
-    }
-
     function calculateLiquidationPip(
         int256 _quantity,
         uint256 _margin,
