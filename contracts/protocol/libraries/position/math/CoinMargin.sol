@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
+import "../../helpers/Quantity.sol";
+
 library CoinMargin {
+    using Quantity for int256;
+
     function calculateNotional(
         uint256 _price,
         uint256 _quantity,
@@ -46,5 +50,20 @@ library CoinMargin {
             return _quantity * PREMIUM_FRACTION_DENOMINATOR / _deltaPremiumFraction;
         }
         return 0;
+    }
+
+    function calculateLiquidationPip(
+        int256 _quantity,
+        uint256 _margin,
+        uint256 _positionNotional,
+        uint256 _maintenanceMargin,
+        uint256 _basisPoint
+    ) public pure returns (uint256) {
+        // if position is long
+        if (_quantity > 0) {
+            return _quantity.abs() * _basisPoint / (_positionNotional + _margin - _maintenanceMargin);
+        }
+        // position is short
+        return _quantity.abs() * _basisPoint / (_positionNotional + _maintenanceMargin - _margin);
     }
 }

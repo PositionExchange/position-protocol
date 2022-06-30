@@ -35,4 +35,20 @@ library PositionMath {
     ) public pure returns (int256) {
         return USDMargin.calculateFundingPayment(_deltaPremiumFraction, _quantity, PREMIUM_FRACTION_DENOMINATOR);
     }
+
+    function calculateLiquidationPip(
+        int256 _quantity,
+        uint256 _margin,
+        uint256 _positionNotional,
+        uint256 _maintenanceMargin,
+        uint256 _basisPoint
+    ) public pure returns (uint256) {
+        return USDMargin.calculateLiquidationPip(
+            _quantity,
+            _margin,
+            _positionNotional,
+            _maintenanceMargin,
+            _basisPoint
+        );
+    }
 }

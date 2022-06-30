@@ -121,6 +121,9 @@ export async function deployPositionHouse(isCoinMargin? : boolean){
     await positionHouse.initialize(insuranceFund.address, positionHouseConfiguration.address, positionNotionalConfigProxy.address)
     await positionHouseViewer.initialize(positionHouse.address, positionHouseConfiguration.address)
 
+    await positionManager.updateInsuranceFundAddress(insuranceFund.address)
+    await fundingRateTest.updateInsuranceFundAddress(insuranceFund.address)
+
     await positionHouse.setPositionStrategyOrder(positionStrategyOrder.address)
 
     await positionHouse.updateConfigNotionalKey(positionManager.address, ethers.utils.formatBytes32String("BTC_BUSD"))

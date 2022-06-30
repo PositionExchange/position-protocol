@@ -40,7 +40,6 @@ import PositionManagerTestingTool from "../shared/positionManagerTestingTool";
 
 import PositionHouseTestingTool from "../shared/positionHouseTestingTool";
 import {deployPositionHouse} from "../shared/deploy";
-import {beforeEach, describe} from "mocha";
 
 describe("PositionCoinMargin", () => {
     let positionHouse: PositionHouse;
@@ -5404,5 +5403,4 @@ describe("PositionCoinMargin", () => {
 
         await liquidate(fundingRateTest.address, trader0.address)
     })
-
 })
