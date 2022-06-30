@@ -801,7 +801,11 @@ library PositionHouseFunction {
         if (_oldPosition.quantity != 0) {
             int256 deltaPremiumFraction = _latestCumulativePremiumFraction - _oldPosition.lastUpdatedCumulativePremiumFraction;
             if (deltaPremiumFraction != 0) {
-                fundingPayment = PositionMath.calculateFundingPayment(deltaPremiumFraction, _oldPosition.quantity, PREMIUM_FRACTION_DENOMINATOR);
+                if (_oldPosition.quantity > 0) {
+                    fundingPayment = PositionMath.calculateFundingPayment(deltaPremiumFraction, int256(_oldPosition.margin), PREMIUM_FRACTION_DENOMINATOR);
+                } else {
+                    fundingPayment = PositionMath.calculateFundingPayment(deltaPremiumFraction, -int256(_oldPosition.margin), PREMIUM_FRACTION_DENOMINATOR);
+                }
             }
         }
 
