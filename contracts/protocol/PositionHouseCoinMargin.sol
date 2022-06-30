@@ -84,8 +84,21 @@ contract PositionHouseCoinMargin is PositionHouseBase
         );
     }
 
+    function liquidate(
+        IPositionManager _positionManager,
+        address _trader
+    ) public nonReentrant {
+        uint256 _contractPrice = contractSize[address(_positionManager)];
+        PositionHouseBase._internalLiquidate(
+            _positionManager,
+            _trader,
+            _contractPrice
+        );
+    }
+
     function calculateContractQuantity(address _pmAddress, uint256 _quantity) internal returns (uint256 _contractQuantity){
         uint256 WEI = 10**18;
+        // input quantity is cont, must be integer
         require(_quantity % WEI == 0, Errors.VL_MUST_BE_INTEGER);
         _contractQuantity = _quantity * contractSize[_pmAddress];
     }
