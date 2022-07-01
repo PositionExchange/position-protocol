@@ -5148,7 +5148,7 @@ describe("PositionCoinMargin", () => {
                 limitPrice: 4900,
                 side: SIDE.LONG,
                 leverage: 10,
-                quantity: BigNumber.from(toWei('10')),
+                quantity: BigNumber.from(toWei('9')),
                 _trader: trader1,
                 _positionManager: fundingRateTest,
                 skipCheckBalance: true
@@ -5188,10 +5188,10 @@ describe("PositionCoinMargin", () => {
             await expectMarginPnlAndOP({
                 positionManagerAddress: fundingRateTest.address,
                 traderAddress: trader1.address,
-                expectedQuantity: ('700'),
+                expectedQuantity: ('800'),
                 expectedMargin: ('0.017816326530636'),
-                expectedPnl: ('-0.01500357228'),
-                expectedMaintenanceMargin: ('0.000565101815'),
+                expectedPnl: ('-0.015825405561652913'),
+                expectedMaintenanceMargin: ('0.000534489795918367'),
                 expectedMarginBalance: ('0.003833154719'),
                 expectedMarginRatio: ('14')
             })

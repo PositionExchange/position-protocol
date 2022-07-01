@@ -17,6 +17,11 @@ contract PositionHouseCoinMargin is PositionHouseBase
     // map pair manager address to price of contract
     mapping (address => uint256) public contractSize;
 
+
+    function setContractPrice(address _pmAddress, uint256 _contractPrice) external onlyOwner {
+        contractSize[_pmAddress] = _contractPrice;
+    }
+
     function openMarketPosition(
         IPositionManager _positionManager,
         Position.Side _side,
@@ -101,10 +106,6 @@ contract PositionHouseCoinMargin is PositionHouseBase
         // input quantity is cont, must be integer
         require(_quantity % WEI == 0, Errors.VL_MUST_BE_INTEGER);
         _contractQuantity = _quantity * contractSize[_pmAddress];
-    }
-
-    function setContractPrice(address _pmAddress, uint256 _contractPrice) external {
-        contractSize[_pmAddress] = _contractPrice;
     }
 
     function _deposit(

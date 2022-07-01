@@ -294,50 +294,7 @@ describe("PositionCoinMargin_01", () => {
 
     describe("should expect order book", async () => {
         it('should expect order', async () => {
-            await openLimitPositionAndExpect({
-                limitPrice: 5100,
-                side: SIDE.SHORT,
-                leverage: 10,
-                quantity: BigNumber.from(toWei('5')),
-                _trader: trader2,
-                _positionManager: positionManager,
-                skipCheckBalance: true,
-            })
 
-            await openLimitPositionAndExpect({
-                limitPrice: 4800,
-                side: SIDE.LONG,
-                leverage: 10,
-                quantity: BigNumber.from(toWei('5')),
-                _trader: trader1,
-                _positionManager: positionManager,
-                skipCheckBalance: true,
-            })
-
-            await openLimitPositionAndExpect({
-                limitPrice: 4900,
-                side: SIDE.LONG,
-                leverage: 10,
-                quantity: BigNumber.from(toWei('5')),
-                _trader: trader1,
-                _positionManager: positionManager,
-                skipCheckBalance: true,
-            })
-
-            await expectOrderbook([
-                {
-                    pip: 510000,
-                    quantity: 500
-                },
-                {
-                    pip: 490000,
-                    quantity: 500
-                },
-                {
-                    pip: 480000,
-                    quantity: 500
-                }
-            ])
         })
     })
 

@@ -32,7 +32,7 @@ library PositionHouseFunction {
         int256 _newQuantity,
         uint16 _leverage,
         int128 _latestCumulativePremiumFraction
-    ) public view returns (Position.Data memory newData) {
+    ) external view returns (Position.Data memory newData) {
         if (_newQuantity * _positionData.quantity >= 0) {
             newData = Position.Data(
                 _positionDataWithoutLimit.quantity + _newQuantity,
@@ -207,22 +207,11 @@ library PositionHouseFunction {
         );
     }
 
-    function handleQuantity(int256 _oldMarketQuantity, int256 _newQuantity)
-        public
-        view
-        returns (int256 quantity)
-    {
-        if (_oldMarketQuantity * _newQuantity >= 0) {
-            return _oldMarketQuantity + _newQuantity;
-        }
-        return _oldMarketQuantity - _newQuantity;
-    }
-
     function clearAllFilledOrder(
         IPositionManager _positionManager,
         PositionLimitOrder.Data[] memory _limitOrders
     )
-        internal
+        external
         returns (
             PositionLimitOrder.Data[] memory
         )
@@ -278,7 +267,7 @@ library PositionHouseFunction {
         PositionLimitOrder.Data[] memory _limitOrders,
         PositionLimitOrder.Data[] memory _reduceLimitOrders,
         Position.Data memory _positionData
-    ) public view returns (Position.Data memory positionData) {
+    ) external view returns (Position.Data memory positionData) {
         for (uint256 i = 0; i < _limitOrders.length; i++) {
             if (_limitOrders[i].pip != 0) {
                 _positionData = accumulateLimitOrderToPositionData(
@@ -334,7 +323,7 @@ library PositionHouseFunction {
         PositionLimitOrder.Data memory _limitOrder,
         Position.Data memory _positionData,
         uint256 _entryPrice
-    ) public view returns (Position.Data memory) {
+    ) internal view returns (Position.Data memory) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         (uint64 _baseBasicPoint, uint64 _basisPoint) = _positionManager.getBasisPointFactors();
         int256 _orderQuantity = _getLimitOrderQuantity(_positionManager, _limitOrder);
@@ -358,7 +347,7 @@ library PositionHouseFunction {
         address _trader,
         PositionLimitOrder.Data[] memory _limitOrders,
         PositionLimitOrder.Data[] memory _reduceLimitOrders
-    ) public view returns (PositionHouseStorage.LimitOrderPending[] memory) {
+    ) external view returns (PositionHouseStorage.LimitOrderPending[] memory) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
         if (_limitOrders.length + _reduceLimitOrders.length > 0) {
             PositionHouseStorage.LimitOrderPending[]
@@ -492,7 +481,7 @@ library PositionHouseFunction {
 
     /// @dev get total pending order quantity from pending limit orders
     function _getTotalPendingQuantityFromLimitOrders(IPositionManager _positionManager, PositionLimitOrder.Data[] memory _limitOrders)
-        public
+        internal
         view
         returns (uint256 totalPendingQuantity, bool _isBuy)
     {
@@ -610,7 +599,7 @@ library PositionHouseFunction {
         IPositionManager _positionManager,
         uint128 _pip,
         uint64 _orderId
-    ) public view returns (int256 _filledAmount) {
+    ) internal view returns (int256 _filledAmount) {
         (bool isFilled, bool isBuy, uint256 size, uint256 partialFilled) = _positionManager.getPendingOrderDetail(
             _pip,
             _orderId
@@ -626,7 +615,7 @@ library PositionHouseFunction {
         int256 _filledAmount,
         uint256 _entryPrice,
         uint16 _leverage
-    ) public view {
+    ) internal view {
         // closedNotional can be negative to calculate pnl in both Long/Short formula
         uint256 closedNotional = PositionMath.calculateNotional(_pip.toNotional(state.baseBasicPoint, state.basisPoint), _filledAmount.abs(), state.baseBasicPoint);
         // already checked if _positionData.openNotional == 0, then used _positionDataWithoutLimit before
@@ -649,7 +638,7 @@ library PositionHouseFunction {
         address _pmAddress,
         uint256 _quantity,
         Position.Side _side
-    ) internal returns (int256 exchangedQuantity, uint256 openNotional, uint256 entryPrice, uint256 fee) {
+    ) public returns (int256 exchangedQuantity, uint256 openNotional, uint256 entryPrice, uint256 fee) {
         IPositionManager _positionManager = IPositionManager(_pmAddress);
 
         uint256 exchangedSize;
@@ -857,7 +846,7 @@ library PositionHouseFunction {
         int256 _closeQuantity,
         uint256 _positionNotional,
         uint256 _closeNotional
-    ) internal pure returns (int256 pnl) {
+    ) public pure returns (int256 pnl) {
         uint256 percentageNotional = _positionNotional * _closeQuantity.abs() / _positionQuantity.abs();
         pnl = PositionMath.calculatePnl(_positionQuantity, percentageNotional, _closeNotional);
     }
@@ -866,7 +855,7 @@ library PositionHouseFunction {
         uint256 _oldMargin,
         uint256 _manualMargin,
         uint256 _liquidationFeeRatio
-    ) public pure returns (uint256 liquidatedPositionMargin, uint256 liquidatedManualMargin) {
+    ) external pure returns (uint256 liquidatedPositionMargin, uint256 liquidatedManualMargin) {
         liquidatedPositionMargin = (_oldMargin * _liquidationFeeRatio) /
         100;
         liquidatedManualMargin = (_manualMargin * _liquidationFeeRatio) /
