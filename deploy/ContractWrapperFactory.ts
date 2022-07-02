@@ -52,6 +52,13 @@ export class ContractWrapperFactory {
         }
     }
 
+    async verifyProxy(proxyAddress){
+        // Ref: https://docs.openzeppelin.com/upgrades-plugins/1.x/api-hardhat-upgrades#verify
+        return this.hre.run('verify', {address: proxyAddress}).catch(e => {
+            console.error(`Verify ${proxyAddress} Error`, e)
+        })
+    }
+
     async createPositionManager(args: CreatePositionManagerInput) {
         const PositionMathAddress = await this.db.findAddressByKey('PositionMath');
         const symbol = `${args.priceFeedKey}_${args.quote}`;
@@ -62,7 +69,7 @@ export class ContractWrapperFactory {
                 PositionMath: PositionMathAddress
             }
         })
-        const contractAddress = await this.db.findAddressByKey(saveKey);
+        let contractAddress = await this.db.findAddressByKey(saveKey);
         console.log("contractAddress", contractAddress)
         if (contractAddress) {
             const upgraded = await this.hre.upgrades.upgradeProxy(contractAddress, PositionManager, {unsafeAllowLinkedLibraries: true});
@@ -90,6 +97,14 @@ export class ContractWrapperFactory {
             const address = instance.address.toString().toLowerCase();
             console.log(`${symbol} positionManager address : ${address}`)
             await this.db.saveAddressByKey(saveKey, address);
+            contractAddress = address;
+            await this.verifyProxy(address)
+        }
+        // Set WhiteList Pair manager to insurance fund
+
+        if(args.isCoinM){
+            // updateInsuranceFundAddress
+            // updateIsRFIToken
         }
     }
 
@@ -131,6 +146,7 @@ export class ContractWrapperFactory {
             const address = instance.address.toString().toLowerCase();
             console.log(`PositionHouse address : ${address}`)
             await this.db.saveAddressByKey('PositionHouse', address);
+            await this.verifyProxy(address)
         }
     }
 
@@ -162,6 +178,7 @@ export class ContractWrapperFactory {
             const address = instance.address.toString().toLowerCase();
             console.log(`PositionHouseConfiguration address : ${address}`)
             await this.db.saveAddressByKey('PositionHouseConfigurationProxy', address);
+            await this.verifyProxy(address)
         }
     }
 
@@ -200,6 +217,7 @@ export class ContractWrapperFactory {
             const address = instance.address.toString().toLowerCase();
             console.log(`PositionHouseViewer address : ${address}`)
             await this.db.saveAddressByKey('PositionHouseViewer', address);
+            await this.verifyProxy(address)
         }
     }
 
@@ -230,6 +248,7 @@ export class ContractWrapperFactory {
             const address = instance.address.toString().toLowerCase();
             console.log(`PositionStrategyOrder address : ${address}`)
             await this.db.saveAddressByKey('PositionStrategyOrder', address);
+            await this.verifyProxy(address)
         }
     }
 
@@ -248,6 +267,7 @@ export class ContractWrapperFactory {
             const address = instance.address.toString().toLowerCase();
             console.log(`InsuranceFund address : ${address}`)
             await this.db.saveAddressByKey('InsuranceFund', address);
+            await this.verifyProxy(address)
 
         }
     }
@@ -264,6 +284,7 @@ export class ContractWrapperFactory {
             const address = instance.address.toString().toLowerCase();
             console.log(`PositionNotionConfigProxy address : ${address}`)
             await this.db.saveAddressByKey('PositionNotionalConfigProxy', address);
+            await this.verifyProxy(address)
         }
     }
 
@@ -274,6 +295,7 @@ export class ContractWrapperFactory {
         await deployTx.deployTransaction.wait(3)
         console.log("wait for deploy USDMargin library");
         await this.db.saveAddressByKey('USDMargin', deployTx.address.toLowerCase());
+        await verifyContract(this.hre, deployTx.address);
     }
 
     async createCoinMarginLibrary(args: CreatePositionHouseFunction) {
@@ -283,6 +305,7 @@ export class ContractWrapperFactory {
         await deployTx.deployTransaction.wait(3)
         console.log("wait for deploy CoinMargin library");
         await this.db.saveAddressByKey('CoinMargin', deployTx.address.toLowerCase());
+        await verifyContract(this.hre, deployTx.address);
     }
 
     async createPositionHouseFunctionLibrary(args: CreatePositionHouseFunction) {
@@ -297,6 +320,7 @@ export class ContractWrapperFactory {
         await deployTx.deployTransaction.wait(3)
         console.log("wait for deploy position house function fund");
         await this.db.saveAddressByKey('PositionHouseFunction', deployTx.address.toLowerCase());
+        await verifyContract(this.hre, deployTx.address);
     }
 
     async createPositionMathLibrary(args: CreatePositionMathLibrary) {
@@ -315,6 +339,7 @@ export class ContractWrapperFactory {
         await deployTx.deployTransaction.wait(3)
         console.log("wait for deploy position house math fund");
         await this.db.saveAddressByKey('PositionMath', deployTx.address.toLowerCase());
+        await verifyContract(this.hre, deployTx.address);
     }
 
     async createChainlinkPriceFeed( args: CreateChainLinkPriceFeed){
@@ -331,7 +356,7 @@ export class ContractWrapperFactory {
             const address = instance.address.toString().toLowerCase();
             console.log(`Chain link price feed address : ${address}`)
             await this.db.saveAddressByKey('ChainLinkPriceFeed', address);
-
+            await this.verifyProxy(address)
         }
 
     }

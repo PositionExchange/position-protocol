@@ -43,6 +43,7 @@ export interface CreatePositionManagerInput {
     quote: string;
     counterParty : string
     leverage?: number
+    isCoinM?: boolean
 }
 
 
