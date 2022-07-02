@@ -101,10 +101,6 @@ export async function deployPositionHouse(isCoinMargin? : boolean){
     let positionHouse = (await factory.deploy()) as unknown as PositionHouseCoinMargin;
     await insuranceFund.connect(trader).initialize()
     await insuranceFund.connect(trader).setCounterParty(positionHouse.address);
-    if (isCoinMargin) {
-        await positionHouse.connect(trader).setContractPrice(positionManager.address, 100);
-        await insuranceFund.connect(trader).setCounterParty(positionManager.address);
-    }
 
     await bep20Mintable.mint(insuranceFund.address, BigNumber.from('10000000000000000000000000000000'));
 
@@ -117,14 +113,20 @@ export async function deployPositionHouse(isCoinMargin? : boolean){
 
     await positionStrategyOrder.initialize(positionHouse.address, positionHouseViewer.address)
 
-    await positionManager.initialize(BigNumber.from(500000), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
-    await fundingRateTest.initialize(BigNumber.from(500000), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
+    await positionManager.initialize(BigNumber.from(500000), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(3600), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
+    await fundingRateTest.initialize(BigNumber.from(500000), bep20Mintable.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(3600), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), positionHouse.address);
     await positionHouseConfiguration.initialize(BigNumber.from(3), BigNumber.from(80), BigNumber.from(3), BigNumber.from(20))
     await positionHouse.initialize(insuranceFund.address, positionHouseConfiguration.address, positionNotionalConfigProxy.address)
     await positionHouseViewer.initialize(positionHouse.address, positionHouseConfiguration.address)
 
     await positionManager.updateInsuranceFundAddress(insuranceFund.address)
     await fundingRateTest.updateInsuranceFundAddress(insuranceFund.address)
+
+    if (isCoinMargin) {
+        await positionHouse.setContractPrice(positionManager.address, 100);
+        await positionHouse.setContractPrice(fundingRateTest.address, 100);
+        await insuranceFund.connect(trader).setCounterParty(positionManager.address);
+    }
 
     await positionHouse.setPositionStrategyOrder(positionStrategyOrder.address)
 

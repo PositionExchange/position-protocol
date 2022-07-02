@@ -123,7 +123,7 @@ describe('Test Margin Intergration', function () {
 
             // Step 3
             console.log("STEP 3")
-            await fundingRateTest.setMockTime(BigNumber.from("1001"))
+            await fundingRateTest.setMockTime(BigNumber.from("3601"))
             await fundingRateTest.setMockPrice(BigNumber.from("4850"), BigNumber.from("4800"))
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 2", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
@@ -150,20 +150,20 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = marginAfterReverse + fundingPayment = 9800 * 1/4 + 11.574074074 = 2467.574074074
+            // claimbleAmount = marginAfterReverse + fundingPayment = 9800 * 1/4 + 4.20962136 = 2454.20962136
             const claimableFundAfterStep4 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep4.toString()).eq("2461574074074000000000")
+            expect(claimableFundAfterStep4.toString()).eq("2454209621360000000000")
 
             // Step 5
             console.log("STEP 5")
-            await fundingRateTest.setMockTime(BigNumber.from("2002"))
+            await fundingRateTest.setMockTime(BigNumber.from("7202"))
             await fundingRateTest.setMockPrice(BigNumber.from("4800"), BigNumber.from("4850"))
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 3", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimableAmount4 + fundingPayment = 2467.574074074 - 2.8935185185 = 2458.6805555555
+            // claimbleAmount = claimableAmount4 + fundingPayment = 2454.20962136 - 1.0651949572767516 = 2453.144426402723
             const claimableFundAfterStep5 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep5.toString()).eq("2458680555555500000000")
+            expect(claimableFundAfterStep5.toString()).eq("2453144426402723248328")
 
             // Step 6
             console.log("STEP 6")
@@ -186,21 +186,21 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = claimableAmount5 + newOrderMargin = 2458.6805555555 + 4850 * 10 / 10 = 7308.6805555555
+            // claimbleAmount = claimableAmount5 + newOrderMargin = 2453.144426402723 + 4850 * 10 / 10 = 7303.144426402723
             const claimableFundAfterStep6 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep6.toString()).eq("7308680555555500000000")
+            expect(claimableFundAfterStep6.toString()).eq("7303144426402723248328")
 
 
             // Step 7
             console.log("STEP 7")
-            await fundingRateTest.setMockTime(BigNumber.from("3003"))
+            await fundingRateTest.setMockTime(BigNumber.from("10803"))
             await fundingRateTest.setMockPrice(BigNumber.from("4900"), BigNumber.from("4850"))
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 4", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimableAmount6 + fundingPayment = 7308.6805555555 + 8.6805555555 = 7317.361111111
+            // claimbleAmount = claimableAmount6 + fundingPayment = 7303.144426402723 + 3.105077915773646 = 7306.249504318497
             const claimableFundAfterStep7 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep7.toString()).eq("7317361111111000000000")
+            expect(claimableFundAfterStep7.toString()).eq("7306249504318496894171")
 
 
             // Step 8
@@ -320,14 +320,14 @@ describe('Test Margin Intergration', function () {
 
             // Step 3
             console.log("STEP 3")
-            await fundingRateTest.setMockTime(BigNumber.from("1001"))
+            await fundingRateTest.setMockTime(BigNumber.from("3601"))
             await fundingRateTest.setMockPrice(BigNumber.from("4620"), BigNumber.from("4550"))
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 2", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = margin + fundingPayment = 2500 + 4.0509259255 = 2504.0509259255
+            // claimbleAmount = margin + fundingPayment = 2500 + 1.57828275 = 2501.57828275
             const claimableFundAfterStep3 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep3.toString()).eq("2504050925925500000000")
+            expect(claimableFundAfterStep3.toString()).eq("2501578282750000000000")
 
             // Step 4
             console.log("STEP 4")
@@ -352,21 +352,21 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = margin = 2500 * 3 / 5 + 4.0509259255 = 1504.0509259255
+            // claimbleAmount = margin = 2500 * 3 / 5 + 1.57828275 = 1501.57828275
             const claimableFundAfterStep4 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep4.toString()).eq("1504050925925500000000")
+            expect(claimableFundAfterStep4.toString()).eq("1501578282750000000000")
 
 
             // Step 5
             console.log("STEP 5")
-            await fundingRateTest.setMockTime(BigNumber.from("2002"))
+            await fundingRateTest.setMockTime(BigNumber.from("7202"))
             await fundingRateTest.setMockPrice(BigNumber.from("4560"), BigNumber.from("4600"))
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 3", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimableAmountStep4 + fundingPayment = 1504.0509259255 - 1.3888888887 = 1502.6620370368
+            // claimbleAmount = claimableAmountStep4 + fundingPayment = 1501.57828275 - 0.5488223576102768 = 1501.0294603923896
             const claimableFundAfterStep5 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep5.toString()).eq("1502662037036800000000")
+            expect(claimableFundAfterStep5.toString()).eq("1501029460392389723250")
 
             // Step 5.5
             await phTT.pumpPrice({
@@ -397,21 +397,21 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = claimableAmountStep5 + newOrderMargin = 1502.6620370368 - 4700 = 6202.6620370368
+            // claimbleAmount = claimableAmountStep5 + newOrderMargin = 1501.0294603923896 + 4700 = 6201.029460392389
             const claimableFundAfterStep6 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep6.toString()).eq("6202662037036800000000")
+            expect(claimableFundAfterStep6.toString()).eq("6201029460392389723250")
 
 
             // Step 7
             console.log("STEP 7")
-            await fundingRateTest.setMockTime(BigNumber.from("3003"))
+            await fundingRateTest.setMockTime(BigNumber.from("10803"))
             await fundingRateTest.setMockPrice(BigNumber.from("4690"), BigNumber.from("4700"))
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 4", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimableAmountStep6 + fundingPayment = 6202.6620370368 - 1.5046296291 = 6201.1574074077
+            // claimbleAmount = claimableAmountStep6 + fundingPayment = 6201.029460392389 -0.5509087588054504 = 6200.478551633584
             const claimableFundAfterStep7 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep7.toString()).eq("6201157407407700000000")
+            expect(claimableFundAfterStep7.toString()).eq("6200478551633584272759")
 
             // Step 8
             console.log("STEP 8")
@@ -519,14 +519,14 @@ describe('Test Margin Intergration', function () {
 
             // Step 3
             console.log("STEP 3")
-            await fundingRateTest.setMockTime(BigNumber.from("1001"))
+            await fundingRateTest.setMockTime(BigNumber.from("3601"))
             await fundingRateTest.setMockPrice(BigNumber.from("4850"), BigNumber.from("4800"))
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 2", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = margin + fundingPayment = 9700 - 11.574074074 = 9688.425925926
+            // claimbleAmount = margin + fundingPayment = 9700 - 4.16666604 = 9695.83333396
             const claimableFundAfterStep3 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep3.toString()).eq("9688425925926000000000")
+            expect(claimableFundAfterStep3.toString()).eq("9695833333960000000000")
 
 
             // Step 4
@@ -557,14 +557,14 @@ describe('Test Margin Intergration', function () {
 
             // Step 5
             console.log("STEP 5")
-            await fundingRateTest.setMockTime(BigNumber.from("2002"))
+            await fundingRateTest.setMockTime(BigNumber.from("7202"))
             await fundingRateTest.setMockPrice(BigNumber.from("4830"), BigNumber.from("4850"))
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 3", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimableFundAfterStep4 + fundingPayment = 9700 + 4.629629628 = 9704.629629628
+            // claimbleAmount = claimableFundAfterStep4 + fundingPayment = 9700 + 1.67356719 = 9701.67356719
             const claimableFundAfterStep5 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep5.toString()).eq("9704629629628000000000")
+            expect(claimableFundAfterStep5.toString()).eq("9701673567190000000000")
 
             // Step 6
             console.log("STEP 6")
@@ -587,20 +587,20 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = oldPositionMargin + newOrderMargin + fundingPayment = 9700 + 5100 + 1.157407407 = 14801.157407407
+            // claimbleAmount = oldPositionMargin + newOrderMargin + fundingPayment = 9700 + 5100 + 0.4183917975 = 14800.4183917975
             const claimableFundAfterStep6 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep6.toString()).eq("14801157407407000000000")
+            expect(claimableFundAfterStep6.toString()).eq("14800418391797500000000")
 
             // Step 7
             console.log("STEP 7")
-            await fundingRateTest.setMockTime(BigNumber.from("3003"))
+            await fundingRateTest.setMockTime(BigNumber.from("10803"))
             await fundingRateTest.setMockPrice(BigNumber.from("4950"), BigNumber.from("4850"))
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 4", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimableFundAfterStep6 + fundingPayment = 14801.157407407 - 34.722222222 = 14766.435185185
+            // claimbleAmount = claimableFundAfterStep6 + fundingPayment = 14800.4183917975 - 12.45826402163026 = 14787.96012777587
             const claimableFundAfterStep7 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep7.toString()).eq("14766435185185000000000")
+            expect(claimableFundAfterStep7.toString()).eq("14787960127775869740937")
 
 
             // Step 8
@@ -625,9 +625,9 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = claimableFundAfterStep7 + pnl = 14766.435185185 + 15*(5200 - 5016.67) = 17516.436185185
+            // claimbleAmount = claimableFundAfterStep7 + pnl = 14787.96012777587 + 15*(5200 - 5016.67) = 17537.910127775867
             const claimableFundAfterStep8 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep8.toString()).eq("17516436185185000000000")
+            expect(claimableFundAfterStep8.toString()).eq("17537961127775869740937")
 
             await positionHouse.connect(trader1).claimFund(fundingRateTest.address)
 
@@ -716,14 +716,14 @@ describe('Test Margin Intergration', function () {
 
             // Step 3
             console.log("STEP 3")
-            await fundingRateTest.setMockTime(BigNumber.from("1001"))
+            await fundingRateTest.setMockTime(BigNumber.from("3601"))
             await fundingRateTest.setMockPrice(BigNumber.from("5070"), BigNumber.from("5000"))
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 2", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimableFundAfterStep2 + fundingPayment = 5400 - 8.101851851 = 5391.898148149
+            // claimbleAmount = claimableFundAfterStep2 + fundingPayment = 5400 - 2.81886906 = 5397.18113094
             const claimableFundAfterStep3 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep3.toString()).eq("5391898148149000000000")
+            expect(claimableFundAfterStep3.toString()).eq("5397181130940000000000")
 
             // Step 4
             console.log("STEP 4")
@@ -748,20 +748,20 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = claimalbeAmountAfterStep2 + newOrderMargin + pnl = 5400 + (5100-4900)*2 = 5800
+            // claimbleAmount = claimalbeAmountAfterStep2 + pnl = 5400 + (5100-4900)*2 = 5800
             const claimableFundAfterStep4 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
             expect(claimableFundAfterStep4.toString()).eq(toWei("5800"))
 
             // Step 5
             console.log("STEP 5")
-            await fundingRateTest.setMockTime(BigNumber.from("2002"))
+            await fundingRateTest.setMockTime(BigNumber.from("7202"))
             await fundingRateTest.setMockPrice(BigNumber.from("5150"), BigNumber.from("5100"))
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 3", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimalbeAmountAfterStep4 + fundingPayment = 5800 - 5.787037037 = 5794.212962963
+            // claimbleAmount = claimalbeAmountAfterStep4 + fundingPayment = 5800 - 1.98220043 = 5798.01779957
             const claimableFundAfterStep5 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep5.toString()).eq("5794212962963000000000")
+            expect(claimableFundAfterStep5.toString()).eq("5798017799570000000000")
 
             // Step 6
             console.log("STEP 6")
@@ -786,20 +786,21 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = claimalbeAmountAfterStep5 + fundingPayment - claimedMargin = 5800 + 1.7361111111 - 4900*2/10 = 4821.7361111111
+            // claimbleAmount = claimalbeAmountAfterStep5 + fundingPayment - claimedMargin = 5800 + 0.594660129 - 4900*2/10 = 4820.594660129
+            console.log((await positionHouseViewer.getPosition(fundingRateTest.address, trader1.address)).margin.toString())
             const claimableFundAfterStep6 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep6.toString()).eq("4821736111111100000000")
+            expect(claimableFundAfterStep6.toString()).eq("4820594660129000000000")
 
             // Step 7
             console.log("STEP 7")
-            await fundingRateTest.setMockTime(BigNumber.from("3003"))
+            await fundingRateTest.setMockTime(BigNumber.from("10803"))
             await fundingRateTest.setMockPrice(BigNumber.from("5020"), BigNumber.from("5050"))
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 4", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimalbeAmountAfterStep6 + fundingPayment = 4821.7361111111 + 2.7777777776 = 4824.5138888887
+            // claimbleAmount = claimalbeAmountAfterStep6 + fundingPayment = 4820.594660129 + 0.976095288 = 4821.570755416999
             const claimableFundAfterStep7 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep7.toString()).eq("4824513888888700000000")
+            expect(claimableFundAfterStep7.toString()).eq("4821570903489691295503")
 
 
             // Step 8
@@ -825,9 +826,9 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = claimalbeAmountAfterStep7 + pnl = 4824.5138888887 + 300 = 5124.5138888887
+            // claimbleAmount = claimalbeAmountAfterStep7 + pnl = 4821.570755416999 + 300 = 5121.570755416999
             const claimableFundAfterStep8 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep8.toString()).eq("5124513888888700000000")
+            expect(claimableFundAfterStep8.toString()).eq("5121570903489691295503")
 
             await positionHouse.connect(trader1).claimFund(fundingRateTest.address)
 
@@ -896,14 +897,14 @@ describe('Test Margin Intergration', function () {
 
             // Step 2
             console.log("STEP 2")
-            await fundingRateTest.setMockTime(BigNumber.from("1001"))
+            await fundingRateTest.setMockTime(BigNumber.from("3601"))
             await fundingRateTest.setMockPrice(BigNumber.from("3987"), BigNumber.from("4010"))
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 2", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimableFundAfterStep1 + fundingPayment = 4000 - 2.662037037 = 3997.337962963
+            // claimbleAmount = claimableFundAfterStep1 + fundingPayment = 4000 - 0.961458 = 3999.038542
             const claimableFundAfterStep2 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep2.toString()).eq(toWei("3997.337962963"))
+            expect(claimableFundAfterStep2.toString()).eq(toWei("3999.038542"))
 
             // Step 2.5
             console.log("STEP 2.5")
@@ -968,14 +969,14 @@ describe('Test Margin Intergration', function () {
 
             // Step 5
             console.log("STEP 5")
-            await fundingRateTest.setMockTime(BigNumber.from("2002"))
+            await fundingRateTest.setMockTime(BigNumber.from("7202"))
             await fundingRateTest.setMockPrice(BigNumber.from("4396"), BigNumber.from("4387"))
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 3", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimableFundAfterStep5 + fundingPayment = 2400 + 0.7291666662 = 2400.7291666662
+            // claimbleAmount = claimableFundAfterStep5 + fundingPayment = 2400 + 0.23885344 = 2400.23885344
             const claimableFundAfterStep6 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep6.toString()).eq(toWei("2400.7291666662"))
+            expect(claimableFundAfterStep6.toString()).eq(toWei("2400.23885344"))
 
 
             // Step 6
@@ -1064,14 +1065,14 @@ describe('Test Margin Intergration', function () {
 
             // Step 2
             console.log("STEP 2")
-            await fundingRateTest.setMockTime(BigNumber.from("1001"))
+            await fundingRateTest.setMockTime(BigNumber.from("3601"))
             await fundingRateTest.setMockPrice(BigNumber.from("4013"), BigNumber.from("4026"))
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 2", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimableFundAfterStep1 + fundingPayment = 4000 - 1.504629629 = 3998.495370371
+            // claimbleAmount = claimableFundAfterStep1 + fundingPayment = 4000 - 0.5399116 = 3999.4600884
             const claimableFundAfterStep2 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep2.toString()).eq(toWei("3998.495370371"))
+            expect(claimableFundAfterStep2.toString()).eq(toWei("3999.4600884"))
 
             // Step 3
             console.log("STEP 3")
@@ -1130,14 +1131,14 @@ describe('Test Margin Intergration', function () {
 
             // Step 5
             console.log("STEP 5")
-            await fundingRateTest.setMockTime(BigNumber.from("2002"))
+            await fundingRateTest.setMockTime(BigNumber.from("7202"))
             await fundingRateTest.setMockPrice(BigNumber.from("4414"), BigNumber.from("4399"))
             await positionHouse.payFunding(fundingRateTest.address)
             console.log("LATEST CUMULATIVE PREMIUM FRACTION 2", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
 
-            // claimbleAmount = claimableFundAfterStep4 + fundingPayment = 1226.666666666667 + 0.5208333333 = 1227.187499999967
+            // claimbleAmount = claimableFundAfterStep4 + fundingPayment = 1226.666666666667 + 0.17368974400000003 = 1226.840356410667
             const claimableFundAfterStep5 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep5.toString()).eq("1227187499999966666667")
+            expect(claimableFundAfterStep5.toString()).eq("1226840356410666666667")
 
             // Step 6
             console.log("STEP 6")
@@ -1162,9 +1163,9 @@ describe('Test Margin Intergration', function () {
                 }
             );
 
-            // claimbleAmount = claimableFundAfterStep5 + pnl = 1227.187499999967 - 933.3333333333339 = 293.855399999966666667
+            // claimbleAmount = claimableFundAfterStep5 + pnl = 1226.840356410667 - 933.3333333333339 = 293.5070230773331
             const claimableFundAfterStep6 = await positionHouseViewer.getClaimAmount(fundingRateTest.address, trader1.address)
-            expect(claimableFundAfterStep6.toString()).eq("293855399999966666667")
+            expect(claimableFundAfterStep6.toString()).eq("293508256410666666667")
 
 
             await positionHouse.connect(trader1).claimFund(fundingRateTest.address)
