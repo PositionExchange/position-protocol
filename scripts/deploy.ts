@@ -52,14 +52,14 @@ task('deploy', 'deploy contracts', async (taskArgs: {stage: Stage, task: string,
         }
 
     }
-}).addParam('stage', 'Stage').addOptionalParam('task', 'Task Name').addOptionalParam('type', 'Type of Perpetual Future Contract')
+}).addParam('stage', 'Stage').addOptionalParam('task', 'Task Name').addOptionalParam('type', 'Type of Perpetual Future Contract', 'usd-m')
 
-task('listDeployedContract', 'list all deployed contracts', async (taskArgs: {stage: Stage}) => {
-    const db = new DeployDataStore( './deployData_mainnet.db')
+task('listDeployedContract', 'list all deployed contracts', async (taskArgs: {stage: Stage, file: string}) => {
+    const db = new DeployDataStore(taskArgs.file)
     const data = await db.listAllContracts()
     for(const obj of data){
         console.log(obj.key, obj.address)
     }
-})
+}).addParam('file', 'Store file', './deployData_mainnet.db')
 
 export default {}
