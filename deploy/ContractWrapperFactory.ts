@@ -72,10 +72,8 @@ export class ContractWrapperFactory {
         let contractAddress = await this.db.findAddressByKey(saveKey);
         console.log("contractAddress", contractAddress)
         if (contractAddress) {
-            const upgraded = await this.hre.upgrades.upgradeProxy(contractAddress, PositionManager, {unsafeAllowLinkedLibraries: true});
-            console.log(`Starting verify upgrade Position Manager ${symbol}`)
-            await this.verifyImplContract(upgraded.deployTransaction)
-            console.log(`Upgrade Position Manager ${symbol}`)
+            const proposal = await this.hre.defender.proposeUpgrade(contractAddress, PositionManager, {unsafeAllowLinkedLibraries: true});
+            await this.verifyContractUsingDefender(proposal)
         } else {
             const contractArgs = [
                 args.initialPrice,
@@ -125,10 +123,8 @@ export class ContractWrapperFactory {
         const positionHouseContractAddress = await this.db.findAddressByKey(`PositionHouse`);
 
         if (positionHouseContractAddress) {
-            console.log('Start upgrade position house')
-            const upgraded = await this.hre.upgrades.upgradeProxy(positionHouseContractAddress, PositionHouse, {unsafeAllowLinkedLibraries: true});
-            console.log('Starting verify upgrade PositionHouse');
-            await this.verifyImplContract(upgraded.deployTransaction);
+            const proposal = await this.hre.defender.proposeUpgrade(positionHouseContractAddress, PositionHouse, {unsafeAllowLinkedLibraries: true});
+            await this.verifyContractUsingDefender(proposal)
 
         } else {
             const contractArgs = [
@@ -157,11 +153,8 @@ export class ContractWrapperFactory {
         const positionHouseConfigurationContractAddress = await this.db.findAddressByKey(`PositionHouseConfigurationProxy`);
 
         if (positionHouseConfigurationContractAddress) {
-            console.log('Start upgrade position house configuration')
-            const upgraded = await this.hre.upgrades.upgradeProxy(positionHouseConfigurationContractAddress, PositionHouseConfiguration, {unsafeAllowLinkedLibraries: true});
-            console.log('Starting verify upgrade PositionHouseConfiguration');
-            await this.verifyImplContract(upgraded.deployTransaction);
-
+            const proposal = await this.hre.defender.proposeUpgrade(positionHouseConfigurationContractAddress, PositionHouseConfiguration, {unsafeAllowLinkedLibraries: true});
+            await this.verifyContractUsingDefender(proposal)
         } else {
             const contractArgs = [
                 args.maintenanceMarginRatio,
@@ -198,10 +191,8 @@ export class ContractWrapperFactory {
         const positionHouseViewerContractAddress = await this.db.findAddressByKey(`PositionHouseViewer`);
 
         if (positionHouseViewerContractAddress) {
-            console.log('Start upgrade position house configuration')
-            const upgraded = await this.hre.upgrades.upgradeProxy(positionHouseViewerContractAddress, PositionHouseViewer, {unsafeAllowLinkedLibraries: true});
-            console.log('Starting verify upgrade PositionHouseConfiguration');
-            await this.verifyImplContract(upgraded.deployTransaction);
+            const proposal = await this.hre.defender.proposeUpgrade(positionHouseViewerContractAddress, PositionHouseViewer, {unsafeAllowLinkedLibraries: true});
+            await this.verifyContractUsingDefender(proposal)
 
         } else {
             const contractArgs = [
@@ -229,10 +220,8 @@ export class ContractWrapperFactory {
         const positionStrategyOrderAddress = await this.db.findAddressByKey(`PositionStrategyOrder`);
 
         if (positionStrategyOrderAddress) {
-            console.log('Start upgrade position strategy order')
-            const upgraded = await this.hre.upgrades.upgradeProxy(positionStrategyOrderAddress, PositionStrategyOrder, {unsafeAllowLinkedLibraries: true});
-            console.log('Starting verify upgrade PositionStrategyOrder');
-            await this.verifyImplContract(upgraded.deployTransaction);
+            const proposal = await this.hre.defender.proposeUpgrade(positionStrategyOrderAddress, PositionStrategyOrder, {unsafeAllowLinkedLibraries: true});
+            await this.verifyContractUsingDefender(proposal)
 
         } else {
             const contractArgs = [
@@ -276,8 +265,8 @@ export class ContractWrapperFactory {
         const PositionNotionalConfigProxy = await this.hre.ethers.getContractFactory("PositionNotionalConfigProxy");
         const positionNotionalConfigProxyContractAddress = await this.db.findAddressByKey('PositionNotionalConfigProxy');
         if(positionNotionalConfigProxyContractAddress){
-            const upgraded = await this.hre.upgrades.upgradeProxy(positionNotionalConfigProxyContractAddress, PositionNotionalConfigProxy);
-            await this.verifyImplContract(upgraded.deployTransaction);
+            const proposal = await this.hre.defender.proposeUpgrade(positionNotionalConfigProxyContractAddress, PositionNotionalConfigProxy, {unsafeAllowLinkedLibraries: true});
+            await this.verifyContractUsingDefender(proposal)
         }else{
             const instance = await this.hre.upgrades.deployProxy(PositionNotionalConfigProxy, []);
             await instance.deployed();
@@ -346,8 +335,8 @@ export class ContractWrapperFactory {
         const ChainLinkPriceFeed = await this.hre.ethers.getContractFactory("ChainLinkPriceFeed");
         const chainlinkContractAddress = await this.db.findAddressByKey(`ChainLinkPriceFeed`);
         if (chainlinkContractAddress) {
-            const upgraded = await this.hre.upgrades.upgradeProxy(chainlinkContractAddress, ChainLinkPriceFeed);
-            await this.verifyImplContract(upgraded.deployTransaction);
+            const proposal = await this.hre.defender.proposeUpgrade(chainlinkContractAddress, ChainLinkPriceFeed, {unsafeAllowLinkedLibraries: true});
+            await this.verifyContractUsingDefender(proposal)
         } else {
             const contractArgs = [];
             const instance = await this.hre.upgrades.deployProxy(ChainLinkPriceFeed, contractArgs);
