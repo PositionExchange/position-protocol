@@ -396,12 +396,13 @@ contract PositionManager is
         // premium = twapMarketPrice - twapIndexPrice
         // timeFraction = fundingPeriod(1 hour) / 1 day
         // premiumFraction = premium * timeFraction
+        uint256 baseBasisPoint = getBaseBasisPoint();
         underlyingPrice = getUnderlyingTwapPrice(spotPriceTwapInterval);
         int256 _twapPrice = int256(getTwapPrice(spotPriceTwapInterval));
         // 10 ** 8 is the divider
         int256 premium = ((_twapPrice - int256(underlyingPrice)) *
-            PREMIUM_FRACTION_DENOMINATOR) / int256(getBaseBasisPoint());
-        premiumFraction = (premium * int256(fundingPeriod)) / int256(1 days) / int256(underlyingPrice);
+            PREMIUM_FRACTION_DENOMINATOR) / int256(baseBasisPoint);
+        premiumFraction = (premium * int256(fundingPeriod) * int256(baseBasisPoint)) / (int256(1 days) * int256(underlyingPrice));
     }
 
     function getLeverage() external view returns (uint128) {
