@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 contract PositionNotionalConfigProxy is Initializable {
     bytes32 constant BTC_BUSD = "BTC_BUSD";
     bytes32 constant BNB_BUSD = "BNB_BUSD";
+    bytes32 constant POSI_BUSD = "POSI_BUSD";
 
     function getMaxNotional(bytes32 key, uint16 leverage) external returns (uint256){
         if(key == BTC_BUSD) { //BTC_BUSD hash
@@ -46,6 +47,22 @@ contract PositionNotionalConfigProxy is Initializable {
                 return 50_000;
             }else if(leverage > 50 && leverage <= 100){
                 return 10_000;
+            }
+        } else if (key == POSI_BUSD) {
+            if(leverage == 1) {
+                return 64766;
+            }else if(leverage == 2){
+                return 32383;
+            }else if(leverage == 3){
+                return 19430;
+            }else if(leverage == 4){
+                return 9715;
+            }else if(leverage >= 5 && leverage <= 10){
+                return 6476;
+            }else if(leverage > 10 && leverage <= 15){
+                return 3886;
+            }else if(leverage > 15 && leverage <= 20){
+                return 1943;
             }
         }
         return 50_000;
