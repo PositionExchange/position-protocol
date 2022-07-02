@@ -215,7 +215,8 @@ contract PositionManager is
         uint256 _amount,
         uint256 _fee
     ) external onlyCounterParty {
-        if (isRFIToken == true) {
+        if (isRFIToken == true) {deposit
+            // TODO update RFI percentage might be different from 1%
             _amount = _amount * 100 / 99;
         }
         insuranceFund.deposit(address(this), _trader, _amount, _fee);
