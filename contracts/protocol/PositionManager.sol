@@ -662,7 +662,6 @@ contract PositionManager is
     function updateMaxPercentMarketMarket(uint16 newMarketMakerSlipage) public onlyOwner {
         emit MaxMarketMakerSlipageUpdated(maxMarketMakerSlipage, newMarketMakerSlipage);
         maxMarketMakerSlipage = newMarketMakerSlipage;
-
     }
 
     function updateIsRFIToken(bool _isRFI) public onlyOwner {

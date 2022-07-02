@@ -36,7 +36,7 @@ const migrations: MigrationDefinition = {
                 })
             },
             // add multi pair
-            'deploy DOTBUSD position manager': async () => {
+            'deploy POSIBUSD position manager': async () => {
                 /**
                  quoteAsset: string;
                  initialPrice: number;
@@ -51,69 +51,13 @@ const migrations: MigrationDefinition = {
                 const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouse');
                 const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
                 await context.factory.createPositionManager({
-                    quoteAsset: await context.db.getMockContract(`BUSD`),
-                    initialPrice: 21000,
-                    priceFeedKey: 'DOT',
-                    basisPoint: 1000,
-                    baseBasisPoint: 1000000,
-                    tollRatio: 10000,
-                    maxFindingWordsIndex: 20,
-                    fundingPeriod: 1000,
-                    priceFeed: chainLinkPriceFeedContractAddress,
-                    quote: 'BUSD',
-                    counterParty: positionHouseFunctionContractAddress
-                })
-            },
-            'deploy BNBBUSD position manager': async () => {
-                /**
-                 quoteAsset: string;
-                 initialPrice: number;
-                 priceFeedKey: string;
-                 basisPoint: number;
-                 baseBasisPoint: number;
-                 tollRatio: number;
-                 maxFindingWordsIndex: number;
-                 fundingPeriod: number;
-                 priceFeed: string;
-                 */
-                const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouse');
-                const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
-                await context.factory.createPositionManager({
-                    quoteAsset: await context.db.getMockContract(`BUSD`),
-                    initialPrice: 43000,
-                    priceFeedKey: 'BNB',
-                    basisPoint: 100,
-                    baseBasisPoint: 10000,
-                    tollRatio: 10000,
-                    maxFindingWordsIndex: 900,
-                    fundingPeriod: 1000,
-                    priceFeed: chainLinkPriceFeedContractAddress,
-                    quote: 'BUSD',
-                    counterParty: positionHouseFunctionContractAddress
-                })
-            },
-            'deploy LINKBUSD position manager': async () => {
-                /**
-                 quoteAsset: string;
-                 initialPrice: number;
-                 priceFeedKey: string;
-                 basisPoint: number;
-                 baseBasisPoint: number;
-                 tollRatio: number;
-                 maxFindingWordsIndex: number;
-                 fundingPeriod: number;
-                 priceFeed: string;
-                 */
-                const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouse');
-                const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
-                await context.factory.createPositionManager({
-                    quoteAsset: await context.db.getMockContract(`BUSD`),
+                    quoteAsset: await context.db.getMockContract(`POSI`),
                     initialPrice: 17000,
-                    priceFeedKey: 'LINK',
-                    basisPoint: 1000,
-                    baseBasisPoint: 100000,
+                    priceFeedKey: 'POSI',
+                    basisPoint: 100000,
+                    baseBasisPoint: 10000000000,
                     tollRatio: 10000,
-                    maxFindingWordsIndex: 50,
+                    maxFindingWordsIndex: 8,
                     fundingPeriod: 1000,
                     priceFeed: chainLinkPriceFeedContractAddress,
                     quote: 'BUSD',

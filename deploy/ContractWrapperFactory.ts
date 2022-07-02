@@ -5,9 +5,9 @@ import {
     CreatePositionHouseFunction,
     CreatePositionHouseInput,
     CreatePositionHouseViewerInput,
-    CreatePositionManagerInput,
+    CreatePositionManagerInput, CreatePositionMathLibrary,
     CreatePositionNotionalConfigProxy,
-    CreatePositionStrategyOrderInput,
+    CreatePositionStrategyOrderInput, CreatePriceAggregator,
     PositionManager
 } from "./types";
 import {DeployDataStore} from "./DataStore";
@@ -299,11 +299,16 @@ export class ContractWrapperFactory {
         await this.db.saveAddressByKey('PositionHouseFunction', deployTx.address.toLowerCase());
     }
 
-    async createPositionMathLibrary(args: CreatePositionHouseFunction) {
-        const coinMarginAddress = await this.db.findAddressByKey('CoinMargin');
+    async createPositionMathLibrary(args: CreatePositionMathLibrary) {
+        let mathLibraryAddress
+        if (args.futureType == 'coin-m') {
+            mathLibraryAddress = await this.db.findAddressByKey('CoinMargin');
+        } else {
+            mathLibraryAddress = await this.db.findAddressByKey('USDMargin');
+        }
         const PositionHouseMath = await this.hre.ethers.getContractFactory("PositionMath", {
             libraries: {
-                USDMargin: coinMarginAddress
+                USDMargin: mathLibraryAddress
             }
         });
         const deployTx = await PositionHouseMath.deploy();
