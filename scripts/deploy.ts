@@ -9,17 +9,18 @@ import {BUSD, BUSD_ADDRESS, POSI, POSI_ADDRESS} from "../constants";
 import {TransactionResponse} from "@ethersproject/abstract-provider";
 import {verifyContract} from "./utils";
 
+const DATA_STORE_FILE = {
+    'usd-m': './deployData_mainnet.db',
+    'coin-m': './deployData_mainnet_coin_m.db',
+}
+
 
 task('deploy', 'deploy contracts', async (taskArgs: {stage: Stage, task: string, type: FutureType}, hre, runSuper) => {
     const basePath = path.join(__dirname, "../deploy/migrations")
     const filenames = await readdir(basePath)
     let dataStoreFileName
     if (taskArgs.stage == 'production') {
-        if (taskArgs.type == 'coin-m') {
-            dataStoreFileName = './deployData_mainnet_coin_m.db'
-        } else {
-            dataStoreFileName = './deployData_mainnet.db'
-        }
+        dataStoreFileName = DATA_STORE_FILE[taskArgs.type || 'usd-m']
     }
     // TODO update db file when deploy coin-m
     const db = new DeployDataStore(dataStoreFileName)
@@ -54,12 +55,23 @@ task('deploy', 'deploy contracts', async (taskArgs: {stage: Stage, task: string,
     }
 }).addParam('stage', 'Stage').addOptionalParam('task', 'Task Name').addOptionalParam('type', 'Type of Perpetual Future Contract', 'usd-m')
 
-task('listDeployedContract', 'list all deployed contracts', async (taskArgs: {stage: Stage, file: string}) => {
-    const db = new DeployDataStore(taskArgs.file)
+task('listDeployedContract', 'list all deployed contracts', async (taskArgs: {stage: Stage, type: string}) => {
+    const db = new DeployDataStore(DATA_STORE_FILE[taskArgs.type || 'usd-m'])
     const data = await db.listAllContracts()
     for(const obj of data){
         console.log(obj.key, obj.address)
     }
-}).addParam('file', 'Store file', './deployData_mainnet.db')
+}).addParam('type', 'Type of Perpetual Future Contract', 'usd-m')
+
+task('verifyImp', 'Verify all implemented contracts', async (taskArgs: {stage: Stage, type: string}, hre) => {
+    const db = new DeployDataStore(DATA_STORE_FILE[taskArgs.type || 'usd-m'])
+    const data = await db.listAllContracts()
+    for(const obj of data){
+        console.log(`Verify ${obj.key}: ${obj.address}`)
+        await hre.run('verify', {address: obj.address}).catch(e => {
+            console.error(`Verify ${obj.address} Error`, e)
+        })
+    }
+}).addParam('type', 'Type of Perpetual Future Contract', 'usd-m')
 
 export default {}
