@@ -18,6 +18,10 @@ contract PositionHouseCoinMargin is PositionHouseBase
     // map pair manager address to price of contract
     mapping (address => uint256) public contractPrice;
 
+    function setContractPrice(address _pmAddress, uint256 _contractPrice) external onlyOwner {
+        contractPrice[_pmAddress] = _contractPrice;
+    }
+
     function openMarketPosition(
         IPositionManager _positionManager,
         Position.Side _side,
@@ -87,10 +91,10 @@ contract PositionHouseCoinMargin is PositionHouseBase
 
     function liquidate(
         IPositionManager _positionManager,
-        address _trader,
-        uint256 _contractPrice
-    ) public override nonReentrant {
-        PositionHouseBase.liquidate(
+        address _trader
+    ) public nonReentrant {
+        uint256 _contractPrice = contractPrice[address(_positionManager)];
+        PositionHouseBase._internalLiquidate(
             _positionManager,
             _trader,
             _contractPrice
@@ -102,10 +106,6 @@ contract PositionHouseCoinMargin is PositionHouseBase
         // input quantity is cont, must be integer
         require(_quantity % WEI == 0, Errors.VL_MUST_BE_INTEGER);
         _contractQuantity = _quantity * contractPrice[_pmAddress];
-    }
-
-    function setContractPrice(address _pmAddress, uint256 _contractPrice) external {
-        contractPrice[_pmAddress] = _contractPrice;
     }
 
     function _deposit(

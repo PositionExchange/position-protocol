@@ -284,51 +284,50 @@ contract PositionHouseBase is
      * @param _positionManager positionManager address
      * @param _trader trader address
      */
-    function liquidate(
+    function _internalLiquidate(
         IPositionManager _positionManager,
         address _trader,
         uint256 _contractPrice
     )
-        public
-        virtual
+        internal
     {
-        address _caller = _msgSender();
         (, , uint256 marginRatio) = getMaintenanceDetail(
             _positionManager,
             _trader,
             PnlCalcOption.TWAP
         );
         uint256 _partialLiquidationRatio = positionHouseConfigurationProxy.partialLiquidationRatio();
-        require(
-            marginRatio >= _partialLiquidationRatio,
-            Errors.VL_NOT_ENOUGH_MARGIN_RATIO
-        );
+        {
+            require(
+                marginRatio >= _partialLiquidationRatio,
+                Errors.VL_NOT_ENOUGH_MARGIN_RATIO
+            );
+        }
         address _pmAddress = address(_positionManager);
-        PositionResp memory positionResp;
         uint256 liquidationPenalty;
         {
             uint256 feeToLiquidator;
             Position.Data memory positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
             (uint256 _liquidationFeeRatio, uint256 _liquidationPenaltyRatio) = positionHouseConfigurationProxy.getLiquidationRatio();
             // partially liquidate position
-            if (marginRatio >= _partialLiquidationRatio && marginRatio < 100) {
+            if (marginRatio < 100) {
                 // calculate amount quantity of position to reduce
                 int256 partiallyLiquidateQuantity = PositionHouseFunction.getPartialLiquidateQuantity(positionDataWithManualMargin.quantity, _liquidationPenaltyRatio, _contractPrice);
                 // partially liquidate position by reduce position's quantity
-                {
-                    positionResp = partialLiquidate(
+                if (partiallyLiquidateQuantity.abs() > 0) {
+                    PositionResp memory positionResp = partialLiquidate(
                         _positionManager,
                         partiallyLiquidateQuantity,
                         positionDataWithManualMargin,
                         _trader
                     );
-                }
 
-                // half of the liquidationFee goes to liquidator & another half goes to insurance fund
-                liquidationPenalty = uint256(positionResp.marginToVault);
-                feeToLiquidator = liquidationPenalty / 2;
-                uint256 feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
-                emit PartiallyLiquidated(_pmAddress, _trader);
+                    // half of the liquidationFee goes to liquidator & another half goes to insurance fund
+                    liquidationPenalty = uint256(positionResp.marginToVault);
+                    feeToLiquidator = liquidationPenalty / 2;
+                    uint256 feeToInsuranceFund = liquidationPenalty - feeToLiquidator;
+                    emit PartiallyLiquidated(_pmAddress, _trader);
+                }
             } else {
                 // fully liquidate trader's position
                 bool _liquidateOrderIsBuy = positionDataWithManualMargin.quantity > 0 ? false : true;
@@ -342,6 +341,7 @@ contract PositionHouseBase is
                 100;
                 emit FullyLiquidated(_pmAddress, _trader);
             }
+            address _caller = _msgSender();
             _withdraw(_pmAddress, _caller, feeToLiquidator);
             // count as bad debt, transfer money to insurance fund and liquidator
         }
