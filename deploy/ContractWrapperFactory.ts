@@ -1,24 +1,34 @@
 import {
-    CreatePositionManagerInput,
-    PositionManager,
-    CreatePositionHouseInput,
-    CreateInsuranceFund,
-    CreatePositionHouseFunction,
     CreateChainLinkPriceFeed,
+    CreateInsuranceFund,
     CreatePositionHouseConfigurationProxyInput,
+    CreatePositionHouseFunction,
+    CreatePositionHouseInput,
     CreatePositionHouseViewerInput,
+    CreatePositionManagerInput,
     CreatePositionNotionalConfigProxy,
-    CreatePositionStrategyOrderInput
+    CreatePositionStrategyOrderInput,
+    PositionManager
 } from "./types";
 import {DeployDataStore} from "./DataStore";
 import {verifyContract} from "../scripts/utils";
 import {TransactionResponse} from "@ethersproject/abstract-provider";
 import {HardhatRuntimeEnvironment} from "hardhat/types";
+import {HardhatDefenderUpgrades} from "@openzeppelin/hardhat-defender";
 
 
 export class ContractWrapperFactory {
+    defender: HardhatDefenderUpgrades
 
     constructor(readonly db: DeployDataStore, readonly hre: HardhatRuntimeEnvironment) {
+        this.defender = hre.defender
+    }
+
+    async verifyContractUsingDefender(proposal){
+        console.log("Upgrade proposal created at:", proposal.url);
+        const receipt = await proposal.txResponse.wait()
+        console.log(`Contract address ${receipt.contractAddress}`)
+        await verifyContract(this.hre, receipt.contractAddress)
     }
 
     async verifyImplContract(deployTransaction: TransactionResponse) {
@@ -227,8 +237,9 @@ export class ContractWrapperFactory {
         const InsuranceFund = await this.hre.ethers.getContractFactory("InsuranceFund");
         const insuranceFundContractAddress = await this.db.findAddressByKey(`InsuranceFund`);
         if (insuranceFundContractAddress) {
-            const upgraded = await this.hre.upgrades.upgradeProxy(insuranceFundContractAddress, InsuranceFund);
-            await this.verifyImplContract(upgraded.deployTransaction);
+            console.log(`Preparing proposal...`)
+            const proposal = await this.hre.defender.proposeUpgrade(insuranceFundContractAddress, InsuranceFund);
+            await this.verifyContractUsingDefender(proposal)
         } else {
             const contractArgs = [];
             const instance = await this.hre.upgrades.deployProxy(InsuranceFund, contractArgs);
@@ -320,4 +331,19 @@ export class ContractWrapperFactory {
 
     }
 
+    async createInsuranceReserveFund() {
+        const Contract = await this.hre.ethers.getContractFactory('PositionInsuranceReserveFunds')
+        const deployTx = await Contract.deploy()
+        const contract = await deployTx.deployed()
+        console.log(`Deployed PositionInsuranceReserveFunds: ${contract.address}`)
+        await verifyContract(this.hre, contract.address)
+    }
+
+    async createPriceAggregator() {
+        const Contract = await this.hre.ethers.getContractFactory('PriceAggregator')
+        const deployTx = await Contract.deploy()
+        const contract = await deployTx.deployed()
+        console.log(`Deployed PriceAggregator: ${contract.address}`)
+        await verifyContract(this.hre, contract.address)
+    }
 }

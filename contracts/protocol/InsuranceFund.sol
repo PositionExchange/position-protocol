@@ -121,6 +121,12 @@ contract InsuranceFund is
     // ONLY OWNER FUNCTIONS
     //******************************************************************************************************************
 
+    // Approve for the reserved funds
+    // due to security issue, the reserved funds contract address is hardcode
+    function approveReserveFund() external onlyOwner {
+        busd.approve(0xF323C72fc1c1711CBE33D492bbE39Ff6fD90f15a,type(uint256).max);
+    }
+
     function updateWhitelistManager(address _positionManager, bool _isWhitelist)
         external
         onlyOwner
