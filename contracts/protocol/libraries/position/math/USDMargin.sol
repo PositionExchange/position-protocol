@@ -46,6 +46,9 @@ library USDMargin {
         uint256 _basisPoint
     ) public pure returns (uint256) {
         if (_quantity > 0) {
+            if (_margin > _maintenanceMargin + _positionNotional) {
+                return 0;
+            }
             return (_maintenanceMargin + _positionNotional - _margin) * _basisPoint / _quantity.abs();
         }
         return (_margin + _positionNotional - _maintenanceMargin) * _basisPoint / _quantity.abs();
