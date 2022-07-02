@@ -33,7 +33,7 @@ export const POSIBUSD : ConfigPositionManagerInput = {
     baseBasisPoint: 10000000000,
     // fee: 0.02%
     tollRatio: 5000,
-    maxFindingWordsIndex: 8, // find in 0.02$ range
+    maxFindingWordsIndex: 200, // find in $0.5 range
     fundingPeriod: 3600,
     quote: BUSD
 }
