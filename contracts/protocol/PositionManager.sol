@@ -215,7 +215,7 @@ contract PositionManager is
         uint256 _amount,
         uint256 _fee
     ) external onlyCounterParty {
-        if (isRFIToken == true) {deposit
+        if (isRFIToken == true) {
             // TODO update RFI percentage might be different from 1%
             _amount = _amount * 100 / 99;
         }
