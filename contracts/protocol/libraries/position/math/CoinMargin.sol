@@ -53,6 +53,9 @@ library CoinMargin {
             return _quantity.abs() * _basisPoint / (_positionNotional + _margin - _maintenanceMargin);
         }
         // position is short
+        if (_margin > _positionNotional + _maintenanceMargin) {
+            return type(uint256).max;
+        }
         return _quantity.abs() * _basisPoint / (_positionNotional + _maintenanceMargin - _margin);
     }
 }

@@ -10,16 +10,16 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "../interfaces/IPositionManager.sol";
 import "./libraries/position/Position.sol";
 import "./bases/PositionHouseBase.sol";
+import "./modules/LimitOrder.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
 
 contract PositionHouseCoinMargin is PositionHouseBase
 {
     // map pair manager address to price of contract
-    mapping (address => uint256) public contractSize;
-
+    mapping (address => uint256) public contractPrice;
 
     function setContractPrice(address _pmAddress, uint256 _contractPrice) external onlyOwner {
-        contractSize[_pmAddress] = _contractPrice;
+        contractPrice[_pmAddress] = _contractPrice;
     }
 
     function openMarketPosition(
@@ -93,7 +93,7 @@ contract PositionHouseCoinMargin is PositionHouseBase
         IPositionManager _positionManager,
         address _trader
     ) public nonReentrant {
-        uint256 _contractPrice = contractSize[address(_positionManager)];
+        uint256 _contractPrice = contractPrice[address(_positionManager)];
         PositionHouseBase._internalLiquidate(
             _positionManager,
             _trader,
@@ -105,7 +105,7 @@ contract PositionHouseCoinMargin is PositionHouseBase
         uint256 WEI = 10**18;
         // input quantity is cont, must be integer
         require(_quantity % WEI == 0, Errors.VL_MUST_BE_INTEGER);
-        _contractQuantity = _quantity * contractSize[_pmAddress];
+        _contractQuantity = _quantity * contractPrice[_pmAddress];
     }
 
     function _deposit(

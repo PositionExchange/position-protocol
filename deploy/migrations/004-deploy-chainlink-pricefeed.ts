@@ -1,5 +1,7 @@
 import {MigrationContext, MigrationDefinition} from "../types";
 import {ContractWrapperFactory} from "../ContractWrapperFactory";
+
+
 const migrations: MigrationDefinition = {
     getTasks: (context: MigrationContext) => ({
         // 'deploy chain link price feed': async () => {
@@ -14,4 +16,6 @@ const migrations: MigrationDefinition = {
         // }
     })
 }
+
+
 export default migrations;

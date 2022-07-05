@@ -13,6 +13,7 @@ export interface MigrationDefinition {
 
 export type Stage = "production" | "staging" | "test"
 export type Network = "bsc_testnet" | "bsc_mainnet" | "qc"
+export type FutureType = "usd-m" | "coin-m"
 
 export interface MigrationContext {
     stage: Stage
@@ -25,6 +26,7 @@ export interface MigrationContext {
     factory: ContractWrapperFactory
     db: DeployDataStore
     hre: HardhatRuntimeEnvironment
+    futureType: FutureType
 }
 
 
@@ -41,6 +43,7 @@ export interface CreatePositionManagerInput {
     quote: string;
     counterParty : string
     leverage?: number
+    isCoinM?: boolean
 }
 
 
@@ -79,12 +82,24 @@ export interface CreatePositionStrategyOrderInput {
     positionHouseViewer: string
 }
 
+export interface CreatePriceAggregator {
+    liquidityPoolAddress: string,
+    decimal: number,
+    version: string,
+    description: string
+    quoteTokenIs1: boolean
+}
+
 export interface CreateInsuranceFund {
 
 }
 
 export interface CreatePositionHouseFunction {
 
+}
+
+export interface CreatePositionMathLibrary {
+    futureType: FutureType
 }
 
 export interface CreateChainLinkPriceFeed {

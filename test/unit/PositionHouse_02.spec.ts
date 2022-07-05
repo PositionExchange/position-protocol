@@ -6725,37 +6725,5 @@ describe("PositionHouse_02", () => {
             const balanceAfterClose = await bep20Mintable.balanceOf(trader1.address)
             await expect(balanceAfterClose.sub(balanceBeforeClose)).eq('6300')
         })
-
-        it("should fill order success", async () => {
-            await openLimitPositionAndExpect({
-                limitPrice: 5200,
-                side: SIDE.SHORT,
-                leverage: 125,
-                quantity: BigNumber.from(3),
-                _trader: trader3,
-                _positionManager: positionManager,
-                skipCheckBalance: true
-            })
-
-            await openLimitPositionAndExpect({
-                limitPrice: 5119,
-                side: SIDE.SHORT,
-                leverage: 125,
-                quantity: BigNumber.from(3),
-                _trader: trader3,
-                _positionManager: positionManager,
-                skipCheckBalance: true
-            })
-
-            await openMarketPosition({
-                    quantity: BigNumber.from('2'),
-                    leverage: 125,
-                    side: SIDE.LONG,
-                    trader: trader1.address,
-                    instanceTrader: trader1,
-                    _positionManager: positionManager,
-                }
-            );
-        })
     })
 })

@@ -14,68 +14,68 @@ import {PositionHouseBase} from "./bases/PositionHouseBase.sol";
 contract PositionHouse is
     PositionHouseBase
 {
-//    function openMarketPosition(
-//        IPositionManager _positionManager,
-//        Position.Side _side,
-//        uint256 _quantity,
-//        uint16 _leverage
-//    ) public override nonReentrant {
-//        PositionHouseBase.openMarketPosition(
-//            _positionManager,
-//            _side,
-//            _quantity,
-//            _leverage
-//        );
-//    }
-//
-//    function openLimitOrder(
-//        IPositionManager _positionManager,
-//        Position.Side _side,
-//        uint256 _uQuantity,
-//        uint128 _pip,
-//        uint16 _leverage
-//    ) public override nonReentrant {
-//        PositionHouseBase.openLimitOrder(
-//            _positionManager,
-//            _side,
-//            _uQuantity,
-//            _pip,
-//            _leverage
-//        );
-//    }
-//
-//    function closePosition(
-//        IPositionManager _positionManager,
-//        uint256 _quantity
-//    ) public override nonReentrant {
-//        PositionHouseBase.closePosition(
-//            _positionManager,
-//            _quantity
-//        );
-//    }
-//
-//    function instantlyClosePosition(
-//        IPositionManager _positionManager,
-//        uint256 _quantity
-//    ) public override nonReentrant {
-//        PositionHouseBase.instantlyClosePosition(
-//            _positionManager,
-//            _quantity
-//        );
-//    }
-//
-//    function closeLimitPosition(
-//        IPositionManager _positionManager,
-//        uint128 _pip,
-//        uint256 _quantity
-//    ) public override nonReentrant {
-//        PositionHouseBase.closeLimitPosition(
-//            _positionManager,
-//            _pip,
-//            _quantity
-//        );
-//    }
-//
+    function openMarketPosition(
+        IPositionManager _positionManager,
+        Position.Side _side,
+        uint256 _quantity,
+        uint16 _leverage
+    ) public override nonReentrant {
+        PositionHouseBase.openMarketPosition(
+            _positionManager,
+            _side,
+            _quantity,
+            _leverage
+        );
+    }
+
+    function openLimitOrder(
+        IPositionManager _positionManager,
+        Position.Side _side,
+        uint256 _uQuantity,
+        uint128 _pip,
+        uint16 _leverage
+    ) public override nonReentrant {
+        PositionHouseBase.openLimitOrder(
+            _positionManager,
+            _side,
+            _uQuantity,
+            _pip,
+            _leverage
+        );
+    }
+
+    function closePosition(
+        IPositionManager _positionManager,
+        uint256 _quantity
+    ) public override nonReentrant {
+        PositionHouseBase.closePosition(
+            _positionManager,
+            _quantity
+        );
+    }
+
+    function instantlyClosePosition(
+        IPositionManager _positionManager,
+        uint256 _quantity
+    ) public override nonReentrant {
+        PositionHouseBase.instantlyClosePosition(
+            _positionManager,
+            _quantity
+        );
+    }
+
+    function closeLimitPosition(
+        IPositionManager _positionManager,
+        uint128 _pip,
+        uint256 _quantity
+    ) public override nonReentrant {
+        PositionHouseBase.closeLimitPosition(
+            _positionManager,
+            _pip,
+            _quantity
+        );
+    }
+
     function liquidate(
         IPositionManager _positionManager,
         address _trader
