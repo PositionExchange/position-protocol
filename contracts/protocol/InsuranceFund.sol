@@ -89,7 +89,9 @@ contract InsuranceFund is
     function withdraw(
         address _positionManager,
         address _trader,
-        uint256 _amount
+        uint256 _amount,
+        uint256 _margin,
+        int256 _pnl
     ) public onlyCounterParty onlyWhitelistManager(_positionManager) {
         address _token = address(
             IPositionManager(_positionManager).getQuoteAsset()

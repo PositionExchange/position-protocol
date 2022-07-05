@@ -273,7 +273,7 @@ contract PositionHouseBase is
         }
         clearPosition(_pmAddress, _trader);
         if (totalRealizedPnl > 0) {
-            _withdraw(_pmAddress, _trader, totalRealizedPnl.abs());
+            _withdraw(_pmAddress, _trader, totalRealizedPnl.abs(), 0, 0);
 //            emit FundClaimed(_pmAddress, _trader, totalRealizedPnl.abs());
         }
     }
@@ -342,7 +342,7 @@ contract PositionHouseBase is
                 emit FullyLiquidated(_pmAddress, _trader);
             }
             address _caller = _msgSender();
-            _withdraw(_pmAddress, _caller, feeToLiquidator);
+            _withdraw(_pmAddress, _caller, feeToLiquidator, 0, 0);
             // count as bad debt, transfer money to insurance fund and liquidator
         }
     }
@@ -388,7 +388,7 @@ contract PositionHouseBase is
 
         manualMargin[_pmAddress][_trader] -= int256(_amount);
 
-        _withdraw(_pmAddress, _trader, _amount);
+        _withdraw(_pmAddress, _trader, _amount, 0, 0);
 
         emit MarginRemoved(_trader, _amount, _positionManager);
     }
@@ -623,7 +623,7 @@ contract PositionHouseBase is
             _deposit(_pmAddress, _trader, pResp.marginToVault.abs(), pResp.fee);
         } else if (pResp.marginToVault < 0) {
             // withdraw from vault to user
-            _withdraw(_pmAddress, _trader, pResp.marginToVault.abs());
+            _withdraw(_pmAddress, _trader, pResp.marginToVault.abs(), oldPosition.margin, pResp.realizedPnl);
         }
         emit OpenMarket(
             _trader,
@@ -808,23 +808,25 @@ contract PositionHouseBase is
     }
 
     function _deposit(
-        address positionManager,
-        address trader,
-        uint256 amount,
-        uint256 fee
+        address _positionManager,
+        address _trader,
+        uint256 _amount,
+        uint256 _fee
     )
     internal override virtual
     {
-        insuranceFund.deposit(positionManager, trader, amount, fee);
+        insuranceFund.deposit(_positionManager, _trader, _amount, _fee);
     }
 
     function _withdraw(
-        address positionManager,
-        address trader,
-        uint256 amount
+        address _positionManager,
+        address _trader,
+        uint256 _amount,
+        uint256 _margin,
+        int256 _pnl
     ) internal override virtual
     {
-        insuranceFund.withdraw(positionManager, trader, amount);
+        insuranceFund.withdraw(_positionManager, _trader, _amount, _margin, _pnl);
     }
 
     modifier onlyPositionStrategyOrder() {

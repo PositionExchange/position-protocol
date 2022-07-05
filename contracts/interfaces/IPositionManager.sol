@@ -208,6 +208,8 @@ interface IPositionManager {
 
     function withdraw(
         address _trader,
-        uint256 _amount
+        uint256 _amount,
+        uint256 _margin,
+        int256 _pnl
     ) external;
 }

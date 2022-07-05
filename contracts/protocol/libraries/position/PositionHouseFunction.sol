@@ -767,8 +767,8 @@ library PositionHouseFunction {
         uint256 _sizeOut,
         uint256 _openNotional,
         Position.Data memory _oldPosition
-    ) external view returns (int256 totalReturn) {
-        int256 realizedPnl = calculatePnlWhenClose(_oldPosition.quantity, int256(_sizeOut), _oldPosition.openNotional, _openNotional);
+    ) external view returns (int256 totalReturn, int256 realizedPnl) {
+        realizedPnl = calculatePnlWhenClose(_oldPosition.quantity, int256(_sizeOut), _oldPosition.openNotional, _openNotional);
         uint256 reduceMarginRequirement = (_oldPosition.margin * _sizeOut) / _oldPosition.quantity.abs();
         totalReturn = int256(reduceMarginRequirement) + realizedPnl;
     }

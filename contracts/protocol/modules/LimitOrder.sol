@@ -67,7 +67,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 _order.pip,
                 _order.leverage
             );
-            _withdraw(_pmAddress, _trader, _refundMargin);
+            _withdraw(_pmAddress, _trader, _refundMargin, 0, 0);
         }
         emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
     }
@@ -85,7 +85,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         _emptyLimitOrders(_pmAddress, _trader);
         _emptyReduceLimitOrders(_pmAddress, _trader);
         if (totalRefundMargin != 0) {
-            _withdraw(_pmAddress, _trader, totalRefundMargin);
+            _withdraw(_pmAddress, _trader, totalRefundMargin, 0, 0);
         }
     }
 
@@ -200,8 +200,8 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             if (sizeOut != 0) {
                 {
                     if (!_rawQuantity.isSameSide(oldPosition.quantity) && oldPosition.quantity != 0) {
-                        int256 totalReturn = PositionHouseFunction.calcReturnWhenOpenReverse(_pmAddress, _trader, sizeOut, openNotional, oldPosition);
-                        _withdraw(_pmAddress, _trader, totalReturn.abs());
+                        (int256 totalReturn, int256 realizedPnl) = PositionHouseFunction.calcReturnWhenOpenReverse(_pmAddress, _trader, sizeOut, openNotional, oldPosition);
+                        _withdraw(_pmAddress, _trader, totalReturn.abs(), oldPosition.margin, realizedPnl);
                         // if new limit order is not same side with old position, sizeOut == oldPosition.quantity
                         // => close all position and clear position, return sizeOut + 1 mean closed position
                         if (sizeOut == oldPosition.quantity.abs()) {
@@ -438,16 +438,18 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         returns (Position.LiquidatedData memory);
 
     function _withdraw(
-        address positionManager,
-        address trader,
-        uint256 amount
+        address _positionManager,
+        address _trader,
+        uint256 _amount,
+        uint256 _margin,
+        int256 _pnl
     ) internal virtual;
 
     function _deposit(
-        address positionManager,
-        address trader,
-        uint256 amount,
-        uint256 fee
+        address _positionManager,
+        address _trader,
+        uint256 _amount,
+        uint256 _fee
     ) internal virtual;
     /**
      * @dev This empty reserved space is put in place to allow future versions to add new

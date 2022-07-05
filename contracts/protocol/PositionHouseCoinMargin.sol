@@ -109,22 +109,24 @@ contract PositionHouseCoinMargin is PositionHouseBase
     }
 
     function _deposit(
-        address positionManager,
-        address trader,
-        uint256 amount,
-        uint256 fee
+        address _positionManager,
+        address _trader,
+        uint256 _amount,
+        uint256 _fee
     )
     internal override
     {
-        IPositionManager(positionManager).deposit(trader, amount, fee);
+        IPositionManager(_positionManager).deposit(_trader, _amount, _fee);
     }
 
     function _withdraw(
-        address positionManager,
-        address trader,
-        uint256 amount
+        address _positionManager,
+        address _trader,
+        uint256 _amount,
+        uint256 _margin,
+        int256 _pnl
     ) internal override
     {
-        IPositionManager(positionManager).withdraw(trader, amount);
+        IPositionManager(_positionManager).withdraw(_trader, _amount, _margin, _pnl);
     }
 }
