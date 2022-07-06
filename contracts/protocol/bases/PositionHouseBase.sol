@@ -410,7 +410,7 @@ contract PositionHouseBase is
     //    }
 
     function getAddedMargin(address _positionManager, address _trader)
-    external
+    public
     view
     returns (int256)
     {
@@ -513,6 +513,7 @@ contract PositionHouseBase is
     )
     {
         address _pmAddress = address(_positionManager);
+        Position.Data memory _positionData = getPosition(_pmAddress, _trader);
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
             _positionManager,
@@ -527,7 +528,8 @@ contract PositionHouseBase is
 
         ) = calcRemainMarginWithFundingPayment(
             _pmAddress,
-            _positionDataWithManualMargin,
+            // only use position data without margin when calculate remain margin with funding payment
+            _positionData,
             _positionDataWithManualMargin.margin
         );
         maintenanceMargin =
@@ -587,7 +589,7 @@ contract PositionHouseBase is
         PositionResp memory pResp;
         // check if old position quantity is the same side with the new one
         if (oldPosition.quantity == 0 || oldPosition.side() == _side) {
-            pResp = PositionHouseFunction.increasePosition(
+            pResp = increasePosition(
                 _pmAddress,
                 _side,
                 int256(_quantity),
@@ -679,6 +681,32 @@ contract PositionHouseBase is
             _pushLimit(_pmAddress, _trader, subListLimitOrders[i]);
         }
         _emptyReduceLimitOrders(_pmAddress, _trader);
+    }
+
+    function increasePosition(
+        address _pmAddress,
+        Position.Side _side,
+        int256 _quantity,
+        uint16 _leverage,
+        address _trader,
+        // position data included manual margin
+        Position.Data memory _positionData,
+        Position.Data memory _positionDataWithoutLimit,
+        int128 _latestCumulativePremiumFraction
+    ) internal returns (PositionResp memory positionResp) {
+        _positionData.margin -= getAddedMargin(_pmAddress, _trader).abs();
+        {
+            positionResp = PositionHouseFunction.increasePosition(
+                _pmAddress,
+                _side,
+                _quantity,
+                _leverage,
+                _trader,
+                _positionData,
+                _positionDataWithoutLimit,
+                _latestCumulativePremiumFraction
+            );
+        }
     }
 
     function openReversePosition(

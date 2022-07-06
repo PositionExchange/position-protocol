@@ -1180,5 +1180,73 @@ describe('Test Margin Intergration', function () {
             console.log("exchanged quote amount trader2", exchangedQuoteAmountOfTrader2.toString())
 
         })
+
+        it("should pay funding based on open margin, not included added margin", async () => {
+            // Step 0
+            console.log("STEP 0")
+            await fundingRateTest.setMockPrice(BigNumber.from("5200"), BigNumber.from("5000"))
+            await positionHouse.payFunding(fundingRateTest.address)
+            console.log("LATEST CUMULATIVE PREMIUM FRACTION 1", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
+
+            // Step 1
+            console.log("STEP 1")
+
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from(toWei('10')),
+                _trader: trader1,
+                _positionManager: fundingRateTest
+            })
+
+            await phTT.openMarketPosition({
+                    quantity: BigNumber.from(toWei('10')),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader2.address,
+                    instanceTrader: trader2,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+            await positionHouse.connect(trader1).addMargin(fundingRateTest.address, toWei('10000'))
+
+            // Step 2
+            console.log("STEP 2")
+            await fundingRateTest.setMockTime(BigNumber.from("3601"))
+            await fundingRateTest.setMockPrice(BigNumber.from("5300"), BigNumber.from("5000"))
+            await positionHouse.payFunding(fundingRateTest.address)
+            console.log("LATEST CUMULATIVE PREMIUM FRACTION 2", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
+
+            console.log((await positionHouseViewer.getFundingPaymentAmount(fundingRateTest.address, trader1.address)).toString())
+
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.LONG,
+                leverage: 10,
+                quantity: BigNumber.from(toWei('3')),
+                _trader: trader2,
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
+            })
+
+            const balanceBeforeClose = await bep20Mintable.balanceOf(trader1.address)
+            await phTT.openMarketPosition({
+                    quantity: BigNumber.from(toWei('3')),
+                    leverage: 10,
+                    side: SIDE.SHORT,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+            // await positionHouse.connect(trader1).claimFund(fundingRateTest.address)
+            const balanceAfterClose = await bep20Mintable.balanceOf(trader1.address)
+            console.log((await balanceAfterClose.sub(balanceBeforeClose)).toString())
+            console.log((await positionHouseViewer.getPosition(fundingRateTest.address, trader1.address)).toString())
+            console.log((await positionHouseViewer.getFundingPaymentAmount(fundingRateTest.address, trader1.address)).toString())
+        })
     })
 })

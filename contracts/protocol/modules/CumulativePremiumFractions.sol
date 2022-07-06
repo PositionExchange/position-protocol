@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "../libraries/position/Position.sol";
 import {PositionMath} from "../libraries/position/PositionMath.sol";
+import {PositionHouseFunction} from "../libraries/position/PositionHouseFunction.sol";
 
 abstract contract CumulativePremiumFractions {
     // avoid calling to position manager
@@ -84,24 +85,7 @@ abstract contract CumulativePremiumFractions {
         latestCumulativePremiumFraction = getLatestCumulativePremiumFraction(
             _positionManager
         );
-        if (_oldPosition.quantity != 0) {
-            int256 deltaPremiumFraction = latestCumulativePremiumFraction - _oldPosition.lastUpdatedCumulativePremiumFraction;
-            if (deltaPremiumFraction != 0) {
-                if (_oldPosition.quantity > 0) {
-                    fundingPayment = PositionMath.calculateFundingPayment(deltaPremiumFraction, -int256(_oldPosition.margin), PREMIUM_FRACTION_DENOMINATOR);
-                } else {
-                    fundingPayment = PositionMath.calculateFundingPayment(deltaPremiumFraction, int256(_oldPosition.margin), PREMIUM_FRACTION_DENOMINATOR);
-                }
-            }
-        }
-
-        // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt
-        if (int256(_pMargin) + fundingPayment >= 0) {
-            remainMargin = uint256(int256(_pMargin) + fundingPayment);
-        } else {
-            badDebt = uint256(-fundingPayment - int256(_pMargin));
-        }
-    }
+        (remainMargin, badDebt, fundingPayment) = PositionHouseFunction.calcRemainMarginWithFundingPayment(_oldPosition, _pMargin, latestCumulativePremiumFraction);}
 
     /**
      * @dev This empty reserved space is put in place to allow future versions to add new

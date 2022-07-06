@@ -120,6 +120,7 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
     )
     {
         address _pmAddress = address(_positionManager);
+        Position.Data memory _positionData = getPositionWithoutManualMargin(_pmAddress, _trader);
         Position.Data memory _positionDataWithManualMargin = getPosition(_pmAddress, _trader);
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
             _positionManager,
@@ -131,7 +132,7 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
         uint256 remainMarginWithFundingPayment,
         ,
         ) = PositionHouseFunction.calcRemainMarginWithFundingPayment(
-            _positionDataWithManualMargin,
+            _positionData,
             _positionDataWithManualMargin.margin,
             positionHouse.getLatestCumulativePremiumFraction(_pmAddress)
         );
@@ -179,14 +180,15 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
 
     function getFundingPaymentAmount(IPositionManager _positionManager, address _trader) external view returns (int256 fundingPayment) {
         address _pmAddress = address(_positionManager);
-        Position.Data memory _positionDataWithManualMargin = getPosition(_pmAddress, _trader);
+        Position.Data memory _positionData = getPositionWithoutManualMargin(_pmAddress, _trader);
+        uint256 manualAddedMargin = getAddedMargin(_pmAddress, _trader).abs();
         (
         ,
         ,
          fundingPayment
         ) = PositionHouseFunction.calcRemainMarginWithFundingPayment(
-            _positionDataWithManualMargin,
-            _positionDataWithManualMargin.margin,
+            _positionData,
+            _positionData.margin + manualAddedMargin,
             positionHouse.getLatestCumulativePremiumFraction(_pmAddress)
         );
     }
@@ -194,5 +196,9 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
     function getPosition(address _pmAddress, address _trader) public view returns (Position.Data memory positionData) {
         positionData = positionHouse.getPosition(_pmAddress, _trader);
         positionData.margin += uint256(positionHouse.getAddedMargin(_pmAddress, _trader));
+    }
+
+    function getPositionWithoutManualMargin(address _pmAddress, address _trader) public view returns (Position.Data memory positionData) {
+        positionData = positionHouse.getPosition(_pmAddress, _trader);
     }
 }
