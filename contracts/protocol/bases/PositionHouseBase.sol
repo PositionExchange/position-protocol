@@ -39,14 +39,6 @@ contract PositionHouseBase is
     using Position for Position.LiquidatedData;
     using PositionHouseFunction for PositionHouseBase;
 
-    event OpenMarket(
-        address trader,
-        int256 quantity,
-        uint16 leverage,
-        uint256 entryPrice,
-        IPositionManager positionManager
-    );
-
     event MarginAdded(
         address trader,
         uint256 marginAdded,

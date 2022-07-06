@@ -11,6 +11,14 @@ import {Errors} from "../libraries/helpers/Errors.sol";
 import "./ClaimableAmountManager.sol";
 
 abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStorage {
+    event OpenMarket(
+        address trader,
+        int256 quantity,
+        uint16 leverage,
+        uint256 entryPrice,
+        IPositionManager positionManager
+    );
+
     event OpenLimit(
         uint64 orderId,
         address trader,
@@ -105,6 +113,13 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             : -int256(_uQuantity);
         _requireOrderSideAndQuantity(_pmAddress, _trader, _side, _uQuantity, _oldPosition.quantity);
 
+        require(
+            _leverage >= _oldPosition.leverage &&
+            _leverage <= _positionManager.getLeverage() &&
+            _leverage > 0,
+            Errors.VL_INVALID_LEVERAGE
+        );
+
         (openLimitResp.orderId, openLimitResp.sizeOut) = _openLimitOrder(
             _positionManager,
             _trader,
@@ -185,49 +200,59 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         uint16 _leverage,
         Position.Data memory oldPosition
     ) private returns (uint64 orderId, uint256 sizeOut) {
+        address _pmAddress = address(_positionManager);
+        uint256 openNotional;
+//            uint128 _quantity = _rawQuantity.abs128();
         {
-            address _pmAddress = address(_positionManager);
-            require(
-                _leverage >= oldPosition.leverage &&
-                    _leverage <= _positionManager.getLeverage() &&
-                    _leverage > 0,
-                Errors.VL_INVALID_LEVERAGE
-            );
-            uint256 openNotional;
-            uint128 _quantity = _rawQuantity.abs128();
             (orderId, sizeOut, openNotional) = _positionManager
-                .openLimitPosition(_pip, _quantity, _rawQuantity > 0);
-            if (sizeOut != 0) {
+            .openLimitPosition(_pip, _rawQuantity.abs128(), _rawQuantity > 0);
+        }
+        if (sizeOut != 0) {
+            int256 intSizeOut = _rawQuantity > 0 ? int256(sizeOut) : -int256(sizeOut);
+            {
+                uint256 entryPip = PositionMath.calculateEntryPrice(openNotional, sizeOut, _positionManager.getBasisPoint());
                 {
-                    if (!_rawQuantity.isSameSide(oldPosition.quantity) && oldPosition.quantity != 0) {
-                        (int256 totalReturn, int256 realizedPnl) = PositionHouseFunction.calcReturnWhenOpenReverse(_pmAddress, _trader, sizeOut, openNotional, oldPosition);
-                        _withdraw(_pmAddress, _trader, totalReturn.abs(), oldPosition.margin, realizedPnl);
-                        // if new limit order is not same side with old position, sizeOut == oldPosition.quantity
-                        // => close all position and clear position, return sizeOut + 1 mean closed position
-                        if (sizeOut == oldPosition.quantity.abs()) {
-                            clearPosition(_pmAddress, _trader);
-                            // TODO refactor to a flag
-                            // flag to compare if (openLimitResp.sizeOut <= _uQuantity)
-                            // in this case, sizeOut is just only used to compare to open the limit order
-                            return (orderId, sizeOut + 1);
-                        }
-                    }
-                }
-                // case: open a limit order at the last price
-                // the order must be partially executed
-                // then update the current position
-                {
-                    Position.Data memory newData = PositionHouseFunction.handleMarketPart(
-                        oldPosition,
-                        _getPositionMap(_pmAddress, _trader),
-                        openNotional,
-                        _rawQuantity > 0 ? int256(sizeOut) : - int256(sizeOut),
+                    emit OpenMarket(
+                        _trader,
+                        intSizeOut,
                         _leverage,
-                        getLatestCumulativePremiumFraction(_pmAddress)
+                        entryPip,
+                        _positionManager
                     );
-                    _updatePositionMap(_pmAddress, _trader, newData);
                 }
             }
+            {
+
+                if (!_rawQuantity.isSameSide(oldPosition.quantity) && oldPosition.quantity != 0) {
+                    // if new limit order is not same side with old position, sizeOut == oldPosition.quantity
+                    // => close all position and clear position, return sizeOut + 1 mean closed position
+                    {
+                        (int256 totalReturn, int256 realizedPnl) = PositionHouseFunction.calcReturnWhenOpenReverse(_pmAddress, _trader, sizeOut, openNotional, oldPosition);
+                        _withdraw(_pmAddress, _trader, totalReturn.abs(), oldPosition.margin, realizedPnl);
+                    }
+                    if (sizeOut == oldPosition.quantity.abs()) {
+                        clearPosition(_pmAddress, _trader);
+                        // TODO refactor to a flag
+                        // flag to compare if (openLimitResp.sizeOut <= _uQuantity)
+                        // in this case, sizeOut is just only used to compare to open the limit order
+                        return (orderId, sizeOut + 1);
+                    }
+                }
+            }
+            // case: open a limit order at the last price
+            // the order must be partially executed
+            // then update the current position
+
+            Position.Data memory newData = PositionHouseFunction.handleMarketPart(
+                oldPosition,
+                _getPositionMap(_pmAddress, _trader),
+                openNotional,
+                intSizeOut,
+                _leverage,
+                getLatestCumulativePremiumFraction(_pmAddress)
+            );
+            _updatePositionMap(_pmAddress, _trader, newData);
+
         }
     }
 
