@@ -7,34 +7,34 @@ const migrations: MigrationDefinition = {
         if(context.stage != 'test') return {}
 
         return {
-            'deploy BTCBUSD position manager': async () => {
-                /**
-                 quoteAsset: string;
-                 initialPrice: number;
-                 priceFeedKey: string;
-                 basisPoint: number;
-                 baseBasisPoint: number;
-                 tollRatio: number;
-                 maxFindingWordsIndex: number;
-                 fundingPeriod: number;
-                 priceFeed: string;
-                 */
-                const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouse');
-                const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
-                await context.factory.createPositionManager({
-                    quoteAsset: await context.db.getMockContract(`BUSD`),
-                    initialPrice: 4500000,
-                    priceFeedKey: 'BTC',
-                    basisPoint: 100,
-                    baseBasisPoint: 10000,
-                    tollRatio: 10000,
-                    maxFindingWordsIndex: 1800,
-                    fundingPeriod: 1000,
-                    priceFeed: chainLinkPriceFeedContractAddress,
-                    quote: 'BUSD',
-                    counterParty: positionHouseFunctionContractAddress
-                })
-            },
+            // 'deploy BTCBUSD position manager': async () => {
+            //     /**
+            //      quoteAsset: string;
+            //      initialPrice: number;
+            //      priceFeedKey: string;
+            //      basisPoint: number;
+            //      baseBasisPoint: number;
+            //      tollRatio: number;
+            //      maxFindingWordsIndex: number;
+            //      fundingPeriod: number;
+            //      priceFeed: string;
+            //      */
+            //     const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouse');
+            //     const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
+            //     await context.factory.createPositionManager({
+            //         quoteAsset: await context.db.getMockContract(`BUSD`),
+            //         initialPrice: 4500000,
+            //         priceFeedKey: 'BTC',
+            //         basisPoint: 100,
+            //         baseBasisPoint: 10000,
+            //         tollRatio: 10000,
+            //         maxFindingWordsIndex: 1800,
+            //         fundingPeriod: 1000,
+            //         priceFeed: chainLinkPriceFeedContractAddress,
+            //         quote: 'BUSD',
+            //         counterParty: positionHouseFunctionContractAddress
+            //     })
+            // },
             // add multi pair
             'deploy POSIBUSD position manager': async () => {
                 /**

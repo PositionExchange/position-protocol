@@ -40,6 +40,12 @@ task('deploy', 'deploy contracts', async (taskArgs: {stage: Stage, task: string,
         }
         await db.saveAddressByKey(BUSD, BUSD_ADDRESS)
     }
+    if (hre.network.name == 'qc') {
+        if (taskArgs.type == 'coin-m') {
+            await db.saveAddressByKey('Mock:POSI', '0x7b8389149f57197aFE82C62e825311D92Bbcd5Fb')
+            await db.saveAddressByKey('ChainLinkPriceFeed', '0x50291f36185086bc666762ada69dc943763fa264')
+        }
+    }
     for (const filename of filenames) {
         console.info(`Start migration: ${filename}`)
         const module = await import(path.join(basePath, filename))

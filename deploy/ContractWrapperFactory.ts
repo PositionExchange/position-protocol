@@ -43,10 +43,10 @@ export class ContractWrapperFactory {
     }
 
     async verifyProxy(proxyAddress){
-        // Ref: https://docs.openzeppelin.com/upgrades-plugins/1.x/api-hardhat-upgrades#verify
-        return this.hre.run('verify', {address: proxyAddress}).catch(e => {
-            console.error(`Verify ${proxyAddress} Error`, e)
-        })
+        // // Ref: https://docs.openzeppelin.com/upgrades-plugins/1.x/api-hardhat-upgrades#verify
+        // return this.hre.run('verify', {address: proxyAddress}).catch(e => {
+        //     console.error(`Verify ${proxyAddress} Error`, e)
+        // })
     }
 
     async createPositionManager(args: CreatePositionManagerInput) {
