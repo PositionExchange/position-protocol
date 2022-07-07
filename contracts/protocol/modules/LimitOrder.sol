@@ -194,10 +194,13 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 Errors.VL_INVALID_LEVERAGE
             );
             uint256 openNotional;
-            uint128 _quantity = _rawQuantity.abs128();
-            (orderId, sizeOut, openNotional) = _positionManager
-                .openLimitPosition(_pip, _quantity, _rawQuantity > 0);
+            {
+                uint128 _quantity = _rawQuantity.abs128();
+                (orderId, sizeOut, openNotional) = _positionManager
+                    .openLimitPosition(_pip, _quantity, _rawQuantity > 0);
+            }
             if (sizeOut != 0) {
+                int256 intSizeOut = _rawQuantity > 0 ? int256(sizeOut) : -int256(sizeOut);
                 {
                     if (!_rawQuantity.isSameSide(oldPosition.quantity) && oldPosition.quantity != 0) {
                         int256 totalReturn = PositionHouseFunction.calcReturnWhenOpenReverse(_pmAddress, _trader, sizeOut, openNotional, oldPosition);
@@ -216,17 +219,14 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 // case: open a limit order at the last price
                 // the order must be partially executed
                 // then update the current position
-                {
-                    Position.Data memory newData = PositionHouseFunction.handleMarketPart(
-                        oldPosition,
-                        _getPositionMap(_pmAddress, _trader),
-                        openNotional,
-                        _rawQuantity > 0 ? int256(sizeOut) : - int256(sizeOut),
-                        _leverage,
-                        getLatestCumulativePremiumFraction(_pmAddress)
-                    );
-                    _updatePositionMap(_pmAddress, _trader, newData);
-                }
+                _updatePositionAfterOpenLimit(
+                    oldPosition,
+                    openNotional,
+                    intSizeOut,
+                    _leverage,
+                    _pmAddress,
+                    _trader
+                );
             }
         }
     }
@@ -256,6 +256,27 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         returns (PositionLimitOrder.Data[] memory)
     {
         return reduceLimitOrders[_pmAddress][_trader];
+    }
+
+    function _updatePositionAfterOpenLimit(
+        Position.Data memory _oldPosition,
+        uint256 _openNotional,
+        int256 _intSizeOut,
+        uint16 _leverage,
+        address _pmAddress,
+        address _trader
+    ) internal {
+        _oldPosition.margin -= _getManualMargin(_pmAddress, _trader).abs();
+        // only use position data without manual margin
+        Position.Data memory newData = PositionHouseFunction.handleMarketPart(
+            _oldPosition,
+            _getPositionMap(_pmAddress, _trader),
+            _openNotional,
+            _intSizeOut,
+            _leverage,
+            getLatestCumulativePremiumFraction(_pmAddress)
+        );
+        _updatePositionMap(_pmAddress, _trader, newData);
     }
 
     function _pushLimit(
@@ -294,18 +315,6 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         if (_getReduceLimitOrders(_pmAddress, _trader).length > 0) {
             delete reduceLimitOrders[_pmAddress][_trader];
         }
-    }
-
-    function _blankReduceLimitOrder(
-        address _pmAddress,
-        address _trader,
-        uint256 index
-    ) internal {
-        // blank limit order data
-        // we set the deleted order to a blank data
-        // because we don't want to mess with order index (orderIdx)
-        PositionLimitOrder.Data memory blankLimitOrderData;
-        reduceLimitOrders[_pmAddress][_trader][index] = blankLimitOrderData;
     }
 
     function _getLimitOrderPremiumFraction(

@@ -739,6 +739,7 @@ library PositionHouseFunction {
         }
         uint256 reduceMarginWithoutManual = ((_positionData.margin - _manualMargin.abs()) * _quantity.abs()) / _positionData.quantity.abs();
         {
+            _positionData.margin = _positionData.margin - _manualMargin.abs();
             positionResp.position = Position.Data(
                 _positionDataWithoutLimit.quantity + _quantity,
                 handleMarginInOpenReverse(
