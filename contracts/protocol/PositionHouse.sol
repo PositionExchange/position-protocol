@@ -90,10 +90,13 @@ contract PositionHouse is
     // TODO remove after hot fix funding rate
     function hotFixUpdateFundingRate(
         address _pmAddress,
-        address[] _traders
+        address[] memory _traders
     ) external onlyOwner {
+        // reset latest premium fraction
+        _resetLatestCumulativePremiumFractions(_pmAddress);
+        // push new cumulative premium fraction
         payFunding(IPositionManager(_pmAddress));
-        int256 latestCumulativePremiumFraction = getLatestCumulativePremiumFraction(_pmAddress);
+        int128 latestCumulativePremiumFraction = getLatestCumulativePremiumFraction(_pmAddress);
         for (uint i = 0; i < _traders.length; i++) {
             _updatePremiumFractionInPositionData(_pmAddress, _traders[i], latestCumulativePremiumFraction);
         }
@@ -102,7 +105,7 @@ contract PositionHouse is
     function _updatePremiumFractionInPositionData(
         address _pmAddress,
         address _trader,
-        int256 _latestCumulativePremiumFraction
+        int128 _latestCumulativePremiumFraction
     ) internal {
         positionMap[_pmAddress][_trader].lastUpdatedCumulativePremiumFraction = _latestCumulativePremiumFraction;
     }
