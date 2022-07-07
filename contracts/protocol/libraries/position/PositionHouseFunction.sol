@@ -774,6 +774,7 @@ library PositionHouseFunction {
     }
 
     function calcRemainMarginWithFundingPayment(
+        // only use position data without manual margin
         Position.Data memory _oldPosition,
         uint256 _pMargin,
         int256 _latestCumulativePremiumFraction
