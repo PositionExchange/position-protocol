@@ -63,6 +63,7 @@ export interface CreatePositionHouseInput {
     positionHouseConfigurationProxy: string
     positionNotionalConfigProxy: string
     // feePool: string
+    futureType: string
 }
 
 export interface CreatePositionHouseConfigurationProxyInput {

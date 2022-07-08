@@ -25,10 +25,9 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
     function getClaimAmount(address _pmAddress, address _trader)
     public
     view
-    returns (int256 totalClaimableAmount)
+    returns (int256)
     {
-        return
-        PositionHouseFunction.getClaimAmount(
+        (int256 claimableMargin, int256 claimablePnl) = PositionHouseFunction.getClaimAmount(
             _pmAddress,
             positionHouse.getAddedMargin(_pmAddress, _trader),
             positionHouse.getDebtPosition(_pmAddress, _trader),
@@ -38,6 +37,8 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
             positionHouse.getLimitOrderPremiumFraction(_pmAddress, _trader),
             positionHouse.getLatestCumulativePremiumFraction(_pmAddress)
         );
+        // total claimable amount = claimableMargin + claimablePnl
+        return (claimableMargin + claimablePnl);
     }
 
     function getClaimableAmountParams(address _pmAddress, address _trader)
