@@ -75,7 +75,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 _order.pip,
                 _order.leverage
             );
-            _withdraw(_pmAddress, _trader, _refundMargin, 0, 0);
+            _withdraw(_pmAddress, _trader, _refundMargin, _refundMargin, 0);
         }
         emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
     }
@@ -93,7 +93,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         _emptyLimitOrders(_pmAddress, _trader);
         _emptyReduceLimitOrders(_pmAddress, _trader);
         if (totalRefundMargin != 0) {
-            _withdraw(_pmAddress, _trader, totalRefundMargin, 0, 0);
+            _withdraw(_pmAddress, _trader, totalRefundMargin, totalRefundMargin, 0);
         }
     }
 
@@ -376,20 +376,20 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         address _pmAddress,
         address _trader,
         Position.Data memory _positionData
-    ) internal view returns (bool needClaim, int256 claimableAmount) {
-        claimableAmount = _getClaimAmount(
+    ) internal view returns (bool needClaim, int256 claimableMargin, int256 claimablePnl) {
+        (claimableMargin, claimablePnl) = _getClaimAmount(
             _pmAddress,
             _trader,
             _positionData
         );
-        needClaim = claimableAmount != 0 && _positionData.quantity == 0;
+        needClaim = claimableMargin != 0 && _positionData.quantity == 0;
     }
 
     function _getClaimAmount(
         address _pmAddress,
         address _trader,
         Position.Data memory _positionData
-    ) internal view returns (int256) {
+    ) internal view returns (int256, int256) {
         address a = _pmAddress;
         address t = _trader;
 

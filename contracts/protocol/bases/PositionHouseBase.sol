@@ -90,9 +90,9 @@ contract PositionHouseBase is
         address _pmAddress = address (_positionManager);
         address _trader = _msgSender();
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
-        (bool _needClaim, int256 _claimableAmount) = _needToClaimFund(_pmAddress, _trader, _positionDataWithManualMargin);
+        (bool _needClaim, int256 _claimableMargin, int256 _claimablePnl) = _needToClaimFund(_pmAddress, _trader, _positionDataWithManualMargin);
         if (_needClaim) {
-            _internalClaimFund(_pmAddress, _trader, _positionDataWithManualMargin, _claimableAmount);
+            _internalClaimFund(_pmAddress, _trader, _positionDataWithManualMargin, _claimableMargin, _claimablePnl);
         }
         _internalOpenMarketPosition(
             _positionManager,
@@ -114,9 +114,9 @@ contract PositionHouseBase is
         address _pmAddress = address (_positionManager);
         address _trader = _msgSender();
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
-        (bool _needClaim, int256 _claimableAmount) = _needToClaimFund(_pmAddress, _trader, _positionDataWithManualMargin);
+        (bool _needClaim, int256 _claimableMargin, int256 _claimablePnl) = _needToClaimFund(_pmAddress, _trader, _positionDataWithManualMargin);
         if (_needClaim) {
-            _internalClaimFund(_pmAddress, _trader, _positionDataWithManualMargin, _claimableAmount);
+            _internalClaimFund(_pmAddress, _trader, _positionDataWithManualMargin, _claimableMargin, _claimablePnl);
         }
         _internalOpenLimitOrder(
             _positionManager,
@@ -252,20 +252,21 @@ contract PositionHouseBase is
             _positionDataWithManualMargin.quantity == 0,
             Errors.VL_INVALID_CLAIM_FUND
         );
-        _internalClaimFund(_pmAddress, _trader, _positionDataWithManualMargin, 0);
+        _internalClaimFund(_pmAddress, _trader, _positionDataWithManualMargin, 0, 0);
     }
 
-    function _internalClaimFund(address _pmAddress, address _trader, Position.Data memory _positionData, int256 totalRealizedPnl) internal {
-        if(totalRealizedPnl == 0){
-            totalRealizedPnl = _getClaimAmount(
+    function _internalClaimFund(address _pmAddress, address _trader, Position.Data memory _positionData, int256 _claimableMargin, int256 _claimablePnl) internal {
+        if(_claimableMargin == 0){
+            (_claimableMargin, _claimablePnl) = _getClaimAmount(
                 _pmAddress,
                 _trader,
                 _positionData
             );
         }
         clearPosition(_pmAddress, _trader);
-        if (totalRealizedPnl > 0) {
-            _withdraw(_pmAddress, _trader, totalRealizedPnl.abs(), 0, 0);
+        int256 totalClaimableAmount = _claimableMargin + _claimablePnl;
+        if (_claimableMargin + _claimablePnl > 0) {
+            _withdraw(_pmAddress, _trader, totalClaimableAmount.abs(), _claimableMargin.abs(), _claimablePnl);
 //            emit FundClaimed(_pmAddress, _trader, totalRealizedPnl.abs());
         }
     }
@@ -380,7 +381,7 @@ contract PositionHouseBase is
 
         manualMargin[_pmAddress][_trader] -= int256(_amount);
 
-        _withdraw(_pmAddress, _trader, _amount, 0, 0);
+        _withdraw(_pmAddress, _trader, _amount, _amount, 0);
 
         emit MarginRemoved(_trader, _amount, _positionManager);
     }
@@ -651,9 +652,13 @@ contract PositionHouseBase is
             : Position.Side.LONG
         );
         positionResp.realizedPnl = PositionHouseFunction.calculatePnlWhenClose(_oldPosition.quantity, positionResp.exchangedPositionSize, _oldPosition.openNotional, positionResp.exchangedQuoteAssetAmount);
-        positionResp.marginToVault = -positionResp.realizedPnl
-        .add(_getClaimAmount(_pmAddress, _trader, _oldPosition))
-        .kPositive();
+        {
+            // total claimable fund = claimableMargin + claimablePnl
+            (int256 claimableMargin, int256 claimablePnl) = _getClaimAmount(_pmAddress, _trader, _oldPosition);
+            positionResp.marginToVault = -positionResp.realizedPnl
+            .add(claimableMargin + claimablePnl)
+            .kPositive();
+        }
 //        positionResp.unrealizedPnl = 0;
         clearPosition(_pmAddress, _trader);
     }

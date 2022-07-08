@@ -194,9 +194,15 @@ contract InsuranceFund is
 
     function clearBonus(
         address _positionManager,
-        address _trader
+        address _trader,
+        uint256 _amount
     ) public onlyCounterParty {
-        // Use when fully liquidated
+        // Use when liquidated
+        if (busdBonusBalances[_trader][_positionManager] > _amount) {
+            busdBonusBalances[_trader][_positionManager] -= _amount;
+            return;
+        }
+
         busdBonusBalances[_trader][_positionManager] = 0;
         emit BonusBalanceCleared(_positionManager, _trader);
     }

@@ -546,41 +546,46 @@ library PositionHouseFunction {
         PositionLimitOrder.Data[] memory _reduceLimitOrders,
         int128 _positionLatestCumulativePremiumFraction,
         int128 _latestCumulativePremiumFraction
-    ) external view returns (int256 totalClaimableAmount) {
+    ) external view returns (int256, int256) {
         ClaimAbleState memory state;
-        IPositionManager _positionManager = IPositionManager(_pmAddress);
         // avoid multiple calls
-        ( state.baseBasicPoint, state.basisPoint) = _positionManager.getBasisPointFactors();
+        {
+            (state.baseBasicPoint, state.basisPoint) = IPositionManager(_pmAddress).getBasisPointFactors();
+        }
         // position data with increase only
         Position.Data memory _pDataIncr = _positionDataWithoutLimit;
-        for (uint256 i; i < _limitOrders.length; i++) {
-            if (
-                _limitOrders[i].pip == 0 && _limitOrders[i].orderId == 0
-            ) {
-                // skip
-                continue;
+        {
+            for (uint256 i; i < _limitOrders.length; i++) {
+                if (
+                    _limitOrders[i].pip == 0 && _limitOrders[i].orderId == 0
+                ) {
+                    // skip
+                    continue;
+                }
+                // TODO getPendingOrderDetail here instead
+                _pDataIncr = accumulateLimitOrderToPositionData(
+                    _pmAddress,
+                    _limitOrders[i],
+                    _pDataIncr,
+                    _limitOrders[i].entryPrice
+                );
             }
-            // TODO getPendingOrderDetail here instead
-            _pDataIncr = accumulateLimitOrderToPositionData(
-                _pmAddress,
-                _limitOrders[i],
-                _pDataIncr,
-                _limitOrders[i].entryPrice
-            );
-        }
-        state.accMargin = _pDataIncr.margin;
-        if(_pDataIncr.quantity == 0){
-            return 0;
+            state.accMargin = _pDataIncr.margin;
+            if(_pDataIncr.quantity == 0){
+                return (0, 0);
+            }
         }
         // copy openNotional and quantity
-        Position.Data memory _cpIncrPosition;
-        _cpIncrPosition.openNotional = _pDataIncr.openNotional;
-        _cpIncrPosition.quantity = _pDataIncr.quantity;
-        for (uint256 j; j < _reduceLimitOrders.length; j++) {
-            // check is the reduce limit orders are filled
-            if (_reduceLimitOrders[j].pip != 0) {
-                int256 _filledAmount = _getPartialFilledAmount(_positionManager, _reduceLimitOrders[j].pip, _reduceLimitOrders[j].orderId);
-                _accumulatePnLInReduceLimitOrder(state, _cpIncrPosition, _reduceLimitOrders[j].pip, _filledAmount, _reduceLimitOrders[j].entryPrice, _reduceLimitOrders[j].leverage);
+        {
+            Position.Data memory _cpIncrPosition;
+            _cpIncrPosition.openNotional = _pDataIncr.openNotional;
+            _cpIncrPosition.quantity = _pDataIncr.quantity;
+            for (uint256 j; j < _reduceLimitOrders.length; j++) {
+                // check is the reduce limit orders are filled
+                if (_reduceLimitOrders[j].pip != 0) {
+                    int256 _filledAmount = _getPartialFilledAmount(IPositionManager(_pmAddress), _reduceLimitOrders[j].pip, _reduceLimitOrders[j].orderId);
+                    _accumulatePnLInReduceLimitOrder(state, _cpIncrPosition, _reduceLimitOrders[j].pip, _filledAmount, _reduceLimitOrders[j].entryPrice, _reduceLimitOrders[j].leverage);
+                }
             }
         }
         if (_pDataIncr.lastUpdatedCumulativePremiumFraction == 0) {
@@ -592,7 +597,12 @@ library PositionHouseFunction {
             fundingPayment +
             _manualMargin -
             int256(_positionLiquidatedData.margin);
-        return state.amount < 0 ? int256(0) : state.amount;
+        if (state.amount > 0) {
+            int256 totalMargin = int256(state.accMargin) + fundingPayment + _manualMargin - int256(_positionLiquidatedData.margin);
+            int256 totalPnl = state.amount - totalMargin;
+            return (totalMargin, totalPnl);
+        }
+        return (0, 0);
     }
 
     function _getPartialFilledAmount(
