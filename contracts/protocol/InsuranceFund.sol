@@ -74,8 +74,6 @@ contract InsuranceFund is
         busdBonus = IERC20Upgradeable(0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56); // TODO: Change later
         router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
         factory = IUniswapV2Factory(0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73);
-
-        acceptBonus = true;
     }
 
     function deposit(
@@ -90,30 +88,32 @@ contract InsuranceFund is
         IERC20Upgradeable _token = IERC20Upgradeable(_tokenAddress);
 
         uint256 busdAmount = _amount + _fee;
-        uint256 bonusBalance = busdBonus.balanceOf(_trader);
-        if (acceptBonus && bonusBalance > 0) {
-            (
+        if (acceptBonus) {
+            uint256 bonusBalance = busdBonus.balanceOf(_trader);
+            if (bonusBalance > 0) {
+                (
                 uint256 collectableBUSDAmount,
                 uint256 collectableBonusAmount,
                 uint256 depositedBonusAmount
-            ) = calcDepositAmount(_amount, _fee, bonusBalance, busdAmount);
+                ) = calcDepositAmount(_amount, _fee, bonusBalance, busdAmount);
 
-            if (collectableBonusAmount > 0) {
-                busdBonus.safeTransferFrom(
-                    _trader,
-                    address(this),
-                    collectableBonusAmount
-                );
-            }
+                if (collectableBonusAmount > 0) {
+                    busdBonus.safeTransferFrom(
+                        _trader,
+                        address(this),
+                        collectableBonusAmount
+                    );
+                }
 
-            if (depositedBonusAmount > 0) {
-                busdBonusBalances[_trader][_positionManager] += depositedBonusAmount;
-            }
+                if (depositedBonusAmount > 0) {
+                    busdBonusBalances[_trader][_positionManager] += depositedBonusAmount;
+                }
 
-            busdAmount = collectableBUSDAmount;
-            if (busdAmount == 0) {
-                emit Deposit(address(_token), _trader, _amount + _fee);
-                return;
+                busdAmount = collectableBUSDAmount;
+                if (busdAmount == 0) {
+                    emit Deposit(address(_token), _trader, _amount + _fee);
+                    return;
+                }
             }
         }
 
@@ -133,37 +133,39 @@ contract InsuranceFund is
             IPositionManager(_positionManager).getQuoteAsset()
         );
 
-        uint256 bonusBalance = busdBonusBalances[_trader][_positionManager];
-        if (acceptBonus && bonusBalance > 0) {
-            uint256 oldBUSDBalance = _oldMargin - bonusBalance;
+        if (acceptBonus) {
+            uint256 bonusBalance = busdBonusBalances[_trader][_positionManager];
+            if (bonusBalance > 0) {
+                uint256 oldBUSDBalance = _oldMargin - bonusBalance;
 
-            (
+                (
                 uint256 withdrawBUSDAmount,
                 uint256 withdrawBonusAmount,
                 uint256 remainingBonusAmount
-            ) = oldBUSDBalance > 0
-                    ? calcAmountWhenMarginHaveBUSD(
-                        _amount,
-                        oldBUSDBalance,
-                        bonusBalance,
-                        _pnl
-                    )
-                    : calcAmountWhenMarginOnlyHaveBonus(
-                        _amount,
-                        bonusBalance,
-                        _pnl
-                    );
+                ) = oldBUSDBalance > 0
+                ? calcAmountWhenMarginHaveBUSD(
+                    _amount,
+                    oldBUSDBalance,
+                    bonusBalance,
+                    _pnl
+                )
+                : calcAmountWhenMarginOnlyHaveBonus(
+                    _amount,
+                    bonusBalance,
+                    _pnl
+                );
 
-            if (withdrawBonusAmount > 0) {
-                busdBonus.safeTransfer(_trader, withdrawBonusAmount);
-            }
+                if (withdrawBonusAmount > 0) {
+                    busdBonus.safeTransfer(_trader, withdrawBonusAmount);
+                }
 
-            busdBonusBalances[_trader][_positionManager] = remainingBonusAmount;
+                busdBonusBalances[_trader][_positionManager] = remainingBonusAmount;
 
-            _amount = withdrawBUSDAmount;
-            if (_amount == 0) {
-                emit Withdraw(_token, _trader, withdrawBonusAmount, _pnl);
-                return;
+                _amount = withdrawBUSDAmount;
+                if (_amount == 0) {
+                    emit Withdraw(_token, _trader, withdrawBonusAmount, _pnl);
+                    return;
+                }
             }
         }
 
