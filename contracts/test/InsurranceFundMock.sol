@@ -10,6 +10,6 @@ contract InsuranceFundTest is InsuranceFund {
     }
 
     function setBonusBalance(address _pm, address _trader, uint256 _amount) public {
-        busdBonusBalances[_trader][_pm] = _amount;
+        busdBonusBalances[_pm][_trader] = _amount;
     }
 }

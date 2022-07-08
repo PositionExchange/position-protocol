@@ -30,6 +30,7 @@ describe('Insurance Fund', async function () {
         await insuranceFund.setBonusAddress(busdBonusToken.address)
         await insuranceFund.setCounterParty(deployer.address)
         await insuranceFund.updateWhitelistManager(positionManager.address, true)
+        await insuranceFund.shouldAcceptBonus(true)
 
         await busdToken.connect(trader).increaseAllowance(insuranceFund.address, BigNumber.from('100000000000000000000000000'))
         await busdBonusToken.connect(trader).increaseAllowance(insuranceFund.address, BigNumber.from('100000000000000000000000000'))
@@ -82,7 +83,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterDeposit = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterDeposit = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterDeposit).eq("1000");
             expect(traderBonusBalanceAfterDeposit).eq("3");
@@ -109,7 +110,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterDeposit = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterDeposit = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterDeposit).eq("1000");
             expect(traderBonusBalanceAfterDeposit).eq("0");
@@ -136,7 +137,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterDeposit = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterDeposit = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterDeposit).eq("905");
             expect(traderBonusBalanceAfterDeposit).eq("0");
@@ -163,7 +164,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterDeposit = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterDeposit = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterDeposit).eq("900");
             expect(traderBonusBalanceAfterDeposit).eq("0");
@@ -188,7 +189,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterDeposit = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterDeposit = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterDeposit).eq("0");
             expect(traderBonusBalanceAfterDeposit).eq("0");
@@ -213,7 +214,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterDeposit = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterDeposit = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterDeposit).eq("0");
             expect(traderBonusBalanceAfterDeposit).eq("80");
@@ -238,7 +239,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterDeposit = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterDeposit = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterDeposit).eq("0");
             expect(traderBonusBalanceAfterDeposit).eq("80");
@@ -265,7 +266,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterDeposit = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterDeposit = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterDeposit).eq("998");
             expect(traderBonusBalanceAfterDeposit).eq("0");
@@ -292,7 +293,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterDeposit = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterDeposit = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterDeposit).eq("998");
             expect(traderBonusBalanceAfterDeposit).eq("0");
@@ -319,7 +320,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterDeposit = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterDeposit = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterDeposit).eq("905");
             expect(traderBonusBalanceAfterDeposit).eq("0");
@@ -343,7 +344,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("4");
             expect(traderBonusBalanceAfterWithdraw).eq("1");
@@ -364,7 +365,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("2");
             expect(traderBonusBalanceAfterWithdraw).eq("3");
@@ -385,7 +386,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("0");
             expect(traderBonusBalanceAfterWithdraw).eq("5");
@@ -406,7 +407,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("0");
             expect(traderBonusBalanceAfterWithdraw).eq("5");
@@ -426,7 +427,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("0");
             expect(traderBonusBalanceAfterWithdraw).eq("7");
@@ -446,7 +447,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("0");
             expect(traderBonusBalanceAfterWithdraw).eq("1");
@@ -469,7 +470,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("90");
             expect(traderBonusBalanceAfterWithdraw).eq("8");
@@ -489,7 +490,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("90");
             expect(traderBonusBalanceAfterWithdraw).eq("5");
@@ -509,7 +510,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("90");
             expect(traderBonusBalanceAfterWithdraw).eq("0");
@@ -529,7 +530,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("80");
             expect(traderBonusBalanceAfterWithdraw).eq("0");
@@ -549,7 +550,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("70");
             expect(traderBonusBalanceAfterWithdraw).eq("0");
@@ -569,7 +570,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("5");
             expect(traderBonusBalanceAfterWithdraw).eq("10");
@@ -589,7 +590,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("20");
             expect(traderBonusBalanceAfterWithdraw).eq("10");
@@ -609,7 +610,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("30");
             expect(traderBonusBalanceAfterWithdraw).eq("10");
@@ -629,7 +630,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("10");
             expect(traderBonusBalanceAfterWithdraw).eq("0");
@@ -649,7 +650,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("1");
             expect(traderBonusBalanceAfterWithdraw).eq("0");
@@ -671,7 +672,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("98");
             expect(traderBonusBalanceAfterWithdraw).eq("0");
@@ -691,7 +692,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("50");
             expect(traderBonusBalanceAfterWithdraw).eq("0");
@@ -711,7 +712,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("50");
             expect(traderBonusBalanceAfterWithdraw).eq("0");
@@ -732,7 +733,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("10");
             expect(traderBonusBalanceAfterWithdraw).eq("0");
@@ -753,7 +754,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("10");
             expect(traderBonusBalanceAfterWithdraw).eq("0");
@@ -775,7 +776,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("10");
             expect(traderBonusBalanceAfterWithdraw).eq("0");
@@ -797,7 +798,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("50");
             expect(traderBonusBalanceAfterWithdraw).eq("0");
@@ -819,7 +820,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("30");
             expect(traderBonusBalanceAfterWithdraw).eq("20");
@@ -841,7 +842,7 @@ describe('Insurance Fund', async function () {
 
             const traderBUSDBalanceAfterWithdraw = await busdToken.balanceOf(trader.getAddress())
             const traderBonusBalanceAfterWithdraw = await busdBonusToken.balanceOf(trader.getAddress())
-            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(trader.getAddress(), positionManager.address)
+            const traderBonusBalanceInInsuranceFund = await insuranceFund.busdBonusBalances(positionManager.address, trader.getAddress())
 
             expect(traderBUSDBalanceAfterWithdraw).eq("10");
             expect(traderBonusBalanceAfterWithdraw).eq("40");
