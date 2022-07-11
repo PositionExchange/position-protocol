@@ -263,10 +263,11 @@ contract PositionHouseBase is
                 _positionData
             );
         }
+        uint256 oldMargin = _positionData.margin;
         clearPosition(_pmAddress, _trader);
         int256 totalClaimableAmount = _claimableMargin + _claimablePnl;
         if (_claimableMargin + _claimablePnl > 0) {
-            _withdraw(_pmAddress, _trader, totalClaimableAmount.abs(), _claimableMargin.abs(), _claimablePnl);
+            _withdraw(_pmAddress, _trader, totalClaimableAmount.abs(), oldMargin, _claimablePnl);
 //            emit FundClaimed(_pmAddress, _trader, totalRealizedPnl.abs());
         }
     }

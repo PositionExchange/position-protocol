@@ -106,7 +106,7 @@ contract InsuranceFund is
                 }
 
                 if (depositedBonusAmount > 0) {
-                    busdBonusBalances[_trader][_positionManager] += depositedBonusAmount;
+                    busdBonusBalances[_positionManager][_trader] += depositedBonusAmount;
                 }
 
                 busdAmount = collectableBUSDAmount;
@@ -133,8 +133,8 @@ contract InsuranceFund is
             IPositionManager(_positionManager).getQuoteAsset()
         );
 
-        if (acceptBonus) {
-            uint256 bonusBalance = busdBonusBalances[_trader][_positionManager];
+        if (acceptBonus && _oldMargin > 0) {
+            uint256 bonusBalance = busdBonusBalances[_positionManager][_trader];
             if (bonusBalance > 0) {
                 uint256 oldBUSDBalance = _oldMargin - bonusBalance;
 
@@ -159,7 +159,7 @@ contract InsuranceFund is
                     busdBonus.safeTransfer(_trader, withdrawBonusAmount);
                 }
 
-                busdBonusBalances[_trader][_positionManager] = remainingBonusAmount;
+                busdBonusBalances[_positionManager][_trader] = remainingBonusAmount;
 
                 _amount = withdrawBUSDAmount;
                 if (_amount == 0) {
@@ -198,12 +198,12 @@ contract InsuranceFund is
         uint256 _amount
     ) public onlyCounterParty {
         // Use when liquidated
-        if (busdBonusBalances[_trader][_positionManager] > _amount) {
-            busdBonusBalances[_trader][_positionManager] -= _amount;
+        if (busdBonusBalances[_positionManager][_trader] > _amount) {
+            busdBonusBalances[_positionManager][_trader] -= _amount;
             return;
         }
 
-        busdBonusBalances[_trader][_positionManager] = 0;
+        busdBonusBalances[_positionManager][_trader] = 0;
         emit BonusBalanceCleared(_positionManager, _trader);
     }
 
@@ -427,7 +427,7 @@ contract InsuranceFund is
      */
     uint256[49] private __gap;
     IERC20Upgradeable public busdBonus;
-    // Trader => (PositionManager => (BonusBalance))
+    // PositionManager => (Trader => (BonusBalance))
     mapping(address => mapping(address => uint256)) public busdBonusBalances;
     bool public acceptBonus;
 }
