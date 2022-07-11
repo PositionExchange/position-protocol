@@ -15,12 +15,12 @@ const migrations: MigrationDefinition = {
             await context.db.saveAddressByKey(`Mock:${symbol}`, deployTx.address)
         }
         return {
-            'deploy mock POSI': async () => {
-                return deployMockBep20('POSI Mock', 'POSI')
+            'deploy mock BUSDBonus': async () => {
+                return deployMockBep20('BUSD Bonus', 'BUSDBonus')
             },
-            // 'deploy mock BUSD': async () => {
-            //     return deployMockBep20('BUSD Mock', 'BUSD')
-            // }
+            'deploy mock BUSD': async () => {
+                return deployMockBep20('BUSD Mock', 'BUSD')
+            }
         }
     }
 }
