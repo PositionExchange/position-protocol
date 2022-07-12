@@ -203,7 +203,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 int256 intSizeOut = _rawQuantity > 0 ? int256(sizeOut) : -int256(sizeOut);
                 {
                     if (!_rawQuantity.isSameSide(oldPosition.quantity) && oldPosition.quantity != 0) {
-                        int256 totalReturn = PositionHouseFunction.calcReturnWhenOpenReverse(_pmAddress, _trader, sizeOut, openNotional, oldPosition);
+                        int256 totalReturn = PositionHouseFunction.calcReturnWhenOpenReverse(sizeOut, openNotional, oldPosition);
                         _withdraw(_pmAddress, _trader, totalReturn.abs());
                         // if new limit order is not same side with old position, sizeOut == oldPosition.quantity
                         // => close all position and clear position, return sizeOut + 1 mean closed position
@@ -266,7 +266,8 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         address _pmAddress,
         address _trader
     ) internal {
-        _oldPosition.margin -= _getManualMargin(_pmAddress, _trader).abs();
+        int256 manualAddedMargin = _getManualMargin(_pmAddress, _trader);
+        _oldPosition.margin -= manualAddedMargin.abs();
         // only use position data without manual margin
         Position.Data memory newData = PositionHouseFunction.handleMarketPart(
             _oldPosition,
@@ -276,6 +277,10 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
             _leverage,
             getLatestCumulativePremiumFraction(_pmAddress)
         );
+        // reduce storage manual margin when reverse
+        if (_intSizeOut * _oldPosition.quantity < 0) {
+            manualMargin[_pmAddress][_trader] -= manualAddedMargin * _intSizeOut.absInt() / _oldPosition.quantity.absInt();
+        }
         _updatePositionMap(_pmAddress, _trader, newData);
     }
 
