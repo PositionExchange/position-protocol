@@ -267,7 +267,7 @@ contract PositionHouseBase is
         clearPosition(_pmAddress, _trader);
         int256 totalClaimableAmount = _claimableMargin + _claimablePnl;
         if (_claimableMargin + _claimablePnl > 0) {
-            _withdraw(_pmAddress, _trader, totalClaimableAmount.abs(), oldMargin, _claimablePnl);
+            _withdraw(_pmAddress, _trader, totalClaimableAmount.abs(), uint256(_claimableMargin), _claimablePnl);
 //            emit FundClaimed(_pmAddress, _trader, totalRealizedPnl.abs());
         }
     }
@@ -377,12 +377,14 @@ contract PositionHouseBase is
         address _pmAddress = address(_positionManager);
         address _trader = _msgSender();
 
+        uint256 _oldMargin = getTotalMargin(_pmAddress, _trader);
+
         uint256 removableMargin = getRemovableMargin(_positionManager, _trader);
         require(_amount <= removableMargin, Errors.VL_INVALID_REMOVE_MARGIN);
 
         manualMargin[_pmAddress][_trader] -= int256(_amount);
 
-        _withdraw(_pmAddress, _trader, _amount, _amount, 0);
+        _withdraw(_pmAddress, _trader, _amount, _oldMargin, 0);
 
         emit MarginRemoved(_trader, _amount, _positionManager);
     }
@@ -475,6 +477,14 @@ contract PositionHouseBase is
             positionData.openNotional = 0;
             positionData.leverage = 1;
         }
+    }
+
+    function getTotalMargin(address _pmAddress, address _trader)
+    public
+    view
+    override
+    returns (uint256) {
+        return getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader)).margin;
     }
 
     function getPositionWithManualMargin(

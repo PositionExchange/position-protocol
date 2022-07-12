@@ -51,6 +51,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
     ) internal {
         address _trader = msg.sender;
         address _pmAddress = address(_positionManager);
+        uint256 _oldMargin = getTotalMargin(_pmAddress, _trader);
         // declare a pointer to reduceLimitOrders or limitOrders
         PositionLimitOrder.Data[] storage _orders = _getLimitOrderPointer(
             _pmAddress,
@@ -75,7 +76,8 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 _order.pip,
                 _order.leverage
             );
-            _withdraw(_pmAddress, _trader, _refundMargin, _refundMargin, 0);
+            _oldMargin += _refundMargin;
+            _withdraw(_pmAddress, _trader, _refundMargin, _oldMargin, 0);
         }
         emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
     }
@@ -86,6 +88,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
     ) internal {
         address _pmAddress = address(_positionManager);
         PositionLimitOrder.Data[] memory _increaseOrders = limitOrders[_pmAddress][_trader];
+        uint256 _oldMargin = getTotalMargin(_pmAddress, _trader);
         uint256 totalRefundMargin;
         if (_increaseOrders.length != 0) {
             totalRefundMargin = PositionHouseFunction.getTotalPendingLimitOrderMargin(_positionManager, _increaseOrders);
@@ -93,7 +96,8 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         _emptyLimitOrders(_pmAddress, _trader);
         _emptyReduceLimitOrders(_pmAddress, _trader);
         if (totalRefundMargin != 0) {
-            _withdraw(_pmAddress, _trader, totalRefundMargin, totalRefundMargin, 0);
+            _oldMargin += totalRefundMargin;
+            _withdraw(_pmAddress, _trader, totalRefundMargin, _oldMargin, 0);
         }
     }
 
@@ -414,6 +418,12 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         view
         virtual
         returns (Position.Data memory);
+
+    function getTotalMargin(address _pmAddress, address _trader)
+        public
+        view
+        virtual
+        returns (uint256);
 
 //    function _internalClosePosition(
 //        IPositionManager _positionManager,
