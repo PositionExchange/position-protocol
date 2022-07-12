@@ -175,20 +175,20 @@ contract PositionHouseBase is
     nonReentrant
     onlyPositionStrategyOrder
     {
-        address _pmAddress = address(_positionManager);
-        Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
-        _internalCancelAllPendingOrder(_positionManager, _trader);
-//         must reuse this code instead of using function _internalCloseMarketPosition
-        _internalOpenMarketPosition(
-            _positionManager,
-            _positionDataWithManualMargin.quantity > 0
-            ? Position.Side.SHORT
-            : Position.Side.LONG,
-            _positionDataWithManualMargin.quantity.abs(),
-            _positionDataWithManualMargin.leverage,
-            _positionDataWithManualMargin,
-            _trader
-        );
+//        address _pmAddress = address(_positionManager);
+//        Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
+//        _internalCancelAllPendingOrder(_positionManager, _trader);
+////         must reuse this code instead of using function _internalCloseMarketPosition
+//        _internalOpenMarketPosition(
+//            _positionManager,
+//            _positionDataWithManualMargin.quantity > 0
+//            ? Position.Side.SHORT
+//            : Position.Side.LONG,
+//            _positionDataWithManualMargin.quantity.abs(),
+//            _positionDataWithManualMargin.leverage,
+//            _positionDataWithManualMargin,
+//            _trader
+//        );
     }
 
     function _internalCloseMarketPosition(address _pmAddress, address _trader, uint256 _quantity) internal {
@@ -263,10 +263,11 @@ contract PositionHouseBase is
                 _positionData
             );
         }
+        uint256 oldMargin = _positionData.margin;
         clearPosition(_pmAddress, _trader);
         int256 totalClaimableAmount = _claimableMargin + _claimablePnl;
         if (_claimableMargin + _claimablePnl > 0) {
-            _withdraw(_pmAddress, _trader, totalClaimableAmount.abs(), _claimableMargin.abs(), _claimablePnl);
+            _withdraw(_pmAddress, _trader, totalClaimableAmount.abs(), uint256(_claimableMargin), _claimablePnl);
 //            emit FundClaimed(_pmAddress, _trader, totalRealizedPnl.abs());
         }
     }
@@ -326,6 +327,7 @@ contract PositionHouseBase is
                 bool _liquidateOrderIsBuy = positionDataWithManualMargin.quantity > 0 ? false : true;
                 liquidationPenalty = positionDataWithManualMargin.margin ;
                 clearPosition(_pmAddress, _trader);
+                _clearBonus(_pmAddress, _trader);
                 // after clear position, create an opposite market order of old position
                 _positionManager.openMarketPosition(positionDataWithManualMargin.quantity.abs(), _liquidateOrderIsBuy);
                 feeToLiquidator =
@@ -360,7 +362,7 @@ contract PositionHouseBase is
 
         _deposit(_pmAddress, _trader, _amount, 0);
 
-        emit MarginAdded(_trader, _amount, _positionManager);
+//        emit MarginAdded(_trader, _amount, _positionManager);
     }
 
     /**
@@ -376,14 +378,14 @@ contract PositionHouseBase is
         address _pmAddress = address(_positionManager);
         address _trader = _msgSender();
 
-        uint256 removableMargin = getRemovableMargin(_positionManager, _trader);
-        require(_amount <= removableMargin, Errors.VL_INVALID_REMOVE_MARGIN);
+        uint256 _oldMargin = getTotalMargin(_pmAddress, _trader);
+        require(_amount <= getRemovableMargin(_positionManager, _trader), Errors.VL_INVALID_REMOVE_MARGIN);
 
         manualMargin[_pmAddress][_trader] -= int256(_amount);
 
-        _withdraw(_pmAddress, _trader, _amount, _amount, 0);
+        _withdraw(_pmAddress, _trader, _amount, _oldMargin, 0);
 
-        emit MarginRemoved(_trader, _amount, _positionManager);
+//        emit MarginRemoved(_trader, _amount, _positionManager);
     }
 
     // OWNER UPDATE VARIABLE STORAGE
@@ -474,6 +476,16 @@ contract PositionHouseBase is
             positionData.openNotional = 0;
             positionData.leverage = 1;
         }
+    }
+
+    function getTotalMargin(address _pmAddress, address _trader)
+    public
+    override
+    returns (uint256) {
+        uint256 pendingMargin = PositionHouseFunction.getTotalPendingLimitOrderMargin(IPositionManager(_pmAddress), _getLimitOrders(_pmAddress, _trader), false);
+        uint256 margin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader)).margin;
+
+        return pendingMargin + margin;
     }
 
     function getPositionWithManualMargin(
@@ -618,7 +630,8 @@ contract PositionHouseBase is
             _deposit(_pmAddress, _trader, pResp.marginToVault.abs(), pResp.fee);
         } else if (pResp.marginToVault < 0) {
             // withdraw from vault to user
-            _withdraw(_pmAddress, _trader, pResp.marginToVault.abs(), oldPosition.margin, pResp.realizedPnl);
+            uint256 pendingMargin = PositionHouseFunction.getTotalPendingLimitOrderMargin(_positionManager, _getLimitOrders(_pmAddress, _trader), false);
+            _withdraw(_pmAddress, _trader, pResp.marginToVault.abs(), oldPosition.margin + pendingMargin, pResp.realizedPnl);
         }
         emit OpenMarket(
             _trader,
@@ -852,6 +865,14 @@ contract PositionHouseBase is
     ) internal override virtual
     {
         insuranceFund.withdraw(_positionManager, _trader, _amount, _margin, _pnl);
+    }
+
+    function _clearBonus(
+        address _positionManager,
+        address _trader
+    ) internal
+    {
+        insuranceFund.clearBonus(_positionManager, _trader);
     }
 
     modifier onlyPositionStrategyOrder() {

@@ -51,6 +51,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
     ) internal {
         address _trader = msg.sender;
         address _pmAddress = address(_positionManager);
+        uint256 _oldMargin = getTotalMargin(_pmAddress, _trader);
         // declare a pointer to reduceLimitOrders or limitOrders
         PositionLimitOrder.Data[] storage _orders = _getLimitOrderPointer(
             _pmAddress,
@@ -75,7 +76,7 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                 _order.pip,
                 _order.leverage
             );
-            _withdraw(_pmAddress, _trader, _refundMargin, _refundMargin, 0);
+            _withdraw(_pmAddress, _trader, _refundMargin, _oldMargin, 0);
         }
         emit CancelLimitOrder(_trader, _pmAddress, _order.pip, _order.orderId);
     }
@@ -86,14 +87,15 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
     ) internal {
         address _pmAddress = address(_positionManager);
         PositionLimitOrder.Data[] memory _increaseOrders = limitOrders[_pmAddress][_trader];
+        uint256 _oldMargin = getTotalMargin(_pmAddress, _trader);
         uint256 totalRefundMargin;
         if (_increaseOrders.length != 0) {
-            totalRefundMargin = PositionHouseFunction.getTotalPendingLimitOrderMargin(_positionManager, _increaseOrders);
+            totalRefundMargin = PositionHouseFunction.getTotalPendingLimitOrderMargin(_positionManager, _increaseOrders, true);
         }
         _emptyLimitOrders(_pmAddress, _trader);
         _emptyReduceLimitOrders(_pmAddress, _trader);
         if (totalRefundMargin != 0) {
-            _withdraw(_pmAddress, _trader, totalRefundMargin, totalRefundMargin, 0);
+            _withdraw(_pmAddress, _trader, totalRefundMargin, _oldMargin, 0);
         }
     }
 
@@ -227,8 +229,9 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
                     // if new limit order is not same side with old position, sizeOut == oldPosition.quantity
                     // => close all position and clear position, return sizeOut + 1 mean closed position
                     {
+                        uint256 pendingMargin = PositionHouseFunction.getTotalPendingLimitOrderMargin(_positionManager, _getLimitOrders(_pmAddress, _trader), false);
                         (int256 totalReturn, int256 realizedPnl) = PositionHouseFunction.calcReturnWhenOpenReverse(_pmAddress, _trader, sizeOut, openNotional, oldPosition);
-                        _withdraw(_pmAddress, _trader, totalReturn.abs(), oldPosition.margin, realizedPnl);
+                        _withdraw(_pmAddress, _trader, totalReturn.abs(), oldPosition.margin + pendingMargin, realizedPnl);
                     }
                     if (sizeOut == oldPosition.quantity.abs()) {
                         clearPosition(_pmAddress, _trader);
@@ -414,6 +417,11 @@ abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStor
         view
         virtual
         returns (Position.Data memory);
+
+    function getTotalMargin(address _pmAddress, address _trader)
+        public
+        virtual
+        returns (uint256);
 
 //    function _internalClosePosition(
 //        IPositionManager _positionManager,

@@ -106,7 +106,7 @@ contract InsuranceFund is
                 }
 
                 if (depositedBonusAmount > 0) {
-                    busdBonusBalances[_trader][_positionManager] += depositedBonusAmount;
+                    busdBonusBalances[_positionManager][_trader] += depositedBonusAmount;
                 }
 
                 busdAmount = collectableBUSDAmount;
@@ -133,10 +133,11 @@ contract InsuranceFund is
             IPositionManager(_positionManager).getQuoteAsset()
         );
 
-        if (acceptBonus) {
-            uint256 bonusBalance = busdBonusBalances[_trader][_positionManager];
+        if (acceptBonus && _oldMargin > 0) {
+            uint256 bonusBalance = busdBonusBalances[_positionManager][_trader];
             if (bonusBalance > 0) {
                 uint256 oldBUSDBalance = _oldMargin - bonusBalance;
+                uint256 withdrawMargin = uint256(int256(_amount) - _pnl);
 
                 (
                 uint256 withdrawBUSDAmount,
@@ -152,14 +153,16 @@ contract InsuranceFund is
                 : calcAmountWhenMarginOnlyHaveBonus(
                     _amount,
                     bonusBalance,
-                    _pnl
+                    _pnl,
+                    withdrawMargin
                 );
 
                 if (withdrawBonusAmount > 0) {
                     busdBonus.safeTransfer(_trader, withdrawBonusAmount);
                 }
 
-                busdBonusBalances[_trader][_positionManager] = remainingBonusAmount;
+                // If withdraw all margin, clear bonus
+                busdBonusBalances[_positionManager][_trader] = withdrawMargin == _oldMargin ? 0 : remainingBonusAmount;
 
                 _amount = withdrawBUSDAmount;
                 if (_amount == 0) {
@@ -194,16 +197,9 @@ contract InsuranceFund is
 
     function clearBonus(
         address _positionManager,
-        address _trader,
-        uint256 _amount
-    ) public onlyCounterParty {
-        // Use when liquidated
-        if (busdBonusBalances[_trader][_positionManager] > _amount) {
-            busdBonusBalances[_trader][_positionManager] -= _amount;
-            return;
-        }
-
-        busdBonusBalances[_trader][_positionManager] = 0;
+        address _trader
+    ) external onlyCounterParty {
+        busdBonusBalances[_positionManager][_trader] = 0;
         emit BonusBalanceCleared(_positionManager, _trader);
     }
 
@@ -350,7 +346,8 @@ contract InsuranceFund is
     function calcAmountWhenMarginOnlyHaveBonus(
         uint256 _withdrawAmount,
         uint256 _bonusBalance,
-        int256 _pnl
+        int256 _pnl,
+        uint256 _withdrawMargin
     )
         private
         view
@@ -364,11 +361,10 @@ contract InsuranceFund is
          * If PnL >= 0, return PnL in BUSD and requested withdraw margin in bonus
          * If Pnl < 0, only return requested withdraw amount in bonus
          */
-        uint256 withdrawMargin = uint256(int256(_withdrawAmount) - _pnl);
         return
             _pnl >= 0
-                ? (uint256(_pnl), withdrawMargin, _bonusBalance - withdrawMargin)
-                : (0, _withdrawAmount, _bonusBalance - withdrawMargin);
+                ? (uint256(_pnl), _withdrawMargin, _bonusBalance - _withdrawMargin)
+                : (0, _withdrawAmount, _bonusBalance - _withdrawMargin);
     }
 
     function calcAmountWhenMarginHaveBUSD(
@@ -427,7 +423,8 @@ contract InsuranceFund is
      */
     uint256[49] private __gap;
     IERC20Upgradeable public busdBonus;
-    // Trader => (PositionManager => (BonusBalance))
+    // PositionManager => (Trader => (BonusBalance))
     mapping(address => mapping(address => uint256)) public busdBonusBalances;
     bool public acceptBonus;
+    mapping(address => mapping(address => uint256)) public busdBalances;
 }

@@ -51,7 +51,8 @@ export class ContractWrapperFactory {
 
     async createPositionManager(args: CreatePositionManagerInput) {
         const PositionMathAddress = await this.db.findAddressByKey('PositionMath');
-        const symbol = `${args.priceFeedKey}_${args.quote}`;
+        // const symbol = `${args.priceFeedKey}_${args.quote}`;
+        const symbol = args.symbol;
         const saveKey = `PositionManager:${symbol}`
 
         const PositionManager = await this.hre.ethers.getContractFactory("PositionManager", {

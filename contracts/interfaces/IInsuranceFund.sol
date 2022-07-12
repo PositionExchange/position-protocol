@@ -24,4 +24,6 @@ interface IInsuranceFund {
         address trader,
         uint256 amountFee
     ) external;
+
+    function clearBonus(address _positionManager, address _trader) external;
 }
