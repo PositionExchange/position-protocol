@@ -337,6 +337,7 @@ contract PositionHouse is
                     (liquidationPenalty * _liquidationFeeRatio) /
                     2 /
                     100;
+                _reduceBonus(_pmAddress, _trader, 0);
                 emit FullyLiquidated(_pmAddress, _trader);
             }
             _withdraw(_pmAddress, _caller, feeToLiquidator);
@@ -762,6 +763,7 @@ contract PositionHouse is
             _liquidatedPositionMargin,
             positionResp.exchangedQuoteAssetAmount
         );
+        _reduceBonus(_pmAddress, _trader, _liquidatedPositionMargin + _liquidatedManualMargin);
         return positionResp;
     }
 
@@ -822,6 +824,15 @@ contract PositionHouse is
     ) internal
     {
         insuranceFund.withdraw(positionManager, trader, amount);
+    }
+
+    function _reduceBonus(
+        address _positionManager,
+        address _trader,
+        uint256 _reduceAmount
+    ) internal
+    {
+        insuranceFund.reduceBonus(_positionManager, _trader, _reduceAmount);
     }
 
     modifier onlyPositionStrategyOrder() {

@@ -50,8 +50,7 @@ contract InsuranceFund is
     event Withdraw(
         address indexed _token,
         address indexed _trader,
-        uint256 _amount,
-        int256 _pnl
+        uint256 _amount
     );
     event CounterPartyTransferred(address _old, address _new);
     event PosiChanged(address _new);
@@ -87,85 +86,71 @@ contract InsuranceFund is
         );
         IERC20Upgradeable _token = IERC20Upgradeable(_tokenAddress);
 
-        uint256 busdAmount = _amount + _fee;
+        uint256 collectableAmount = _amount + _fee;
         if (acceptBonus) {
             uint256 bonusBalance = busdBonus.balanceOf(_trader);
-            if (bonusBalance > 0) {
-                (
+            (
                 uint256 collectableBUSDAmount,
                 uint256 collectableBonusAmount,
                 uint256 depositedBonusAmount
-                ) = calcDepositAmount(_amount, _fee, bonusBalance, busdAmount);
+            ) = calcDepositAmount(
+                    _amount,
+                    _fee,
+                    bonusBalance,
+                    collectableAmount
+                );
 
-                if (collectableBonusAmount > 0) {
-                    busdBonus.safeTransferFrom(
-                        _trader,
-                        address(this),
-                        collectableBonusAmount
-                    );
-                }
+            if (collectableBonusAmount > 0) {
+                busdBonus.safeTransferFrom(
+                    _trader,
+                    address(this),
+                    collectableBonusAmount
+                );
+            }
 
-                if (depositedBonusAmount > 0) {
-                    busdBonusBalances[_positionManager][_trader] += depositedBonusAmount;
-                }
+            if (depositedBonusAmount > 0) {
+                busdBonusBalances[_positionManager][_trader] += depositedBonusAmount;
+            }
 
-                busdAmount = collectableBUSDAmount;
-                if (busdAmount == 0) {
-                    emit Deposit(address(_token), _trader, _amount + _fee);
-                    return;
-                }
+            collectableAmount = collectableBUSDAmount;
+            if (collectableAmount == 0) {
+                emit Deposit(address(_token), _trader, _amount + _fee);
+                return;
             }
         }
 
         totalFee += _fee;
-        _token.safeTransferFrom(_trader, address(this), busdAmount);
+        _token.safeTransferFrom(_trader, address(this), collectableAmount);
         emit Deposit(address(_token), _trader, _amount + _fee);
     }
 
     function withdraw(
         address _positionManager,
         address _trader,
-        uint256 _amount,
-        uint256 _oldMargin,
-        int256 _pnl
+        uint256 _amount
     ) public onlyCounterParty onlyWhitelistManager(_positionManager) {
         address _token = address(
             IPositionManager(_positionManager).getQuoteAsset()
         );
 
-        if (acceptBonus && _oldMargin > 0) {
+        if (acceptBonus) {
             uint256 bonusBalance = busdBonusBalances[_positionManager][_trader];
-            if (bonusBalance > 0) {
-                uint256 oldBUSDBalance = _oldMargin - bonusBalance;
-
-                (
+            (
                 uint256 withdrawBUSDAmount,
                 uint256 withdrawBonusAmount,
                 uint256 remainingBonusAmount
-                ) = oldBUSDBalance > 0
-                ? calcAmountWhenMarginHaveBUSD(
-                    _amount,
-                    oldBUSDBalance,
-                    bonusBalance,
-                    _pnl
-                )
-                : calcAmountWhenMarginOnlyHaveBonus(
-                    _amount,
-                    bonusBalance,
-                    _pnl
-                );
+            ) = calcWithdrawAmount(_amount, bonusBalance);
 
-                if (withdrawBonusAmount > 0) {
-                    busdBonus.safeTransfer(_trader, withdrawBonusAmount);
-                }
+            if (withdrawBonusAmount > 0) {
+                busdBonus.safeTransfer(_trader, withdrawBonusAmount);
+            }
 
-                busdBonusBalances[_positionManager][_trader] = remainingBonusAmount;
+            busdBonusBalances[_positionManager][_trader] = remainingBonusAmount;
 
-                _amount = withdrawBUSDAmount;
-                if (_amount == 0) {
-                    emit Withdraw(_token, _trader, withdrawBonusAmount, _pnl);
-                    return;
-                }
+            _amount = withdrawBUSDAmount;
+            if (_amount == 0) {
+                emit Withdraw(_token, _trader, withdrawBonusAmount);
+                return;
             }
         }
 
@@ -174,7 +159,7 @@ contract InsuranceFund is
             address(this)
         );
         if (_tokenBalance < _amount) {
-            uint256 _gap = (_amount - _tokenBalance) * 110 / 100;
+            uint256 _gap = ((_amount - _tokenBalance) * 110) / 100;
             uint256[] memory _amountIns = router.getAmountsIn(
                 _gap,
                 getPosiToTokenRoute(_token)
@@ -189,19 +174,18 @@ contract InsuranceFund is
             emit SoldPosiForFund(_amountIns[0], _gap);
         }
         IERC20Upgradeable(_token).safeTransfer(_trader, _amount);
-        emit Withdraw(_token, _trader, _amount, _pnl);
+        emit Withdraw(_token, _trader, _amount);
     }
 
-    function clearBonus(
-        address _positionManager,
-        address _trader,
-        uint256 _amount
-    ) public onlyCounterParty {
-        // Use when liquidated
-        if (busdBonusBalances[_positionManager][_trader] > _amount) {
-            busdBonusBalances[_positionManager][_trader] -= _amount;
-            return;
+    function reduceBonus(address _positionManager, address _trader, uint256 _reduceAmount)
+        external
+        onlyCounterParty
+    {
+        if (_reduceAmount != 0 && _reduceAmount < busdBonusBalances[_positionManager][_trader]) {
+            busdBonusBalances[_positionManager][_trader] -= _reduceAmount;
         }
+
+        // Use when fully liquidated
         busdBonusBalances[_positionManager][_trader] = 0;
         emit BonusBalanceCleared(_positionManager, _trader);
     }
@@ -209,12 +193,6 @@ contract InsuranceFund is
     //******************************************************************************************************************
     // ONLY OWNER FUNCTIONS
     //******************************************************************************************************************
-
-    // Approve for the reserved funds
-    // due to security issue, the reserved funds contract address is hardcode
-    function approveReserveFund() external onlyOwner {
-        busd.approve(0xF323C72fc1c1711CBE33D492bbE39Ff6fD90f15a,type(uint256).max);
-    }
 
     function updateWhitelistManager(address _positionManager, bool _isWhitelist)
         external
@@ -336,15 +314,19 @@ contract InsuranceFund is
             uint256 depositedBonusAmount
         )
     {
+        if (_busdBonusBalance == 0) {
+            return (_totalCollectable, 0, 0);
+        }
+
         if (_totalCollectable <= _busdBonusBalance) {
             return (0, _totalCollectable, _amount);
         }
 
-        if (_fee > _busdBonusBalance) {
+        if (_fee >= _busdBonusBalance) {
             return (_amount + (_fee - _busdBonusBalance), _busdBonusBalance, 0);
         }
 
-        uint256 depositedBonusAmount = _busdBonusBalance - _fee;
+        depositedBonusAmount = _busdBonusBalance - _fee;
         return (
             _amount - depositedBonusAmount,
             _busdBonusBalance,
@@ -352,10 +334,9 @@ contract InsuranceFund is
         );
     }
 
-    function calcAmountWhenMarginOnlyHaveBonus(
+    function calcWithdrawAmount(
         uint256 _withdrawAmount,
-        uint256 _bonusBalance,
-        int256 _pnl
+        uint256 _busdBonusBalance
     )
         private
         view
@@ -365,64 +346,15 @@ contract InsuranceFund is
             uint256 remainingBonusAmount
         )
     {
-        /**
-         * If PnL >= 0, return PnL in BUSD and requested withdraw margin in bonus
-         * If Pnl < 0, only return requested withdraw amount in bonus
-         */
-        uint256 withdrawMargin = uint256(int256(_withdrawAmount) - _pnl);
-        return
-            _pnl >= 0
-                ? (uint256(_pnl), withdrawMargin, _bonusBalance - withdrawMargin)
-                : (0, _withdrawAmount, _bonusBalance - withdrawMargin);
-    }
-
-    function calcAmountWhenMarginHaveBUSD(
-        uint256 _withdrawAmount,
-        uint256 _oldBUSDBalance,
-        uint256 _bonusBalance,
-        int256 _pnl
-    )
-        private
-        view
-        returns (
-            uint256 withdrawBUSDAmount,
-            uint256 withdrawBonusAmount,
-            uint256 remainingBonusAmount
-        )
-    {
-        uint256 pnlAbs = _pnl.abs();
-
-        // PnL negative
-        if (_pnl < 0) {
-            // loss more than bonus
-            if (pnlAbs >= _bonusBalance) {
-                return (_withdrawAmount, 0, 0);
-            }
-
-            // withdraw amount less than BUSD balance
-            if (_withdrawAmount < _oldBUSDBalance) {
-                return (_withdrawAmount, 0, _bonusBalance - pnlAbs);
-            }
-
-            // withdraw amount greater than or equal BUSD balance
-            uint256 withdrawBonusAmount = _withdrawAmount - _oldBUSDBalance;
-            uint256 remainingBonusAmount = _bonusBalance -
-                pnlAbs -
-                withdrawBonusAmount;
-            return (_oldBUSDBalance, withdrawBonusAmount, remainingBonusAmount);
+        if (_busdBonusBalance == 0) {
+            return (_withdrawAmount, 0, 0);
         }
 
-        // PnL positive
-        uint256 withdrawBUSDAmount = _oldBUSDBalance + uint256(_pnl);
-
-        // withdraw amount less than or equal BUSD balance + PnL
-        if (_withdrawAmount <= withdrawBUSDAmount) {
-            return (_withdrawAmount, 0, _bonusBalance);
+        if (_withdrawAmount <= _busdBonusBalance) {
+            return (0, _withdrawAmount, _busdBonusBalance - _withdrawAmount);
         }
 
-        //  withdraw amount greater than BUSD balance + PnL
-        uint256 withdrawBonusAmount = _withdrawAmount - withdrawBUSDAmount;
-        return (withdrawBUSDAmount, withdrawBonusAmount, _bonusBalance - withdrawBonusAmount);
+        return (_withdrawAmount - _busdBonusBalance, _busdBonusBalance, 0);
     }
 
     /**
