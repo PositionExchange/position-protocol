@@ -293,21 +293,28 @@ library PositionHouseFunction {
 
     function getTotalPendingLimitOrderMargin(
         IPositionManager _positionManager,
-        PositionLimitOrder.Data[] memory _limitOrder
+        PositionLimitOrder.Data[] memory _limitOrder,
+        bool shouldCancel
     ) external returns (uint256 totalMargin) {
         for (uint i = 0; i < _limitOrder.length; i++) {
             (
             bool isFilled,
             ,
-            ,
+            uint256 size,
+            uint256 partialFilled
             ) = _positionManager.getPendingOrderDetail(
                 _limitOrder[i].pip,
                 _limitOrder[i].orderId
             );
             if (!isFilled) {
-                (uint256 refundQuantity, ) = _positionManager.cancelLimitOrder(_limitOrder[i].pip, _limitOrder[i].orderId);
-                (, uint256 refundMargin, ) = _positionManager.getNotionalMarginAndFee(refundQuantity, _limitOrder[i].pip, _limitOrder[i].leverage);
-                totalMargin += refundMargin;
+                if (shouldCancel) {
+                    (uint256 refundQuantity, ) = _positionManager.cancelLimitOrder(_limitOrder[i].pip, _limitOrder[i].orderId);
+                    (, uint256 refundMargin, ) = _positionManager.getNotionalMarginAndFee(refundQuantity, _limitOrder[i].pip, _limitOrder[i].leverage);
+                    totalMargin += refundMargin;
+                } else {
+                    (, uint256 pendingMargin,) = _positionManager.getNotionalMarginAndFee(size - partialFilled, _limitOrder[i].pip, _limitOrder[i].leverage);
+                    totalMargin += pendingMargin;
+                }
             }
         }
         return totalMargin;

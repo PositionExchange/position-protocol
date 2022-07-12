@@ -44,6 +44,7 @@ export interface CreatePositionManagerInput {
     counterParty : string
     leverage?: number
     isCoinM?: boolean
+    symbol?: string
 }
 
 
