@@ -117,29 +117,29 @@ library PositionHouseFunction {
         Position.Data memory _positionDataWithoutLimit,
         int256 _latestCumulativePremiumFraction
     ) public view returns (uint256 margin) {
+        (, ,int256 fundingPayment) = calcRemainMarginWithFundingPayment(
+            _positionData,
+            margin,
+            _latestCumulativePremiumFraction
+        );
         int256 newPositionSide = _positionData.quantity < 0
             ? int256(1)
             : int256(-1);
         if (_positionDataWithoutLimit.quantity * _positionData.quantity < 0) {
             margin =
-                _positionDataWithoutLimit.margin +
-                _reduceMarginRequirement;
+                (int256(_positionDataWithoutLimit.margin +
+                _reduceMarginRequirement) - fundingPayment).abs();
         } else {
             if (_positionDataWithoutLimit.margin > _reduceMarginRequirement) {
                 margin =
-                    _positionDataWithoutLimit.margin -
-                    _reduceMarginRequirement;
+                    (int256(_positionDataWithoutLimit.margin -
+                    _reduceMarginRequirement) + fundingPayment).abs();
             } else {
                 margin =
-                    _reduceMarginRequirement -
-                    _positionDataWithoutLimit.margin;
+                    (int256(_reduceMarginRequirement -
+                    _positionDataWithoutLimit.margin) - fundingPayment).abs();
             }
         }
-        (margin, ,) = calcRemainMarginWithFundingPayment(
-            _positionData,
-            margin,
-            _latestCumulativePremiumFraction
-        );
     }
 
     // There are 5 cases could happen:
@@ -185,26 +185,26 @@ library PositionHouseFunction {
         Position.Data memory _positionDataWithoutLimit,
         int256  _latestCumulativePremiumFraction
     ) public view returns (uint256 margin) {
-        if (_positionDataWithoutLimit.quantity * _positionData.quantity < 0) {
-            if (_positionDataWithoutLimit.margin > _increaseMarginRequirement) {
-                margin =
-                    _positionDataWithoutLimit.margin -
-                    _increaseMarginRequirement;
-            } else {
-                margin =
-                    _increaseMarginRequirement -
-                    _positionDataWithoutLimit.margin;
-            }
-        } else {
-            margin =
-                _positionDataWithoutLimit.margin +
-                _increaseMarginRequirement;
-        }
-        (margin, ,) = calcRemainMarginWithFundingPayment(
+        (, ,int256 fundingPayment) = calcRemainMarginWithFundingPayment(
             _positionData,
             margin,
             _latestCumulativePremiumFraction
         );
+        if (_positionDataWithoutLimit.quantity * _positionData.quantity < 0) {
+            if (_positionDataWithoutLimit.margin > _increaseMarginRequirement) {
+                margin =
+                    (int256(_positionDataWithoutLimit.margin -
+                    _increaseMarginRequirement) + fundingPayment).abs();
+            } else {
+                margin =
+                    (int256(_increaseMarginRequirement -
+                    _positionDataWithoutLimit.margin) - fundingPayment).abs();
+            }
+        } else {
+            margin =
+                (int256(_positionDataWithoutLimit.margin +
+                _increaseMarginRequirement) + fundingPayment).abs();
+        }
     }
 
     function clearAllFilledOrder(
@@ -739,6 +739,7 @@ library PositionHouseFunction {
         }
         uint256 reduceMarginWithoutManual = ((_positionData.margin - _manualMargin.abs()) * _quantity.abs()) / _positionData.quantity.abs();
         {
+            _positionData.margin = _positionData.margin - _manualMargin.abs();
             positionResp.position = Position.Data(
                 _positionDataWithoutLimit.quantity + _quantity,
                 handleMarginInOpenReverse(
@@ -762,8 +763,6 @@ library PositionHouseFunction {
     }
 
     function calcReturnWhenOpenReverse(
-        address _pmAddress,
-        address _trader,
         uint256 _sizeOut,
         uint256 _openNotional,
         Position.Data memory _oldPosition
@@ -774,6 +773,7 @@ library PositionHouseFunction {
     }
 
     function calcRemainMarginWithFundingPayment(
+        // only use position data without manual margin
         Position.Data memory _oldPosition,
         uint256 _pMargin,
         int256 _latestCumulativePremiumFraction
