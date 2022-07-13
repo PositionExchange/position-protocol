@@ -39,7 +39,7 @@ export async function deployPositionHouse(isCoinMargin? : boolean){
     })
     const positionHouseFunction = (await PositionHouseFunction.deploy())
 
-    const PositionNotionalConfigProxyFactory = await ethers.getContractFactory('PositionNotionalConfigProxy')
+    const PositionNotionalConfigProxyFactory = await ethers.getContractFactory('PositionNotionalConfigProxyTest')
     let positionNotionalConfigProxy = (await PositionNotionalConfigProxyFactory.deploy()) as unknown as PositionNotionalConfigProxy
 
     // Deploy mock busd contract
