@@ -78,9 +78,9 @@ task('verifyImp', 'Verify all implemented contracts', async (taskArgs: {stage: S
 task('settlePosition', 'Settle Position', async (taskArgs: {stage: Stage, type: string}, hre) => {
     const db = new DeployDataStore(DATA_STORE_FILE[taskArgs.type || 'usd-m'])
     const positionHouseAddress = await db.findAddressByKey(`PositionHouse`)
-    const positionHouse = await hre.ethers.getContractAt('PositionHouse', positionHouseAddress) as PositionHouseCoinMargin
-    const positionManagerAddress = `0xf5054cfb910c41d856418e51a330c282e4196c9d`
-    const data = ``.split('\n')
+    const positionHouse = await hre.ethers.getContractAt('PositionHouseCoinMargin', positionHouseAddress) as PositionHouseCoinMargin
+    const positionManagerAddress = `0x84b285aA01e502e7fd62c5E7243f4119A52a4354`
+    const data = `0x15602440d1AEE1B8B0c6FF51d756bb63968Ac0F2	5.641603955`.split('\n')
     for(const line of data) {
         const [trader, amount] = line.split(/\t/.test(line) ? '\t' : ' ')
         const tx = await positionHouse.settlePositionAndPendingOrder(positionManagerAddress, trader, Number(amount) > 0 ? hre.ethers.utils.parseEther(amount) : 1)
@@ -88,6 +88,6 @@ task('settlePosition', 'Settle Position', async (taskArgs: {stage: Stage, type: 
         await tx.wait()
         console.log("Settle Position Success")
     }
-})
+}).addParam('type', 'Type of Perpetual Future Contract', 'usd-m')
 
 export default {}
