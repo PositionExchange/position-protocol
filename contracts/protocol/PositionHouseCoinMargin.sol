@@ -12,6 +12,7 @@ import "./libraries/position/Position.sol";
 import "./bases/PositionHouseBase.sol";
 import "./modules/LimitOrder.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
+import {MarketMakerLogic} from "./modules/MarketMaker.sol";
 
 contract PositionHouseCoinMargin is PositionHouseBase
 {
@@ -99,6 +100,18 @@ contract PositionHouseCoinMargin is PositionHouseBase
             _trader,
             _contractPrice
         );
+    }
+
+    function supply(
+        IPositionManager _positionManager,
+        MarketMaker.MMOrder[] memory _orders,
+        uint16 _leverage
+    ) external override(MarketMakerLogic) onlyMMWhitelist {
+        int256 _contractPrice = int256(contractPrice[address(_positionManager)]);
+        for(uint i = 0; i < _orders.length; i++) {
+            _orders[i].quantity = _orders[i].quantity * _contractPrice;
+        }
+        _positionManager.marketMakerSupply(_orders, _leverage);
     }
 
     function calculateContractQuantity(address _pmAddress, uint256 _quantity) internal returns (uint256 _contractQuantity){
