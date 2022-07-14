@@ -14,7 +14,7 @@ import {
     BEP20Mintable,
     PositionHouseViewer,
     PositionHouseConfigurationProxy,
-    FundingRateTest
+    FundingRateTest, PositionHouseCoinMargin
 } from "../../typeChain";
 import {
     ClaimFund,
@@ -42,7 +42,7 @@ import PositionHouseTestingTool from "../shared/positionHouseTestingTool";
 import {deployPositionHouse} from "../shared/deploy";
 
 describe("PositionCoinMargin", () => {
-    let positionHouse: PositionHouse;
+    let positionHouse: PositionHouseCoinMargin;
     let trader0: any;
     let trader1: any;
     let trader2: any;
@@ -5352,6 +5352,45 @@ describe("PositionCoinMargin", () => {
                 expectedMarginBalance: ('0.0157025501935'),
                 expectedMarginRatio: ('3')
             })
+        })
+
+        it("should settle all position and pending order success", async () => {
+            await openLimitPositionAndExpect({
+                limitPrice: 4900,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from(toWei('6')),
+                _trader: trader2,
+                _positionManager: fundingRateTest,
+                skipCheckBalance: true
+            })
+
+            console.log("step 4")
+            await openMarketPosition({
+                    quantity: BigNumber.from(toWei('5')),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+            console.log("position trader1", (await positionHouseViewer.getPosition(fundingRateTest.address, trader1.address)).toString())
+            console.log("position trader2", (await positionHouseViewer.getPosition(fundingRateTest.address, trader2.address)).toString())
+            console.log("order pending trader2", (await positionHouseViewer.getListOrderPending(fundingRateTest.address, trader2.address)).toString())
+            console.log("orderbook sell", (await fundingRateTest.getLiquidityInPipRange(500000, 10, true)).toString())
+            console.log("orderbook buy", (await fundingRateTest.getLiquidityInPipRange(500000, 10, false)).toString())
+
+
+            await positionHouse.settlePositionAndPendingOrder(fundingRateTest.address, trader1.address, 0)
+            await positionHouse.settlePositionAndPendingOrder(fundingRateTest.address, trader2.address, 0)
+            console.log("after settle position")
+            console.log("position trader1", (await positionHouseViewer.getPosition(fundingRateTest.address, trader1.address)).toString())
+            console.log("position trader2", (await positionHouseViewer.getPosition(fundingRateTest.address, trader2.address)).toString())
+            console.log("order pending trader2", (await positionHouseViewer.getListOrderPending(fundingRateTest.address, trader2.address)).toString())
+            console.log("orderbook sell", (await fundingRateTest.getLiquidityInPipRange(500000, 10, true)).toString())
+            console.log("orderbook buy", (await fundingRateTest.getLiquidityInPipRange(500000, 10, false)).toString())
         })
     })
 })
