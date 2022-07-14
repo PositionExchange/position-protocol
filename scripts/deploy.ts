@@ -8,6 +8,7 @@ import {DeployDataStore} from "../deploy/DataStore";
 import {BUSD, BUSD_ADDRESS, POSI, POSI_ADDRESS} from "../constants";
 import {TransactionResponse} from "@ethersproject/abstract-provider";
 import {verifyContract} from "./utils";
+import {PositionHouse, PositionHouseCoinMargin} from "../typeChain";
 
 const DATA_STORE_FILE = {
     'usd-m': './deployData_mainnet.db',
@@ -73,5 +74,20 @@ task('verifyImp', 'Verify all implemented contracts', async (taskArgs: {stage: S
         })
     }
 }).addParam('type', 'Type of Perpetual Future Contract', 'usd-m')
+
+task('settlePosition', 'Settle Position', async (taskArgs: {stage: Stage, type: string}, hre) => {
+    const db = new DeployDataStore(DATA_STORE_FILE[taskArgs.type || 'usd-m'])
+    const positionHouseAddress = await db.findAddressByKey(`PositionHouse`)
+    const positionHouse = await hre.ethers.getContractAt('PositionHouse', positionHouseAddress) as PositionHouseCoinMargin
+    const positionManagerAddress = `0xf5054cfb910c41d856418e51a330c282e4196c9d`
+    const data = ``.split('\n')
+    for(const line of data) {
+        const [trader, amount] = line.split(/\t/.test(line) ? '\t' : ' ')
+        const tx = await positionHouse.settlePositionAndPendingOrder(positionManagerAddress, trader, Number(amount) > 0 ? hre.ethers.utils.parseEther(amount) : 1)
+        console.log(`Settle Position ${trader} ${amount} txid: ${tx.hash}`)
+        await tx.wait()
+        console.log("Settle Position Success")
+    }
+})
 
 export default {}
