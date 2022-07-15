@@ -108,5 +108,6 @@ contract PositionHouse is
         int128 _latestCumulativePremiumFraction
     ) internal {
         positionMap[_pmAddress][_trader].lastUpdatedCumulativePremiumFraction = _latestCumulativePremiumFraction;
+        limitOrderPremiumFraction[_pmAddress][_trader] = 0;
     }
 }
