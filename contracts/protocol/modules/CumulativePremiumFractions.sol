@@ -37,9 +37,9 @@ abstract contract CumulativePremiumFractions {
     }
 
     // TODO remove once fix the funding for limit order issue
-//    function _resetLatestCumulativePremiumFractions(address _positionManager) internal {
-//        cumulativePremiumFractions[_positionManager].push(0);
-//    }
+    function _resetLatestCumulativePremiumFractions(address _positionManager) internal {
+        cumulativePremiumFractions[_positionManager].push(0);
+    }
 
     function getLatestCumulativePremiumFraction(address _positionManager)
         public
