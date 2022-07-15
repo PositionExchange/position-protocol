@@ -97,8 +97,12 @@ export async function deployPositionHouse(isCoinMargin? : boolean){
     let positionStrategyOrderFactory = await ethers.getContractFactory("PositionStrategyOrder")
     let positionStrategyOrder = (await positionStrategyOrderFactory.deploy()) as unknown as PositionStrategyOrder
 
-
-    let positionHouse = (await factory.deploy()) as unknown as PositionHouseCoinMargin;
+    let positionHouse
+    if (isCoinMargin) {
+        positionHouse = (await factory.deploy()) as unknown as PositionHouseCoinMargin;
+    } else {
+        positionHouse = (await factory.deploy()) as unknown as PositionHouse;
+    }
     await insuranceFund.connect(trader).initialize()
     await insuranceFund.connect(trader).setCounterParty(positionHouse.address);
 
