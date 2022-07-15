@@ -62,6 +62,7 @@ export interface CreatePositionHouseInput {
     insuranceFund: string,
     positionHouseConfigurationProxy: string
     positionNotionalConfigProxy: string
+    futureType: FutureType
     // feePool: string
 }
 

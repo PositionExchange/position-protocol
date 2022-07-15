@@ -14,7 +14,7 @@ const migrations: MigrationDefinition = {
                 await context.factory.createCoinMarginLibrary({})
             } else {
                 const usdMarginAddress = await context.db.findAddressByKey('USDMargin');
-                console.log(`CoinMargin  ${usdMarginAddress}`);
+                console.log(`USDMargin  ${usdMarginAddress}`);
                 await context.factory.createUSDMarginLibrary({})
             }
 
