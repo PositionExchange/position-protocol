@@ -2,9 +2,11 @@ import {MigrationContext, MigrationDefinition} from "../types";
 
 const migrations: MigrationDefinition = {
     getTasks: (context: MigrationContext) => {
-        return {
-            'deploy Position Insurance Reserve Fund': async () => {
-                await context.factory.createInsuranceReserveFund();
+        if (context.stage != "production") {
+            return {
+                'deploy Position Insurance Reserve Fund': async () => {
+                    await context.factory.createInsuranceReserveFund();
+                }
             }
         }
     }
