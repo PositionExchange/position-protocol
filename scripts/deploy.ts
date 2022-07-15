@@ -8,7 +8,6 @@ import {DeployDataStore} from "../deploy/DataStore";
 import {BUSD, BUSD_ADDRESS, POSI, POSI_ADDRESS} from "../constants";
 import {TransactionResponse} from "@ethersproject/abstract-provider";
 import {verifyContract} from "./utils";
-import {PositionHouse} from "../typeChain";
 import {readFileSync} from "fs";
 
 const DATA_STORE_FILE = {
