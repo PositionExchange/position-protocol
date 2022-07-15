@@ -20,7 +20,20 @@ describe('Insurance Fund', async function () {
         // Deploy mock credit contract
         busdBonusToken = (await bep20MintableFactory.deploy('BUSD Bonus Mock', 'BUSDBONUS')) as unknown as BEP20Mintable
 
-        const pmFactory = await ethers.getContractFactory("PositionManagerTest")
+        const USDMarginFactory = await ethers.getContractFactory('USDMargin')
+        const USDMargin = await USDMarginFactory.deploy();
+
+        const PositionMath = await ethers.getContractFactory('PositionMath', {
+            libraries: {
+                USDMargin: USDMargin.address
+            }
+        })
+        const positionMath = await PositionMath.deploy()
+        const pmFactory = await ethers.getContractFactory("PositionManagerTest", {
+            libraries: {
+                PositionMath: positionMath.address
+            }
+        })
         positionManager = (await pmFactory.deploy()) as unknown as PositionManager
         await positionManager.initialize(BigNumber.from(200), busdToken.address, ethers.utils.formatBytes32String('BTC'), BigNumber.from(100), BigNumber.from(10000), BigNumber.from(10000), BigNumber.from(3000), BigNumber.from(1000), '0x5741306c21795FdCBb9b265Ea0255F499DFe515C'.toLowerCase(), deployer.address);
 
