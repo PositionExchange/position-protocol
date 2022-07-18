@@ -140,4 +140,12 @@ contract PositionHouseCoinMargin is PositionHouseBase
     {
         IPositionManager(positionManager).withdraw(trader, amount);
     }
+
+    function _reduceBonus(
+        address positionManager,
+        address trader,
+        uint256 amount
+    ) internal override {
+        return;
+    }
 }
