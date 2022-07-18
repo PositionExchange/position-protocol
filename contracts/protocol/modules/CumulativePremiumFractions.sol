@@ -2,6 +2,8 @@
 pragma solidity ^0.8.0;
 
 import "../libraries/position/Position.sol";
+import {PositionMath} from "../libraries/position/PositionMath.sol";
+import {PositionHouseFunction} from "../libraries/position/PositionHouseFunction.sol";
 
 abstract contract CumulativePremiumFractions {
     // avoid calling to position manager
@@ -35,9 +37,9 @@ abstract contract CumulativePremiumFractions {
     }
 
     // TODO remove once fix the funding for limit order issue
-//    function _resetLatestCumulativePremiumFractions(address _positionManager) internal {
-//        cumulativePremiumFractions[_positionManager].push(0);
-//    }
+    function _resetLatestCumulativePremiumFractions(address _positionManager) internal {
+        cumulativePremiumFractions[_positionManager].push(0);
+    }
 
     function getLatestCumulativePremiumFraction(address _positionManager)
         public
@@ -83,20 +85,7 @@ abstract contract CumulativePremiumFractions {
         latestCumulativePremiumFraction = getLatestCumulativePremiumFraction(
             _positionManager
         );
-        if (_oldPosition.quantity != 0) {
-            fundingPayment =
-                ((latestCumulativePremiumFraction -
-                    _oldPosition.lastUpdatedCumulativePremiumFraction) *
-                    _oldPosition.quantity) /
-                PREMIUM_FRACTION_DENOMINATOR;
-        }
-
-        // calculate remain margin, if remain margin is negative, set to zero and leave the rest to bad debt
-        if (int256(_pMargin) + fundingPayment >= 0) {
-            remainMargin = uint256(int256(_pMargin) + fundingPayment);
-        } else {
-            badDebt = uint256(-fundingPayment - int256(_pMargin));
-        }
+        (remainMargin, badDebt, fundingPayment) = PositionHouseFunction.calcRemainMarginWithFundingPayment(_oldPosition, _pMargin, latestCumulativePremiumFraction);
     }
 
     /**

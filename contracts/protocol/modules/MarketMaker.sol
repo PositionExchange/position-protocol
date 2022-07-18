@@ -53,7 +53,7 @@ abstract contract MarketMakerLogic is OwnableUpgradeable {
         IPositionManager _positionManager,
         MarketMaker.MMOrder[] memory _orders,
         uint16 _leverage
-    ) external onlyMMWhitelist {
+    ) external virtual onlyMMWhitelist {
         _positionManager.marketMakerSupply(_orders, _leverage);
     }
 

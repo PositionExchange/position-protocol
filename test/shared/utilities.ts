@@ -80,7 +80,19 @@ export function toWei(n: number | string): any {
     return BigNumber.from(web3Utils.toWei(n.toString()))
 }
 
-export function fromWei(n: number): any {
+export function multiNumberToWei(n: (number | string | BigNumber)[]): any {
+    let convertedArray = []
+    for (let i = 0; i < n.length; i++) {
+        if (n[i] != undefined) {
+            convertedArray.push(toWei(n[i].toString()))
+        } else {
+            convertedArray.push(undefined)
+        }
+    }
+    return convertedArray
+}
+
+export function fromWei(n: number | string): any {
     return web3Utils.fromWei(n.toString())
 }
 
@@ -144,6 +156,7 @@ export interface OpenMarketPositionParams {
     expectedMargin?: BigNumber,
     expectedNotional?: BigNumber | string,
     expectedSize?: BigNumber,
+    expectDeposit?: BigNumber | string,
     price?: number,
     _positionManager?: any
 }
@@ -211,10 +224,13 @@ export interface ChangePriceParams {
 export interface ExpectTestCaseParams {
     positionManagerAddress: string,
     traderAddress: string,
-    expectedOpenNotional: number,
-    expectedMargin: number,
-    expectedPnl: number | undefined
-    expectedQuantity?: number
+    expectedOpenNotional?: BigNumber | string | number,
+    expectedMargin?: BigNumber | string | number,
+    expectedPnl?: BigNumber | string | number
+    expectedQuantity?: BigNumber | string | number
+    expectedMaintenanceMargin?: BigNumber | string | number
+    expectedMarginBalance?: BigNumber | string | number
+    expectedMarginRatio?: BigNumber | string | number
 }
 
 export interface ExpectMaintenanceDetail {
@@ -263,5 +279,24 @@ export interface OpenMarketInHouseParams {
 
 export const subDecimal = (a: number, b: number): number => {
     return new Decimal(a).minus(new Decimal(b)).toNumber()
+}
+
+export interface OrderData {
+    pip: number,
+    quantity: number
+}
+
+export interface CancelLimitOrderParams {
+    trader?: SignerWithAddress
+    positionManager?: PositionManager
+    orderIdx: number | string,
+    isReduce: number | string,
+    refundAmount?: number | string
+}
+
+export interface ExpectClaimFund {
+    trader?: SignerWithAddress,
+    positionManager?: PositionManager,
+    claimableAmount: number | string
 }
 

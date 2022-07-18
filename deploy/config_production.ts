@@ -25,3 +25,15 @@ export const BNBBUSD : ConfigPositionManagerInput = {
     fundingPeriod: 3600,
     quote: BUSD,
 }
+
+export const POSIBUSD : ConfigPositionManagerInput = {
+    initialPrice: 0,
+    priceFeedKey: 'POSI',
+    basisPoint: 100000,
+    baseBasisPoint: 10000000000,
+    // fee: 0.02%
+    tollRatio: 5000,
+    maxFindingWordsIndex: 200, // find in $0.5 range
+    fundingPeriod: 3600,
+    quote: BUSD
+}

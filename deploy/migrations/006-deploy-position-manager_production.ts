@@ -1,7 +1,7 @@
 import {MigrationContext, MigrationDefinition} from "../types";
 import {ContractWrapperFactory} from "../ContractWrapperFactory";
-import {BNBBUSD, BTCBUSD} from "../config_production";
-import {BUSD} from "../../constants";
+import {BNBBUSD, BTCBUSD, POSIBUSD} from "../config_production";
+import {BUSD, POSI} from "../../constants";
 
 const migrations: MigrationDefinition = {
 
@@ -23,8 +23,28 @@ const migrations: MigrationDefinition = {
          priceFeed: string;
          */
 
+        if (context.futureType == 'coin-m') return {
+            'deploy POSIBUSD position manager production': async () => {
+                const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouse');
+                const chainLinkPriceFeedContractAddress = await context.db.findAddressByKey('ChainLinkPriceFeed')
+                await context.factory.createPositionManager({
+                    quoteAsset: await context.db.findAddressByKey(POSI),
+                    initialPrice: POSIBUSD.initialPrice,
+                    priceFeedKey: POSIBUSD.priceFeedKey,
+                    basisPoint: POSIBUSD.basisPoint,
+                    baseBasisPoint: POSIBUSD.baseBasisPoint,
+                    tollRatio: POSIBUSD.tollRatio,
+                    maxFindingWordsIndex: POSIBUSD.maxFindingWordsIndex,
+                    fundingPeriod: POSIBUSD.fundingPeriod,
+                    priceFeed: chainLinkPriceFeedContractAddress,
+                    quote: POSIBUSD.quote,
+                    counterParty: positionHouseFunctionContractAddress,
+                    leverage: 20 // TODO update max leverage
+                })
+            },
+        }
+        if (context.futureType == 'usd-m')
         return {
-
             'deploy BTCBUSD position manager production': async () => {
 
                 const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouse');
@@ -63,7 +83,6 @@ const migrations: MigrationDefinition = {
                     leverage: 10
                 })
             },
-
         }
 
     }

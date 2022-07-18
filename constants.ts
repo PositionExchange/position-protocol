@@ -15,7 +15,9 @@ export const PRIV_TESTNET_ACCOUNT = process.env["PRIV_TESTNET_ACCOUNT"] || ""
 export const PRIV_MAINNET_ACCOUNT = process.env["PRIV_MAINNET_ACCOUNT"] || ""
 export const PRIV_GANACHE_ACCOUNT = process.env["PRIV_GANACHE_ACCOUNT"] || ""
 export const BUSD_ADDRESS = "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56"
+export const POSI_ADDRESS = "0x5ca42204cdaa70d5c773946e69de942b85ca6706"
 export const BUSD = 'BUSD'
+export const POSI = 'POSI'
 
 // export const BSC_TESTNET_URL = `${process.env["BSC_TESTNET"]}
 // export const ROPSTEN_URL = `${process.env["WEB3_ENDPOINT"]}`

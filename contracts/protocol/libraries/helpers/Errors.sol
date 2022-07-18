@@ -50,6 +50,7 @@ library Errors {
     string public constant VL_ONLY_POSITION_HOUSE = "30";
     string public constant VL_ONLY_VALIDATED_TRIGGERS = "31";
     string public constant VL_INVALID_CONDITION = "32";
+    string public constant VL_MUST_BE_INTEGER = "33";
 
     enum CollateralManagerErrors {
         NO_ERROR

@@ -52,13 +52,13 @@ contract FundingRateTest is PositionManager {
         return mockTwapPrice;
     }
 
-    function getFundingRate()
-        public
-        view
-        returns (int256 premiumFraction, int256 fr)
-    {
-        uint256 underlyingAsset;
-        (premiumFraction, underlyingAsset) = super.getPremiumFraction();
-        fr = premiumFraction / int256(underlyingAsset);
-    }
+//    function getFundingRate()
+//        public
+//        view
+//        returns (int256 premiumFraction, int256 fr)
+//    {
+//        uint256 underlyingAsset;
+//        (premiumFraction, underlyingAsset) = super.getPremiumFraction();
+//        fr = premiumFraction / int256(underlyingAsset);
+//    }
 }

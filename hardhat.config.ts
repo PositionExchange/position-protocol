@@ -1,8 +1,8 @@
 import "@nomiclabs/hardhat-waffle";
 import '@nomiclabs/hardhat-ethers';
-import '@positionlab/hardhat-etherscan';
-import "@typechain/hardhat";
+import '@nomiclabs/hardhat-etherscan';
 import "@openzeppelin/hardhat-upgrades"
+import "@typechain/hardhat";
 import "hardhat-contract-sizer"
 import "@openzeppelin/hardhat-defender"
 import {task} from "hardhat/config";

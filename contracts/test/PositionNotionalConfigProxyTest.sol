@@ -3,10 +3,11 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract PositionNotionalConfigProxy is Initializable {
+contract PositionNotionalConfigProxyTest is Initializable {
     bytes32 constant BTC_BUSD = "BTC_BUSD";
     bytes32 constant BNB_BUSD = "BNB_BUSD";
     bytes32 constant POSI_BUSD = "POSI_BUSD";
+    bytes32 constant TEST = "TEST";
 
     function getMaxNotional(bytes32 key, uint16 leverage) external returns (uint256){
         if(key == BTC_BUSD) { //BTC_BUSD hash
@@ -64,6 +65,8 @@ contract PositionNotionalConfigProxy is Initializable {
             }else if(leverage > 15 && leverage <= 20){
                 return 1943;
             }
+        } else if (key == TEST) {
+            return 1_000_000_000_000;
         }
         return 50_000;
     }

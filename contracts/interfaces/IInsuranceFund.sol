@@ -22,4 +22,10 @@ interface IInsuranceFund {
         address trader,
         uint256 amountFee
     ) external;
+
+    function reduceBonus(
+        address _positionManager,
+        address _trader,
+        uint256 _reduceAmount
+    ) external;
 }
