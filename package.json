@@ -49,7 +49,7 @@
   "dependencies": {
     "@chainlink/contracts": "^0.2.1",
     "@nomiclabs/buidler": "^1.4.8",
-    "@openzeppelin/contracts": "^4.2.0",
+    "@openzeppelin/contracts": "^4.7.0",
     "@openzeppelin/contracts-ethereum-package": "^3.0.0",
     "@openzeppelin/contracts-upgradeable": "^4.3.2",
     "@openzeppelin/hardhat-defender": "^1.7.0",
