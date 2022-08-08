@@ -8,13 +8,24 @@ const migrations: MigrationDefinition = {
             /**
              no param
              */
+            if (context.futureType == 'coin-m') {
+                const coinMarginAddress = await context.db.findAddressByKey('CoinMargin');
+                console.log(`CoinMargin  ${coinMarginAddress}`);
+                await context.factory.createCoinMarginLibrary({})
+            } else {
+                const usdMarginAddress = await context.db.findAddressByKey('USDMargin');
+                console.log(`USDMargin  ${usdMarginAddress}`);
+                await context.factory.createUSDMarginLibrary({})
+            }
+
+            const positionHouseMathContractAddress = await context.db.findAddressByKey('PositionMath');
+            console.log(`PositionMath  ${positionHouseMathContractAddress}`);
+            if(!positionHouseMathContractAddress)
+                await context.factory.createPositionMathLibrary({futureType: context.futureType})
+
             const positionHouseFunctionContractAddress = await context.db.findAddressByKey('PositionHouseFunction');
             console.log(`PositionHouseFunction  ${positionHouseFunctionContractAddress}`);
             await context.factory.createPositionHouseFunctionLibrary({})
-
-            const positionHouseMathContractAddress = await context.db.findAddressByKey('PositionHouseMath');
-            console.log(`PositionHouseMath  ${positionHouseMathContractAddress}`);
-            await context.factory.createPositionHouseMathLibrary({})
 
         }
     })

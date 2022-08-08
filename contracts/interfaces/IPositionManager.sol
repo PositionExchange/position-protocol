@@ -132,12 +132,6 @@ interface IPositionManager {
             uint256 partialFilled
         );
 
-    function needClosePositionBeforeOpeningLimitOrder(
-        uint8 _side,
-        uint256 _pip,
-        uint256 _pQuantity
-    ) external view returns (bool);
-
     function getNotionalMarginAndFee(
         uint256 _pQuantity,
         uint128 _pip,
@@ -194,11 +188,6 @@ interface IPositionManager {
             uint256 fee
         );
 
-    function calcAdjustMargin(uint256 adjustMargin)
-        external
-        view
-        returns (uint256);
-
     function calcFee(uint256 _positionNotional) external view returns (uint256);
 
     function getCurrentFundingRate() external view returns (int256 fundingRate);
@@ -210,4 +199,15 @@ interface IPositionManager {
     function settleFunding() external returns (int256 premiumFraction);
 
     function updateLeverage(uint128 _newLeverage) external;
+
+    function deposit(
+        address _trader,
+        uint256 _amount,
+        uint256 _fee
+    ) external;
+
+    function withdraw(
+        address _trader,
+        uint256 _amount
+    ) external;
 }

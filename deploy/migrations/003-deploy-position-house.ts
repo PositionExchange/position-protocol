@@ -40,7 +40,8 @@ const migrations: MigrationDefinition = {
             await context.factory.createPositionHouse({
                 insuranceFund: insuranceFundContactAddress,
                 positionHouseConfigurationProxy: positionHouseConfigurationProxyContactAddress,
-                positionNotionalConfigProxy: positionNotionalConfigProxyContractAddress
+                positionNotionalConfigProxy: positionNotionalConfigProxyContractAddress,
+                futureType: context.futureType
             })
         },
 

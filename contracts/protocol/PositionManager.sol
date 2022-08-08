@@ -17,8 +17,9 @@ import {IChainLinkPriceFeed} from "../interfaces/IChainLinkPriceFeed.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {Errors} from "./libraries/helpers/Errors.sol";
 import {IPositionManager} from "../interfaces/IPositionManager.sol";
-
-//import "hardhat/console.sol";
+import {IInsuranceFund} from "../interfaces/IInsuranceFund.sol";
+import {PositionMath} from "./libraries/position/PositionMath.sol";
+import "hardhat/console.sol";
 
 contract PositionManager is
     ReentrancyGuardUpgradeable,
@@ -209,6 +210,25 @@ contract PositionManager is
         }
     }
 
+    function deposit(
+        address _trader,
+        uint256 _amount,
+        uint256 _fee
+    ) external onlyCounterParty {
+        if (isRFIToken == true) {
+            // TODO update RFI percentage might be different from 1%
+            _amount = _amount * 100 / 99;
+        }
+        insuranceFund.deposit(address(this), _trader, _amount, _fee);
+    }
+
+    function withdraw(
+        address _trader,
+        uint256 _amount
+    ) external onlyCounterParty {
+        insuranceFund.withdraw(address(this), _trader, _amount);
+    }
+
     function openLimitPosition(
         uint128 _pip,
         uint128 _size,
@@ -224,6 +244,7 @@ contract PositionManager is
             uint256 openNotional
         )
     {
+        require(_size != 0, Errors.VL_INVALID_SIZE);
         SingleSlot memory _singleSlot = singleSlot;
         uint256 underlyingPip = getUnderlyingPriceInPip();
         {
@@ -310,7 +331,8 @@ contract PositionManager is
             revert(Errors.VL_MARKET_ORDER_MUST_CLOSE_TO_INDEX_PRICE);
         }
         fee = calcFee(openNotional);
-        entryPrice = (openNotional * getBasisPoint()) / _size;
+        // need to calculate entryPrice in pip
+        entryPrice = PositionMath.calculateEntryPrice(openNotional, _size, getBasisPoint());
     }
 
     /**
@@ -375,15 +397,16 @@ contract PositionManager is
         // premium = twapMarketPrice - twapIndexPrice
         // timeFraction = fundingPeriod(1 hour) / 1 day
         // premiumFraction = premium * timeFraction
+        uint256 baseBasisPoint = getBaseBasisPoint();
         underlyingPrice = getUnderlyingTwapPrice(spotPriceTwapInterval);
         int256 _twapPrice = int256(getTwapPrice(spotPriceTwapInterval));
         // 10 ** 8 is the divider
         int256 premium = ((_twapPrice - int256(underlyingPrice)) *
-            PREMIUM_FRACTION_DENOMINATOR) / int256(getBaseBasisPoint());
-        premiumFraction = (premium * int256(fundingPeriod)) / int256(1 days);
+            PREMIUM_FRACTION_DENOMINATOR) / int256(baseBasisPoint);
+        premiumFraction = (premium * int256(fundingPeriod) * int256(baseBasisPoint)) / (int256(1 days) * int256(underlyingPrice));
     }
 
-    function getLeverage() public view returns (uint128) {
+    function getLeverage() external view returns (uint128) {
         return leverage;
     }
 
@@ -400,7 +423,7 @@ contract PositionManager is
     }
 
     function getCurrentSingleSlot()
-        public
+        external
         view
         override
         returns (uint128, uint8)
@@ -436,15 +459,6 @@ contract PositionManager is
                 : 0;
     }
 
-    function calcAdjustMargin(uint256 _adjustMargin)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        return _adjustMargin;
-    }
-
     function hasLiquidity(uint128 _pip) public view override returns (bool) {
         return liquidityBitmap.hasLiquidity(_pip);
     }
@@ -471,19 +485,6 @@ contract PositionManager is
         }
     }
 
-    function needClosePositionBeforeOpeningLimitOrder(
-        uint8 _side,
-        uint256 _pip,
-        uint256 _pQuantity
-    ) public view override returns (bool) {
-        //save gas
-        SingleSlot memory _singleSlot = singleSlot;
-        return
-            _pip == _singleSlot.pip &&
-            _singleSlot.isFullBuy != _side &&
-            _pQuantity <= getLiquidityInCurrentPip();
-    }
-
     function getNotionalMarginAndFee(
         uint256 _pQuantity,
         uint128 _pip,
@@ -498,7 +499,7 @@ contract PositionManager is
             uint256 fee
         )
     {
-        notional = (_pQuantity * pipToPrice(_pip)) / getBaseBasisPoint();
+        notional = PositionMath.calculateNotional(pipToPrice(_pip), _pQuantity, getBaseBasisPoint());
         margin = notional / _leverage;
         fee = calcFee(notional);
     }
@@ -518,42 +519,6 @@ contract PositionManager is
             return _positionNotional / tollRatio;
         }
         return 0;
-    }
-
-    function getOrderbook(uint128 limit) external view returns (Orderbook memory ob){
-        SingleSlot memory _singleSlot = singleSlot;
-        uint128 _currentPip = _singleSlot.pip;
-        uint128[] memory _askPips = liquidityBitmap.findAllLiquidityInMultipleWords(_currentPip, uint256(limit), true);
-        uint128[] memory _bidPips = liquidityBitmap.findAllLiquidityInMultipleWords(_currentPip, uint256(limit), false);
-        ob.asks = new uint128[][](_askPips.length);
-        ob.bids = new uint128[][](_bidPips.length);
-        bool shiftAsk;
-        for(uint256 i=0; i<_askPips.length; i++){
-            uint128[] memory _liquidity = new uint128[](2);
-            if(_askPips[i] != 0){
-                if(!(i == 0 && _currentPip == _askPips[0] && _singleSlot.isFullBuy == 1)){
-                    _liquidity[0] = _askPips[i];
-                    _liquidity[1] = tickPosition[_askPips[i]].liquidity;
-                    ob.asks[shiftAsk ? i - 1 : i] = _liquidity;
-                }else{
-                    shiftAsk = true;
-                }
-            }
-        }
-        bool shiftBid;
-        for(uint256 i=0; i<_bidPips.length; i++){
-            uint128[] memory _liquidity = new uint128[](2);
-            if(_bidPips[i] != 0){
-                if(!(i == 0 && _currentPip == _askPips[0] && _singleSlot.isFullBuy == 2)){
-                    _liquidity[0] = _bidPips[i];
-                    _liquidity[1] = tickPosition[_bidPips[i]].liquidity;
-                    ob.bids[shiftBid ? i - 1 : i] = _liquidity;
-                }else{
-                    shiftBid = true;
-                }
-            }
-        }
-
     }
 
     function getLiquidityInPipRange(
@@ -698,10 +663,15 @@ contract PositionManager is
     function updateMaxPercentMarketMarket(uint16 newMarketMakerSlipage) public onlyOwner {
         emit MaxMarketMakerSlipageUpdated(maxMarketMakerSlipage, newMarketMakerSlipage);
         maxMarketMakerSlipage = newMarketMakerSlipage;
-
     }
 
+    function updateIsRFIToken(bool _isRFI) public onlyOwner {
+        isRFIToken = _isRFI;
+    }
 
+    function updateInsuranceFundAddress(address _insuranceFundAddress) public onlyOwner {
+        insuranceFund = IInsuranceFund(_insuranceFundAddress);
+    }
 
     function updateLeverage(uint128 _newLeverage) public onlyOwner {
         require(0 < _newLeverage, Errors.VL_INVALID_LEVERAGE);
@@ -903,8 +873,7 @@ contract PositionManager is
                         tickPosition[step.pipNext].partiallyFill(
                             state.remainingSize
                         );
-                        openNotional += ((state.remainingSize *
-                            pipToPrice(step.pipNext)) / BASE_BASIC_POINT);
+                        openNotional += PositionMath.calculateNotional(pipToPrice(step.pipNext), state.remainingSize, BASE_BASIC_POINT);
                         // remaining liquidity at current pip
                         remainingLiquidity =
                             liquidity -
@@ -919,8 +888,7 @@ contract PositionManager is
                     } else if (state.remainingSize > liquidity) {
                         // order in that pip will be fulfilled
                         state.remainingSize = state.remainingSize - liquidity;
-                        openNotional += ((liquidity *
-                            pipToPrice(step.pipNext)) / BASE_BASIC_POINT);
+                        openNotional += PositionMath.calculateNotional(pipToPrice(step.pipNext), liquidity, BASE_BASIC_POINT);
                         state.pip = state.remainingSize > 0
                             ? (_isBuy ? step.pipNext + 1 : step.pipNext - 1)
                             : step.pipNext;
@@ -929,8 +897,7 @@ contract PositionManager is
                         // remaining size = liquidity
                         // only 1 pip should be toggled, so we call it directly here
                         liquidityBitmap.toggleSingleBit(step.pipNext, false);
-                        openNotional += ((state.remainingSize *
-                            pipToPrice(step.pipNext)) / BASE_BASIC_POINT);
+                        openNotional += PositionMath.calculateNotional(pipToPrice(step.pipNext), state.remainingSize, BASE_BASIC_POINT);
                         state.remainingSize = 0;
                         state.pip = step.pipNext;
                         isFullBuy = 0;

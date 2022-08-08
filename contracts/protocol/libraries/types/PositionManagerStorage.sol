@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../../interfaces/IChainLinkPriceFeed.sol";
+import "../../../interfaces/IInsuranceFund.sol";
 import "../position/TickPosition.sol";
 import "../position/LiquidityBitmap.sol";
 
@@ -110,4 +111,6 @@ contract PositionManagerStorage {
     uint256[49] private __gap;
     uint128 public maxWordRangeForLimitOrder;
     uint128 public maxWordRangeForMarketOrder;
+    IInsuranceFund public insuranceFund;
+    bool isRFIToken;
 }
