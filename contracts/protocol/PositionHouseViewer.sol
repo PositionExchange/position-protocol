@@ -136,8 +136,9 @@ contract PositionHouseViewer is Initializable, OwnableUpgradeable {
             _positionDataWithManualMargin.margin,
             positionHouse.getLatestCumulativePremiumFraction(_pmAddress)
         );
+        // only use initial margin for calculating maintenanceMargin
         maintenanceMargin =
-            ((remainMarginWithFundingPayment -
+            ((_positionDataWithManualMargin.margin -
             uint256(positionHouse.getAddedMargin(_pmAddress, _trader)))
             * positionHouseConfigurationProxy.maintenanceMarginRatio()) / 100;
         marginBalance = int256(remainMarginWithFundingPayment) + unrealizedPnl;

@@ -1796,4 +1796,63 @@ describe('Test Margin Intergration', function () {
             await expect(claimableAmount).eq(toWei('3566.565758229682383326'))
         })
     })
+
+    describe("get maintenance detail with funding payment", async () => {
+        // currentPrice = 5000
+        // S0: Call first time payFunding with underlyingPrice = 5100, twapPrice = 5000
+        // S1: User1 open Long position with entryPrice = 5000, quantity = 10
+        // S2: User1 add margin 1000
+        // S3: Call payFunding with underlyingPrice = 5000, twapPrice = 25000
+        // S4: Get maintenance detail of User1
+        it("should get maintenance margin success", async () => {
+            // Step 0
+            console.log("STEP 0")
+            await fundingRateTest.setMockPrice(BigNumber.from("5100"), BigNumber.from("5000"))
+            await positionHouse.payFunding(fundingRateTest.address)
+            console.log("LATEST CUMULATIVE PREMIUM FRACTION 1", (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString())
+            // PremiumFraction 1 = -8169934
+
+            // Step 1
+            console.log("STEP 1")
+            await phTT.openLimitPositionAndExpect({
+                limitPrice: 5000,
+                side: SIDE.SHORT,
+                leverage: 10,
+                quantity: BigNumber.from(toWei('1')),
+                _trader: trader2,
+                _positionManager: fundingRateTest
+            })
+
+            await phTT.openMarketPosition({
+                    quantity: BigNumber.from(toWei('1')),
+                    leverage: 10,
+                    side: SIDE.LONG,
+                    trader: trader1.address,
+                    instanceTrader: trader1,
+                    _positionManager: fundingRateTest,
+                }
+            );
+
+            await positionHouse.connect(trader1).addMargin(fundingRateTest.address, toWei(200))
+
+            // Step 2
+            console.log("STEP 2")
+            await fundingRateTest.setMockTime(BigNumber.from("3601"))
+            // mock twap price for high funding payment
+            await fundingRateTest.setMockPrice(BigNumber.from("5000"), BigNumber.from("250000"))
+            await positionHouse.payFunding(fundingRateTest.address)
+            // reset twap price to normal price
+            await fundingRateTest.setMockPrice(BigNumber.from("5000"), BigNumber.from("5010"))
+            // PremiumFraction 2 = 20408496732
+
+            const premiumFraction2 = (await positionHouse.getLatestCumulativePremiumFraction(fundingRateTest.address)).toString()
+            console.log("LATEST CUMULATIVE PREMIUM FRACTION 2", premiumFraction2)
+            const fundingPaymentStep2 = (await positionHouseViewer.getFundingPaymentAmount(fundingRateTest.address, trader1.address)).toString()
+            console.log(fundingPaymentStep2)
+
+            console.log((await positionHouseViewer.getMaintenanceDetail(fundingRateTest.address, trader1.address, 0)).toString())
+
+            await positionHouse.liquidate(fundingRateTest.address, trader1.address);
+        })
+    })
 })

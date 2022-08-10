@@ -522,6 +522,7 @@ contract PositionHouseBase is
     )
     {
         address _pmAddress = address(_positionManager);
+        // Position Data without manual margin
         Position.Data memory _positionData = getPosition(_pmAddress, _trader);
         Position.Data memory _positionDataWithManualMargin = getPositionWithManualMargin(_pmAddress, _trader, getPosition(_pmAddress, _trader));
         (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
@@ -541,9 +542,9 @@ contract PositionHouseBase is
             _positionData,
             _positionDataWithManualMargin.margin
         );
+        // only use initial margin for calculating maintenanceMargin
         maintenanceMargin =
-        ((remainMarginWithFundingPayment -
-        uint256(manualMargin[_pmAddress][_trader])) *
+        (_positionData.margin *
         positionHouseConfigurationProxy.maintenanceMarginRatio()) /
         100;
         marginBalance = int256(remainMarginWithFundingPayment) + unrealizedPnl;
