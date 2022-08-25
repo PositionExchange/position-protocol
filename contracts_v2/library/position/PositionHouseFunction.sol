@@ -220,6 +220,10 @@ library PositionHouseFunction {
             memory subLimitOrders = new PositionLimitOrder.Data[](
                 _limitOrders.length
             );
+//        PositionLimitOrder.Data[]
+//            memory subReduceLimitOrders = new PositionLimitOrder.Data[](
+//                _reduceLimitOrders.length
+//            );
         if (_limitOrders.length > 0) {
             uint256 index = 0;
             for (uint256 i = 0; i < _limitOrders.length; i++) {
@@ -237,6 +241,24 @@ library PositionHouseFunction {
                 }
             }
         }
+//        if (_reduceLimitOrders.length > 0) {
+//            uint256 index = 0;
+//            for (uint256 i = 0; i < _reduceLimitOrders.length; i++) {
+//                (bool isFilled, , , ) = _positionManager.getPendingOrderDetail(
+//                    _reduceLimitOrders[i].pip,
+//                    _reduceLimitOrders[i].orderId
+//                );
+//                if (isFilled != true) {
+//                    subReduceLimitOrders[index] = _reduceLimitOrders[i];
+//                    _positionManager.updatePartialFilledOrder(
+//                        _reduceLimitOrders[i].pip,
+//                        _reduceLimitOrders[i].orderId
+//                    );
+//                    index++;
+//                }
+//            }
+//        }
+//        return (subLimitOrders, subReduceLimitOrders);
         return subLimitOrders;
     }
 

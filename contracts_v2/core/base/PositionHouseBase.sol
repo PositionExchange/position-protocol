@@ -28,7 +28,6 @@ import "hardhat/console.sol";
 contract PositionHouseBase is
     ReentrancyGuardUpgradeable,
     CumulativePremiumFractions,
-    ClaimableAmountManager,
     LimitOrderManager,
     MarketMakerLogic,
     MarketOrder
@@ -56,12 +55,6 @@ contract PositionHouseBase is
 
     event FullyLiquidated(address pmAddress, address trader);
     event PartiallyLiquidated(address pmAddress, address trader);
-
-//    event FundClaimed(
-//        address pmAddress,
-//        address trader,
-//        uint256 totalFund
-//    );
 
     event InstantlyClosed(address pmAddress, address trader);
 
@@ -251,7 +244,7 @@ contract PositionHouseBase is
         clearPosition(_pmAddress, _trader);
         if (totalRealizedPnl > 0) {
             _withdraw(_pmAddress, _trader, totalRealizedPnl.abs());
-//            emit FundClaimed(_pmAddress, _trader, totalRealizedPnl.abs());
+            //            emit FundClaimed(_pmAddress, _trader, totalRealizedPnl.abs());
         }
     }
 
@@ -266,7 +259,7 @@ contract PositionHouseBase is
         address _trader,
         uint256 _contractPrice
     )
-        internal
+    internal
     {
         (, , uint256 marginRatio) = getMaintenanceDetail(
             _positionManager,
@@ -498,12 +491,12 @@ contract PositionHouseBase is
         Position.Data memory _oldPosition
     ) internal view returns (uint256 positionNotional, int256 unrealizedPnl) {
         (positionNotional, unrealizedPnl) = PositionHouseFunction
-            .getPositionNotionalAndUnrealizedPnl(
-                address(_positionManager),
-                _trader,
-                _pnlCalcOption,
-                _oldPosition
-            );
+        .getPositionNotionalAndUnrealizedPnl(
+            address(_positionManager),
+            _trader,
+            _pnlCalcOption,
+            _oldPosition
+        );
     }
 
     function getMaintenanceDetail(
@@ -536,7 +529,7 @@ contract PositionHouseBase is
 
         ) = calcRemainMarginWithFundingPayment(
             _pmAddress,
-            // only use position data without margin when calculate remain margin with funding payment
+        // only use position data without margin when calculate remain margin with funding payment
             _positionData,
             _positionDataWithManualMargin.margin
         );
@@ -632,7 +625,7 @@ contract PositionHouseBase is
     ) internal returns (PositionResp memory positionResp) {
         address _pmAddress = address(_positionManager);
         int256 _manualMargin = _getManualMargin(_pmAddress, _trader);
-//        _emptyReduceLimitOrders(_pmAddress, _trader);
+        //        _emptyReduceLimitOrders(_pmAddress, _trader);
         // if current position is long (_quantity >0) then liquidate order is short
         bool _liquidateOrderIsBuy = _quantity > 0 ? false : true;
         // call directly to position manager to skip check enough liquidity
@@ -642,12 +635,12 @@ contract PositionHouseBase is
             _oldPosition.openNotional,
             _oldPosition.quantity.abs()
         );
-//        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
-//            _positionManager,
-//            _trader,
-//            PnlCalcOption.SPOT_PRICE,
-//            _oldPosition
-//        );
+        //        (, int256 unrealizedPnl) = getPositionNotionalAndUnrealizedPnl(
+        //            _positionManager,
+        //            _trader,
+        //            PnlCalcOption.SPOT_PRICE,
+        //            _oldPosition
+        //        );
         // TODO need to calculate remain margin with funding payment
         (uint256 _liquidatedPositionMargin, uint256 _liquidatedManualMargin) = PositionHouseFunction.calculatePartialLiquidateMargin(
             _oldPosition.margin - _manualMargin.abs(),
@@ -657,7 +650,7 @@ contract PositionHouseBase is
         manualMargin[_pmAddress][_trader] -= int256(_liquidatedManualMargin);
         uint256 _liquidatedMargin = _liquidatedPositionMargin + _liquidatedManualMargin;
         positionResp.marginToVault = int256(_liquidatedMargin);
-//        positionResp.unrealizedPnl = unrealizedPnl;
+        //        positionResp.unrealizedPnl = unrealizedPnl;
         debtPosition[_pmAddress][_trader].updateDebt(
             _quantity,
             _liquidatedPositionMargin,

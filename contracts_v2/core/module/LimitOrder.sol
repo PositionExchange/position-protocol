@@ -11,7 +11,7 @@ import {Errors} from "../libraries/helpers/Errors.sol";
 import "./ClaimableAmountManager.sol";
 import "./Base.sol";
 
-abstract contract LimitOrderManager is ClaimableAmountManager, PositionHouseStorage, Base {
+abstract contract LimitOrderManager is PositionHouseStorage, Base {
     event OpenLimit(
         uint64 orderId,
         address trader,
