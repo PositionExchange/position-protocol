@@ -12,7 +12,11 @@ import {
     GAS_PRICE,
     PRIV_TESTNET_ACCOUNT,
     PRIV_MAINNET_ACCOUNT,
-    GANACHE_QC_URL, PRIV_GANACHE_ACCOUNT
+    GANACHE_QC_URL, PRIV_GANACHE_ACCOUNT,
+    POSI_CHAIN_DEVNET_URL,
+    POSI_CHAIN_TESTNET_URL,
+    PRIV_POSI_CHAIN_DEVNET_ACCOUNT,
+    PRIV_POSI_CHAIN_TESTNET_ACCOUNT
 } from "./constants";
 import "./scripts/deploy";
 import "hardhat-gas-reporter";
@@ -45,20 +49,30 @@ module.exports = {
         hardhat: {
             allowUnlimitedContractSize: true,
         },
-        bsc_testnet: {
-            url: BSC_TESTNET_URL,
-            chainId: 97,
-            accounts: PRIV_TESTNET_ACCOUNT ? [PRIV_TESTNET_ACCOUNT] : [],
+        // bsc_testnet: {
+        //     url: BSC_TESTNET_URL,
+        //     chainId: 97,
+        //     accounts: PRIV_TESTNET_ACCOUNT ? [PRIV_TESTNET_ACCOUNT] : [],
+        // },
+        // bsc_mainnet: {
+        //     url: BSC_MAINNET_URL,
+        //     chainId: 56,
+        //     accounts: PRIV_MAINNET_ACCOUNT ? [PRIV_MAINNET_ACCOUNT] : [],
+        // },
+        // qc: {
+        //     url: GANACHE_QC_URL,
+        //     chainId: 1337,
+        //     accounts: PRIV_GANACHE_ACCOUNT ? [PRIV_GANACHE_ACCOUNT] : [],
+        // },
+        posi_devnet: {
+            url: POSI_CHAIN_DEVNET_URL,
+            chainId: 920000,
+            accounts: PRIV_POSI_CHAIN_DEVNET_ACCOUNT ? [PRIV_POSI_CHAIN_DEVNET_ACCOUNT] : [],
         },
-        bsc_mainnet: {
-            url: BSC_MAINNET_URL,
-            chainId: 56,
-            accounts: PRIV_MAINNET_ACCOUNT ? [PRIV_MAINNET_ACCOUNT] : [],
-        },
-        qc: {
-            url: GANACHE_QC_URL,
-            chainId: 1337,
-            accounts: PRIV_GANACHE_ACCOUNT ? [PRIV_GANACHE_ACCOUNT] : [],
+        posi_testnet: {
+            url: POSI_CHAIN_TESTNET_URL,
+            chainId: 910000,
+            accounts: PRIV_POSI_CHAIN_TESTNET_ACCOUNT ? [PRIV_POSI_CHAIN_TESTNET_ACCOUNT] : [],
         },
     },
 
@@ -104,7 +118,29 @@ module.exports = {
         ]
     },
     etherscan: {
-        apiKey: 'UXFZRYWHB141CX97CPECWH9V7E9QSPHUF6',
+        apiKey: {
+            posi_devnet: 'UXFZRYWHB141CX97CPECWH9V7E9QSPHUF6',
+            posi_testnet: 'UXFZRYWHB141CX97CPECWH9V7E9QSPHUF6',
+            // bsc_testnet: 'UXFZRYWHB141CX97CPECWH9V7E9QSPHUF6'
+        },
+        customChains: [
+            {
+                network: "posi_devnet",
+                chainId: 920000,
+                urls: {
+                    apiURL: "https://apex-devnet.posichain.org/contract-verifier/verify",
+                    browserURL: "https://explorer-devnet.posichain.org"
+                }
+            },
+            {
+                network: "posi_testnet",
+                chainId: 910000,
+                urls: {
+                    apiURL: "https://apex-testnet.posichain.org/contract-verifier/verify",
+                    browserURL: "http://explorer-testnet.posichain.org"
+                }
+            },
+        ]
     },
     defender: {
         apiKey: process.env.DEFENDER_TEAM_API_KEY,

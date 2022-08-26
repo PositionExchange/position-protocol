@@ -9,7 +9,7 @@ const migrations: MigrationDefinition = {
              * Currently no param
              */
             if (context.stage != 'production') {
-                await context.factory.createChainlinkPriceFeed({})
+                await context.factory.createChainlinkPriceFeedQc({})
             }
 
         }
