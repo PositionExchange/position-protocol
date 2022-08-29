@@ -129,7 +129,7 @@ module.exports = {
                 chainId: 920000,
                 urls: {
                     apiURL: "https://apex-devnet.posichain.org/contract-verifier/verify",
-                    browserURL: "https://explorer-devnet.posichain.org"
+                    browserURL: "https://blockscout-devnet.int.posichain.org"
                 }
             },
             {

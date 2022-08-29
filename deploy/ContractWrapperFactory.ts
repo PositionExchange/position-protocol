@@ -74,7 +74,7 @@ export class ContractWrapperFactory {
         if (contractAddress) {
             // const proposal = await this.hre.defender.proposeUpgrade(contractAddress, PositionManager, {unsafeAllowLinkedLibraries: true});
             // await this.verifyContractUsingDefender(proposal)
-            const upgraded = await this.hre.upgrades.upgradeProxy(contractAddress, PositionManager);
+            const upgraded = await this.hre.upgrades.upgradeProxy(contractAddress, PositionManager, {unsafeAllowLinkedLibraries: true});
             console.log(`Starting verify upgrade Position Manager ${symbol}`)
             await this.verifyImplContract(upgraded.deployTransaction)
             console.log(`Upgrade Position Manager ${symbol}`)
