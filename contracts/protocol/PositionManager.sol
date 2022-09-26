@@ -533,7 +533,7 @@ contract PositionManager is
             maxWordRangeForMarketOrder,
             _fromPip,
             _dataLength,
-            _toHigher
+            !_toHigher
         );
         PipLiquidity[] memory allLiquidity = new PipLiquidity[](_dataLength);
 
