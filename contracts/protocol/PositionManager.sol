@@ -91,18 +91,18 @@ contract PositionManager is
 
     }
 
-    function initializePip() external {
-        // initialize singleSlot.pip
-        require(!_isInitiatedPip && singleSlot.pip == 0, "initialized");
-        uint256 _price = priceFeed.getPrice(priceFeedKey);
-        uint128 _pip = uint128(_price * basisPoint/PRICE_FEED_TOKEN_DIGIT);
-        singleSlot.pip = _pip;
-        reserveSnapshots.push(
-            ReserveSnapshot(_pip, _now(), _blocknumber())
-        );
-        _isInitiatedPip = true;
-        emit ReserveSnapshotted(_pip, _now());
-    }
+//    function initializePip() external {
+//        // initialize singleSlot.pip
+//        require(!_isInitiatedPip && singleSlot.pip == 0, "initialized");
+//        uint256 _price = priceFeed.getPrice(priceFeedKey);
+//        uint128 _pip = uint128(_price * basisPoint/PRICE_FEED_TOKEN_DIGIT);
+//        singleSlot.pip = _pip;
+//        reserveSnapshots.push(
+//            ReserveSnapshot(_pip, _now(), _blocknumber())
+//        );
+//        _isInitiatedPip = true;
+//        emit ReserveSnapshotted(_pip, _now());
+//    }
 
     function updatePartialFilledOrder(uint128 _pip, uint64 _orderId)
         public
@@ -530,6 +530,7 @@ contract PositionManager is
             uint128(_dataLength)
         );
         allInitializedPips = liquidityBitmap.findAllLiquidityInMultipleWords(
+            maxWordRangeForMarketOrder,
             _fromPip,
             _dataLength,
             _toHigher
