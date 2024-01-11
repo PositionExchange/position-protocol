@@ -129,48 +129,98 @@ library LiquidityBitmap {
     // find all pip has liquidity in multiple word
     function findAllLiquidityInMultipleWords(
         mapping(uint128 => uint256) storage _self,
+        uint128 _maxWords,
         uint128 _startPip,
         uint256 _dataLength,
-        bool _toHigher
+        bool _lte
     ) internal view returns (uint128[] memory) {
         uint128 startWord = _startPip >> 8;
         uint128 index = 0;
         uint128[] memory allPip = new uint128[](uint128(_dataLength));
-        if (!_toHigher) {
-            for (uint128 i = startWord; i >= (startWord > 1000 ? startWord - 1000 : 1); i--) {
-                if (_self[i] != 0) {
-                    uint128 next;
-                    next = findHasLiquidityInOneWords(
-                        _self,
-                        i < startWord ? 256 * i + 255 : _startPip,
-                        true
-                    );
-                    if (next != 0) {
-                        allPip[index] = next;
-                        index++;
-                        if (index >= _dataLength) break;
-                    }
-                    while (true) {
+        if (_lte) {
+            uint128 next;
+            if (startWord != 0) {
+                uint128 i = startWord;
+                for (
+                    i;
+                    i > (startWord < _maxWords ? 0 : startWord - _maxWords);
+                    i--
+                ) {
+                    if (_self[i] != 0) {
                         next = findHasLiquidityInOneWords(
                             _self,
-                            next - 1,
+                            i < startWord ? 256 * i + 255 : _startPip,
                             true
                         );
-                        if (next != 0 && index <= _dataLength) {
+                        if (next != 0) {
                             allPip[index] = next;
                             index++;
-                            if (index >= _dataLength) break;
-                        } else {
-                            break;
+                            _dataLength--;
+                            if (_dataLength == 0) return allPip;
+                            (
+                            allPip,
+                            index,
+                            _dataLength
+                            ) = findAllLiquidityInOneWord(
+                                _self,
+                                next,
+                                allPip,
+                                index,
+                                _dataLength,
+                                true
+                            );
                         }
                     }
                 }
-                if (index == _dataLength) return allPip;
+                if (i == 0 && _self[0] != 0) {
+                    next = findHasLiquidityInOneWords(_self, 255, true);
+                    if (next != 0) {
+                        allPip[index] = next;
+                        index++;
+                        _dataLength--;
+                        if (_dataLength == 0) return allPip;
+                        (
+                        allPip,
+                        index,
+                        _dataLength
+                        ) = findAllLiquidityInOneWord(
+                            _self,
+                            next,
+                            allPip,
+                            index,
+                            _dataLength,
+                            true
+                        );
+                    }
+                }
+            } else {
+                if (_self[startWord] != 0) {
+                    next = findHasLiquidityInOneWords(_self, _startPip, true);
+                    if (next != 0) {
+                        allPip[index] = next;
+                        index++;
+                        _dataLength--;
+                        if (_dataLength == 0) return allPip;
+                        (
+                        allPip,
+                        index,
+                        _dataLength
+                        ) = findAllLiquidityInOneWord(
+                            _self,
+                            next,
+                            allPip,
+                            index,
+                            _dataLength,
+                            true
+                        );
+                    }
+                }
             }
         } else {
-            for (uint128 i = startWord; i <= startWord + 1000; i++) {
+            uint128 i = startWord;
+            for (i; i < startWord + _maxWords; i++) {
+                uint128 next;
                 if (_self[i] != 0) {
-                    uint128 next;
                     next = findHasLiquidityInOneWords(
                         _self,
                         i > startWord ? 256 * i : _startPip,
@@ -179,28 +229,59 @@ library LiquidityBitmap {
                     if (next != 0) {
                         allPip[index] = next;
                         index++;
-                        if (index >= _dataLength) break;
-                    }
-                    while (true) {
-                        next = findHasLiquidityInOneWords(
+                        _dataLength--;
+                        if (_dataLength == 0) return allPip;
+                        (
+                        allPip,
+                        index,
+                        _dataLength
+                        ) = findAllLiquidityInOneWord(
                             _self,
-                            next + 1,
+                            next,
+                            allPip,
+                            index,
+                            _dataLength,
                             false
                         );
-                        if (next != 0 && index <= _dataLength) {
-                            allPip[index] = next;
-                            index++;
-                            if (index >= _dataLength) break;
-                        } else {
-                            break;
-                        }
                     }
                 }
             }
-            if (index == _dataLength) return allPip;
         }
-
         return allPip;
+    }
+
+    function findAllLiquidityInOneWord(
+        mapping(uint128 => uint256) storage _self,
+        uint128 _next,
+        uint128[] memory _allPip,
+        uint128 _index,
+        uint256 _dataLength,
+        bool _lte
+    )
+    internal
+    view
+    returns (
+        uint128[] memory,
+        uint128,
+        uint256
+    )
+    {
+        while (_dataLength != 0) {
+            _next = findHasLiquidityInOneWords(
+                _self,
+                _lte ? _next - 1 : _next + 1,
+                _lte
+            );
+            if (_next != 0) {
+                _allPip[_index] = _next;
+                _index++;
+                _dataLength--;
+                if (_dataLength == 0) return (_allPip, _index, _dataLength);
+            } else {
+                break;
+            }
+        }
+        return (_allPip, _index, _dataLength);
     }
 
     function hasLiquidity(
