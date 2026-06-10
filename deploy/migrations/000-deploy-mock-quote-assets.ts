@@ -20,6 +20,9 @@ const migrations: MigrationDefinition = {
             },
             'deploy mock BUSD': async () => {
                 return deployMockBep20('BUSD Mock', 'BUSD')
+            },
+            'deploy mock BUSD Upgradeable testnet': async () => {
+                return context.factory.createBUSDTestnet()
             }
         }
     }

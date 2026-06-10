@@ -365,4 +365,13 @@ export class ContractWrapperFactory {
         console.log(`Deployed PriceAggregator: ${contract.address}`)
         await verifyContract(this.hre, contract.address)
     }
+    async createBUSDTestnet(){
+        const Contract = await this.hre.ethers.getContractFactory('TokenBUSDTestnet')
+        const instance = await this.hre.upgrades.deployProxy(Contract, []);
+        await instance.deployed();
+        const address = instance.address.toString().toLowerCase();
+        console.log(`Address TokenBUSDTestnet address : ${address}`)
+        await this.db.saveAddressByKey('TokenBUSDTestnet', address);
+        await this.verifyProxy(address)
+    }
 }
